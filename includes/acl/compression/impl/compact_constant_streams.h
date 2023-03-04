@@ -67,24 +67,48 @@ namespace acl
 		// then the sub-track is constant. We perform the same test using the default
 		// sub-track value to determine if it is a default sub-track.
 
-		inline bool RTM_SIMD_CALL are_samples_constant(const clip_context& lossy_clip_context, const clip_context& additive_base_clip_context, rtm::vector4f_arg0 reference, uint32_t transform_index, animation_track_type8 sub_track_type)
+		inline bool RTM_SIMD_CALL are_samples_constant(const compression_settings& settings,
+			const clip_context& lossy_clip_context, const clip_context& additive_base_clip_context,
+			rtm::vector4f_arg0 reference, uint32_t transform_index, animation_track_type8 sub_track_type)
 		{
-			const bool has_additive_base = lossy_clip_context.has_additive_base;
-
 			const segment_context& lossy_segment = lossy_clip_context.segments[0];
 			const transform_streams& raw_transform_stream = lossy_segment.bone_streams[transform_index];
 
 			const rigid_shell_metadata_t& shell = lossy_clip_context.clip_shell_metadata[transform_index];
 
-			const uint32_t num_samples = lossy_clip_context.num_samples;
+			const itransform_error_metric& error_metric = *settings.error_metric;
+
+			const bool has_additive_base = lossy_clip_context.has_additive_base;
+			const bool needs_conversion = error_metric.needs_conversion(lossy_clip_context.has_scale);
+
+			const uint32_t dirty_transform_indices[2] = { 0, 1 };
+			rtm::qvvf local_transforms[2];
+			rtm::qvvf base_transforms[2];
+			uint8_t local_transforms_converted[1024];	// Big enough for 2 transforms for sure
+			uint8_t base_transforms_converted[1024];	// Big enough for 2 transforms for sure
+
+			const size_t metric_transform_size = error_metric.get_transform_size(lossy_clip_context.has_scale);
+			ACL_ASSERT(metric_transform_size * 2 <= sizeof(local_transforms_converted), "Transform size is too large");
+
+			itransform_error_metric::convert_transforms_args convert_transforms_args;
+			convert_transforms_args.dirty_transform_indices = &dirty_transform_indices[0];
+			convert_transforms_args.num_dirty_transforms = 2;
+			convert_transforms_args.transforms = &local_transforms[0];
+			convert_transforms_args.num_transforms = 2;
+
+			itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args;
+			apply_additive_to_base_args.dirty_transform_indices = &dirty_transform_indices[0];
+			apply_additive_to_base_args.num_dirty_transforms = 2;
+			apply_additive_to_base_args.base_transforms = needs_conversion ? (const void*)&base_transforms_converted[0] : (const void*)&base_transforms[0];
+			apply_additive_to_base_args.local_transforms = needs_conversion ? (const void*)&local_transforms_converted[0] : (const void*)&local_transforms[0];
+			apply_additive_to_base_args.num_transforms = 2;
 
 			qvvf_transform_error_metric::calculate_error_args error_metric_args;
 			error_metric_args.construct_sphere_shell(shell.local_shell_distance);
 
-			const qvvf_transform_error_metric error_metric;
-
 			const rtm::scalarf precision = rtm::scalar_set(shell.precision);
 
+			const uint32_t num_samples = lossy_clip_context.num_samples;
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
 				const rtm::quatf raw_rotation = raw_transform_stream.rotations.get_sample_clamped(sample_index);
@@ -109,6 +133,18 @@ namespace acl
 					break;
 				}
 
+				local_transforms[0] = raw_transform;
+				local_transforms[1] = lossy_transform;
+
+				if (needs_conversion)
+				{
+					convert_transforms_args.transforms = &local_transforms[0];
+
+					error_metric.convert_transforms(convert_transforms_args, &local_transforms_converted[0]);
+				}
+				else
+					std::memcpy(&local_transforms_converted[0], &local_transforms[0], metric_transform_size * 2);
+
 				if (has_additive_base)
 				{
 					const segment_context& additive_base_segment = additive_base_clip_context.segments[0];
@@ -129,8 +165,19 @@ namespace acl
 
 					const rtm::qvvf base_transform = rtm::qvv_set(base_rotation, base_translation, base_scale);
 
-					raw_transform = apply_additive_to_base(lossy_clip_context.additive_format, base_transform, raw_transform);
-					lossy_transform = apply_additive_to_base(lossy_clip_context.additive_format, base_transform, lossy_transform);
+					base_transforms[0] = base_transform;
+					base_transforms[1] = base_transform;
+
+					if (needs_conversion)
+					{
+						convert_transforms_args.transforms = &base_transforms[0];
+
+						error_metric.convert_transforms(convert_transforms_args, &base_transforms_converted[0]);
+					}
+					else
+						std::memcpy(&base_transforms_converted[0], &base_transforms[0], metric_transform_size * 2);
+
+					error_metric.apply_additive_to_base(apply_additive_to_base_args, &local_transforms_converted[0]);
 				}
 
 				error_metric_args.transform0 = &raw_transform;
@@ -163,7 +210,7 @@ namespace acl
 			const transform_streams& raw_transform_stream = segment.bone_streams[transform_index];
 
 			// Otherwise check every sample to make sure we fall within the desired tolerance
-			return are_samples_constant(lossy_clip_context, additive_base_clip_context, rtm::quat_to_vector(raw_transform_stream.rotations.get_sample(0)), transform_index, animation_track_type8::rotation);
+			return are_samples_constant(settings, lossy_clip_context, additive_base_clip_context, rtm::quat_to_vector(raw_transform_stream.rotations.get_sample(0)), transform_index, animation_track_type8::rotation);
 		}
 
 		inline bool are_rotations_default(const compression_settings& settings, const clip_context& lossy_clip_context, const clip_context& additive_base_clip_context, const track_desc_transformf& desc, uint32_t transform_index)
@@ -187,7 +234,7 @@ namespace acl
 			}
 
 			// Otherwise check every sample to make sure we fall within the desired tolerance
-			return are_samples_constant(lossy_clip_context, additive_base_clip_context, default_bind_rotation, transform_index, animation_track_type8::rotation);
+			return are_samples_constant(settings, lossy_clip_context, additive_base_clip_context, default_bind_rotation, transform_index, animation_track_type8::rotation);
 		}
 
 		inline bool are_translations_constant(const compression_settings& settings, const clip_context& lossy_clip_context, const clip_context& additive_base_clip_context, uint32_t transform_index)
@@ -206,7 +253,7 @@ namespace acl
 			const transform_streams& raw_transform_stream = segment.bone_streams[transform_index];
 
 			// Otherwise check every sample to make sure we fall within the desired tolerance
-			return are_samples_constant(lossy_clip_context, additive_base_clip_context, raw_transform_stream.translations.get_sample(0), transform_index, animation_track_type8::translation);
+			return are_samples_constant(settings, lossy_clip_context, additive_base_clip_context, raw_transform_stream.translations.get_sample(0), transform_index, animation_track_type8::translation);
 		}
 
 		inline bool are_translations_default(const compression_settings& settings, const clip_context& lossy_clip_context, const clip_context& additive_base_clip_context, const track_desc_transformf& desc, uint32_t transform_index)
@@ -230,7 +277,7 @@ namespace acl
 			}
 
 			// Otherwise check every sample to make sure we fall within the desired tolerance
-			return are_samples_constant(lossy_clip_context, additive_base_clip_context, default_bind_translation, transform_index, animation_track_type8::translation);
+			return are_samples_constant(settings, lossy_clip_context, additive_base_clip_context, default_bind_translation, transform_index, animation_track_type8::translation);
 		}
 
 		inline bool are_scales_constant(const compression_settings& settings, const clip_context& lossy_clip_context, const clip_context& additive_base_clip_context, uint32_t transform_index)
@@ -252,7 +299,7 @@ namespace acl
 			const transform_streams& raw_transform_stream = segment.bone_streams[transform_index];
 
 			// Otherwise check every sample to make sure we fall within the desired tolerance
-			return are_samples_constant(lossy_clip_context, additive_base_clip_context, raw_transform_stream.scales.get_sample(0), transform_index, animation_track_type8::scale);
+			return are_samples_constant(settings, lossy_clip_context, additive_base_clip_context, raw_transform_stream.scales.get_sample(0), transform_index, animation_track_type8::scale);
 		}
 
 		inline bool are_scales_default(const compression_settings& settings, const clip_context& lossy_clip_context, const clip_context& additive_base_clip_context, const track_desc_transformf& desc, uint32_t transform_index)
@@ -279,7 +326,7 @@ namespace acl
 			}
 
 			// Otherwise check every sample to make sure we fall within the desired tolerance
-			return are_samples_constant(lossy_clip_context, additive_base_clip_context, default_bind_scale, transform_index, animation_track_type8::scale);
+			return are_samples_constant(settings, lossy_clip_context, additive_base_clip_context, default_bind_scale, transform_index, animation_track_type8::scale);
 		}
 
 		// Compacts constant sub-tracks
