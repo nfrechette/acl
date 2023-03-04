@@ -103,8 +103,10 @@ namespace acl
 			apply_additive_to_base_args.local_transforms = needs_conversion ? (const void*)&local_transforms_converted[0] : (const void*)&local_transforms[0];
 			apply_additive_to_base_args.num_transforms = 2;
 
-			qvvf_transform_error_metric::calculate_error_args error_metric_args;
-			error_metric_args.construct_sphere_shell(shell.local_shell_distance);
+			qvvf_transform_error_metric::calculate_error_args calculate_error_args;
+			calculate_error_args.construct_sphere_shell(shell.local_shell_distance);
+			calculate_error_args.transform0 = &local_transforms_converted[metric_transform_size * 0];
+			calculate_error_args.transform1 = &local_transforms_converted[metric_transform_size * 1];
 
 			const rtm::scalarf precision = rtm::scalar_set(shell.precision);
 
@@ -180,10 +182,7 @@ namespace acl
 					error_metric.apply_additive_to_base(apply_additive_to_base_args, &local_transforms_converted[0]);
 				}
 
-				error_metric_args.transform0 = &raw_transform;
-				error_metric_args.transform1 = &lossy_transform;
-
-				const rtm::scalarf vtx_error = error_metric.calculate_error(error_metric_args);
+				const rtm::scalarf vtx_error = error_metric.calculate_error(calculate_error_args);
 
 				// If our error exceeds the desired precision, we are not constant
 				if (rtm::scalar_greater_than(vtx_error, precision))
