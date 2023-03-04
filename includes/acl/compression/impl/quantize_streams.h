@@ -242,9 +242,13 @@ namespace acl
 				convert_transforms_args_raw.num_dirty_transforms = num_bones;
 				convert_transforms_args_raw.transforms = raw_local_pose;
 				convert_transforms_args_raw.num_transforms = num_bones;
+				convert_transforms_args_raw.sample_index = 0;
+				convert_transforms_args_raw.is_lossy = false;
+				convert_transforms_args_raw.is_base = false;
 
 				itransform_error_metric::convert_transforms_args convert_transforms_args_base = convert_transforms_args_raw;
 				convert_transforms_args_base.transforms = additive_local_pose;
+				convert_transforms_args_base.is_base = true;
 
 				itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args_raw;
 				apply_additive_to_base_args_raw.dirty_transform_indices = self_transform_indices;
@@ -271,7 +275,10 @@ namespace acl
 					uint8_t* sample_raw_local_transforms = raw_local_transforms + (sample_index * sample_transform_size);
 
 					if (needs_conversion)
+					{
+						convert_transforms_args_raw.sample_index = sample_index;
 						convert_transforms_impl(error_metric_, convert_transforms_args_raw, sample_raw_local_transforms);
+					}
 					else
 						std::memcpy(sample_raw_local_transforms, raw_local_pose, sample_transform_size);
 
@@ -284,7 +291,10 @@ namespace acl
 						uint8_t* sample_base_local_transforms = base_local_transforms + (sample_index * sample_transform_size);
 
 						if (needs_conversion)
+						{
+							convert_transforms_args_base.sample_index = sample_index;
 							convert_transforms_impl(error_metric_, convert_transforms_args_base, sample_base_local_transforms);
+						}
 						else
 							std::memcpy(sample_base_local_transforms, additive_local_pose, sample_transform_size);
 
@@ -678,6 +688,9 @@ namespace acl
 			convert_transforms_args_lossy.num_dirty_transforms = 1;
 			convert_transforms_args_lossy.transforms = context.lossy_local_pose;
 			convert_transforms_args_lossy.num_transforms = num_transforms;
+			convert_transforms_args_lossy.sample_index = 0;
+			convert_transforms_args_lossy.is_lossy = true;
+			convert_transforms_args_lossy.is_base = false;
 
 			itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args_lossy;
 			apply_additive_to_base_args_lossy.dirty_transform_indices = &target_bone_index;
@@ -710,7 +723,10 @@ namespace acl
 				context.bit_rate_database.sample(context.local_query, sample_time, context.lossy_local_pose, num_transforms);
 
 				if (needs_conversion)
+				{
+					convert_transforms_args_lossy.sample_index = sample_index;
 					convert_transforms_impl(error_metric, convert_transforms_args_lossy, context.local_transforms_converted);
+				}
 
 				if (has_additive_base)
 				{
@@ -762,6 +778,9 @@ namespace acl
 			convert_transforms_args_lossy.num_dirty_transforms = context.num_bones_in_chain;
 			convert_transforms_args_lossy.transforms = context.lossy_local_pose;
 			convert_transforms_args_lossy.num_transforms = context.num_bones;
+			convert_transforms_args_lossy.sample_index = 0;
+			convert_transforms_args_lossy.is_lossy = true;
+			convert_transforms_args_lossy.is_base = false;
 
 			itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args_lossy;
 			apply_additive_to_base_args_lossy.dirty_transform_indices = context.chain_bone_indices;
@@ -801,7 +820,10 @@ namespace acl
 				context.bit_rate_database.sample(context.object_query, sample_time, context.lossy_local_pose, context.num_bones);
 
 				if (needs_conversion)
+				{
+					convert_transforms_args_lossy.sample_index = sample_index;
 					convert_transforms_impl(error_metric, convert_transforms_args_lossy, context.local_transforms_converted);
+				}
 
 				if (has_additive_base)
 				{
@@ -1611,6 +1633,9 @@ namespace acl
 			convert_transforms_args_lossy.num_dirty_transforms = num_bones;
 			convert_transforms_args_lossy.transforms = context.lossy_local_pose;
 			convert_transforms_args_lossy.num_transforms = num_bones;
+			convert_transforms_args_lossy.sample_index = 0;
+			convert_transforms_args_lossy.is_lossy = true;
+			convert_transforms_args_lossy.is_base = false;
 
 			itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args_lossy;
 			apply_additive_to_base_args_lossy.dirty_transform_indices = context.self_transform_indices;
@@ -1702,7 +1727,10 @@ namespace acl
 
 						// Convert to our object space representation
 						if (needs_conversion)
+						{
+							convert_transforms_args_lossy.sample_index = interp_frame_index;
 							convert_transforms_impl(error_metric, convert_transforms_args_lossy, context.local_transforms_converted);
+						}
 
 						if (has_additive_base)
 						{

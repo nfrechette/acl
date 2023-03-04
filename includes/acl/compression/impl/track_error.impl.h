@@ -274,12 +274,17 @@ namespace acl
 			convert_transforms_args_raw.num_dirty_transforms = num_tracks;
 			convert_transforms_args_raw.transforms = tracks_writer0.tracks_typed.qvvf;
 			convert_transforms_args_raw.num_transforms = num_tracks;
+			convert_transforms_args_raw.sample_index = 0;
+			convert_transforms_args_raw.is_lossy = false;
+			convert_transforms_args_raw.is_base = false;
 
 			itransform_error_metric::convert_transforms_args convert_transforms_args_base = convert_transforms_args_raw;
 			convert_transforms_args_base.transforms = tracks_writer_base.tracks_typed.qvvf;
+			convert_transforms_args_base.is_base = true;
 
 			itransform_error_metric::convert_transforms_args convert_transforms_args_lossy = convert_transforms_args_raw;
 			convert_transforms_args_lossy.transforms = tracks_writer1_remapped.tracks_typed.qvvf;
+			convert_transforms_args_lossy.is_lossy = true;
 
 			itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args_raw;
 			apply_additive_to_base_args_raw.dirty_transform_indices = self_transform_indices;
@@ -317,6 +322,8 @@ namespace acl
 
 				if (needs_conversion)
 				{
+					convert_transforms_args_raw.sample_index = sample_index;
+					convert_transforms_args_lossy.sample_index = sample_index;
 					error_metric.convert_transforms(convert_transforms_args_raw, raw_local_pose_converted);
 					error_metric.convert_transforms(convert_transforms_args_lossy, lossy_local_pose_converted);
 				}
@@ -328,7 +335,10 @@ namespace acl
 					args.adapter.sample_tracks_base(additive_sample_time, rounding_policy, tracks_writer_base);
 
 					if (needs_conversion)
+					{
+						convert_transforms_args_base.sample_index = sample_index;
 						error_metric.convert_transforms(convert_transforms_args_base, base_local_pose_converted);
+					}
 
 					error_metric.apply_additive_to_base(apply_additive_to_base_args_raw, raw_local_pose_);
 					error_metric.apply_additive_to_base(apply_additive_to_base_args_lossy, lossy_local_pose_);
