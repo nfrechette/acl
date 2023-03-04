@@ -26,13 +26,13 @@ jobs:
     runs-on: windows-2022
     steps:
       - name: Git checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           submodules: 'recursive'
       - name: Generate solution (release-x64)
         run: python3 make.py -ci -compiler vs2022 -config Release -cpu x64
       - name: Run MSVC Code Analysis
-        uses: microsoft/msvc-code-analysis-action@v0.1.0
+        uses: microsoft/msvc-code-analysis-action@v0.1.1
         id: run-analysis
         with:
           cmakeBuildDirectory: ${{ github.workspace }}/build
@@ -42,7 +42,7 @@ jobs:
       - name: Upload SARIF to GitHub
         # Can only upload SARIF if we don't come from a fork
         if: ${{ needs.condition-check.outputs.ok == 'true' }}
-        uses: github/codeql-action/upload-sarif@v1
+        uses: github/codeql-action/upload-sarif@v2
         with:
           sarif_file: ${{ steps.run-analysis.outputs.sarif }}
       - name: Upload SARIF as an Artifact
