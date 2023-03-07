@@ -90,11 +90,19 @@ namespace acl
 			const size_t metric_transform_size = error_metric.get_transform_size(lossy_clip_context.has_scale);
 			ACL_ASSERT(metric_transform_size * 2 <= sizeof(local_transforms_converted), "Transform size is too large");
 
-			itransform_error_metric::convert_transforms_args convert_transforms_args;
-			convert_transforms_args.dirty_transform_indices = &dirty_transform_indices[0];
-			convert_transforms_args.num_dirty_transforms = 2;
-			convert_transforms_args.transforms = &local_transforms[0];
-			convert_transforms_args.num_transforms = 2;
+			itransform_error_metric::convert_transforms_args convert_transforms_args_local;
+			convert_transforms_args_local.dirty_transform_indices = &dirty_transform_indices[0];
+			convert_transforms_args_local.num_dirty_transforms = 1;
+			convert_transforms_args_local.num_transforms = 1;
+			convert_transforms_args_local.is_additive_base = false;
+
+			itransform_error_metric::convert_transforms_args convert_transforms_args_base;
+			convert_transforms_args_base.dirty_transform_indices = &dirty_transform_indices[0];
+			convert_transforms_args_base.num_dirty_transforms = 2;
+			convert_transforms_args_base.num_transforms = 2;
+			convert_transforms_args_base.transforms = &base_transforms[0];
+			convert_transforms_args_base.is_additive_base = true;
+			convert_transforms_args_base.is_lossy = false;
 
 			itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args;
 			apply_additive_to_base_args.dirty_transform_indices = &dirty_transform_indices[0];
@@ -140,9 +148,15 @@ namespace acl
 
 				if (needs_conversion)
 				{
-					convert_transforms_args.transforms = &local_transforms[0];
+					convert_transforms_args_local.transforms = &local_transforms[0];
+					convert_transforms_args_local.is_lossy = false;
 
-					error_metric.convert_transforms(convert_transforms_args, &local_transforms_converted[0]);
+					error_metric.convert_transforms(convert_transforms_args_local, &local_transforms_converted[metric_transform_size * 0]);
+
+					convert_transforms_args_local.transforms = &local_transforms[1];
+					convert_transforms_args_local.is_lossy = true;
+
+					error_metric.convert_transforms(convert_transforms_args_local, &local_transforms_converted[metric_transform_size * 1]);
 				}
 				else
 					std::memcpy(&local_transforms_converted[0], &local_transforms[0], metric_transform_size * 2);
@@ -171,11 +185,7 @@ namespace acl
 					base_transforms[1] = base_transform;
 
 					if (needs_conversion)
-					{
-						convert_transforms_args.transforms = &base_transforms[0];
-
-						error_metric.convert_transforms(convert_transforms_args, &base_transforms_converted[0]);
-					}
+						error_metric.convert_transforms(convert_transforms_args_base, &base_transforms_converted[0]);
 					else
 						std::memcpy(&base_transforms_converted[0], &base_transforms[0], metric_transform_size * 2);
 
