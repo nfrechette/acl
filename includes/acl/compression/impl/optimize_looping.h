@@ -95,12 +95,16 @@ namespace acl
 			convert_transforms_args_local.num_dirty_transforms = 2;
 			convert_transforms_args_local.transforms = &local_transforms[0];
 			convert_transforms_args_local.num_transforms = 2;
+			convert_transforms_args_local.is_additive_base = false;
+			convert_transforms_args_local.is_lossy = true;
 
 			itransform_error_metric::convert_transforms_args convert_transforms_args_base;
 			convert_transforms_args_base.dirty_transform_indices = &dirty_transform_indices[0];
 			convert_transforms_args_base.num_dirty_transforms = 2;
 			convert_transforms_args_base.transforms = &base_transforms[0];
 			convert_transforms_args_base.num_transforms = 2;
+			convert_transforms_args_base.is_additive_base = true;
+			convert_transforms_args_base.is_lossy = false;
 
 			itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args;
 			apply_additive_to_base_args.dirty_transform_indices = &dirty_transform_indices[0];
