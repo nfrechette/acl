@@ -244,11 +244,11 @@ namespace acl
 				convert_transforms_args_raw.num_transforms = num_bones;
 				convert_transforms_args_raw.sample_index = 0;
 				convert_transforms_args_raw.is_lossy = false;
-				convert_transforms_args_raw.is_base = false;
+				convert_transforms_args_raw.is_additive_base = false;
 
 				itransform_error_metric::convert_transforms_args convert_transforms_args_base = convert_transforms_args_raw;
 				convert_transforms_args_base.transforms = additive_local_pose;
-				convert_transforms_args_base.is_base = true;
+				convert_transforms_args_base.is_additive_base = true;
 
 				itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args_raw;
 				apply_additive_to_base_args_raw.dirty_transform_indices = self_transform_indices;
@@ -690,7 +690,7 @@ namespace acl
 			convert_transforms_args_lossy.num_transforms = num_transforms;
 			convert_transforms_args_lossy.sample_index = 0;
 			convert_transforms_args_lossy.is_lossy = true;
-			convert_transforms_args_lossy.is_base = false;
+			convert_transforms_args_lossy.is_additive_base = false;
 
 			itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args_lossy;
 			apply_additive_to_base_args_lossy.dirty_transform_indices = &target_bone_index;
@@ -783,7 +783,7 @@ namespace acl
 			convert_transforms_args_lossy.num_transforms = context.num_bones;
 			convert_transforms_args_lossy.sample_index = 0;
 			convert_transforms_args_lossy.is_lossy = true;
-			convert_transforms_args_lossy.is_base = false;
+			convert_transforms_args_lossy.is_additive_base = false;
 
 			itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args_lossy;
 			apply_additive_to_base_args_lossy.dirty_transform_indices = context.chain_bone_indices;
@@ -1641,7 +1641,7 @@ namespace acl
 			convert_transforms_args_lossy.num_transforms = num_bones;
 			convert_transforms_args_lossy.sample_index = 0;
 			convert_transforms_args_lossy.is_lossy = true;
-			convert_transforms_args_lossy.is_base = false;
+			convert_transforms_args_lossy.is_additive_base = false;
 
 			itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args_lossy;
 			apply_additive_to_base_args_lossy.dirty_transform_indices = context.self_transform_indices;

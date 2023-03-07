@@ -276,11 +276,11 @@ namespace acl
 			convert_transforms_args_raw.num_transforms = num_tracks;
 			convert_transforms_args_raw.sample_index = 0;
 			convert_transforms_args_raw.is_lossy = false;
-			convert_transforms_args_raw.is_base = false;
+			convert_transforms_args_raw.is_additive_base = false;
 
 			itransform_error_metric::convert_transforms_args convert_transforms_args_base = convert_transforms_args_raw;
 			convert_transforms_args_base.transforms = tracks_writer_base.tracks_typed.qvvf;
-			convert_transforms_args_base.is_base = true;
+			convert_transforms_args_base.is_additive_base = true;
 
 			itransform_error_metric::convert_transforms_args convert_transforms_args_lossy = convert_transforms_args_raw;
 			convert_transforms_args_lossy.transforms = tracks_writer1_remapped.tracks_typed.qvvf;
