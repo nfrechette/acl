@@ -104,10 +104,10 @@ namespace acl
 			bool is_lossy;
 
 			//////////////////////////////////////////////////////////////////////////
-			// True if these transforms are being converted from the base pose.
+			// True if these transforms are being converted from the additive base pose.
 			// False if these transforms are being converted from the additive pose.
 			// If not using a base, this value is always false.
-			bool is_base;
+			bool is_additive_base;
 		};
 
 		//////////////////////////////////////////////////////////////////////////
