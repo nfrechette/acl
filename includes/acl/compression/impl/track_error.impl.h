@@ -336,7 +336,8 @@ namespace acl
 
 					if (needs_conversion)
 					{
-						convert_transforms_args_base.sample_index = sample_index;
+						const uint32_t nearest_base_sample_index = static_cast<uint32_t>(rtm::scalar_round_bankers(normalized_sample_time * additive_num_samples));
+						convert_transforms_args_base.sample_index = nearest_base_sample_index;
 						error_metric.convert_transforms(convert_transforms_args_base, base_local_pose_converted);
 					}
 

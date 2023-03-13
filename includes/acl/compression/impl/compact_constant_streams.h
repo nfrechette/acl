@@ -148,6 +148,8 @@ namespace acl
 
 				if (needs_conversion)
 				{
+					convert_transforms_args_local.sample_index = sample_index;
+
 					convert_transforms_args_local.transforms = &local_transforms[0];
 					convert_transforms_args_local.is_lossy = false;
 
@@ -185,7 +187,10 @@ namespace acl
 					base_transforms[1] = base_transform;
 
 					if (needs_conversion)
+					{
+						convert_transforms_args_base.sample_index = base_sample_index;
 						error_metric.convert_transforms(convert_transforms_args_base, &base_transforms_converted[0]);
+					}
 					else
 						std::memcpy(&base_transforms_converted[0], &base_transforms[0], metric_transform_size * 2);
 

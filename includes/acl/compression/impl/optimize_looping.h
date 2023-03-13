@@ -95,6 +95,7 @@ namespace acl
 			convert_transforms_args_local.num_dirty_transforms = 2;
 			convert_transforms_args_local.transforms = &local_transforms[0];
 			convert_transforms_args_local.num_transforms = 2;
+			convert_transforms_args_local.sample_index = last_sample_index;
 			convert_transforms_args_local.is_additive_base = false;
 			convert_transforms_args_local.is_lossy = true;
 
@@ -150,6 +151,7 @@ namespace acl
 					const transform_streams& additive_base_bone_stream = additive_base_segment.bone_streams[transform_index];
 
 					const uint32_t base_last_sample_index = additive_base_segment.num_samples - 1;
+					convert_transforms_args_base.sample_index = base_last_sample_index;
 
 					const rtm::quatf base_first_rotation = additive_base_bone_stream.rotations.get_sample_clamped(0);
 					const rtm::vector4f base_first_translation = additive_base_bone_stream.translations.get_sample_clamped(0);
