@@ -174,12 +174,7 @@ namespace acl
 			rtm::vector4f& interp_xxxx, rtm::vector4f& interp_yyyy, rtm::vector4f& interp_zzzz, rtm::vector4f& interp_wwww)
 		{
 			// Calculate the vector4 dot product: dot(start, end)
-			const rtm::vector4f xxxx_squared = rtm::vector_mul(xxxx0, xxxx1);
-			const rtm::vector4f yyyy_squared = rtm::vector_mul(yyyy0, yyyy1);
-			const rtm::vector4f zzzz_squared = rtm::vector_mul(zzzz0, zzzz1);
-			const rtm::vector4f wwww_squared = rtm::vector_mul(wwww0, wwww1);
-
-			const rtm::vector4f dot4 = rtm::vector_add(rtm::vector_add(rtm::vector_add(xxxx_squared, yyyy_squared), zzzz_squared), wwww_squared);
+			const rtm::vector4f dot4 = rtm::vector_mul_add(wwww0, wwww1, rtm::vector_mul_add(zzzz0, zzzz1, rtm::vector_mul_add(yyyy0, yyyy1, rtm::vector_mul(xxxx0, xxxx1))));
 
 			// Calculate the bias, if the dot product is positive or zero, there is no bias
 			// but if it is negative, we want to flip the 'end' rotation XYZW components
@@ -204,12 +199,7 @@ namespace acl
 		// Force inline this function, we only use it to keep the code readable
 		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL quat_normalize4(rtm::vector4f& xxxx, rtm::vector4f& yyyy, rtm::vector4f& zzzz, rtm::vector4f& wwww)
 		{
-			const rtm::vector4f xxxx_squared = rtm::vector_mul(xxxx, xxxx);
-			const rtm::vector4f yyyy_squared = rtm::vector_mul(yyyy, yyyy);
-			const rtm::vector4f zzzz_squared = rtm::vector_mul(zzzz, zzzz);
-			const rtm::vector4f wwww_squared = rtm::vector_mul(wwww, wwww);
-
-			const rtm::vector4f dot4 = rtm::vector_add(rtm::vector_add(rtm::vector_add(xxxx_squared, yyyy_squared), zzzz_squared), wwww_squared);
+			const rtm::vector4f dot4 = rtm::vector_mul_add(wwww, wwww, rtm::vector_mul_add(zzzz, zzzz, rtm::vector_mul_add(yyyy, yyyy, rtm::vector_mul(xxxx, xxxx))));
 
 			const rtm::vector4f len4 = rtm::vector_sqrt(dot4);
 			const rtm::vector4f inv_len4 = rtm::vector_div(rtm::vector_set(1.0F), len4);
