@@ -256,11 +256,11 @@ namespace acl
 			// Offset to the database metadata header.
 			ptr_offset32<tracks_database_header>	database_header_offset;
 
-			// Offset to the segment headers data (tier 0 if split into database).
+			// Offset to the segment headers data.
 			union
 			{
-				ptr_offset32<segment_header>		segment_headers_offset;
-				ptr_offset32<stripped_segment_header_t>	segment_tier0_headers_offset;
+				ptr_offset32<segment_header>			segment_headers_offset;
+				ptr_offset32<stripped_segment_header_t>	stripped_segment_headers_offset;
 			};
 
 			// Offset to the packed sub-track types.
@@ -288,8 +288,8 @@ namespace acl
 			segment_header*					get_segment_headers() { return segment_headers_offset.add_to(this); }
 			const segment_header*			get_segment_headers() const { return segment_headers_offset.add_to(this); }
 
-			stripped_segment_header_t*			get_segment_tier0_headers() { return segment_tier0_headers_offset.add_to(this); }
-			const stripped_segment_header_t*		get_segment_tier0_headers() const { return segment_tier0_headers_offset.add_to(this); }
+			stripped_segment_header_t*			get_stripped_segment_headers() { return stripped_segment_headers_offset.add_to(this); }
+			const stripped_segment_header_t*	get_stripped_segment_headers() const { return stripped_segment_headers_offset.add_to(this); }
 
 			packed_sub_track_types*			get_sub_track_types() { return sub_track_types_offset.add_to(this); }
 			const packed_sub_track_types*	get_sub_track_types() const { return sub_track_types_offset.add_to(this); }
