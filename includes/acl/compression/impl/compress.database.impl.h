@@ -444,7 +444,7 @@ namespace acl
 			return sample_indices;
 		}
 
-		inline void rewrite_segment_headers(const database_tier_mapping& tier_mapping, uint32_t tracks_index, const transform_tracks_header& input_transforms_header, const segment_header* headers, uint32_t segment_data_base_offset, segment_tier0_header* out_headers)
+		inline void rewrite_segment_headers(const database_tier_mapping& tier_mapping, uint32_t tracks_index, const transform_tracks_header& input_transforms_header, const segment_header* headers, uint32_t segment_data_base_offset, stripped_segment_header_t* out_headers)
 		{
 			const bitset_description desc = bitset_description::make_from_num_bits<32>();
 
@@ -488,7 +488,7 @@ namespace acl
 
 		inline void rewrite_segment_data(const database_tier_mapping& tier_mapping, uint32_t tracks_index,
 			const transform_tracks_header& input_transforms_header, const segment_header* input_headers,
-			transform_tracks_header& output_transforms_header, const segment_tier0_header* output_headers)
+			transform_tracks_header& output_transforms_header, const stripped_segment_header_t* output_headers)
 		{
 			for (uint32_t segment_index = 0; segment_index < input_transforms_header.num_segments; ++segment_index)
 			{
@@ -562,7 +562,7 @@ namespace acl
 
 				// Adding an extra index at the end to delimit things, the index is always invalid: 0xFFFFFFFF
 				const uint32_t segment_start_indices_size = clip_error.num_segments > 1 ? (uint32_t(sizeof(uint32_t)) * (clip_error.num_segments + 1)) : 0;
-				const uint32_t segment_headers_size = sizeof(segment_tier0_header) * clip_error.num_segments;
+				const uint32_t segment_headers_size = sizeof(stripped_segment_header_t) * clip_error.num_segments;
 
 				// Range data follows constant data, use that to calculate our size
 				const uint32_t constant_data_size = (uint32_t)input_transforms_header.clip_range_data_offset - (uint32_t)input_transforms_header.constant_track_data_offset;
