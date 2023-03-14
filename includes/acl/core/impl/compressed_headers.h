@@ -185,9 +185,9 @@ namespace acl
 		////////////////////////////////////////////////////////////////////////////////
 		// A compressed clip segment header. Each segment is built from a uniform number
 		// of samples per track. A clip is split into one or more segments.
-		// Only valid when a clip is split into a database.
+		// Only valid when a clip is split into a database or when keyframe stripping is enabled.
 		////////////////////////////////////////////////////////////////////////////////
-		struct segment_tier0_header
+		struct stripped_segment_header_t
 		{
 			// Same layout as segment_header with new data at the end to allow safe usage under the segment_header type
 
@@ -205,7 +205,7 @@ namespace acl
 			//    - track data sorted per sample then per track (4 byte alignment)
 			ptr_offset32<uint8_t>			segment_data;
 
-			// Bit set of which sample indices are stored in this clip (tier 0).
+			// Bit set of which sample indices are stored in this clip (database tier 0).
 			uint32_t						sample_indices;
 		};
 
@@ -260,7 +260,7 @@ namespace acl
 			union
 			{
 				ptr_offset32<segment_header>		segment_headers_offset;
-				ptr_offset32<segment_tier0_header>	segment_tier0_headers_offset;
+				ptr_offset32<stripped_segment_header_t>	segment_tier0_headers_offset;
 			};
 
 			// Offset to the packed sub-track types.
@@ -288,8 +288,8 @@ namespace acl
 			segment_header*					get_segment_headers() { return segment_headers_offset.add_to(this); }
 			const segment_header*			get_segment_headers() const { return segment_headers_offset.add_to(this); }
 
-			segment_tier0_header*			get_segment_tier0_headers() { return segment_tier0_headers_offset.add_to(this); }
-			const segment_tier0_header*		get_segment_tier0_headers() const { return segment_tier0_headers_offset.add_to(this); }
+			stripped_segment_header_t*			get_segment_tier0_headers() { return segment_tier0_headers_offset.add_to(this); }
+			const stripped_segment_header_t*		get_segment_tier0_headers() const { return segment_tier0_headers_offset.add_to(this); }
 
 			packed_sub_track_types*			get_sub_track_types() { return sub_track_types_offset.add_to(this); }
 			const packed_sub_track_types*	get_sub_track_types() const { return sub_track_types_offset.add_to(this); }
