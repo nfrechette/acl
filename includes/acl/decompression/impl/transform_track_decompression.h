@@ -250,7 +250,7 @@ namespace acl
 
 			// These two pointers are the same, the compiler should optimize one out, only here for type safety later
 			const segment_header* segment_headers = transform_header.get_segment_headers();
-			const stripped_segment_header_t* segment_tier0_headers = transform_header.get_segment_tier0_headers();
+			const stripped_segment_header_t* segment_tier0_headers = transform_header.get_stripped_segment_headers();
 
 			const uint32_t num_segments = transform_header.num_segments;
 

@@ -699,7 +699,7 @@ namespace acl
 
 				// Write our new segment headers
 				const uint32_t segment_data_base_offset = transforms_header->clip_range_data_offset + clip_range_data_size;
-				rewrite_segment_headers(tier_mapping, list_index, input_transforms_header, input_segment_headers, segment_data_base_offset, transforms_header->get_segment_tier0_headers());
+				rewrite_segment_headers(tier_mapping, list_index, input_transforms_header, input_segment_headers, segment_data_base_offset, transforms_header->get_stripped_segment_headers());
 
 				// Copy our sub-track types, they do not change
 				std::memcpy(transforms_header->get_sub_track_types(), input_transforms_header.get_sub_track_types(), packed_sub_track_buffer_size);
@@ -711,7 +711,7 @@ namespace acl
 				std::memcpy(transforms_header->get_clip_range_data(), input_transforms_header.get_clip_range_data(), clip_range_data_size);
 
 				// Write our new segment data
-				rewrite_segment_data(tier_mapping, list_index, input_transforms_header, input_segment_headers, *transforms_header, transforms_header->get_segment_tier0_headers());
+				rewrite_segment_data(tier_mapping, list_index, input_transforms_header, input_segment_headers, *transforms_header, transforms_header->get_stripped_segment_headers());
 
 				if (metadata_size != 0)
 				{
