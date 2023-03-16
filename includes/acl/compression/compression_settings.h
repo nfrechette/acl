@@ -132,6 +132,56 @@ namespace acl
 	};
 
 	//////////////////////////////////////////////////////////////////////////
+	// Encapsulates all frame stripping compression settings.
+	// A keyframe represents all samples at a particular point in time.
+	// Keyframe stripping is a destructive process and visual fidelity can degrade
+	// considerably. If a keyframe is identified as a stripping candidate, it is
+	// entirely removed and reconstructed through linear interpolation of its
+	// neighbors. Removing whole keyframes ensures that decompression remains
+	// very fast.
+	//
+	// Note that stripping is not always appropriate and it may yield unacceptable
+	// results. Here are known problematic scenarios:
+	//    - high velocity animations can lose a lot of momentum, yielding a swimming-
+	//      like motion
+	//    - synchronized animations can become out of sync if keyframes are unevenly
+	//      removed leading to missed contacts
+	//    - contacts and motion apex can be missed if key keyframes are removed
+	//
+	// Transform tracks only.
+	struct compression_keyframe_stripping_settings
+	{
+		//////////////////////////////////////////////////////////////////////////
+		// Whether or not to enable keyframe stripping.
+		// See [compression_keyframe_stripping_settings] for details.
+		// Defaults to 'false'
+		bool enable_stripping = false;
+
+		//////////////////////////////////////////////////////////////////////////
+		// The minimum proportion of keyframes that should be stripped.
+		// Proportion value must be between 0.0 and 1.0.
+		// Defaults to '0.0' (no stripping)
+		float proportion = 0.0F;
+
+		//////////////////////////////////////////////////////////////////////////
+		// The threshold error below which to strip keyframes.
+		// Keyframes that yield an error below or equal to this threshold will
+		// be removed. Keyframes that contribute more error than the threshold
+		// are retained.
+		// Defaults to '0.0' centimeters (no stripping)
+		float threshold = 0.0F;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Calculates a hash from the internal state to uniquely identify a configuration.
+		uint32_t get_hash() const;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Checks if everything is valid and if it isn't, returns an error string.
+		// Returns nullptr if the settings are valid.
+		error_result is_valid() const;
+	};
+
+	//////////////////////////////////////////////////////////////////////////
 	// Encapsulates all the compression settings.
 	struct compression_settings
 	{
@@ -169,6 +219,11 @@ namespace acl
 		// otherwise we use the clamp policy and every sample is retained.
 		// See `sample_looping_policy` for details.
 		bool optimize_loops = false;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Keyframe stripping related settings. See [compression_keyframe_stripping_settings].
+		// Transform tracks only.
+		compression_keyframe_stripping_settings keyframe_stripping;
 
 		//////////////////////////////////////////////////////////////////////////
 		// These are optional metadata that can be added to compressed clips.

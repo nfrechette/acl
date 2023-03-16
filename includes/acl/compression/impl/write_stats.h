@@ -225,7 +225,7 @@ namespace acl
 
 		inline uint32_t calculate_clip_metadata_common_size(const clip_context& clip, const compressed_tracks& compressed_clip)
 		{
-			const uint32_t segment_header_size = compressed_clip.has_database() ? sizeof(stripped_segment_header_t) : sizeof(segment_header);
+			const uint32_t segment_header_size = compressed_clip.has_database() || compressed_clip.has_stripped_keyframes() ? sizeof(stripped_segment_header_t) : sizeof(segment_header);
 
 			uint32_t result = 0;
 

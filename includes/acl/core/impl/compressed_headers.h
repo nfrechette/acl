@@ -100,7 +100,8 @@ namespace acl
 			// Bits [4, 8): rotation format (4 bits)
 			// Bit 8: has database?
 			// Bit 9: has trivial default values? Non-trivial default values indicate that extra data beyond the clip will be needed at decompression (e.g. bind pose)
-			// Bits [10, 30): unused (20 bits)
+			// Bit 10: has stripped keyframes?
+			// Bits [11, 30): unused (19 bits)
 			// Bit 30: is wrap optimized? See sample_looping_policy for details.
 			// Bit 31: has metadata?
 
@@ -119,6 +120,8 @@ namespace acl
 			void set_has_database(bool has_database) { ACL_ASSERT(track_type == track_type8::qvvf, "Transform tracks only"); misc_packed = (misc_packed & ~(1 << 8)) | (static_cast<uint32_t>(has_database) << 8); }
 			bool get_has_trivial_default_values() const { ACL_ASSERT(track_type == track_type8::qvvf, "Transform tracks only"); return (misc_packed & (1 << 9)) != 0; }
 			void set_has_trivial_default_values(bool has_trivial_default_values) { ACL_ASSERT(track_type == track_type8::qvvf, "Transform tracks only"); misc_packed = (misc_packed & ~(1 << 9)) | (static_cast<uint32_t>(has_trivial_default_values) << 9); }
+			bool get_has_stripped_keyframes() const { ACL_ASSERT(track_type == track_type8::qvvf, "Transform tracks only"); return (misc_packed & (1 << 10)) != 0; }
+			void set_has_stripped_keyframes(bool has_stripped_keyframes) { ACL_ASSERT(track_type == track_type8::qvvf, "Transform tracks only"); misc_packed = (misc_packed & ~(1 << 10)) | (static_cast<uint32_t>(has_stripped_keyframes) << 10); }
 
 			// Common
 			bool get_is_wrap_optimized() const { return (misc_packed & (1 << 30)) != 0; }
@@ -187,24 +190,8 @@ namespace acl
 		// of samples per track. A clip is split into one or more segments.
 		// Only valid when a clip is split into a database or when keyframe stripping is enabled.
 		////////////////////////////////////////////////////////////////////////////////
-		struct stripped_segment_header_t
+		struct stripped_segment_header_t : segment_header
 		{
-			// Same layout as segment_header with new data at the end to allow safe usage under the segment_header type
-
-			// Number of bits used by a fully animated pose (excludes default/constant tracks).
-			uint32_t						animated_pose_bit_size;
-
-			// Number of bits used by a fully animated pose per sub-track type (excludes default/constant tracks).
-			uint32_t						animated_rotation_bit_size;
-			uint32_t						animated_translation_bit_size;
-
-			// Offset to the animated segment data, relative to the start of the transform_tracks_header
-			// Segment data is partitioned as follows:
-			//    - format per variable track (no alignment)
-			//    - range data per variable track (only when more than one segment) (2 byte alignment)
-			//    - track data sorted per sample then per track (4 byte alignment)
-			ptr_offset32<uint8_t>			segment_data;
-
 			// Bit set of which sample indices are stored in this clip (database tier 0).
 			uint32_t						sample_indices;
 		};

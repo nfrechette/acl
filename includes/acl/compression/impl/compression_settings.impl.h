@@ -86,6 +86,27 @@ namespace acl
 		return error_result();
 	}
 
+	inline uint32_t compression_keyframe_stripping_settings::get_hash() const
+	{
+		uint32_t hash_value = 0;
+		hash_value = hash_combine(hash_value, hash32(enable_stripping));
+		hash_value = hash_combine(hash_value, hash32(proportion));
+		hash_value = hash_combine(hash_value, hash32(threshold));
+
+		return hash_value;
+	}
+
+	inline error_result compression_keyframe_stripping_settings::is_valid() const
+	{
+		if (!rtm::scalar_is_finite(proportion) || proportion < 0.0F || proportion > 1.0F)
+			return error_result("proportion must be in the range [0.0, 1.0]");
+
+		if (!rtm::scalar_is_finite(threshold) || threshold < 0.0F)
+			return error_result("threshold must be positive definite");
+
+		return error_result();
+	}
+
 	inline uint32_t compression_settings::get_hash() const
 	{
 		uint32_t hash_value = 0;
@@ -99,6 +120,7 @@ namespace acl
 
 		hash_value = hash_combine(hash_value, enable_database_support);
 		hash_value = hash_combine(hash_value, optimize_loops);
+		hash_value = hash_combine(hash_value, keyframe_stripping.get_hash());
 		hash_value = hash_combine(hash_value, metadata.get_hash());
 
 		return hash_value;
@@ -109,9 +131,16 @@ namespace acl
 		if (error_metric == nullptr)
 			return error_result("error_metric cannot be NULL");
 
+		const error_result keyframe_stripping_result = keyframe_stripping.is_valid();
+		if (keyframe_stripping_result.any())
+			return keyframe_stripping_result;
+
 		const error_result metadata_result = metadata.is_valid();
 		if (metadata_result.any())
 			return metadata_result;
+
+		if (keyframe_stripping.enable_stripping && enable_database_support)
+			return error_result("Cannot enable keyframe stripping with database support");
 
 		return error_result();
 	}

@@ -92,6 +92,7 @@ namespace acl
 
 			uint32_t clip_sample_offset						= 0;
 			uint32_t segment_index							= 0;
+			uint32_t hard_keyframes							= 0;		// Bit set of which keyframes are hard and retained when keyframe stripping is used
 
 			bool are_rotations_normalized					= false;
 			bool are_translations_normalized				= false;

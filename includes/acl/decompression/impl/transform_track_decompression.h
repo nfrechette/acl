@@ -260,12 +260,14 @@ namespace acl
 			const bool has_database = is_database_supported && tracks->has_database();
 			const database_context_v0* db = context.db;
 
+			const bool has_stripped_keyframes = has_database || tracks->has_stripped_keyframes();
+
 			if (num_segments == 1)
 			{
 				// Key frame 0 and 1 are in the only segment present
 				// This is a really common case and when it happens, we don't store the segment start index (zero)
 
-				if (is_database_supported && has_database)
+				if (has_stripped_keyframes)
 				{
 					const stripped_segment_header_t* segment_tier0_header0 = segment_tier0_headers;
 
@@ -404,7 +406,7 @@ namespace acl
 				segment_key_frame0 = key_frame0 - segment_start_indices[segment_index0];
 				segment_key_frame1 = key_frame1 - segment_start_indices[segment_index1];
 
-				if (is_database_supported && has_database)
+				if (has_stripped_keyframes)
 				{
 					const stripped_segment_header_t* segment_tier0_header0 = segment_tier0_headers + segment_index0;
 					const stripped_segment_header_t* segment_tier0_header1 = segment_tier0_headers + segment_index1;
@@ -541,7 +543,7 @@ namespace acl
 				context.animated_track_data[1] = context.animated_track_data[0];
 			}
 
-			if (is_database_supported && has_database)
+			if (has_database)
 			{
 				// Update our pointers if the data lives within the database
 				if (db_animated_track_data0 != nullptr)
