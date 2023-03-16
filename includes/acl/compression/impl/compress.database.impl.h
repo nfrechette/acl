@@ -1263,6 +1263,9 @@ namespace acl
 			if (tracks->has_database())
 				return error_result("Compressed track instance is already bound to a database");
 
+			if (tracks->has_stripped_keyframes())
+				return error_result("Compressed track instance has keyframes stripped");
+
 			const tracks_header& header = get_tracks_header(*tracks);
 			if (!header.get_has_metadata())
 				return error_result("Compressed track instance does not contain any metadata");
