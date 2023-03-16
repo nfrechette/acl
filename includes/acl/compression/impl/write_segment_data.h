@@ -69,26 +69,53 @@ namespace acl
 			uint32_t size_written = 0;
 
 			const uint32_t format_per_track_data_size = get_format_per_track_data_size(clip, settings.rotation_format, settings.translation_format, settings.scale_format);
+			const bool has_stripped_keyframes = clip.has_stripped_keyframes;
+			stripped_segment_header_t* stripped_segment_headers = reinterpret_cast<stripped_segment_header_t*>(segment_headers);
 
 			uint32_t segment_data_offset = segment_data_start_offset;
 			for (uint32_t segment_index = 0; segment_index < clip.num_segments; ++segment_index)
 			{
 				const segment_context& segment = clip.segments[segment_index];
-				segment_header& header = segment_headers[segment_index];
 
-				ACL_ASSERT(header.animated_pose_bit_size == 0, "Buffer overrun detected");
+				if (has_stripped_keyframes)
+				{
+					stripped_segment_header_t& header = stripped_segment_headers[segment_index];
 
-				header.animated_pose_bit_size = segment.animated_pose_bit_size;
-				header.animated_rotation_bit_size = segment.animated_rotation_bit_size;
-				header.animated_translation_bit_size = segment.animated_translation_bit_size;
-				header.segment_data = segment_data_offset;
+					ACL_ASSERT(header.animated_pose_bit_size == 0, "Buffer overrun detected");
 
-				segment_data_offset = align_to(segment_data_offset + format_per_track_data_size, 2);		// Aligned to 2 bytes
-				segment_data_offset = align_to(segment_data_offset + segment.range_data_size, 4);			// Aligned to 4 bytes
-				segment_data_offset = segment_data_offset + segment.animated_data_size;
-				size_written += sizeof(segment_header);
+					header.animated_pose_bit_size = segment.animated_pose_bit_size;
+					header.animated_rotation_bit_size = segment.animated_rotation_bit_size;
+					header.animated_translation_bit_size = segment.animated_translation_bit_size;
+					header.segment_data = segment_data_offset;
+					header.sample_indices = segment.hard_keyframes;
 
-				ACL_ASSERT((segment_data_offset - (uint32_t)header.segment_data) == segment.segment_data_size, "Unexpected segment size");
+					segment_data_offset = align_to(segment_data_offset + format_per_track_data_size, 2);		// Aligned to 2 bytes
+					segment_data_offset = align_to(segment_data_offset + segment.range_data_size, 4);			// Aligned to 4 bytes
+					segment_data_offset = segment_data_offset + segment.animated_data_size;
+
+					size_written += sizeof(stripped_segment_header_t);
+
+					ACL_ASSERT((segment_data_offset - (uint32_t)header.segment_data) == segment.segment_data_size, "Unexpected segment size");
+				}
+				else
+				{
+					segment_header& header = segment_headers[segment_index];
+
+					ACL_ASSERT(header.animated_pose_bit_size == 0, "Buffer overrun detected");
+
+					header.animated_pose_bit_size = segment.animated_pose_bit_size;
+					header.animated_rotation_bit_size = segment.animated_rotation_bit_size;
+					header.animated_translation_bit_size = segment.animated_translation_bit_size;
+					header.segment_data = segment_data_offset;
+
+					segment_data_offset = align_to(segment_data_offset + format_per_track_data_size, 2);		// Aligned to 2 bytes
+					segment_data_offset = align_to(segment_data_offset + segment.range_data_size, 4);			// Aligned to 4 bytes
+					segment_data_offset = segment_data_offset + segment.animated_data_size;
+
+					size_written += sizeof(segment_header);
+
+					ACL_ASSERT((segment_data_offset - (uint32_t)header.segment_data) == segment.segment_data_size, "Unexpected segment size");
+				}
 			}
 
 			return size_written;
@@ -97,6 +124,8 @@ namespace acl
 		inline uint32_t write_segment_data(const clip_context& clip, const compression_settings& settings, range_reduction_flags8 range_reduction, segment_header* segment_headers, transform_tracks_header& header, const uint32_t* output_bone_mapping, uint32_t num_output_bones)
 		{
 			const uint32_t format_per_track_data_size = get_format_per_track_data_size(clip, settings.rotation_format, settings.translation_format, settings.scale_format);
+			const bool has_stripped_keyframes = clip.has_stripped_keyframes;
+			stripped_segment_header_t* stripped_segment_headers = reinterpret_cast<stripped_segment_header_t*>(segment_headers);
 
 			uint32_t size_written = 0;
 
@@ -104,12 +133,21 @@ namespace acl
 			for (uint32_t segment_index = 0; segment_index < num_segments; ++segment_index)
 			{
 				const segment_context& segment = clip.segments[segment_index];
-				segment_header& segment_header_ = segment_headers[segment_index];
 
 				uint8_t* format_per_track_data = nullptr;
 				uint8_t* range_data = nullptr;
 				uint8_t* animated_data = nullptr;
-				header.get_segment_data(segment_header_, format_per_track_data, range_data, animated_data);
+
+				if (has_stripped_keyframes)
+				{
+					stripped_segment_header_t& segment_header_ = stripped_segment_headers[segment_index];
+					header.get_segment_data(segment_header_, format_per_track_data, range_data, animated_data);
+				}
+				else
+				{
+					segment_header& segment_header_ = segment_headers[segment_index];
+					header.get_segment_data(segment_header_, format_per_track_data, range_data, animated_data);
+				}
 
 				ACL_ASSERT(format_per_track_data[0] == 0, "Buffer overrun detected");
 				ACL_ASSERT(range_data[0] == 0, "Buffer overrun detected");

@@ -193,6 +193,11 @@ void validate_accuracy(
 		{
 			for (sample_rounding_policy policy : make_iterator(rounding_policies))
 			{
+				// When we have stripped keyframes or a partially streamed database, the floor/ceil/nearest do not behave the same way with per-track
+				// The values reconstructed may not match, no need to validate
+				if (compressed_tracks_.has_stripped_keyframes() && policy != sample_rounding_policy::none)
+					continue;
+
 				context.seek(sample_time, policy);
 				context.decompress_tracks(track_writer);
 

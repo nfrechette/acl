@@ -199,6 +199,7 @@ namespace acl
 			bool are_scales_normalized					= false;
 			bool has_scale								= false;
 			bool has_additive_base						= false;
+			bool has_stripped_keyframes					= false;
 
 			uint32_t num_leaf_transforms				= 0;
 

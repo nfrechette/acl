@@ -127,6 +127,11 @@ namespace acl
 		bool has_trivial_default_values() const;
 
 		//////////////////////////////////////////////////////////////////////////
+		// Returns whether or not this clip has had keyframes stripped.
+		// Only supported with qvv transform tracks.
+		bool has_stripped_keyframes() const;
+
+		//////////////////////////////////////////////////////////////////////////
 		// Returns the default scale value used during compression.
 		// Depending on the additive type, this value will either be 0 or 1.
 		// Only supported with qvv transform tracks.

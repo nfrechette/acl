@@ -593,6 +593,8 @@ namespace acl
 				buffer_size = align_to(buffer_size, 4);								// Align range data
 				buffer_size += clip_range_data_size;								// Range data
 
+				uint32_t num_remaining_keyframes = 0;
+
 				// Per segment data
 				for (uint32_t segment_index = 0; segment_index < input_transforms_header.num_segments; ++segment_index)
 				{
@@ -618,10 +620,14 @@ namespace acl
 					const uint32_t num_animated_frames = bitset_count_set_bits(&sample_indices, desc);
 					const uint32_t animated_data_size = ((num_animated_frames * input_segment_headers[segment_index].animated_pose_bit_size) + 7) / 8;
 
+					num_remaining_keyframes += num_animated_frames;
+
 					// TODO: Variable bit rate doesn't need alignment
 					buffer_size = align_to(buffer_size, 4);					// Align animated data
 					buffer_size += animated_data_size;						// Animated track data
 				}
+
+				const uint32_t num_stripped_keyframes = input_header.num_samples - num_remaining_keyframes;
 
 				// Optional metadata
 				const uint32_t metadata_start_offset = align_to(buffer_size, 4);
@@ -670,6 +676,7 @@ namespace acl
 				std::memcpy(header, &input_header, sizeof(tracks_header));
 
 				header->set_has_database(true);
+				header->set_has_stripped_keyframes(num_stripped_keyframes != 0);
 				header->set_has_metadata(metadata_size != 0);
 
 				transform_tracks_header* transforms_header = safe_ptr_cast<transform_tracks_header>(buffer);

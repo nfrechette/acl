@@ -123,6 +123,8 @@ namespace acl
 
 		inline void calculate_animated_data_size(clip_context& clip, const uint32_t* output_bone_mapping, uint32_t num_output_bones)
 		{
+			const bitset_description hard_keyframes_desc = bitset_description::make_from_num_bits<32>();
+
 			for (segment_context& segment : clip.segment_iterator())
 			{
 				uint32_t num_animated_pose_rotation_data_bits = 0;
@@ -145,7 +147,8 @@ namespace acl
 				}
 
 				const uint32_t num_animated_pose_bits = num_animated_pose_rotation_data_bits + num_animated_pose_translation_data_bits + num_animated_pose_scale_data_bits;
-				const uint32_t num_animated_data_bits = num_animated_pose_bits * segment.num_samples;
+				const uint32_t num_stored_samples = clip.has_stripped_keyframes ? bitset_count_set_bits(&segment.hard_keyframes, hard_keyframes_desc) : segment.num_samples;
+				const uint32_t num_animated_data_bits = num_animated_pose_bits * num_stored_samples;
 
 				segment.animated_rotation_bit_size = num_animated_pose_rotation_data_bits;
 				segment.animated_translation_bit_size = num_animated_pose_translation_data_bits;
@@ -372,6 +375,8 @@ namespace acl
 
 			const uint8_t* animated_track_data_start = animated_track_data;
 			const uint8_t* animated_track_data_end = add_offset_to_ptr<uint8_t>(animated_track_data, animated_data_size);
+			const bool has_stripped_keyframes = segment.clip->has_stripped_keyframes;
+			const bitset_description hard_keyframes_desc = bitset_description::make_from_num_bits<32>();
 
 			uint64_t bit_offset = 0;
 
@@ -413,9 +418,11 @@ namespace acl
 				ACL_ASSERT(animated_track_data <= animated_track_data_end, "Invalid animated track data offset. Wrote too much data."); (void)animated_track_data_end;
 			};
 
-			// TODO: Use a group writer context object to avoid alloc/free/work in loop for every sample when it doesn't change
 			for (uint32_t sample_index = 0; sample_index < segment.num_samples; ++sample_index)
 			{
+				if (has_stripped_keyframes && !bitset_test(&segment.hard_keyframes, hard_keyframes_desc, sample_index))
+					continue;	// This keyframe has been stripped, skip it
+
 				auto group_entry_action = [&segment, sample_index, &group_animated_track_data, &group_bit_offset](animation_track_type8 group_type, uint32_t group_size, uint32_t bone_index)
 				{
 					(void)group_size;
@@ -444,8 +451,12 @@ namespace acl
 			if (bit_offset != 0)
 				animated_track_data = animated_track_data_begin + ((bit_offset + 7) / 8);
 
-			ACL_ASSERT((bit_offset == 0 && segment.num_samples == 0) || ((bit_offset / segment.num_samples) == segment.animated_pose_bit_size), "Unexpected number of bits written");
+#if defined(ACL_HAS_ASSERT_CHECKS)
+			const uint32_t num_stored_samples = has_stripped_keyframes ? bitset_count_set_bits(&segment.hard_keyframes, hard_keyframes_desc) : segment.num_samples;
+			ACL_ASSERT((bit_offset == 0 && segment.num_samples == 0) || ((bit_offset / num_stored_samples) == segment.animated_pose_bit_size), "Unexpected number of bits written");
 			ACL_ASSERT(animated_track_data == animated_track_data_end, "Invalid animated track data offset. Wrote too little data.");
+#endif
+
 			return safe_static_cast<uint32_t>(animated_track_data - animated_track_data_start);
 		}
 

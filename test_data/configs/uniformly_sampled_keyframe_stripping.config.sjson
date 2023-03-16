@@ -1,0 +1,15 @@
+version = 2
+
+algorithm_name = "uniformly_sampled"
+
+level = "Medium"
+
+rotation_format = "quatf_drop_w_variable"
+translation_format = "vector3f_variable"
+scale_format = "vector3f_variable"
+
+regression_error_threshold = 0.6
+
+keyframe_stripping_enable = true
+keyframe_stripping_proportion = 0.0
+keyframe_stripping_threshold = 0.5

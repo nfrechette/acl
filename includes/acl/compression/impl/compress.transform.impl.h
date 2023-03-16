@@ -42,6 +42,7 @@
 #include "acl/compression/impl/track_stream.h"
 #include "acl/compression/impl/convert_rotation_streams.h"
 #include "acl/compression/impl/compact_constant_streams.h"
+#include "acl/compression/impl/keyframe_stripping.h"
 #include "acl/compression/impl/normalize_streams.h"
 #include "acl/compression/impl/optimize_looping.h"
 #include "acl/compression/impl/quantize_streams.h"
@@ -119,9 +120,16 @@ namespace acl
 			// Segmenting settings are an implementation detail
 			compression_segmenting_settings segmenting_settings;
 
-			// If we enable database support, include the metadata we need
+			// If we enable database support or keyframe stripping, include the metadata we need
+			bool remove_contributing_error = false;
 			if (settings.enable_database_support)
 				settings.metadata.include_contributing_error = true;
+			else if (settings.keyframe_stripping.enable_stripping)
+			{
+				// If we only enable the contributing error for keyframe stripping, make sure to strip it afterwards
+				remove_contributing_error = !settings.metadata.include_contributing_error;
+				settings.metadata.include_contributing_error = true;
+			}
 
 			// If every track is retains full precision, we disable segmenting since it provides no benefit
 			if (!is_rotation_format_variable(settings.rotation_format) && !is_vector_format_variable(settings.translation_format) && !is_vector_format_variable(settings.scale_format))
@@ -215,6 +223,14 @@ namespace acl
 			// Find how many bits we need per sub-track and quantize everything
 			quantize_streams(allocator, lossy_clip_context, settings, raw_clip_context, additive_base_clip_context, out_stats);
 
+			// Remove whole keyframes as needed
+			strip_keyframes(allocator, lossy_clip_context, settings);
+
+			// Compression is done! Time to pack things.
+
+			if (remove_contributing_error)
+				settings.metadata.include_contributing_error = false;
+
 			const bool has_trivial_defaults = has_trivial_default_values(track_list, additive_format, lossy_clip_context);
 
 			uint32_t num_output_bones = 0;
@@ -239,7 +255,8 @@ namespace acl
 
 			// Adding an extra index at the end to delimit things, the index is always invalid: 0xFFFFFFFF
 			const uint32_t segment_start_indices_size = lossy_clip_context.num_segments > 1 ? (uint32_t(sizeof(uint32_t)) * (lossy_clip_context.num_segments + 1)) : 0;
-			const uint32_t segment_headers_size = sizeof(segment_header) * lossy_clip_context.num_segments;
+			const uint32_t segment_header_type_size = lossy_clip_context.has_stripped_keyframes ? sizeof(stripped_segment_header_t) : sizeof(segment_header);
+			const uint32_t segment_headers_size = segment_header_type_size * lossy_clip_context.num_segments;
 
 			uint32_t buffer_size = 0;
 			// Per clip data
@@ -269,8 +286,8 @@ namespace acl
 			{
 				constexpr uint32_t k_cache_line_byte_size = 64;
 				lossy_clip_context.decomp_touched_bytes = clip_header_size + clip_data_size;
-				lossy_clip_context.decomp_touched_bytes += sizeof(uint32_t) * 4;		// We touch at most 4 segment start indices
-				lossy_clip_context.decomp_touched_bytes += sizeof(segment_header) * 2;	// We touch at most 2 segment headers
+				lossy_clip_context.decomp_touched_bytes += sizeof(uint32_t) * 4;			// We touch at most 4 segment start indices
+				lossy_clip_context.decomp_touched_bytes += segment_header_type_size * 2;	// We touch at most 2 segment headers
 				lossy_clip_context.decomp_touched_cache_lines = align_to(clip_header_size, k_cache_line_byte_size) / k_cache_line_byte_size;
 				lossy_clip_context.decomp_touched_cache_lines += align_to(clip_data_size, k_cache_line_byte_size) / k_cache_line_byte_size;
 				lossy_clip_context.decomp_touched_cache_lines += 1;						// All 4 segment start indices should fit in a cache line
@@ -358,6 +375,7 @@ namespace acl
 			header->set_default_scale(!is_additive || additive_format != additive_clip_format8::additive1 ? 1 : 0);
 			header->set_has_database(false);
 			header->set_has_trivial_default_values(has_trivial_defaults);
+			header->set_has_stripped_keyframes(lossy_clip_context.has_stripped_keyframes);
 			header->set_is_wrap_optimized(lossy_clip_context.looping_policy == sample_looping_policy::wrap);
 			header->set_has_metadata(metadata_size != 0);
 
