@@ -34,6 +34,12 @@
 
 #include <cstdint>
 
+#if __cplusplus >= 202002L
+#define ACL_MEMORY_ORDER_RELAXED std::memory_order::relaxed
+#else
+#define ACL_MEMORY_ORDER_RELAXED std::memory_order::memory_order_relaxed
+#endif
+
 namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
@@ -172,8 +178,8 @@ namespace acl
 #endif
 
 				acl_impl::database_runtime_segment_header* segment_header = chunk_segment_header.get_segment_header(m_context.clip_segment_headers);
-				ACL_ASSERT(segment_header->tier_metadata[0].load(std::memory_order::memory_order_relaxed) == 0, "Tier metadata should not be initialized");
-				segment_header->tier_metadata[0].store((uint64_t(chunk_segment_header.samples_offset) << 32) | chunk_segment_header.sample_indices, std::memory_order::memory_order_relaxed);
+				ACL_ASSERT(segment_header->tier_metadata[0].load(ACL_MEMORY_ORDER_RELAXED) == 0, "Tier metadata should not be initialized");
+				segment_header->tier_metadata[0].store((uint64_t(chunk_segment_header.samples_offset) << 32) | chunk_segment_header.sample_indices, ACL_MEMORY_ORDER_RELAXED);
 			}
 
 			bitset_set(m_context.loaded_chunks[0], medium_desc, chunk_index, true);
@@ -198,8 +204,8 @@ namespace acl
 #endif
 
 				acl_impl::database_runtime_segment_header* segment_header = chunk_segment_header.get_segment_header(m_context.clip_segment_headers);
-				ACL_ASSERT(segment_header->tier_metadata[1].load(std::memory_order::memory_order_relaxed) == 0, "Tier metadata should not be initialized");
-				segment_header->tier_metadata[1].store((uint64_t(chunk_segment_header.samples_offset) << 32) | chunk_segment_header.sample_indices, std::memory_order::memory_order_relaxed);
+				ACL_ASSERT(segment_header->tier_metadata[1].load(ACL_MEMORY_ORDER_RELAXED) == 0, "Tier metadata should not be initialized");
+				segment_header->tier_metadata[1].store((uint64_t(chunk_segment_header.samples_offset) << 32) | chunk_segment_header.sample_indices, ACL_MEMORY_ORDER_RELAXED);
 			}
 
 			bitset_set(m_context.loaded_chunks[1], low_desc, chunk_index, true);
@@ -622,8 +628,8 @@ namespace acl
 
 				acl_impl::database_runtime_segment_header* segment_header = chunk_segment_header.get_segment_header(m_context.clip_segment_headers);
 				const uint64_t tier_metadata = (uint64_t(chunk_segment_header.samples_offset) << 32) | chunk_segment_header.sample_indices;
-				ACL_ASSERT(segment_header->tier_metadata[tier_index].load(std::memory_order::memory_order_relaxed) == tier_metadata, "Database tier metadata should have been initialized"); (void)tier_metadata;
-				segment_header->tier_metadata[tier_index].store(0, std::memory_order::memory_order_relaxed);
+				ACL_ASSERT(segment_header->tier_metadata[tier_index].load(ACL_MEMORY_ORDER_RELAXED) == tier_metadata, "Database tier metadata should have been initialized"); (void)tier_metadata;
+				segment_header->tier_metadata[tier_index].store(0, ACL_MEMORY_ORDER_RELAXED);
 			}
 		}
 
