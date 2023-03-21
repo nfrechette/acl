@@ -10,6 +10,5 @@ scale_format = "vector3f_variable"
 
 regression_error_threshold = 0.6
 
-keyframe_stripping_enable = true
 keyframe_stripping_proportion = 0.0
 keyframe_stripping_threshold = 0.5

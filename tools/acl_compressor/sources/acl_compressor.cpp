@@ -852,10 +852,6 @@ static bool read_config(iallocator& allocator, Options& options, compression_set
 	if (parser.try_read("low_importance_tier", low_importance_tier, default_database_settings.low_importance_tier_proportion))
 		out_database_settings.low_importance_tier_proportion = low_importance_tier;
 
-	bool keyframe_stripping_enable;
-	if (parser.try_read("keyframe_stripping_enable", keyframe_stripping_enable, default_settings.keyframe_stripping.enable_stripping))
-		out_settings.keyframe_stripping.enable_stripping = keyframe_stripping_enable;
-
 	float keyframe_stripping_proportion;
 	if (parser.try_read("keyframe_stripping_proportion", keyframe_stripping_proportion, default_settings.keyframe_stripping.proportion))
 		out_settings.keyframe_stripping.proportion = keyframe_stripping_proportion;

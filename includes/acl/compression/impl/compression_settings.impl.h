@@ -86,10 +86,14 @@ namespace acl
 		return error_result();
 	}
 
+	inline bool compression_keyframe_stripping_settings::is_enabled() const
+	{
+		return proportion > 0.0F || threshold > 0.0F;
+	}
+
 	inline uint32_t compression_keyframe_stripping_settings::get_hash() const
 	{
 		uint32_t hash_value = 0;
-		hash_value = hash_combine(hash_value, hash32(enable_stripping));
 		hash_value = hash_combine(hash_value, hash32(proportion));
 		hash_value = hash_combine(hash_value, hash32(threshold));
 
@@ -139,7 +143,7 @@ namespace acl
 		if (metadata_result.any())
 			return metadata_result;
 
-		if (keyframe_stripping.enable_stripping && enable_database_support)
+		if (keyframe_stripping.is_enabled() && enable_database_support)
 			return error_result("Cannot enable keyframe stripping with database support");
 
 		return error_result();
