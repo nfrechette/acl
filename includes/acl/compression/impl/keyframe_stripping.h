@@ -46,7 +46,7 @@ namespace acl
 
 		inline void strip_keyframes(iallocator& allocator, clip_context& lossy_clip_context, const compression_settings& settings)
 		{
-			if (!settings.keyframe_stripping.enable_stripping)
+			if (!settings.keyframe_stripping.is_enabled())
 				return;	// We don't want to strip keyframes, nothing to do
 
 			const bitset_description hard_keyframes_desc = bitset_description::make_from_num_bits<32>();

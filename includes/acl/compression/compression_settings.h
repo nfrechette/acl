@@ -152,10 +152,12 @@ namespace acl
 	struct compression_keyframe_stripping_settings
 	{
 		//////////////////////////////////////////////////////////////////////////
-		// Whether or not to enable keyframe stripping.
+		// Returns whether or not keyframe stripping is enabled.
+		// Keyframe stripping is enabled when either 'proportion' or 'threshold'
+		// or both are enabled.
 		// See [compression_keyframe_stripping_settings] for details.
 		// Defaults to 'false'
-		bool enable_stripping = false;
+		bool is_enabled() const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// The minimum proportion of keyframes that should be stripped.

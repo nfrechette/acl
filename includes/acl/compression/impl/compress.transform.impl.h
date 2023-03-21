@@ -124,7 +124,7 @@ namespace acl
 			bool remove_contributing_error = false;
 			if (settings.enable_database_support)
 				settings.metadata.include_contributing_error = true;
-			else if (settings.keyframe_stripping.enable_stripping)
+			else if (settings.keyframe_stripping.is_enabled())
 			{
 				// If we only enable the contributing error for keyframe stripping, make sure to strip it afterwards
 				remove_contributing_error = !settings.metadata.include_contributing_error;
