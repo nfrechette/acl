@@ -39,6 +39,7 @@ file(GLOB_RECURSE ACL_INCLUDE_FILES LIST_DIRECTORIES false
 	${PROJECT_SOURCE_DIR}/includes/*.h
 	${PROJECT_SOURCE_DIR}/docs/*.md
 	${PROJECT_SOURCE_DIR}/cmake/*.cmake
+	${PROJECT_SOURCE_DIR}/test_data/configs/*.sjson
 	${PROJECT_SOURCE_DIR}/tools/release_scripts/*.py
 	)
 
