@@ -66,6 +66,11 @@ namespace acl
 
 			writer["segment_size"] = segment_size;
 			writer["animated_frame_size"] = segment.num_samples != 0 ? (double(segment.animated_data_size) / double(segment.num_samples)) : 0.0;
+
+			const bitset_description hard_keyframes_desc = bitset_description::make_from_num_bits<32>();
+			const uint32_t num_retained_keyframes = bitset_count_set_bits(&segment.hard_keyframes, hard_keyframes_desc);
+			const uint32_t num_stripped_keyframes = segment.num_samples - num_retained_keyframes;
+			writer["num_stripped_keyframes"] = num_stripped_keyframes;
 		}
 
 		inline void write_detailed_segment_stats(const segment_context& segment, sjson::ObjectWriter& writer)
@@ -397,6 +402,15 @@ namespace acl
 			const uint32_t compressed_size = compressed_clip.get_size();
 			const double compression_ratio = double(raw_size) / double(compressed_size);
 
+			const bitset_description hard_keyframes_desc = bitset_description::make_from_num_bits<32>();
+			uint32_t total_num_stripped_keyframes = 0;
+			for (const segment_context& segment : clip.segment_iterator())
+			{
+				const uint32_t num_retained_keyframes = bitset_count_set_bits(&segment.hard_keyframes, hard_keyframes_desc);
+				const uint32_t num_stripped_keyframes = segment.num_samples - num_retained_keyframes;
+				total_num_stripped_keyframes += num_stripped_keyframes;
+			}
+
 			sjson::ObjectWriter& writer = *stats.writer;
 			writer["algorithm_name"] = get_algorithm_name(algorithm_type8::uniformly_sampled);
 			writer["algorithm_uid"] = settings.get_hash();
@@ -413,6 +427,7 @@ namespace acl
 			writer["scale_format"] = get_vector_format_name(settings.scale_format);
 			writer["has_scale"] = clip.has_scale;
 			writer["looping"] = compressed_clip.get_looping_policy() == sample_looping_policy::wrap;
+			writer["num_stripped_keyframes"] = total_num_stripped_keyframes;
 			writer["error_metric"] = settings.error_metric->get_name();
 
 			if (are_all_enum_flags_set(stats.logging, stat_logging::detailed) || are_all_enum_flags_set(stats.logging, stat_logging::exhaustive))
