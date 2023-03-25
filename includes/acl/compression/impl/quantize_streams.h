@@ -1629,6 +1629,7 @@ namespace acl
 			const size_t sample_transform_size = context.metric_transform_size * num_bones;
 			const float sample_rate = context.sample_rate;
 			const float clip_duration = context.clip_duration;
+			const uint32_t segment_sample_start_index = context.segment_sample_start_index;
 
 			const auto convert_transforms_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::convert_transforms : &itransform_error_metric::convert_transforms_no_scale);
 			const auto apply_additive_to_base_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
@@ -1705,8 +1706,8 @@ namespace acl
 					// TODO: We could cache the contributing error and only invalidate it when we remove a frame
 
 					// The sample time is calculated from the full clip duration to be consistent with decompression
-					const float interp_start_time = rtm::scalar_min(float(interp_start_frame_index) / sample_rate, clip_duration);
-					const float interp_end_time = rtm::scalar_min(float(interp_end_frame_index) / sample_rate, clip_duration);
+					const float interp_start_time = rtm::scalar_min(float(interp_start_frame_index + segment_sample_start_index) / sample_rate, clip_duration);
+					const float interp_end_time = rtm::scalar_min(float(interp_end_frame_index + segment_sample_start_index) / sample_rate, clip_duration);
 
 					// We'll calculate the resulting error on every frame already removed that lives in between the remaining
 					// two interpolation frames.
