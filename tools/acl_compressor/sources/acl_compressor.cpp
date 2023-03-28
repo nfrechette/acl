@@ -151,6 +151,9 @@ struct Options
 
 	bool			split_into_database				= false;
 
+	float			strip_keyframe_proportion		= 0.0F;
+	float			strip_keyframe_threshold		= 0.0F;
+
 	bool			stat_detailed_output			= false;
 	bool			stat_exhaustive_output			= false;
 
@@ -198,6 +201,8 @@ static constexpr const char* k_bind_pose_additive0_option = "-bind_add0";
 static constexpr const char* k_bind_pose_additive1_option = "-bind_add1";
 static constexpr const char* k_matrix_error_metric_option = "-error_mtx";
 static constexpr const char* k_split_into_database_option = "-db";
+static constexpr const char* k_strip_keyframe_proportion_option = "-strip_keyframe_proportion=";
+static constexpr const char* k_strip_keyframe_threshold_option = "-strip_keyframe_threshold=";
 static constexpr const char* k_stat_detailed_output_option = "-stat_detailed";
 static constexpr const char* k_stat_exhaustive_output_option = "-stat_exhaustive";
 
@@ -365,6 +370,20 @@ static bool parse_options(int argc, char** argv, Options& options)
 			continue;
 		}
 
+		option_length = std::strlen(k_strip_keyframe_proportion_option);
+		if (std::strncmp(argument, k_strip_keyframe_proportion_option, option_length) == 0)
+		{
+			options.strip_keyframe_proportion = static_cast<float>(std::atof(argument + option_length));
+			continue;
+		}
+
+		option_length = std::strlen(k_strip_keyframe_threshold_option);
+		if (std::strncmp(argument, k_strip_keyframe_threshold_option, option_length) == 0)
+		{
+			options.strip_keyframe_threshold = static_cast<float>(std::atof(argument + option_length));
+			continue;
+		}
+
 		option_length = std::strlen(k_stat_detailed_output_option);
 		if (std::strncmp(argument, k_stat_detailed_output_option, option_length) == 0)
 		{
@@ -418,6 +437,9 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 		}
 
 		settings.enable_database_support = options.split_into_database;
+
+		settings.keyframe_stripping.proportion = options.strip_keyframe_proportion;
+		settings.keyframe_stripping.threshold = options.strip_keyframe_threshold;
 
 		output_stats stats;
 		stats.logging = logging;
