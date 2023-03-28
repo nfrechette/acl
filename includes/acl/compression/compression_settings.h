@@ -137,8 +137,12 @@ namespace acl
 	// Keyframe stripping is a destructive process and visual fidelity can degrade
 	// considerably. If a keyframe is identified as a stripping candidate, it is
 	// entirely removed and reconstructed through linear interpolation of its
-	// neighbors. Removing whole keyframes ensures that decompression remains
-	// very fast.
+	// remaining neighbors.
+	//
+	// Removing whole keyframes ensures that decompression remains very fast.
+	// However, enabling keyframe stripping does add a fixed amount of overhead
+	// during decompression. This overhead should be below 200 instructions and
+	// be on the order of nanoseconds depending on the processor and its clock speed.
 	//
 	// Note that stripping is not always appropriate and it may yield unacceptable
 	// results. Here are known problematic scenarios:
