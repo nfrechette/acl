@@ -284,7 +284,7 @@ namespace acl
 					uint64_t low_importance_tier_metadata0 = 0;
 
 					// Combine all our loaded samples into a single bit set to find which samples we need to interpolate
-					if (db != nullptr)
+					if (is_database_supported && db != nullptr)
 					{
 						// Possible cache miss for the clip header offset
 						// Cache miss for the db clip segment headers pointer
@@ -319,7 +319,7 @@ namespace acl
 					sample_indices0 = segment_tier0_header0->sample_indices;
 					uint32_t sample_indices1 = sample_indices0;	// Identical
 
-					if (db != nullptr)
+					if (is_database_supported && db != nullptr)
 					{
 						const uint64_t sample_index0 = uint64_t(1) << (31 - key_frame0);
 						const uint64_t sample_index1 = uint64_t(1) << (31 - key_frame1);
@@ -427,7 +427,7 @@ namespace acl
 					uint64_t low_importance_tier_metadata1 = 0;
 
 					// Combine all our loaded samples into a single bit set to find which samples we need to interpolate
-					if (db != nullptr)
+					if (is_database_supported && db != nullptr)
 					{
 						// Possible cache miss for the clip header offset
 						// Cache miss for the db clip segment headers pointer
@@ -473,7 +473,7 @@ namespace acl
 					sample_indices0 = segment_tier0_header0->sample_indices;
 					sample_indices1 = segment_tier0_header1->sample_indices;
 
-					if (db != nullptr)
+					if (is_database_supported && db != nullptr)
 					{
 						const uint64_t sample_index0 = uint64_t(1) << (31 - segment_key_frame0);
 						const uint64_t sample_index1 = uint64_t(1) << (31 - segment_key_frame1);
