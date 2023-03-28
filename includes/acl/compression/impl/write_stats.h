@@ -67,10 +67,13 @@ namespace acl
 			writer["segment_size"] = segment_size;
 			writer["animated_frame_size"] = segment.num_samples != 0 ? (double(segment.animated_data_size) / double(segment.num_samples)) : 0.0;
 
-			const bitset_description hard_keyframes_desc = bitset_description::make_from_num_bits<32>();
-			const uint32_t num_retained_keyframes = bitset_count_set_bits(&segment.hard_keyframes, hard_keyframes_desc);
-			const uint32_t num_stripped_keyframes = segment.num_samples - num_retained_keyframes;
-			writer["num_stripped_keyframes"] = num_stripped_keyframes;
+			if (segment.clip->has_stripped_keyframes)
+			{
+				const bitset_description hard_keyframes_desc = bitset_description::make_from_num_bits<32>();
+				const uint32_t num_retained_keyframes = bitset_count_set_bits(&segment.hard_keyframes, hard_keyframes_desc);
+				const uint32_t num_stripped_keyframes = segment.num_samples - num_retained_keyframes;
+				writer["num_stripped_keyframes"] = num_stripped_keyframes;
+			}
 		}
 
 		inline void write_detailed_segment_stats(const segment_context& segment, sjson::ObjectWriter& writer)
@@ -404,11 +407,14 @@ namespace acl
 
 			const bitset_description hard_keyframes_desc = bitset_description::make_from_num_bits<32>();
 			uint32_t total_num_stripped_keyframes = 0;
-			for (const segment_context& segment : clip.segment_iterator())
+			if (clip.has_stripped_keyframes)
 			{
-				const uint32_t num_retained_keyframes = bitset_count_set_bits(&segment.hard_keyframes, hard_keyframes_desc);
-				const uint32_t num_stripped_keyframes = segment.num_samples - num_retained_keyframes;
-				total_num_stripped_keyframes += num_stripped_keyframes;
+				for (const segment_context& segment : clip.segment_iterator())
+				{
+					const uint32_t num_retained_keyframes = bitset_count_set_bits(&segment.hard_keyframes, hard_keyframes_desc);
+					const uint32_t num_stripped_keyframes = segment.num_samples - num_retained_keyframes;
+					total_num_stripped_keyframes += num_stripped_keyframes;
+				}
 			}
 
 			sjson::ObjectWriter& writer = *stats.writer;
