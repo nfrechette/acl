@@ -175,16 +175,6 @@ namespace acl
 			(void)size;
 #endif
 
-#if defined(_WIN32)
-			_aligned_free(ptr);
-#elif defined(__ANDROID__)
-			const size_t* padding_size_ptr = add_offset_to_ptr<size_t>(ptr, -sizeof(size_t));
-			void* allocated_ptr = add_offset_to_ptr<void>(ptr, -*padding_size_ptr);
-			free(allocated_ptr);
-#else
-			free(ptr);
-#endif
-
 #if defined(ACL_ALLOCATOR_TRACK_ALL_ALLOCATIONS)
 			const auto it = m_debug_allocations.find(ptr);
 			ACL_ASSERT(it != m_debug_allocations.end(), "Attempting to deallocate a pointer that isn't allocated");
@@ -195,6 +185,16 @@ namespace acl
 #if defined(ACL_ALLOCATOR_TRACK_NUM_ALLOCATIONS)
 			const int32_t old_value = m_allocation_count.fetch_sub(1, std::memory_order_relaxed);
 			ACL_ASSERT(old_value > 0, "The number of allocations and deallocations does not match");
+#endif
+
+#if defined(_WIN32)
+			_aligned_free(ptr);
+#elif defined(__ANDROID__)
+			const size_t* padding_size_ptr = add_offset_to_ptr<size_t>(ptr, -sizeof(size_t));
+			void* allocated_ptr = add_offset_to_ptr<void>(ptr, -*padding_size_ptr);
+			free(allocated_ptr);
+#else
+			free(ptr);
 #endif
 		}
 
