@@ -245,6 +245,85 @@ jobs:
         uses: docker://ghcr.io/nfrechette/toolchain-amd64-focal:v1
         with:
           args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -avx -unit_test'
+  
+  linux-lunar:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        compiler: [gcc12, gcc13, clang15]
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+      - name: Building (debug-x86)
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-lunar:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Debug -cpu x86 -build'
+      - name: Running unit tests (debug-x86)
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-lunar:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Debug -cpu x86 -unit_test'
+      - name: Clean
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-lunar:v1
+        with:
+          args: 'python3 make.py -ci -clean_only'
+      - name: Building (debug-x64)
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-lunar:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Debug -cpu x64 -build'
+      - name: Running unit tests (debug-x64)
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-lunar:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Debug -cpu x64 -unit_test'
+      - name: Clean
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-lunar:v1
+        with:
+          args: 'python3 make.py -ci -clean_only'
+      - name: Building (release-x86)
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-lunar:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x86 -build'
+      - name: Running unit tests (release-x86)
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-lunar:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x86 -unit_test'
+      - name: Clean
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-lunar:v1
+        with:
+          args: 'python3 make.py -ci -clean_only'
+      - name: Building (release-x64)
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-lunar:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -build'
+      - name: Running unit tests (release-x64)
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-lunar:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -unit_test'
+      - name: Clean
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-lunar:v1
+        with:
+          args: 'python3 make.py -ci -clean_only'
+      - name: Building (release-x64 nosimd)
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-lunar:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -nosimd -build'
+      - name: Running unit tests (release-x64 nosimd)
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-lunar:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -nosimd -unit_test'
+      - name: Clean
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-lunar:v1
+        with:
+          args: 'python3 make.py -ci -clean_only'
+      - name: Building (release-x64 AVX)
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-lunar:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -avx -build'
+      - name: Running unit tests (release-x64 AVX)
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-lunar:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -avx -unit_test'
 
   osx-10:
     runs-on: macos-10.15
