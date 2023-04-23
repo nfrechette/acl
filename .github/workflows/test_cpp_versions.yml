@@ -1,0 +1,78 @@
+name: test cpp versions
+
+on:
+  pull_request:
+    branches:
+      - '**'
+    paths-ignore:
+      - '**/*.md'
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        compiler: [gcc13, clang15]
+        cpp_version: [14, 17, 20]
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+      - name: Building (release-x86)
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-lunar:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x86 -cpp_version ${{ matrix.cpp_version }} -build'
+      - name: Clean
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-lunar:v1
+        with:
+          args: 'python3 make.py -clean_only'
+      - name: Building (release-x64)
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-lunar:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -cpp_version ${{ matrix.cpp_version }} -build'
+      - name: Clean
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-lunar:v1
+        with:
+          args: 'python3 make.py -clean_only'
+      - name: Building (release-x64 nosimd)
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-lunar:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -cpp_version ${{ matrix.cpp_version }} -nosimd -build'
+      - name: Clean
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-lunar:v1
+        with:
+          args: 'python3 make.py -clean_only'
+      - name: Building (release-x64 AVX)
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-lunar:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -cpp_version ${{ matrix.cpp_version }} -avx -build'
+
+  vs2022:
+    runs-on: windows-2022
+    strategy:
+      matrix:
+        cpp_version: [14, 17, 20]
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+      - name: Building (release-x86)
+        run: python3 make.py -ci -compiler vs2022 -config Release -cpu x86 -cpp_version ${{ matrix.cpp_version }} -build
+      - name: Clean
+        run: python3 make.py -clean_only
+      - name: Building (release-x64)
+        run: python3 make.py -ci -compiler vs2022 -config Release -cpu x64 -cpp_version ${{ matrix.cpp_version }} -build
+      - name: Clean
+        run: python3 make.py -clean_only
+      - name: Building (release-arm64)
+        run: python3 make.py -ci -compiler vs2022 -config Release -cpu arm64 -cpp_version ${{ matrix.cpp_version }} -build
+      - name: Clean
+        run: python3 make.py -clean_only
+      - name: Building (release-x64 nosimd)
+        run: python3 make.py -ci -compiler vs2022 -config Release -cpu x64 -cpp_version ${{ matrix.cpp_version }} -nosimd -build
+      - name: Clean
+        run: python3 make.py -clean_only
+      - name: Building (release-x64 AVX)
+        run: python3 make.py -ci -compiler vs2022 -config Release -cpu x64 -cpp_version ${{ matrix.cpp_version }} -avx -build
