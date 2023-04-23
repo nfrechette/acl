@@ -1,8 +1,6 @@
 cmake_minimum_required (VERSION 3.2)
 project(acl_compressor CXX)
 
-set(CMAKE_CXX_STANDARD 11)
-
 include_directories("${PROJECT_SOURCE_DIR}/../../../includes")
 include_directories("${PROJECT_SOURCE_DIR}/../../../external/rtm/includes")
 include_directories("${PROJECT_SOURCE_DIR}/../includes")

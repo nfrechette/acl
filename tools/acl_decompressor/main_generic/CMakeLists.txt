@@ -1,8 +1,6 @@
 cmake_minimum_required (VERSION 3.2)
 project(acl_decompressor CXX)
 
-set(CMAKE_CXX_STANDARD 11)
-
 # Google Benchmark
 set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "No need to run benchmark's tests" FORCE)
 add_subdirectory("${PROJECT_SOURCE_DIR}/../../../external/benchmark" google_benchmark)
