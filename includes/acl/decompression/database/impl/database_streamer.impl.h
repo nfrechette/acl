@@ -28,16 +28,11 @@
 
 #include "acl/version.h"
 #include "acl/core/bitset.h"
+#include "acl/core/impl/atomic.impl.h"
 #include "acl/core/impl/compressed_headers.h"
 #include "acl/decompression/database/impl/database_context.h"
 
 #include <cstdint>
-
-#if __cplusplus >= 202002L
-#define ACL_MEMORY_ORDER_RELAXED std::memory_order::relaxed
-#else
-#define ACL_MEMORY_ORDER_RELAXED std::memory_order::memory_order_relaxed
-#endif
 
 namespace acl
 {
@@ -109,8 +104,8 @@ namespace acl
 #endif
 
 							database_runtime_segment_header* segment_header = chunk_segment_header.get_segment_header(context.clip_segment_headers);
-							ACL_ASSERT(segment_header->tier_metadata[tier_index_].load(ACL_MEMORY_ORDER_RELAXED) == 0, "Tier metadata should not be initialized");
-							segment_header->tier_metadata[tier_index_].store((uint64_t(chunk_segment_header.samples_offset) << 32) | chunk_segment_header.sample_indices, ACL_MEMORY_ORDER_RELAXED);
+							ACL_ASSERT(segment_header->tier_metadata[tier_index_].load(k_memory_order_relaxed) == 0, "Tier metadata should not be initialized");
+							segment_header->tier_metadata[tier_index_].store((uint64_t(chunk_segment_header.samples_offset) << 32) | chunk_segment_header.sample_indices, k_memory_order_relaxed);
 						}
 					}
 
