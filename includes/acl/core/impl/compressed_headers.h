@@ -32,9 +32,9 @@
 #include "acl/core/range_reduction_types.h"
 #include "acl/core/track_formats.h"
 #include "acl/core/track_types.h"
+#include "acl/core/impl/atomic.impl.h"
 #include "acl/core/impl/compiler_utils.h"
 
-#include <atomic>
 #include <cstdint>
 
 ACL_IMPL_FILE_PRAGMA_PUSH

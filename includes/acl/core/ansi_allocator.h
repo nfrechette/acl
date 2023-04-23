@@ -57,7 +57,7 @@
 #endif
 
 #if defined(ACL_ALLOCATOR_TRACK_NUM_ALLOCATIONS)
-	#include <atomic>
+	#include "acl/core/impl/atomic.impl.h"
 #endif
 
 #if defined(ACL_ALLOCATOR_TRACK_ALL_ALLOCATIONS)
