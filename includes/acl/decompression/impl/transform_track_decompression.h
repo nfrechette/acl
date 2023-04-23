@@ -73,6 +73,12 @@ namespace acl
 #define ACL_IMPL_SEEK_PREFETCH(ptr) (void)(ptr)
 #endif
 
+#if __cplusplus >= 202002L
+#define ACL_MEMORY_ORDER_RELAXED std::memory_order::relaxed
+#else
+#define ACL_MEMORY_ORDER_RELAXED std::memory_order::memory_order_relaxed
+#endif
+
 		template<class decompression_settings_type>
 		constexpr bool is_database_supported_impl()
 		{
@@ -294,8 +300,8 @@ namespace acl
 
 						// Cache miss for the db segment headers
 						const database_runtime_segment_header* db_segment_header0 = db_segment_headers;
-						medium_importance_tier_metadata0 = db_segment_header0->tier_metadata[0].load(std::memory_order::memory_order_relaxed);
-						low_importance_tier_metadata0 = db_segment_header0->tier_metadata[1].load(std::memory_order::memory_order_relaxed);
+						medium_importance_tier_metadata0 = db_segment_header0->tier_metadata[0].load(ACL_MEMORY_ORDER_RELAXED);
+						low_importance_tier_metadata0 = db_segment_header0->tier_metadata[1].load(ACL_MEMORY_ORDER_RELAXED);
 
 						sample_indices0 |= uint32_t(medium_importance_tier_metadata0);
 						sample_indices0 |= uint32_t(low_importance_tier_metadata0);
@@ -437,15 +443,15 @@ namespace acl
 
 						// Cache miss for the db segment headers
 						const database_runtime_segment_header* db_segment_header0 = db_segment_headers + segment_index0;
-						medium_importance_tier_metadata0 = db_segment_header0->tier_metadata[0].load(std::memory_order::memory_order_relaxed);
-						low_importance_tier_metadata0 = db_segment_header0->tier_metadata[1].load(std::memory_order::memory_order_relaxed);
+						medium_importance_tier_metadata0 = db_segment_header0->tier_metadata[0].load(ACL_MEMORY_ORDER_RELAXED);
+						low_importance_tier_metadata0 = db_segment_header0->tier_metadata[1].load(ACL_MEMORY_ORDER_RELAXED);
 
 						sample_indices0 |= uint32_t(medium_importance_tier_metadata0);
 						sample_indices0 |= uint32_t(low_importance_tier_metadata0);
 
 						const database_runtime_segment_header* db_segment_header1 = db_segment_headers + segment_index1;
-						medium_importance_tier_metadata1 = db_segment_header1->tier_metadata[0].load(std::memory_order::memory_order_relaxed);
-						low_importance_tier_metadata1 = db_segment_header1->tier_metadata[1].load(std::memory_order::memory_order_relaxed);
+						medium_importance_tier_metadata1 = db_segment_header1->tier_metadata[0].load(ACL_MEMORY_ORDER_RELAXED);
+						low_importance_tier_metadata1 = db_segment_header1->tier_metadata[1].load(ACL_MEMORY_ORDER_RELAXED);
 
 						sample_indices1 |= uint32_t(medium_importance_tier_metadata1);
 						sample_indices1 |= uint32_t(low_importance_tier_metadata1);
