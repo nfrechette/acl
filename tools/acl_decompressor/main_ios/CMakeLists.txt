@@ -6,7 +6,7 @@ set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "No need to run benchmark's tests" F
 add_subdirectory("${PROJECT_SOURCE_DIR}/../../../external/benchmark" google_benchmark)
 
 # iOS cmake toolchain does not support CMAKE_CXX_STANDARD
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++${CMAKE_CXX_STANDARD}")
 
 # Force enable debug symbols
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")

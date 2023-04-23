@@ -11,7 +11,10 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
             cmake {
-                arguments '-DUSE_SIMD_INSTRUCTIONS=@USE_SIMD_INSTRUCTIONS@', '-DUSE_SJSON=@USE_SJSON@'
+                arguments '-DUSE_SIMD_INSTRUCTIONS=@USE_SIMD_INSTRUCTIONS@',
+                          '-DUSE_SJSON=@USE_SJSON@',
+                          '-DCMAKE_CXX_STANDARD=@CMAKE_CXX_STANDARD@'
+
             }
         }
         ndk {
