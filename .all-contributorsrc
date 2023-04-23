@@ -125,6 +125,15 @@
         "code",
         "ideas"
       ]
+    },
+    {
+      "login": "naetherm",
+      "name": "naetherm",
+      "avatar_url": "https://avatars.githubusercontent.com/u/16878712?v=4",
+      "profile": "https://github.com/naetherm",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
