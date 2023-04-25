@@ -32,6 +32,8 @@ def parse_argv():
 	options['stat_detailed'] = False
 	options['stat_exhaustive'] = False
 	options['level'] = 'Medium'
+	options['strip_keyframe_proportion'] = None
+	options['strip_keyframe_threshold'] = None
 	options['print_help'] = False
 
 	for i in range(1, len(sys.argv)):
@@ -79,6 +81,12 @@ def parse_argv():
 
 		if value.startswith('-level='):
 			options['level'] = value[len('-level='):].replace('"', '').capitalize()
+
+		if value.startswith('-strip_keyframe_proportion='):
+			options['strip_keyframe_proportion'] = float(value[len('-strip_keyframe_proportion='):].replace('"', ''))
+
+		if value.startswith('-strip_keyframe_threshold='):
+			options['strip_keyframe_threshold'] = float(value[len('-strip_keyframe_threshold='):].replace('"', ''))
 
 		if value == '-help':
 			options['print_help'] = True
@@ -137,6 +145,8 @@ def print_help():
 	print('  -no_progress_bar: Suppresses the progress bar output')
 	print('  -stat_detailed: Enables detailed stat logging')
 	print('  -stat_exhaustive: Enables exhaustive stat logging')
+	print('  -strip_keyframe_proportion: Enables keyframe stripping and sets the desired strip proportion')
+	print('  -strip_keyframe_threshold: Enables keyframe stripping and sets the desired strip threshold')
 	print('  -help: Prints this help message.')
 
 def print_stat(stat):
@@ -357,6 +367,12 @@ def compress_clips(options):
 
 			if options['stat_exhaustive']:
 				cmd = '{} -stat_exhaustive'.format(cmd)
+
+			if options['strip_keyframe_proportion']:
+				cmd = '{} -strip_keyframe_proportion={}'.format(cmd, options['strip_keyframe_proportion'])
+
+			if options['strip_keyframe_threshold']:
+				cmd = '{} -strip_keyframe_threshold={}'.format(cmd, options['strip_keyframe_threshold'])
 
 			if platform.system() == 'Windows':
 				cmd = cmd.replace('/', '\\')
