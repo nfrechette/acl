@@ -335,29 +335,63 @@ TEST_CASE("interpolation utils", "[core][utils]")
 
 	//////////////////////////////////////////////////////////////////////////
 
-	CHECK(scalar_near_equal(find_linear_interpolation_alpha(0.0F, 1, 1, sample_rounding_policy::none), 0.0F, error_threshold));
-	CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 1, 2, sample_rounding_policy::none), 0.5F, error_threshold));
-	CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 0, 2, sample_rounding_policy::none), 0.75F, error_threshold));
-	CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 0, 3, sample_rounding_policy::none), 0.5F, error_threshold));
-	CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 1, 4, sample_rounding_policy::none), 0.16666667F, error_threshold));
+	{
+		// Clamping looping policy
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(0.0F, 1, 1, sample_rounding_policy::none, sample_looping_policy::clamp), 0.0F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 1, 2, sample_rounding_policy::none, sample_looping_policy::clamp), 0.5F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 0, 2, sample_rounding_policy::none, sample_looping_policy::clamp), 0.75F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 0, 3, sample_rounding_policy::none, sample_looping_policy::clamp), 0.5F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 1, 4, sample_rounding_policy::none, sample_looping_policy::clamp), 0.16666667F, error_threshold));
 
-	CHECK(scalar_near_equal(find_linear_interpolation_alpha(0.0F, 1, 1, sample_rounding_policy::floor), 0.0F, error_threshold));
-	CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 1, 2, sample_rounding_policy::floor), 0.0F, error_threshold));
-	CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 0, 2, sample_rounding_policy::floor), 0.0F, error_threshold));
-	CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 0, 3, sample_rounding_policy::floor), 0.0F, error_threshold));
-	CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 1, 4, sample_rounding_policy::floor), 0.0F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(0.0F, 1, 1, sample_rounding_policy::floor, sample_looping_policy::clamp), 0.0F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 1, 2, sample_rounding_policy::floor, sample_looping_policy::clamp), 0.0F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 0, 2, sample_rounding_policy::floor, sample_looping_policy::clamp), 0.0F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 0, 3, sample_rounding_policy::floor, sample_looping_policy::clamp), 0.0F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 1, 4, sample_rounding_policy::floor, sample_looping_policy::clamp), 0.0F, error_threshold));
 
-	CHECK(scalar_near_equal(find_linear_interpolation_alpha(0.0F, 1, 1, sample_rounding_policy::ceil), 1.0F, error_threshold));
-	CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 1, 2, sample_rounding_policy::ceil), 1.0F, error_threshold));
-	CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 0, 2, sample_rounding_policy::ceil), 1.0F, error_threshold));
-	CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 0, 3, sample_rounding_policy::ceil), 1.0F, error_threshold));
-	CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 1, 4, sample_rounding_policy::ceil), 1.0F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(0.0F, 1, 1, sample_rounding_policy::ceil, sample_looping_policy::clamp), 1.0F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 1, 2, sample_rounding_policy::ceil, sample_looping_policy::clamp), 1.0F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 0, 2, sample_rounding_policy::ceil, sample_looping_policy::clamp), 1.0F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 0, 3, sample_rounding_policy::ceil, sample_looping_policy::clamp), 1.0F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 1, 4, sample_rounding_policy::ceil, sample_looping_policy::clamp), 1.0F, error_threshold));
 
-	CHECK(scalar_near_equal(find_linear_interpolation_alpha(0.0F, 1, 1, sample_rounding_policy::nearest), 0.0F, error_threshold));
-	CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 1, 2, sample_rounding_policy::nearest), 1.0F, error_threshold));
-	CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 0, 2, sample_rounding_policy::nearest), 1.0F, error_threshold));
-	CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 0, 3, sample_rounding_policy::nearest), 1.0F, error_threshold));
-	CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 1, 4, sample_rounding_policy::nearest), 0.0F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(0.0F, 1, 1, sample_rounding_policy::nearest, sample_looping_policy::clamp), 0.0F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 1, 2, sample_rounding_policy::nearest, sample_looping_policy::clamp), 1.0F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 0, 2, sample_rounding_policy::nearest, sample_looping_policy::clamp), 1.0F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 0, 3, sample_rounding_policy::nearest, sample_looping_policy::clamp), 1.0F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 1, 4, sample_rounding_policy::nearest, sample_looping_policy::clamp), 0.0F, error_threshold));
+	}
+
+	{
+		// Wrapping looping policy
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(0.0F, 1, 1, sample_rounding_policy::none, sample_looping_policy::wrap), 0.0F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 1, 2, sample_rounding_policy::none, sample_looping_policy::wrap), 0.5F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 0, 2, sample_rounding_policy::none, sample_looping_policy::wrap), 0.75F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 0, 3, sample_rounding_policy::none, sample_looping_policy::wrap), 0.5F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 1, 4, sample_rounding_policy::none, sample_looping_policy::wrap), 0.16666667F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(2.5F, 2, 0, sample_rounding_policy::none, sample_looping_policy::wrap), 0.5F, error_threshold));
+
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(0.0F, 1, 1, sample_rounding_policy::floor, sample_looping_policy::wrap), 0.0F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 1, 2, sample_rounding_policy::floor, sample_looping_policy::wrap), 0.0F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 0, 2, sample_rounding_policy::floor, sample_looping_policy::wrap), 0.0F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 0, 3, sample_rounding_policy::floor, sample_looping_policy::wrap), 0.0F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 1, 4, sample_rounding_policy::floor, sample_looping_policy::wrap), 0.0F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(2.5F, 2, 0, sample_rounding_policy::floor, sample_looping_policy::wrap), 0.0F, error_threshold));
+
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(0.0F, 1, 1, sample_rounding_policy::ceil, sample_looping_policy::wrap), 1.0F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 1, 2, sample_rounding_policy::ceil, sample_looping_policy::wrap), 1.0F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 0, 2, sample_rounding_policy::ceil, sample_looping_policy::wrap), 1.0F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 0, 3, sample_rounding_policy::ceil, sample_looping_policy::wrap), 1.0F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 1, 4, sample_rounding_policy::ceil, sample_looping_policy::wrap), 1.0F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(2.5F, 2, 0, sample_rounding_policy::ceil, sample_looping_policy::wrap), 1.0F, error_threshold));
+
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(0.0F, 1, 1, sample_rounding_policy::nearest, sample_looping_policy::wrap), 0.0F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 1, 2, sample_rounding_policy::nearest, sample_looping_policy::wrap), 1.0F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 0, 2, sample_rounding_policy::nearest, sample_looping_policy::wrap), 1.0F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 0, 3, sample_rounding_policy::nearest, sample_looping_policy::wrap), 1.0F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(1.5F, 1, 4, sample_rounding_policy::nearest, sample_looping_policy::wrap), 0.0F, error_threshold));
+		CHECK(scalar_near_equal(find_linear_interpolation_alpha(2.5F, 2, 0, sample_rounding_policy::nearest, sample_looping_policy::wrap), 1.0F, error_threshold));
+	}
 
 	//////////////////////////////////////////////////////////////////////////
 

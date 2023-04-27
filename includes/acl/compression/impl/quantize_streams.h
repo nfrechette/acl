@@ -1720,7 +1720,7 @@ namespace acl
 					for (uint32_t interp_frame_index = interp_start_frame_index + 1; interp_frame_index < interp_end_frame_index; ++interp_frame_index)
 					{
 						// Calculate our interpolation alpha
-						const float interpolation_alpha = find_linear_interpolation_alpha(float(interp_frame_index), interp_start_frame_index, interp_end_frame_index, sample_rounding_policy::none);
+						const float interpolation_alpha = find_linear_interpolation_alpha(float(interp_frame_index), interp_start_frame_index, interp_end_frame_index, sample_rounding_policy::none, sample_looping_policy::clamp);
 
 						// Interpolate our transforms in local space before we convert or apply the additive and transform to object space
 						for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
