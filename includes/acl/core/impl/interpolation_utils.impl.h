@@ -221,9 +221,10 @@ namespace acl
 	// Calculates the sample indices and the interpolation required to linearly
 	// interpolate when the samples are uniform.
 	// This function does not support looping.
-	inline float find_linear_interpolation_alpha(float sample_index, uint32_t sample_index0, uint32_t sample_index1, sample_rounding_policy rounding_policy)
+	inline float find_linear_interpolation_alpha(float sample_index, uint32_t sample_index0, uint32_t sample_index1, sample_rounding_policy rounding_policy, sample_looping_policy looping_policy)
 	{
 		ACL_ASSERT(sample_index >= 0.0F, "Invalid sample rate: %f", sample_index);
+		ACL_ASSERT(looping_policy != sample_looping_policy::as_compressed, "As compressed looping policy is not supported");
 
 		if (rounding_policy == sample_rounding_policy::floor)
 			return 0.0F;
@@ -232,9 +233,14 @@ namespace acl
 		else if (sample_index0 == sample_index1)
 			return 0.0F;
 
-		ACL_ASSERT(sample_index0 < sample_index1, "Invalid sample indices: %u >= %u", sample_index0, sample_index1);
+		ACL_ASSERT(sample_index0 < sample_index1 || (looping_policy == sample_looping_policy::wrap && sample_index1 == 0), "Invalid sample indices: %u >= %u", sample_index0, sample_index1);
 
-		const float interpolation_alpha = (sample_index - float(sample_index0)) / float(sample_index1 - sample_index0);
+		float interpolation_alpha;
+		if (sample_index0 < sample_index1)
+			interpolation_alpha = (sample_index - float(sample_index0)) / float(sample_index1 - sample_index0);
+		else
+			interpolation_alpha = (sample_index - float(sample_index0));
+
 		ACL_ASSERT(interpolation_alpha >= 0.0F && interpolation_alpha <= 1.0F, "Invalid interpolation alpha: 0.0 <= %f <= 1.0", interpolation_alpha);
 
 		// If we don't round, we'll interpolate and we need the alpha value unchanged
@@ -243,6 +249,12 @@ namespace acl
 			return interpolation_alpha;
 		else // sample_rounding_policy::nearest
 			return rtm::scalar_floor(interpolation_alpha + 0.5F);
+	}
+
+	ACL_DEPRECATED("Specify explicitly the sample_looping_policy, to be removed in v3.0")
+	inline float find_linear_interpolation_alpha(float sample_index, uint32_t sample_index0, uint32_t sample_index1, sample_rounding_policy rounding_policy)
+	{
+		return find_linear_interpolation_alpha(sample_index, sample_index0, sample_index1, rounding_policy, sample_looping_policy::clamp);
 	}
 
 	inline float apply_rounding_policy(float interpolation_alpha, sample_rounding_policy policy)

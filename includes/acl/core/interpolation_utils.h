@@ -106,6 +106,13 @@ namespace acl
 	// Calculates the sample indices and the interpolation required to linearly
 	// interpolate when the samples are uniform.
 	// This function does not support looping.
+	float find_linear_interpolation_alpha(float sample_index, uint32_t sample_index0, uint32_t sample_index1, sample_rounding_policy rounding_policy, sample_looping_policy looping_policy);
+
+	//////////////////////////////////////////////////////////////////////////
+	// Calculates the sample indices and the interpolation required to linearly
+	// interpolate when the samples are uniform.
+	// This function does not support looping.
+	ACL_DEPRECATED("Specify explicitly the sample_looping_policy, to be removed in v3.0")
 	float find_linear_interpolation_alpha(float sample_index, uint32_t sample_index0, uint32_t sample_index1, sample_rounding_policy rounding_policy);
 
 	//////////////////////////////////////////////////////////////////////////

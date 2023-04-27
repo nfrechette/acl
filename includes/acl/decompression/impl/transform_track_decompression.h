@@ -313,7 +313,7 @@ namespace acl
 					// Calculate our new interpolation alpha
 					// We used the rounding policy above to snap to the correct key frame earlier but we might need to interpolate now
 					// if key frames have been removed
-					context.interpolation_alpha = find_linear_interpolation_alpha(sample_index, key_frame0, key_frame1, sample_rounding_policy::none);
+					context.interpolation_alpha = find_linear_interpolation_alpha(sample_index, key_frame0, key_frame1, sample_rounding_policy::none, looping_policy_);
 
 					// Find where our data lives (clip or database tier X)
 					sample_indices0 = segment_tier0_header0->sample_indices;
@@ -467,7 +467,7 @@ namespace acl
 					// Calculate our new interpolation alpha
 					// We used the rounding policy above to snap to the correct key frame earlier but we might need to interpolate now
 					// if key frames have been removed
-					context.interpolation_alpha = find_linear_interpolation_alpha(sample_index, clip_key_frame0, clip_key_frame1, sample_rounding_policy::none);
+					context.interpolation_alpha = find_linear_interpolation_alpha(sample_index, clip_key_frame0, clip_key_frame1, sample_rounding_policy::none, looping_policy_);
 
 					// Find where our data lives (clip or database tier X)
 					sample_indices0 = segment_tier0_header0->sample_indices;
