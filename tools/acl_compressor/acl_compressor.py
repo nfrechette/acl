@@ -620,12 +620,8 @@ def run_stat_parsing(options, stat_queue, result_queue):
 						if isinstance(run_stats['duration'], str):
 							run_stats['duration'] = 0.0
 
-						if 'segmenting' in run_stats:
-							run_stats['desc'] = '{}|{}|{}'.format(run_stats['rotation_format'], run_stats['translation_format'], run_stats['scale_format'])
-							run_stats['csv_desc'] = '{}|{}|{}'.format(run_stats['rotation_format'], run_stats['translation_format'], run_stats['scale_format'])
-						else:
-							run_stats['desc'] = '{}|{}|{}'.format(run_stats['rotation_format'], run_stats['translation_format'], run_stats['scale_format'])
-							run_stats['csv_desc'] = '{}|{}|{}'.format(run_stats['rotation_format'], run_stats['translation_format'], run_stats['scale_format'])
+						run_stats['desc'] = '{}|{}|{}'.format(run_stats['rotation_format'], run_stats['translation_format'], run_stats['scale_format'])
+						run_stats['csv_desc'] = '{}|{}|{}'.format(run_stats['rotation_format'], run_stats['translation_format'], run_stats['scale_format'])
 
 						aggregate_stats(agg_run_stats, run_stats)
 						track_best_runs(best_runs, run_stats)
