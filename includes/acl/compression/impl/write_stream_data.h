@@ -123,8 +123,6 @@ namespace acl
 
 		inline void calculate_animated_data_size(clip_context& clip, const uint32_t* output_bone_mapping, uint32_t num_output_bones)
 		{
-			const bitset_description hard_keyframes_desc = bitset_description::make_from_num_bits<32>();
-
 			for (segment_context& segment : clip.segment_iterator())
 			{
 				uint32_t num_animated_pose_rotation_data_bits = 0;
