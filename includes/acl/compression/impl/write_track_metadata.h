@@ -192,26 +192,21 @@ namespace acl
 			return safe_static_cast<uint32_t>(output_buffer - output_buffer_start);
 		}
 
-		inline uint32_t write_contributing_error(const clip_context& clip, frame_contributing_error* out_contributing_error)
+		inline uint32_t write_contributing_error(const clip_context& clip, uint8_t* out_contributing_error)
 		{
-			ACL_ASSERT(out_contributing_error == nullptr || clip.num_samples == 0 || out_contributing_error[0].index == 0, "Buffer overrun detected");
+			ACL_ASSERT(out_contributing_error == nullptr || clip.num_samples == 0 || out_contributing_error[0] == 0, "Buffer overrun detected");
 
-			const uint8_t* output_buffer = reinterpret_cast<const uint8_t*>(out_contributing_error);
+			const uint8_t* output_buffer = out_contributing_error;
 			const uint8_t* output_buffer_start = output_buffer;
-			frame_contributing_error* contributing_error = out_contributing_error;
+			keyframe_stripping_metadata_t* contributing_error = reinterpret_cast<keyframe_stripping_metadata_t*>(out_contributing_error);
 
-			// Write the contributing error for each frame by iterating over our segments to retrieve it
-			// Values are thus sorted per segment
-			for (const segment_context& segment : clip.segment_iterator())
+			for (uint32_t frame_index = 0; frame_index < clip.num_samples; ++frame_index)
 			{
-				for (uint32_t frame_index = 0; frame_index < segment.num_samples; ++frame_index)
-				{
-					if (out_contributing_error != nullptr)
-						*contributing_error = segment.contributing_error[frame_index];
+				if (out_contributing_error != nullptr)
+					*contributing_error = clip.contributing_error[frame_index];
 
-					contributing_error++;
-					output_buffer += sizeof(frame_contributing_error);
-				}
+				contributing_error++;
+				output_buffer += sizeof(keyframe_stripping_metadata_t);
 			}
 
 			return safe_static_cast<uint32_t>(output_buffer - output_buffer_start);

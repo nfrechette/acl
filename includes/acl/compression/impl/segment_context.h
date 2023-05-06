@@ -84,7 +84,10 @@ namespace acl
 			clip_context* clip								= nullptr;
 			transform_streams* bone_streams					= nullptr;
 			transform_range* ranges							= nullptr;
-			frame_contributing_error* contributing_error	= nullptr;	// Optional if we request it in the compression settings
+
+			// Optional if we request it in the compression settings
+			// Sorted by stripping order within this segment
+			keyframe_stripping_metadata_t* contributing_error	= nullptr;
 
 			uint32_t num_samples_allocated					= 0;
 			uint32_t num_samples							= 0;

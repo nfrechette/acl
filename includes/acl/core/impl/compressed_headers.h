@@ -325,10 +325,31 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// How much error each frame contributes to at most
 		// Frames that cannot be removed have infinite error (e.g. first and last frame of the clip)
+		// Note: old structure used prior to ACL 2.1
 		struct frame_contributing_error
 		{
 			uint32_t index;		// Segment relative frame index
 			float error;		// Contributing error
+		};
+
+		//////////////////////////////////////////////////////////////////////////
+		// Keyframe stripping related metadata information for each keyframe
+		struct keyframe_stripping_metadata_t
+		{
+			// Clip relative keyframe index, from 0 to num clip keyframes
+			uint32_t keyframe_index = 0;
+
+			// Segment index this keyframe belongs to, from 0 to num clip segments
+			uint32_t segment_index = 0;
+
+			// In which order to strip keyframes, from 0 to num clip keyframes, ~0 if we cannot strip this keyframe
+			uint32_t stripping_index = 0;
+
+			// How much error remains if this keyframe is removed, inf if we cannot strip this keyframe
+			float stripping_error = 0.0F;
+
+			// Whether or not the error at every track is below its precision threshold if this keyframe is removed
+			uint8_t is_keyframe_trivial = false;
 		};
 
 		// Header for optional track metadata, must be at least 15 bytes
@@ -338,7 +359,12 @@ namespace acl
 			ptr_offset32<uint32_t>					track_name_offsets;
 			ptr_offset32<uint32_t>					parent_track_indices;
 			ptr_offset32<uint8_t>					track_descriptions;
-			ptr_offset32<frame_contributing_error>	contributing_error;
+
+			// In ACL 2.0, the contributing error is of type frame_contributing_error and is sorted by segment
+			// Each keyframe of segment 0, followed by segment 1, etc and each segment is sorted by the stripping error
+			// In ACL 2.1, the contributing error is of type keyframe_stripping_metadata_t and is sorted in
+			// stripping order
+			ptr_offset32<uint8_t>					contributing_error;
 
 			//////////////////////////////////////////////////////////////////////////
 			// Utility functions that return pointers from their respective offsets.
@@ -351,8 +377,8 @@ namespace acl
 			const uint32_t*							get_parent_track_indices(const compressed_tracks& tracks) const { return parent_track_indices.safe_add_to(&tracks); }
 			uint8_t*								get_track_descriptions(compressed_tracks& tracks) { return track_descriptions.safe_add_to(&tracks); }
 			const uint8_t*							get_track_descriptions(const compressed_tracks& tracks) const { return track_descriptions.safe_add_to(&tracks); }
-			frame_contributing_error*				get_contributing_error(compressed_tracks& tracks) { return contributing_error.safe_add_to(&tracks); }
-			const frame_contributing_error*			get_contributing_error(const compressed_tracks& tracks) const { return contributing_error.safe_add_to(&tracks); }
+			uint8_t*								get_contributing_error(compressed_tracks& tracks) { return contributing_error.safe_add_to(&tracks); }
+			const uint8_t*							get_contributing_error(const compressed_tracks& tracks) const { return contributing_error.safe_add_to(&tracks); }
 		};
 
 		static_assert(sizeof(optional_metadata_header) >= 15, "Optional metadata must be at least 15 bytes");

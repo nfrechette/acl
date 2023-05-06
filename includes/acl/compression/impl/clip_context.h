@@ -183,6 +183,10 @@ namespace acl
 			// Shared between all clip contexts, not owned
 			const rigid_shell_metadata_t* clip_shell_metadata	= nullptr;
 
+			// Optional if we request it in the compression settings
+			// Sorted by stripping order within this clip
+			keyframe_stripping_metadata_t* contributing_error = nullptr;
+
 			uint32_t num_segments						= 0;
 			uint32_t num_bones							= 0;	// TODO: Rename num_transforms
 			uint32_t num_samples_allocated				= 0;
@@ -237,6 +241,7 @@ namespace acl
 			out_clip_context.leaf_transform_chains = nullptr;
 			out_clip_context.sorted_transforms_parent_first = allocate_type_array<uint32_t>(allocator, num_transforms);
 			out_clip_context.clip_shell_metadata = nullptr;
+			out_clip_context.contributing_error = nullptr;
 			out_clip_context.num_segments = 1;
 			out_clip_context.num_bones = num_transforms;
 			out_clip_context.num_samples_allocated = num_samples;
@@ -448,6 +453,7 @@ namespace acl
 			deallocate_type_array(allocator, context.leaf_transform_chains, size_t(context.num_leaf_transforms) * bone_bitset_desc.get_size());
 
 			deallocate_type_array(allocator, context.sorted_transforms_parent_first, context.num_bones);
+			deallocate_type_array(allocator, context.contributing_error, context.num_samples);
 		}
 
 		constexpr bool segment_context_has_scale(const segment_context& segment) { return segment.clip->has_scale; }

@@ -71,6 +71,7 @@ namespace acl
 		v02_00_00	= 7,			// ACL v2.0.0
 		v02_01_99	= 8,			// ACL v2.1.0-wip
 		v02_01_99_1	= 9,			// ACL v2.1.0-wip (removed constant thresholds in track desc, increased bit rates, remapped raw num bits to 31 in compressed tracks)
+		v02_01_99_2 = 10,			// ACL v2.1.0-wip (converted error contribution metadata)
 
 		//////////////////////////////////////////////////////////////////////////
 		// First version marker, this is equal to the first version supported: ACL 2.0.0
@@ -80,7 +81,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Always assigned to the latest version supported.
-		latest		= v02_01_99_1,
+		latest		= v02_01_99_2,
 	};
 
 	ACL_IMPL_VERSION_NAMESPACE_END

@@ -88,7 +88,7 @@ namespace acl
 
 	inline bool compression_keyframe_stripping_settings::is_enabled() const
 	{
-		return proportion > 0.0F || threshold > 0.0F;
+		return proportion > 0.0F || threshold > 0.0F || strip_trivial;
 	}
 
 	inline uint32_t compression_keyframe_stripping_settings::get_hash() const
@@ -96,6 +96,7 @@ namespace acl
 		uint32_t hash_value = 0;
 		hash_value = hash_combine(hash_value, hash32(proportion));
 		hash_value = hash_combine(hash_value, hash32(threshold));
+		hash_value = hash_combine(hash_value, hash32(strip_trivial));
 
 		return hash_value;
 	}
@@ -162,6 +163,7 @@ namespace acl
 		settings.translation_format = vector_format8::vector3f_variable;
 		settings.scale_format = vector_format8::vector3f_variable;
 		settings.optimize_loops = true;
+		settings.keyframe_stripping.strip_trivial = true;
 		return settings;
 	}
 

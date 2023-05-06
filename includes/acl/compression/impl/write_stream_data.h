@@ -147,8 +147,7 @@ namespace acl
 				}
 
 				const uint32_t num_animated_pose_bits = num_animated_pose_rotation_data_bits + num_animated_pose_translation_data_bits + num_animated_pose_scale_data_bits;
-				const uint32_t num_stored_samples = clip.has_stripped_keyframes ? bitset_count_set_bits(&segment.hard_keyframes, hard_keyframes_desc) : segment.num_samples;
-				const uint32_t num_animated_data_bits = num_animated_pose_bits * num_stored_samples;
+				const uint32_t num_animated_data_bits = num_animated_pose_bits * segment.num_samples;
 
 				segment.animated_rotation_bit_size = num_animated_pose_rotation_data_bits;
 				segment.animated_translation_bit_size = num_animated_pose_translation_data_bits;

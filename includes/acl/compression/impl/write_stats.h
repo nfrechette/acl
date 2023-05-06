@@ -74,6 +74,15 @@ namespace acl
 				const uint32_t num_stripped_keyframes = segment.num_samples - num_retained_keyframes;
 				writer["num_stripped_keyframes"] = num_stripped_keyframes;
 			}
+
+			if (segment.contributing_error != nullptr)
+			{
+				writer["num_trivial_keyframes"] = std::count_if(segment.contributing_error, segment.contributing_error + segment.num_samples,
+					[](const keyframe_stripping_metadata_t& keyframe_metadata)
+					{
+						return keyframe_metadata.is_keyframe_trivial;
+					});
+			}
 		}
 
 		inline void write_detailed_segment_stats(const segment_context& segment, sjson::ObjectWriter& writer)
@@ -417,6 +426,19 @@ namespace acl
 				}
 			}
 
+			uint32_t num_trivial_keyframes = 0;
+			for (const segment_context& segment : clip.segment_iterator())
+			{
+				if (segment.contributing_error != nullptr)
+				{
+					num_trivial_keyframes += static_cast<uint32_t>(std::count_if(segment.contributing_error, segment.contributing_error + segment.num_samples,
+						[](const keyframe_stripping_metadata_t& keyframe_metadata)
+						{
+							return keyframe_metadata.is_keyframe_trivial;
+						}));
+				}
+			}
+
 			sjson::ObjectWriter& writer = *stats.writer;
 			writer["algorithm_name"] = get_algorithm_name(algorithm_type8::uniformly_sampled);
 			writer["algorithm_uid"] = settings.get_hash();
@@ -434,6 +456,7 @@ namespace acl
 			writer["has_scale"] = clip.has_scale;
 			writer["looping"] = compressed_clip.get_looping_policy() == sample_looping_policy::wrap;
 			writer["num_stripped_keyframes"] = total_num_stripped_keyframes;
+			writer["num_trivial_keyframes"] = num_trivial_keyframes;
 			writer["error_metric"] = settings.error_metric->get_name();
 
 			if (are_all_enum_flags_set(stats.logging, stat_logging::detailed) || are_all_enum_flags_set(stats.logging, stat_logging::exhaustive))
