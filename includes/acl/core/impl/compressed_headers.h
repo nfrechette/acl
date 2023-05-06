@@ -350,6 +350,15 @@ namespace acl
 
 			// Whether or not the error at every track is below its precision threshold if this keyframe is removed
 			uint8_t is_keyframe_trivial = false;
+
+			keyframe_stripping_metadata_t() = default;
+			keyframe_stripping_metadata_t(uint32_t keyframe_index_, uint32_t segment_index_, uint32_t stripping_index_, float stripping_error_, bool is_keyframe_trivial_)
+				: keyframe_index(keyframe_index_)
+				, segment_index(segment_index_)
+				, stripping_index(stripping_index_)
+				, stripping_error(stripping_error_)
+				, is_keyframe_trivial(is_keyframe_trivial_)
+			{}
 		};
 
 		// Header for optional track metadata, must be at least 15 bytes
