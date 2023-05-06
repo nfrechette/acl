@@ -436,11 +436,6 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 			settings.metadata.include_track_descriptions = true;
 		}
 
-		settings.enable_database_support = options.split_into_database;
-
-		settings.keyframe_stripping.proportion = options.strip_keyframe_proportion;
-		settings.keyframe_stripping.threshold = options.strip_keyframe_threshold;
-
 		output_stats stats;
 		stats.logging = logging;
 		stats.writer = stats_writer;
@@ -478,7 +473,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 			validate_metadata(transform_tracks, *compressed_tracks_);
 			validate_convert(allocator, transform_tracks);
 
-			if (options.split_into_database)
+			if (settings.enable_database_support)
 			{
 				// Drop all the metadata and make a second copy for testing
 				// This will ensure we have two clips with different hashes
@@ -857,8 +852,8 @@ static bool read_config(iallocator& allocator, Options& options, compression_set
 		options.use_matrix_error_metric = use_matrix_error_metric;
 
 	bool split_into_database;
-	if (parser.try_read("split_into_database", split_into_database, false))
-		options.split_into_database = split_into_database;
+	if (parser.try_read("split_into_database", split_into_database, default_settings.enable_database_support))
+		out_settings.enable_database_support = split_into_database;
 
 	compression_database_settings default_database_settings;
 
@@ -1197,6 +1192,11 @@ static int safe_main_impl(int argc, char* argv[])
 
 				if (options.compression_level_specified)
 					default_settings.level = options.compression_level;
+
+				default_settings.enable_database_support = options.split_into_database;
+
+				default_settings.keyframe_stripping.proportion = options.strip_keyframe_proportion;
+				default_settings.keyframe_stripping.threshold = options.strip_keyframe_threshold;
 
 				compression_database_settings default_database_settings;
 
