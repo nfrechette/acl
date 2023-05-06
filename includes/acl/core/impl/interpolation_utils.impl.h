@@ -225,6 +225,7 @@ namespace acl
 	{
 		ACL_ASSERT(sample_index >= 0.0F, "Invalid sample rate: %f", sample_index);
 		ACL_ASSERT(looping_policy != sample_looping_policy::as_compressed, "As compressed looping policy is not supported");
+		(void)looping_policy;
 
 		if (rounding_policy == sample_rounding_policy::floor)
 			return 0.0F;
