@@ -1620,8 +1620,8 @@ namespace acl
 			// First and last frame of the segment cannot be removed and thus contribute infinite error
 			// TODO: We could retain only the first/last frames of the clip instead but it would mean interpolating
 			// with a frame from the previous/next segments
-			contributing_error[0] = keyframe_stripping_metadata_t{ 0, segment_index, ~0U, infinity, false };
-			contributing_error[num_frames - 1] = keyframe_stripping_metadata_t{ num_frames - 1, segment_index, ~0U, infinity, false };
+			contributing_error[0] = keyframe_stripping_metadata_t(0, segment_index, ~0U, infinity, false);
+			contributing_error[num_frames - 1] = keyframe_stripping_metadata_t(num_frames - 1, segment_index, ~0U, infinity, false);
 
 			// START OF ERROR METRIC STUFF
 			const itransform_error_metric* error_metric = context.error_metric;
@@ -1681,7 +1681,7 @@ namespace acl
 			// We iterate until every frame but the first and last have been removed
 			for (uint32_t iteration_count = 1; iteration_count < num_frames - 1; ++iteration_count)
 			{
-				keyframe_stripping_metadata_t best_error{ ~0U, segment_index, ~0U, infinity, false };
+				keyframe_stripping_metadata_t best_error(~0U, segment_index, ~0U, infinity, false);
 
 #if ACL_IMPL_DEBUG_CONTRIBUTING_ERROR
 				printf("Contributing error for segment %u (%u frames), iteration %u ...\n", context.segment->segment_index, num_frames, iteration_count);
@@ -1784,7 +1784,7 @@ namespace acl
 
 					// If our current frame's contributing error is lowest, it is the best candidate for removal
 					if (max_contributing_errorf < best_error.stripping_error)
-						best_error = keyframe_stripping_metadata_t{ frame_index, segment_index, iteration_count - 1, max_contributing_errorf, is_keyframe_trivial };
+						best_error = keyframe_stripping_metadata_t(frame_index, segment_index, iteration_count - 1, max_contributing_errorf, is_keyframe_trivial);
 				}
 
 				ACL_ASSERT(best_error.keyframe_index != num_frames, "Failed to find the best contributing error");
@@ -1820,7 +1820,7 @@ namespace acl
 			// We need it to be relative to the whole clip
 			for (uint32_t stripping_index = 0; stripping_index < num_samples; ++stripping_index)
 			{
-				keyframe_stripping_metadata_t best_error{ ~0U, 0, ~0U, infinity, false };
+				keyframe_stripping_metadata_t best_error(~0U, 0, ~0U, infinity, false);
 
 				for (uint32_t segment_index = 0; segment_index < num_segments; ++segment_index)
 				{
