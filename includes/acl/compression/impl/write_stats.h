@@ -77,7 +77,7 @@ namespace acl
 
 			if (segment.contributing_error != nullptr)
 			{
-				writer["num_trivial_keyframes"] = std::count_if(segment.contributing_error, segment.contributing_error + segment.num_samples,
+				writer["num_trivial_keyframes"] = (uint32_t)std::count_if(segment.contributing_error, segment.contributing_error + segment.num_samples,
 					[](const keyframe_stripping_metadata_t& keyframe_metadata)
 					{
 						return keyframe_metadata.is_keyframe_trivial;
