@@ -223,8 +223,14 @@ namespace acl
 			// Find how many bits we need per sub-track and quantize everything
 			quantize_streams(allocator, lossy_clip_context, settings, raw_clip_context, additive_base_clip_context, out_stats);
 
+			uint32_t num_output_bones = 0;
+			uint32_t* output_bone_mapping = create_output_track_mapping(allocator, track_list, num_output_bones);
+
+			// Calculate the pose size, we need it to estimate savings when stripping keyframes
+			calculate_animated_data_size(lossy_clip_context, output_bone_mapping, num_output_bones);
+
 			// Remove whole keyframes as needed
-			strip_keyframes(allocator, lossy_clip_context, settings);
+			strip_keyframes(lossy_clip_context, settings);
 
 			// Compression is done! Time to pack things.
 
@@ -233,12 +239,7 @@ namespace acl
 
 			const bool has_trivial_defaults = has_trivial_default_values(track_list, additive_format, lossy_clip_context);
 
-			uint32_t num_output_bones = 0;
-			uint32_t* output_bone_mapping = create_output_track_mapping(allocator, track_list, num_output_bones);
-
 			const uint32_t constant_data_size = get_constant_data_size(lossy_clip_context);
-
-			calculate_animated_data_size(lossy_clip_context, output_bone_mapping, num_output_bones);
 
 			uint32_t num_animated_variable_sub_tracks_padded = 0;
 			const uint32_t format_per_track_data_size = get_format_per_track_data_size(lossy_clip_context, settings.rotation_format, settings.translation_format, settings.scale_format, &num_animated_variable_sub_tracks_padded);

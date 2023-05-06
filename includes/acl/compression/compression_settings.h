@@ -137,7 +137,8 @@ namespace acl
 	// Keyframe stripping is a destructive process and visual fidelity can degrade
 	// considerably. If a keyframe is identified as a stripping candidate, it is
 	// entirely removed and reconstructed through linear interpolation of its
-	// remaining neighbors.
+	// remaining neighbors. This is destructive unless the keyframe can be reconstructed
+	// below the desired precision threshold, in which case it is a trivial keyframe.
 	//
 	// Removing whole keyframes ensures that decompression remains very fast.
 	// However, enabling keyframe stripping does add a fixed amount of overhead
@@ -176,6 +177,14 @@ namespace acl
 		// are retained.
 		// Defaults to '0.0' centimeters (no stripping)
 		float threshold = 0.0F;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Whether or not to strip trivial keyframes.
+		// If the error introduced by removing a keyframe is below the precision
+		// threshold for every transform, it is trivial. It means that if we reconstruct
+		// the stripped keyframe, the error introduced is below our precision threshold.
+		// Defaults to 'false' (no stripping)
+		bool strip_trivial = false;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Calculates a hash from the internal state to uniquely identify a configuration.

@@ -1606,21 +1606,22 @@ namespace acl
 			ACL_ASSERT(context.num_samples <= 32, "Expected no more than 32 samples per track");
 
 			if (context.segment->contributing_error == nullptr)
-				context.segment->contributing_error = allocate_type_array<frame_contributing_error>(context.allocator, 32);	// Always no more than 32 frames per segment
+				context.segment->contributing_error = allocate_type_array<keyframe_stripping_metadata_t>(context.allocator, 32);	// Always no more than 32 frames per segment
 
 			const uint32_t num_frames = context.num_samples;
 			const uint32_t num_bones = context.num_bones;
+			const uint32_t segment_index = context.segment->segment_index;
 			const bitset_description desc = bitset_description::make_from_num_bits<32>();
 			constexpr float infinity = std::numeric_limits<float>::infinity();
 
-			frame_contributing_error* contributing_error = context.segment->contributing_error;
+			keyframe_stripping_metadata_t* contributing_error = context.segment->contributing_error;
 			uint32_t frames_retained = ~0U;	// By default, every frame is present
 
 			// First and last frame of the segment cannot be removed and thus contribute infinite error
 			// TODO: We could retain only the first/last frames of the clip instead but it would mean interpolating
 			// with a frame from the previous/next segments
-			contributing_error[0] = frame_contributing_error{ 0, infinity };
-			contributing_error[num_frames - 1] = frame_contributing_error{ num_frames - 1, infinity };
+			contributing_error[0] = keyframe_stripping_metadata_t{ 0, segment_index, ~0U, infinity, false };
+			contributing_error[num_frames - 1] = keyframe_stripping_metadata_t{ num_frames - 1, segment_index, ~0U, infinity, false };
 
 			// START OF ERROR METRIC STUFF
 			const itransform_error_metric* error_metric = context.error_metric;
@@ -1680,7 +1681,7 @@ namespace acl
 			// We iterate until every frame but the first and last have been removed
 			for (uint32_t iteration_count = 1; iteration_count < num_frames - 1; ++iteration_count)
 			{
-				frame_contributing_error best_error{ num_frames, infinity };
+				keyframe_stripping_metadata_t best_error{ ~0U, segment_index, ~0U, infinity, false };
 
 #if ACL_IMPL_DEBUG_CONTRIBUTING_ERROR
 				printf("Contributing error for segment %u (%u frames), iteration %u ...\n", context.segment->segment_index, num_frames, iteration_count);
@@ -1716,6 +1717,7 @@ namespace acl
 
 					// We'll retain the worst error as the current frame's contributing error.
 					rtm::scalarf max_contributing_error = rtm::scalar_set(0.0F);
+					bool is_keyframe_trivial = true;
 
 					for (uint32_t interp_frame_index = interp_start_frame_index + 1; interp_frame_index < interp_end_frame_index; ++interp_frame_index)
 					{
@@ -1770,6 +1772,7 @@ namespace acl
 #endif
 
 							max_contributing_error = rtm::scalar_max(max_contributing_error, error);
+							is_keyframe_trivial &= rtm::scalar_cast(error) <= transform_shell.precision;
 						}
 					}
 
@@ -1780,31 +1783,78 @@ namespace acl
 #endif
 
 					// If our current frame's contributing error is lowest, it is the best candidate for removal
-					if (max_contributing_errorf < best_error.error)
-						best_error = frame_contributing_error{ frame_index, max_contributing_errorf };
+					if (max_contributing_errorf < best_error.stripping_error)
+						best_error = keyframe_stripping_metadata_t{ frame_index, segment_index, iteration_count - 1, max_contributing_errorf, is_keyframe_trivial };
 				}
 
-				ACL_ASSERT(best_error.index != num_frames, "Failed to find the best contributing error");
+				ACL_ASSERT(best_error.keyframe_index != num_frames, "Failed to find the best contributing error");
 
 #if ACL_IMPL_DEBUG_CONTRIBUTING_ERROR
-				printf("    Best frame to remove: %u (%f)\n", best_error.index, best_error.error);
+				printf("    Best frame to remove: %u (%f)\n", best_error.keyframe_index, best_error.stripping_error);
 #endif
 
 				// We found the best frame to remove, remove it
-				contributing_error[best_error.index] = best_error;
-				bitset_set(&frames_retained, desc, best_error.index, false);
+				contributing_error[best_error.keyframe_index] = best_error;
+				bitset_set(&frames_retained, desc, best_error.keyframe_index, false);
 			}
 
-			// We found the contributing error for every frame, sort them by lowest error first
-			auto sort_predicate = [](const frame_contributing_error& lhs, const frame_contributing_error& rhs) { return lhs.error < rhs.error; };
+			// We found the contributing error for every keyframe, sort them by the order they should be stripped from this segment
+			auto sort_predicate = [](const keyframe_stripping_metadata_t& lhs, const keyframe_stripping_metadata_t& rhs) { return lhs.stripping_index < rhs.stripping_index; };
 			std::sort(contributing_error, contributing_error + num_frames, sort_predicate);
+		}
+
+		inline void sort_contributing_error(iallocator& allocator, clip_context& lossy_clip_context)
+		{
+			const uint32_t num_samples = lossy_clip_context.num_samples;
+
+			if (lossy_clip_context.contributing_error == nullptr)
+				lossy_clip_context.contributing_error = allocate_type_array<keyframe_stripping_metadata_t>(allocator, num_samples);
+
+			constexpr float infinity = std::numeric_limits<float>::infinity();
+			const uint32_t num_segments = lossy_clip_context.num_segments;
+
+			uint32_t* num_stripped_in_segment = allocate_type_array<uint32_t>(allocator, num_segments);
+			std::fill(num_stripped_in_segment, num_stripped_in_segment + num_segments, 0);
+
+			// Now that every segment has been populated, the stripping order is relative to each segment
+			// We need it to be relative to the whole clip
+			for (uint32_t stripping_index = 0; stripping_index < num_samples; ++stripping_index)
+			{
+				keyframe_stripping_metadata_t best_error{ ~0U, 0, ~0U, infinity, false };
+
+				for (uint32_t segment_index = 0; segment_index < num_segments; ++segment_index)
+				{
+					const segment_context& segment = lossy_clip_context.segments[segment_index];
+					const uint32_t segment_strip_index = num_stripped_in_segment[segment_index];
+
+					if (segment_strip_index >= segment.num_samples)
+						continue;	// We've stripped every keyframe from this segment
+
+					// We use <= because if the stripping error is the same, the order in which we remove keyframes
+					// doesn't matter and once all keyframes that can be stripped have been removed, only the boundary
+					// keyframes will remain and we'll match here with infinity.
+					if (segment.contributing_error[segment_strip_index].stripping_error <= best_error.stripping_error)
+						best_error = segment.contributing_error[segment_strip_index];
+				}
+
+				ACL_ASSERT(best_error.keyframe_index != ~0U, "Expected to find a valid keyframe to strip");
+
+				// Update our stripping and keyframe indices to make it relative to the clip
+				best_error.stripping_index = stripping_index;
+				best_error.keyframe_index += lossy_clip_context.segments[best_error.segment_index].clip_sample_offset;
+
+				num_stripped_in_segment[best_error.segment_index]++;
+				lossy_clip_context.contributing_error[stripping_index] = best_error;
+			}
+
+			deallocate_type_array(allocator, num_stripped_in_segment, num_segments);
 		}
 
 		inline void quantize_streams(iallocator& allocator, clip_context& clip, const compression_settings& settings, const clip_context& raw_clip_context, const clip_context& additive_base_clip_context, const output_stats& out_stats)
 		{
 			(void)out_stats;
 
-			if (clip.num_bones == 0)
+			if (clip.num_bones == 0 || clip.num_samples == 0)
 				return;
 
 			const bool is_rotation_variable = is_rotation_format_variable(settings.rotation_format);
@@ -1855,6 +1905,10 @@ namespace acl
 				// Quantize our streams now that we found the optimal bit rates
 				quantize_all_streams(context);
 			}
+
+			// If we need the contributing error of each keyframe, sort them for the whole clip
+			if (settings.metadata.include_contributing_error)
+				sort_contributing_error(allocator, clip);
 
 #if defined(ACL_USE_SJSON)
 			if (are_all_enum_flags_set(out_stats.logging, stat_logging::detailed))

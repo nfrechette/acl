@@ -38,13 +38,7 @@ namespace acl
 
 	namespace acl_impl
 	{
-		struct clip_frame_contributing_error_t
-		{
-			uint32_t segment_index;
-			frame_contributing_error contributing_error;
-		};
-
-		inline void strip_keyframes(iallocator& allocator, clip_context& lossy_clip_context, const compression_settings& settings)
+		inline void strip_keyframes(clip_context& lossy_clip_context, const compression_settings& settings)
 		{
 			if (!settings.keyframe_stripping.is_enabled())
 				return;	// We don't want to strip keyframes, nothing to do
@@ -52,21 +46,11 @@ namespace acl
 			const bitset_description hard_keyframes_desc = bitset_description::make_from_num_bits<32>();
 			const uint32_t num_keyframes = lossy_clip_context.num_samples;
 
-			clip_frame_contributing_error_t* contributing_error_per_keyframe = allocate_type_array<clip_frame_contributing_error_t>(allocator, num_keyframes);
+			const keyframe_stripping_metadata_t* contributing_error_per_keyframe = lossy_clip_context.contributing_error;
 
+			// Initialize which keyframes are retained, we'll strip them later
 			for (segment_context& segment : lossy_clip_context.segment_iterator())
-			{
-				// Copy the contributing error of each keyframe, we'll sort them later
-				for (uint32_t keyframe_index = 0; keyframe_index < segment.num_samples; ++keyframe_index)
-					contributing_error_per_keyframe[segment.clip_sample_offset + keyframe_index] = { segment.segment_index, segment.contributing_error[keyframe_index] };
-
-				// Initialize which keyframes are retained, we'll strip them later
 				bitset_set_range(&segment.hard_keyframes, hard_keyframes_desc, 0, segment.num_samples, true);
-			}
-
-			// Sort the contributing error of every keyframe within the clip
-			auto sort_predicate = [](const clip_frame_contributing_error_t& lhs, const clip_frame_contributing_error_t& rhs) { return lhs.contributing_error.error < rhs.contributing_error.error; };
-			std::sort(contributing_error_per_keyframe, contributing_error_per_keyframe + num_keyframes, sort_predicate);
 
 			// First determine how many we wish to strip based on proportion
 			// A frame is movable if it isn't the first or last frame of a segment
@@ -76,32 +60,74 @@ namespace acl
 			// If we have 0 or 1 frame, none are movable
 			const uint32_t num_movable_frames = num_keyframes >= 2 ? (num_keyframes - (lossy_clip_context.num_segments * 2)) : 0;
 
-			// First estimate how many keyframes to strip using the desired minimum proportion to strip
-			uint32_t num_keyframes_to_strip = std::min<uint32_t>(num_movable_frames, uint32_t(settings.keyframe_stripping.proportion * float(num_keyframes)));
+			uint32_t num_keyframes_to_strip = 0;
+
+			// First, we strip the trivial keyframes
+			if (settings.keyframe_stripping.strip_trivial)
+			{
+				// We only strip the ones that have the lowest error
+				// Since the error depends on the order in which keyframes are removed,
+				// a trivial keyframe might only become trivial after another keyframe that
+				// isn't trivial is removed.
+				for (; num_keyframes_to_strip < num_movable_frames; ++num_keyframes_to_strip)
+				{
+					if (!contributing_error_per_keyframe[num_keyframes_to_strip].is_keyframe_trivial)
+						break;	// Found the first non-trivial keyframe
+				}
+			}
 
 			// Then scan starting until we find our threshold if its above the proportion
+			// We removed trivial keyframes above, meaning the error should be below our desired
+			// threshold or it's low enough not to matter
+			// Since the error depends on the order in which keyframes are removed, we process
+			// the threshold first as it could decrease
 			for (; num_keyframes_to_strip < num_movable_frames; ++num_keyframes_to_strip)
 			{
-				if (contributing_error_per_keyframe[num_keyframes_to_strip].contributing_error.error > settings.keyframe_stripping.threshold)
+				if (contributing_error_per_keyframe[num_keyframes_to_strip].stripping_error > settings.keyframe_stripping.threshold)
 					break;	// The error exceeds our threshold, stop stripping keyframes
 			}
 
+			// Make sure to at least remove as many as the proportion we want
+			const uint32_t num_proportion_keyframes_to_strip = std::min<uint32_t>(num_movable_frames, uint32_t(settings.keyframe_stripping.proportion * float(num_keyframes)));
+			num_keyframes_to_strip = std::max<uint32_t>(num_keyframes_to_strip, num_proportion_keyframes_to_strip);
+
 			ACL_ASSERT(num_keyframes_to_strip <= num_movable_frames, "Cannot strip more than the number of movable keyframes");
+
+			// Check if stripping our keyframes actually saves any memory
+			// Stripping requires us to add a small header per segment, we need to offset that cost
+			uint32_t num_bits_saved = 0;
+			for (uint32_t index = 0; index < num_keyframes_to_strip; ++index)
+			{
+				const keyframe_stripping_metadata_t& contributing_error = contributing_error_per_keyframe[index];
+				const segment_context& segment = lossy_clip_context.segments[contributing_error.segment_index];
+
+				num_bits_saved += segment.animated_pose_bit_size;
+			}
+
+			const uint32_t num_bytes_segment_overhead = sizeof(stripped_segment_header_t) - sizeof(segment_header);
+			const uint32_t num_bytes_stripping_overhead = lossy_clip_context.num_segments * num_bytes_segment_overhead;
+			const uint32_t num_bytes_saved = num_bits_saved / 8;	// Round down to a full byte to be conservative
+
+			// If we don't save enough memory, don't strip anything
+			if (num_bytes_saved <= num_bytes_stripping_overhead)
+				num_keyframes_to_strip = 0;
 
 			// Now that we know how many keyframes to strip, remove them
 			for (uint32_t index = 0; index < num_keyframes_to_strip; ++index)
 			{
-				const clip_frame_contributing_error_t& contributing_error = contributing_error_per_keyframe[index];
+				const keyframe_stripping_metadata_t& contributing_error = contributing_error_per_keyframe[index];
+				segment_context& segment = lossy_clip_context.segments[contributing_error.segment_index];
 
-				segment_context& keyframe_segment = lossy_clip_context.segments[contributing_error.segment_index];
+				const uint32_t segment_keyframe_index = contributing_error.keyframe_index - segment.clip_sample_offset;
+				ACL_ASSERT(segment_keyframe_index != 0 && segment_keyframe_index < (segment.num_samples - 1), "Cannot strip the first and last sample of a segment");
 
-				const uint32_t segment_keyframe_index = contributing_error.contributing_error.index;
-				ACL_ASSERT(segment_keyframe_index != 0 && segment_keyframe_index < (keyframe_segment.num_samples - 1), "Cannot strip the first and last sample of a segment");
+				bitset_set(&segment.hard_keyframes, hard_keyframes_desc, segment_keyframe_index, false);
 
-				bitset_set(&keyframe_segment.hard_keyframes, hard_keyframes_desc, segment_keyframe_index, false);
+				// Update how much animated we have
+				const uint32_t num_stored_samples = bitset_count_set_bits(&segment.hard_keyframes, hard_keyframes_desc);
+				const uint32_t num_animated_data_bits = segment.animated_pose_bit_size * num_stored_samples;
+				segment.animated_data_size = align_to(num_animated_data_bits, 8) / 8;
 			}
-
-			deallocate_type_array(allocator, contributing_error_per_keyframe, num_keyframes);
 
 			lossy_clip_context.has_stripped_keyframes = num_keyframes_to_strip != 0;
 		}
