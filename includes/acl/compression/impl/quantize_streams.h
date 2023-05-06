@@ -1787,7 +1787,7 @@ namespace acl
 						best_error = keyframe_stripping_metadata_t(frame_index, segment_index, iteration_count - 1, max_contributing_errorf, is_keyframe_trivial);
 				}
 
-				ACL_ASSERT(best_error.keyframe_index != num_frames, "Failed to find the best contributing error");
+				ACL_ASSERT(best_error.keyframe_index != ~0U, "Failed to find the best contributing error");
 
 #if ACL_IMPL_DEBUG_CONTRIBUTING_ERROR
 				printf("    Best frame to remove: %u (%f)\n", best_error.keyframe_index, best_error.stripping_error);
