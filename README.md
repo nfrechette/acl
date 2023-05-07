@@ -49,8 +49,7 @@ Much thought was put into designing the library for it to be as flexible and pow
 *  Windows (VS2017 to VS2022) with clang x86 and x64
 *  Linux (gcc 5 to 13) x86 and x64
 *  Linux (clang 4 to 15) x86 and x64
-*  OS X (Xcode 10.3) x86 and x64
-*  OS X (Xcode 11.7, 12.5, 13.2, 14.2) x64 and ARM64
+*  OS X (12.5, 13.2, 14.2) x64 and ARM64
 *  Android (NDK 21) ARMv7-A and ARM64
 *  iOS (Xcode 10.3, 11.7, 12.5, 13.2, 14.2) ARM64
 *  Emscripten (1.39.11) WASM
