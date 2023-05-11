@@ -80,7 +80,7 @@ def parse_argv():
 			options['num_threads'] = int(value[len('-parallel='):].replace('"', ''))
 
 		if value.startswith('-level='):
-			options['level'] = value[len('-level='):].replace('"', '').capitalize()
+			options['level'] = value[len('-level='):].replace('"', '')
 
 		if value.startswith('-strip_keyframe_proportion='):
 			options['strip_keyframe_proportion'] = float(value[len('-strip_keyframe_proportion='):].replace('"', ''))
