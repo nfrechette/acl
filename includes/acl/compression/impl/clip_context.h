@@ -352,7 +352,8 @@ namespace acl
 				uint32_t* is_leaf_bitset = allocate_type_array<uint32_t>(allocator, bitset_size);
 				bitset_reset(is_leaf_bitset, bone_bitset_desc, false);
 
-				// By default  and if we find a child, we'll mark it as non-leaf
+				// By default everything is marked as a leaf
+				// We'll then iterate on every transform and mark their parent as non-leaf
 				bitset_set_range(is_leaf_bitset, bone_bitset_desc, 0, num_transforms, true);
 
 #if defined(ACL_HAS_ASSERT_CHECKS)
@@ -379,6 +380,12 @@ namespace acl
 				const uint32_t num_leaf_transforms = bitset_count_set_bits(is_leaf_bitset, bone_bitset_desc);
 				out_clip_context.num_leaf_transforms = num_leaf_transforms;
 
+				// Build our transform chains
+				// Each leaf transform is part of a unique chain
+				// When a leaf is found, we assign it a new chain. We then iterate through the parent
+				// transforms, adding them to the chain
+				// Each non-leaf transform visited is assigned the first chain that contains it
+				// This allows easy traversal between one transform and its parents
 				uint32_t* leaf_transform_chains = allocate_type_array<uint32_t>(allocator, num_leaf_transforms * bitset_size);
 				out_clip_context.leaf_transform_chains = leaf_transform_chains;
 
