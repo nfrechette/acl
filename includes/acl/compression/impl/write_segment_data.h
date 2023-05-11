@@ -70,7 +70,7 @@ namespace acl
 
 			const uint32_t format_per_track_data_size = get_format_per_track_data_size(clip, settings.rotation_format, settings.translation_format, settings.scale_format);
 			const bool has_stripped_keyframes = clip.has_stripped_keyframes;
-			stripped_segment_header_t* stripped_segment_headers = reinterpret_cast<stripped_segment_header_t*>(segment_headers);
+			stripped_segment_header_t* stripped_segment_headers = static_cast<stripped_segment_header_t*>(segment_headers);
 
 			uint32_t segment_data_offset = segment_data_start_offset;
 			for (uint32_t segment_index = 0; segment_index < clip.num_segments; ++segment_index)
@@ -125,7 +125,7 @@ namespace acl
 		{
 			const uint32_t format_per_track_data_size = get_format_per_track_data_size(clip, settings.rotation_format, settings.translation_format, settings.scale_format);
 			const bool has_stripped_keyframes = clip.has_stripped_keyframes;
-			stripped_segment_header_t* stripped_segment_headers = reinterpret_cast<stripped_segment_header_t*>(segment_headers);
+			stripped_segment_header_t* stripped_segment_headers = static_cast<stripped_segment_header_t*>(segment_headers);
 
 			uint32_t size_written = 0;
 
