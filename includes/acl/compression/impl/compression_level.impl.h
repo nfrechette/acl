@@ -46,6 +46,7 @@ namespace acl
 		case compression_level8::medium:	return "medium";
 		case compression_level8::high:		return "high";
 		case compression_level8::highest:	return "highest";
+		case compression_level8::automatic:	return "automatic";
 		default:							return "<Invalid>";
 		}
 	}
@@ -98,6 +99,13 @@ namespace acl
 			|| std::strncmp(level_name, level_high_new, std::strlen(level_high_new)) == 0)
 		{
 			out_level = compression_level8::high;
+			return true;
+		}
+
+		const char* level_automatic = "automatic";
+		if (std::strncmp(level_name, level_automatic, std::strlen(level_automatic)) == 0)
+		{
+			out_level = compression_level8::automatic;
 			return true;
 		}
 
