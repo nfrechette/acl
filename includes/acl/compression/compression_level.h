@@ -49,6 +49,11 @@ namespace acl
 		high		= 3,
 		highest		= 4,
 
+		// Automatic attempts to pick the best compression level based on various
+		// properties of the input clip: clip length, longest transform chain, etc.
+		// This offers a nice balance between size and speed for the majority of clips.
+		automatic	= 100,
+
 		//lossless	= 255,	// Not implemented, reserved
 	};
 

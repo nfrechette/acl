@@ -105,6 +105,32 @@ namespace acl
 			return true;
 		}
 
+		// These values are hard-coded
+		// They were selected based on empirical data
+		inline compression_level8 find_best_compression_level(const clip_context& lossy_clip_context)
+		{
+			// Very long clips stay need to be fast
+			if (lossy_clip_context.num_samples > 500)
+				return compression_level8::medium;
+
+			uint32_t longest_chain_length = 0;
+			const bitset_description transform_bitset_desc = bitset_description::make_from_num_bits(lossy_clip_context.num_bones);
+			for (uint32_t leaf_index = 0; leaf_index < lossy_clip_context.num_leaf_transforms; ++leaf_index)
+			{
+				const uint32_t* transform_chain = lossy_clip_context.leaf_transform_chains + (leaf_index * transform_bitset_desc.get_size());
+				const uint32_t num_chain_transforms = bitset_count_set_bits(transform_chain, transform_bitset_desc);
+				longest_chain_length = std::max<uint32_t>(longest_chain_length, num_chain_transforms);
+			}
+
+			// Clips with shorter transform chains are fast and can try harder
+			if (longest_chain_length < 18)
+				return compression_level8::highest;
+			else if (longest_chain_length < 25)
+				return compression_level8::high;
+			else
+				return compression_level8::medium;
+		}
+
 		inline error_result compress_transform_track_list(iallocator& allocator, const track_array_qvvf& track_list, compression_settings settings,
 			const track_array_qvvf* additive_base_track_list, additive_clip_format8 additive_format,
 			compressed_tracks*& out_compressed_tracks, output_stats& out_stats)
@@ -178,6 +204,9 @@ namespace acl
 			clip_context additive_base_clip_context;
 			if (is_additive && !initialize_clip_context(allocator, *additive_base_track_list, settings, additive_format, additive_base_clip_context))
 				return error_result("Some base samples are not finite");
+
+			if (settings.level == compression_level8::automatic)
+				settings.level = find_best_compression_level(lossy_clip_context);
 
 			// Topology dependent data, not specific to clip context
 			const uint32_t num_input_transforms = raw_clip_context.num_bones;
