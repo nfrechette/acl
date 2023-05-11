@@ -176,7 +176,7 @@ def create_csv(options):
 		csv_data['stats_summary_csv_file'] = stats_summary_csv_file
 
 		print('Generating CSV file {} ...'.format(stats_summary_csv_filename))
-		print('Clip Name,Algorithm Name,Raw Size,Compressed Size,Compression Ratio,Compression Time,Clip Duration,Num Animated Tracks,Max Error,Num Transforms,Num Samples Per Track,Quantization Memory Usage,Is Looping,Num Trivial Keyframes', file = stats_summary_csv_file)
+		print('Clip Name,Algorithm Name,Raw Size,Compressed Size,Compression Ratio,Compression Time,Clip Duration,Num Animated Tracks,Max Error,Num Transforms,Num Samples Per Track,Quantization Memory Usage,Is Looping,Num Trivial Keyframes,Longest Transform Chain', file = stats_summary_csv_file)
 
 	if options['csv_bit_rate']:
 		stats_bit_rate_csv_filename = os.path.join(stat_dir, 'stats_bit_rate.csv')
@@ -226,11 +226,11 @@ def append_csv(csv_data, job_data):
 		for (clip_name, algo_name, \
 			raw_size, compressed_size, compression_ratio, compression_time, \
 			duration, num_animated_tracks, max_error, num_transforms, num_samples_per_track, \
-			quantization_memory_usage, is_looping, num_trivial_keyframes) in data:
-			print('{},{},{},{},{},{},{},{},{},{},{},{},{},{}'.format(clip_name, algo_name, \
+			quantization_memory_usage, is_looping, num_trivial_keyframes, longest_chain_length) in data:
+			print('{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}'.format(clip_name, algo_name, \
 				raw_size, compressed_size, compression_ratio, compression_time, \
 				duration, num_animated_tracks, max_error, num_transforms, num_samples_per_track, \
-				quantization_memory_usage, is_looping, num_trivial_keyframes), file = csv_data['stats_summary_csv_file'])
+				quantization_memory_usage, is_looping, num_trivial_keyframes, longest_chain_length), file = csv_data['stats_summary_csv_file'])
 
 	if 'stats_animated_size_csv_file' in csv_data:
 		size_data = job_data['stats_animated_size']
@@ -644,7 +644,8 @@ def run_stat_parsing(options, stat_queue, result_queue):
 							data = (run_stats['clip_name'], run_stats['csv_desc'], \
 								run_stats['raw_size'], run_stats['compressed_size'], run_stats['compression_ratio'], run_stats['compression_time'], \
 								run_stats['duration'], num_animated_tracks, run_stats['max_error'], num_transforms, num_samples_per_track, \
-								quantization_memory_usage, is_looping, run_stats['num_trivial_keyframes'])
+								quantization_memory_usage, is_looping, run_stats['num_trivial_keyframes'],
+								run_stats['longest_chain_length'])
 							stats_summary_data.append(data)
 
 						if 'segments' in run_stats and len(run_stats['segments']) > 0:
