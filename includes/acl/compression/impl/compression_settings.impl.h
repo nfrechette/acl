@@ -158,7 +158,7 @@ namespace acl
 	inline compression_settings get_default_compression_settings()
 	{
 		compression_settings settings;
-		settings.level = compression_level8::medium;
+		settings.level = compression_level8::automatic;
 		settings.rotation_format = rotation_format8::quatf_drop_w_variable;
 		settings.translation_format = vector_format8::vector3f_variable;
 		settings.scale_format = vector_format8::vector3f_variable;
