@@ -470,7 +470,7 @@ namespace acl
 			// The last group of each sub-track may or may not have padding. The last group might be less than 4 sub-tracks.
 
 			// To keep decompression simpler, rotations are padded to 4 elements even if the last group is partial
-			uint8_t format_per_track_group[4];
+			uint8_t format_per_track_group[4] = { 0 };
 
 			auto group_filter_action = [&segment](animation_track_type8 group_type, uint32_t bone_index)
 			{
