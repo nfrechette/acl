@@ -36,6 +36,7 @@
 #include "acl/compression/compression_settings.h"
 #include "acl/compression/track_array.h"
 #include "acl/compression/impl/segment_context.h"
+#include "acl/compression/impl/transform_clip_adapters.h"
 
 #include <rtm/quatf.h>
 #include <rtm/vector4f.h>
@@ -50,6 +51,34 @@ namespace acl
 
 	namespace acl_impl
 	{
+		template<class clip_adapter_t>
+		inline void sort_transform_indices_parent_first(
+			const clip_adapter_t& clip,
+			uint32_t* sorted_transforms_parent_first,
+			uint32_t num_transforms)
+		{
+			static_assert(std::is_base_of<transform_clip_adapter_t, clip_adapter_t>::value, "Clip adapter must derive from transform_clip_adapter_t");
+
+			// We sort our transform indices by parent first
+			// If two transforms have the same parent index, we sort them by their transform index
+			const auto sort_predicate = [&clip](const uint32_t lhs_transform_index, const uint32_t rhs_transform_index)
+			{
+				const uint32_t lhs_parent_index = clip.get_transform_parent_index(lhs_transform_index);
+				const uint32_t rhs_parent_index = clip.get_transform_parent_index(rhs_transform_index);
+
+				// If the transforms don't have the same parent, sort by the parent index
+				// We add 1 to parent indices to cause the invalid index to wrap around to 0
+				// since parents come first, they'll have the lowest value
+				if (lhs_parent_index != rhs_parent_index)
+					return (lhs_parent_index + 1) < (rhs_parent_index + 1);
+
+				// Both transforms have the same parent, sort by their index
+				return lhs_transform_index < rhs_transform_index;
+			};
+
+			std::sort(sorted_transforms_parent_first, sorted_transforms_parent_first + num_transforms, sort_predicate);
+		}
+
 		inline bool initialize_clip_context(iallocator& allocator, const track_array_qvvf& track_list, const compression_settings& settings, additive_clip_format8 additive_format, clip_context& out_clip_context)
 		{
 			const uint32_t num_transforms = track_list.get_num_tracks();
@@ -244,22 +273,10 @@ namespace acl
 
 				// We sort our transform indices by parent first
 				// If two transforms have the same parent index, we sort them by their transform index
-				auto sort_predicate = [&out_clip_context](const uint32_t& lhs_transform_index, const uint32_t& rhs_transform_index)
-				{
-					const uint32_t lhs_parent_index = out_clip_context.metadata[lhs_transform_index].parent_index;
-					const uint32_t rhs_parent_index = out_clip_context.metadata[rhs_transform_index].parent_index;
-
-					// If the transforms don't have the same parent, sort by the parent index
-					// We add 1 to parent indices to cause the invalid index to wrap around to 0
-					// since parents come first, they'll have the lowest value
-					if (lhs_parent_index != rhs_parent_index)
-						return (lhs_parent_index + 1) < (rhs_parent_index + 1);
-
-					// Both transforms have the same parent, sort by their index
-					return lhs_transform_index < rhs_transform_index;
-				};
-
-				std::sort(out_clip_context.sorted_transforms_parent_first, out_clip_context.sorted_transforms_parent_first + num_transforms, sort_predicate);
+				sort_transform_indices_parent_first(
+					transform_clip_context_adapter_t(out_clip_context),
+					out_clip_context.sorted_transforms_parent_first,
+					num_transforms);
 			}
 
 			return are_samples_valid;
