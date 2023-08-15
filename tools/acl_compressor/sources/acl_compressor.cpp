@@ -51,6 +51,7 @@
 #include "acl/core/impl/debug_track_writer.h"
 #include "acl/compression/compress.h"
 #include "acl/compression/convert.h"
+#include "acl/compression/pre_process.h"
 #include "acl/compression/transform_pose_utils.h"	// Just to test compilation
 #include "acl/decompression/decompress.h"
 #include "acl/io/clip_reader.h"
@@ -1124,6 +1125,22 @@ static int safe_main_impl(int argc, char* argv[])
 			else
 				settings.error_metric = allocate_type<qvvf_transform_error_metric>(allocator);
 		}
+	}
+
+	// Pre-process
+	{
+		pre_process_settings_t pre_process_settings;
+		pre_process_settings.actions = pre_process_actions::all;
+		pre_process_settings.precision_policy = pre_process_precision_policy::lossy;
+
+		if (sjson_type == sjson_file_type::raw_clip)
+		{
+			pre_process_settings.error_metric = settings.error_metric;
+			pre_process_settings.additive_base = &base_clip;
+			pre_process_settings.additive_format = additive_format;
+		}
+
+		pre_process_track_list(allocator, pre_process_settings, transform_tracks);
 	}
 
 	// Compress & Decompress

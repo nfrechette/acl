@@ -48,6 +48,9 @@ namespace acl
 	struct compression_metadata_settings;
 	struct compression_settings;
 
+	enum class pre_process_actions;
+	enum class pre_process_precision_policy;
+	struct pre_process_settings_t;
 
 	enum class stat_logging;
 	struct output_stats;
