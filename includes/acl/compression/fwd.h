@@ -40,45 +40,46 @@
 
 namespace acl
 {
-    ACL_IMPL_VERSION_NAMESPACE_BEGIN
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-    enum class compression_level8 : uint8_t;
+	enum class compression_level8 : uint8_t;
 
-    struct compression_database_settings;
-    struct compression_metadata_settings;
-    struct compression_settings;
+	struct compression_database_settings;
+	struct compression_metadata_settings;
+	struct compression_settings;
 
-    enum class stat_logging;
-    struct output_stats;
 
-    struct track_error;
+	enum class stat_logging;
+	struct output_stats;
 
-    class track_array;
-    template<track_type8 track_type_> class track_array_typed;
+	struct track_error;
 
-    using track_array_float1f	= track_array_typed<track_type8::float1f>;
+	class track_array;
+	template<track_type8 track_type_> class track_array_typed;
+
+	using track_array_float1f	= track_array_typed<track_type8::float1f>;
 	using track_array_float2f	= track_array_typed<track_type8::float2f>;
 	using track_array_float3f	= track_array_typed<track_type8::float3f>;
 	using track_array_float4f	= track_array_typed<track_type8::float4f>;
 	using track_array_vector4f	= track_array_typed<track_type8::vector4f>;
 	using track_array_qvvf		= track_array_typed<track_type8::qvvf>;
 
-    class track;
-    template<track_type8 track_type_> class track_typed;
+	class track;
+	template<track_type8 track_type_> class track_typed;
 
-    using track_float1f			= track_typed<track_type8::float1f>;
+	using track_float1f			= track_typed<track_type8::float1f>;
 	using track_float2f			= track_typed<track_type8::float2f>;
 	using track_float3f			= track_typed<track_type8::float3f>;
 	using track_float4f			= track_typed<track_type8::float4f>;
 	using track_vector4f		= track_typed<track_type8::vector4f>;
 	using track_qvvf			= track_typed<track_type8::qvvf>;
 
-    enum class additive_clip_format8 : uint8_t;
+	enum class additive_clip_format8 : uint8_t;
 
-    class itransform_error_metric;
-    class qvvf_transform_error_metric;
-    class qvvf_matrix3x4f_transform_error_metric;
-    template<additive_clip_format8 additive_format> class additive_qvvf_transform_error_metric;
+	class itransform_error_metric;
+	class qvvf_transform_error_metric;
+	class qvvf_matrix3x4f_transform_error_metric;
+	template<additive_clip_format8 additive_format> class additive_qvvf_transform_error_metric;
 
-    ACL_IMPL_VERSION_NAMESPACE_END
+	ACL_IMPL_VERSION_NAMESPACE_END
 }
