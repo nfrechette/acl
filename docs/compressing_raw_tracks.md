@@ -1,10 +1,10 @@
-# Compressing scalar tracks
+# Compressing raw tracks
 
 Once you have created a [raw track list](creating_a_raw_track_list.md) and an [allocator instance](implementing_an_allocator.md), you are ready to compress it.
 
 For now, we only implement a single algorithm: [uniformly sampled](algorithm_uniformly_sampled.md). This is a simple and excellent algorithm to use for everyday animation clips.
 
-## Compressing scalar tracks
+## Compressing raw scalar tracks
 
 *Compression settings are currently required as an argument but not used by scalar tracks. It is a placeholder.*
 *Segmenting is currently not supported by scalar tracks.*
@@ -21,7 +21,7 @@ compressed_tracks* out_compressed_tracks = nullptr;
 ErrorResult result = compress_track_list(allocator, raw_track_list, settings, out_compressed_tracks, stats);
 ```
 
-## Compressing transform tracks
+## Compressing raw transform tracks
 
 The compression level used will dictate how much time to spend optimizing the variable bit rates. Lower levels are faster but produce a larger compressed size.
 
