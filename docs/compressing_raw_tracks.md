@@ -4,6 +4,8 @@ Once you have created a [raw track list](creating_a_raw_track_list.md) and an [a
 
 For now, we only implement a single algorithm: [uniformly sampled](algorithm_uniformly_sampled.md). This is a simple and excellent algorithm to use for everyday animation clips.
 
+Note that before compression, it is recommended to [pre-process your raw tracks](pre_processing_raw_tracks.md).
+
 ## Compressing raw scalar tracks
 
 *Compression settings are currently required as an argument but not used by scalar tracks. It is a placeholder.*

@@ -9,6 +9,7 @@ ACL aims to support a few core algorithms that are well suited for production us
 *  [Handling asserts](handling_asserts.md)
 *  [Implementing an allocator](implementing_an_allocator.md)
 *  [Creating a raw track list](creating_a_raw_track_list.md)
+*  [Pre-processing a raw track list](pre_processing_raw_tracks.md)
 *  [Compressing tracks](compressing_raw_tracks.md)
 *  [Decompressing tracks](decompressing_a_track_list.md)
 *  [Handling looping playback](handling_looping_playback.md)
