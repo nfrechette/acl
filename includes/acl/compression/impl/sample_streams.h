@@ -36,12 +36,14 @@
 #include "acl/compression/impl/track_stream.h"
 #include "acl/compression/impl/normalize_streams.h"
 #include "acl/compression/impl/convert_rotation_streams.h"
+#include "acl/compression/impl/transform_clip_adapters.h"
 
 #include <rtm/quatf.h>
 #include <rtm/qvvf.h>
 #include <rtm/vector4f.h>
 
 #include <cstdint>
+#include <type_traits>
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
@@ -548,8 +550,12 @@ namespace acl
 			transform_bit_rates bit_rates;
 		};
 
-		inline uint32_t get_uniform_sample_key(const segment_context& segment, float sample_time)
+		template<class clip_adapter_t, class segment_adapter_t>
+		inline uint32_t get_uniform_sample_key(const clip_adapter_t& clip, const segment_adapter_t& segment, float sample_time)
 		{
+			static_assert(std::is_base_of<transform_clip_adapter_t, clip_adapter_t>::value, "Clip adapter must derive from transform_clip_adapter_t");
+			static_assert(std::is_base_of<transform_segment_adapter_t, segment_adapter_t>::value, "Segment adapter must derive from transform_segment_adapter_t");
+
 			uint32_t key0 = 0;
 			uint32_t key1 = 0;
 			float interpolation_alpha = 0.0F;
@@ -560,27 +566,43 @@ namespace acl
 			// Never consider our clip as looping when compressing
 			const sample_looping_policy looping_policy = sample_looping_policy::non_looping;
 
-			const clip_context* clip = segment.clip;
-			find_linear_interpolation_samples_with_sample_rate(clip->num_samples, clip->sample_rate, sample_time, rounding_policy, looping_policy, key0, key1, interpolation_alpha);
+			const uint32_t clip_num_samples = clip.get_num_samples();
+			const float sample_rate = clip.get_sample_rate();
 
-			// Offset for the current segment and clamp
-			key0 = key0 - segment.clip_sample_offset;
-			if (key0 >= segment.num_samples)
-			{
-				key0 = 0;
-				interpolation_alpha = 1.0F;
-			}
+			find_linear_interpolation_samples_with_sample_rate(clip_num_samples, sample_rate, sample_time, rounding_policy, looping_policy, key0, key1, interpolation_alpha);
 
-			key1 = key1 - segment.clip_sample_offset;
-			if (key1 >= segment.num_samples)
+			if (segment.is_valid())
 			{
-				key1 = segment.num_samples - 1;
-				interpolation_alpha = 0.0F;
+				const uint32_t segment_start_offser = segment.get_start_offset();
+				const uint32_t segment_num_samples = segment.get_num_samples();
+
+				// Offset for the current segment and clamp
+				key0 = key0 - segment_start_offser;
+				if (key0 >= segment_num_samples)
+				{
+					key0 = 0;
+					interpolation_alpha = 1.0F;
+				}
+
+				key1 = key1 - segment_start_offser;
+				if (key1 >= segment_num_samples)
+				{
+					key1 = segment_num_samples - 1;
+					interpolation_alpha = 0.0F;
+				}
 			}
 
 			// When we sample uniformly, we always round to the nearest sample.
 			// As such, we don't need to interpolate.
 			return interpolation_alpha == 0.0F ? key0 : key1;
+		}
+
+		inline uint32_t get_uniform_sample_key(const segment_context& segment, float sample_time)
+		{
+			return get_uniform_sample_key(
+				transform_clip_context_adapter_t(*segment.clip),
+				transform_segment_context_adapter_t(segment),
+				sample_time);
 		}
 
 		RTM_FORCE_INLINE rtm::quatf RTM_SIMD_CALL sample_rotation(const sample_context& context, const transform_streams& bone_stream)
