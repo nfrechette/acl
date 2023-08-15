@@ -210,7 +210,10 @@ namespace acl
 
 			// Topology dependent data, not specific to clip context
 			const uint32_t num_input_transforms = raw_clip_context.num_bones;
-			rigid_shell_metadata_t* clip_shell_metadata = compute_clip_shell_distances(allocator, raw_clip_context, additive_base_clip_context);
+			rigid_shell_metadata_t* clip_shell_metadata = compute_clip_shell_distances(
+				allocator,
+				transform_clip_context_adapter_t(raw_clip_context),
+				transform_clip_context_adapter_t(additive_base_clip_context));
 
 			raw_clip_context.clip_shell_metadata = clip_shell_metadata;
 			lossy_clip_context.clip_shell_metadata = clip_shell_metadata;
