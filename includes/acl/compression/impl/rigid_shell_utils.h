@@ -29,10 +29,12 @@
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/compression/impl/clip_context.h"
 #include "acl/compression/impl/sample_streams.h"
+#include "acl/compression/impl/transform_clip_adapters.h"
 
 #include <rtm/qvvf.h>
 
 #include <cstdint>
+#include <type_traits>
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
@@ -45,36 +47,40 @@ namespace acl
 		// We use the raw data to compute the rigid shell
 		// For each transform, its rigid shell is formed by the dominant joint (itself or a child)
 		// We compute the largest value over the whole clip per transform
-		inline rigid_shell_metadata_t* compute_clip_shell_distances(iallocator& allocator, const clip_context& raw_clip_context, const clip_context& additive_base_clip_context)
+		template<class clip_adapter_t>
+		inline rigid_shell_metadata_t* compute_clip_shell_distances(
+			iallocator& allocator,
+			const clip_adapter_t& raw_clip,
+			const clip_adapter_t& additive_base_clip)
 		{
-			const uint32_t num_transforms = raw_clip_context.num_bones;
+			static_assert(std::is_base_of<transform_clip_adapter_t, clip_adapter_t>::value, "Clip adapter must derive from transform_clip_adapter_t");
+
+			const uint32_t num_transforms = raw_clip.get_num_transforms();
 			if (num_transforms == 0)
 				return nullptr;	// No transforms present, no shell distances
 
-			const uint32_t num_samples = raw_clip_context.num_samples;
+			const uint32_t num_samples = raw_clip.get_num_samples();
 			if (num_samples == 0)
 				return nullptr;	// No samples present, no shell distances
 
-			const segment_context& raw_segment = raw_clip_context.segments[0];
-			const bool has_additive_base = raw_clip_context.has_additive_base;
+			const bool has_additive_base = raw_clip.has_additive_base();
+			const float sample_rate = raw_clip.get_sample_rate();
+			const float duration = raw_clip.get_duration();
+			const additive_clip_format8 additive_format = raw_clip.get_additive_format();
 
 			rigid_shell_metadata_t* shell_metadata = allocate_type_array<rigid_shell_metadata_t>(allocator, num_transforms);
 
 			// Initialize everything
 			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 			{
-				const transform_metadata& metadata = raw_clip_context.metadata[transform_index];
-
-				shell_metadata[transform_index].local_shell_distance = metadata.shell_distance;
-				shell_metadata[transform_index].precision = metadata.precision;
+				shell_metadata[transform_index].local_shell_distance = raw_clip.get_transform_shell_distance(transform_index);
+				shell_metadata[transform_index].precision = raw_clip.get_transform_precision(transform_index);
 				shell_metadata[transform_index].parent_shell_distance = 0.0F;
 			}
 
 			// Iterate from leaf transforms towards their root, we want to bubble up our shell distance
-			for (const uint32_t transform_index : make_reverse_iterator(raw_clip_context.sorted_transforms_parent_first, num_transforms))
+			for (const uint32_t transform_index : make_reverse_iterator(raw_clip.get_sorted_transforms_parent_first(), num_transforms))
 			{
-				const transform_streams& raw_bone_stream = raw_segment.bone_streams[transform_index];
-
 				rigid_shell_metadata_t& shell = shell_metadata[transform_index];
 
 				// Use the accumulated shell distance so far to see how far it deforms with our local transform
@@ -86,9 +92,9 @@ namespace acl
 				rtm::scalarf parent_shell_distance = rtm::scalar_set(0.0F);
 				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 				{
-					const rtm::quatf raw_rotation = raw_bone_stream.rotations.get_sample_clamped(sample_index);
-					const rtm::vector4f raw_translation = raw_bone_stream.translations.get_sample_clamped(sample_index);
-					const rtm::vector4f raw_scale = raw_bone_stream.scales.get_sample_clamped(sample_index);
+					const rtm::quatf raw_rotation = raw_clip.get_transform_rotation(transform_index, sample_index);
+					const rtm::vector4f raw_translation = raw_clip.get_transform_translation(transform_index, sample_index);
+					const rtm::vector4f raw_scale = raw_clip.get_transform_scale(transform_index, sample_index);
 
 					rtm::qvvf raw_transform = rtm::qvv_set(raw_rotation, raw_translation, raw_scale);
 
@@ -96,24 +102,27 @@ namespace acl
 					{
 						// If we are additive, we must apply our local transform on the base to figure out
 						// the true shell distance
-						const segment_context& base_segment = additive_base_clip_context.segments[0];
-						const transform_streams& base_bone_stream = base_segment.bone_streams[transform_index];
+						const uint32_t base_num_samples = additive_base_clip.get_num_samples();
+						const float base_duration = additive_base_clip.get_duration();
 
 						// The sample time is calculated from the full clip duration to be consistent with decompression
-						const float sample_time = rtm::scalar_min(float(sample_index) / raw_clip_context.sample_rate, raw_clip_context.duration);
+						const float sample_time = rtm::scalar_min(float(sample_index) / sample_rate, duration);
 
-						const float normalized_sample_time = base_segment.num_samples > 1 ? (sample_time / raw_clip_context.duration) : 0.0F;
-						const float additive_sample_time = base_segment.num_samples > 1 ? (normalized_sample_time * additive_base_clip_context.duration) : 0.0F;
+						const float normalized_sample_time = base_num_samples > 1 ? (sample_time / duration) : 0.0F;
+						const float additive_sample_time = base_num_samples > 1 ? (normalized_sample_time * base_duration) : 0.0F;
 
 						// With uniform sample distributions, we do not interpolate.
-						const uint32_t base_sample_index = get_uniform_sample_key(base_segment, additive_sample_time);
+						const uint32_t base_sample_index = get_uniform_sample_key(
+							additive_base_clip,
+							transform_segment_adapter_t(),
+							additive_sample_time);
 
-						const rtm::quatf base_rotation = base_bone_stream.rotations.get_sample_clamped(base_sample_index);
-						const rtm::vector4f base_translation = base_bone_stream.translations.get_sample_clamped(base_sample_index);
-						const rtm::vector4f base_scale = base_bone_stream.scales.get_sample_clamped(base_sample_index);
+						const rtm::quatf base_rotation = additive_base_clip.get_transform_rotation(transform_index, base_sample_index);
+						const rtm::vector4f base_translation = additive_base_clip.get_transform_translation(transform_index, base_sample_index);
+						const rtm::vector4f base_scale = additive_base_clip.get_transform_scale(transform_index, base_sample_index);
 
 						const rtm::qvvf base_transform = rtm::qvv_set(base_rotation, base_translation, base_scale);
-						raw_transform = apply_additive_to_base(raw_clip_context.additive_format, base_transform, raw_transform);
+						raw_transform = apply_additive_to_base(additive_format, base_transform, raw_transform);
 					}
 
 					const rtm::vector4f raw_vtx0 = rtm::qvv_mul_point3(vtx0, raw_transform);
@@ -130,16 +139,15 @@ namespace acl
 
 				shell.parent_shell_distance = rtm::scalar_cast(parent_shell_distance);
 
-				const transform_metadata& metadata = raw_clip_context.metadata[transform_index];
-
 				// Add precision since we want to make sure to encompass the maximum amount of error allowed
 				// Add it only for non-dominant transforms to account for the error they introduce
 				// Dominant transforms will use their own precision
 				// If our shell distance has changed, we are non-dominant since a dominant child updated it
-				if (shell.local_shell_distance != metadata.shell_distance)
-					shell.parent_shell_distance += metadata.precision;
+				if (shell.local_shell_distance != raw_clip.get_transform_shell_distance(transform_index))
+					shell.parent_shell_distance += raw_clip.get_transform_precision(transform_index);
 
-				if (metadata.parent_index != k_invalid_track_index)
+				const uint32_t parent_index = raw_clip.get_transform_parent_index(transform_index);
+				if (parent_index != k_invalid_track_index)
 				{
 					// We have a parent, propagate our shell distance if we are a dominant transform
 					// We are a dominant transform if our shell distance in parent space is larger
@@ -147,7 +155,7 @@ namespace acl
 					// or equal, it means that the full range of motion of our transform fits within
 					// the parent's shell distance.
 
-					rigid_shell_metadata_t& parent_shell = shell_metadata[metadata.parent_index];
+					rigid_shell_metadata_t& parent_shell = shell_metadata[parent_index];
 
 					if (shell.parent_shell_distance > parent_shell.local_shell_distance)
 					{
