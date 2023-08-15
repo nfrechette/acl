@@ -32,6 +32,7 @@
 #include "acl/compression/impl/clip_context.h"
 #include "acl/compression/impl/segment_context.h"
 #include "acl/compression/impl/track_list_context.h"
+#include "acl/compression/impl/transform_clip_adapters.h"
 
 #include <rtm/quatf.h>
 #include <rtm/vector4f.h>
@@ -46,40 +47,32 @@ namespace acl
 
 	namespace acl_impl
 	{
-		inline void optimize_looping(clip_context& context, const clip_context& additive_base_clip_context, const compression_settings& settings)
+		template<class clip_adapter_t>
+		inline bool is_clip_looping(
+			const clip_adapter_t& raw_clip,
+			const clip_adapter_t& additive_base_clip,
+			const itransform_error_metric& error_metric)
 		{
-			if (!settings.optimize_loops)
-				return;	// We don't want to optimize loops, nothing to do
+			static_assert(std::is_base_of<transform_clip_adapter_t, clip_adapter_t>::value, "Clip adapter must derive from transform_clip_adapter_t");
 
-			if (context.looping_policy == sample_looping_policy::wrap)
-				return;	// Already optimized, nothing to do
+			const uint32_t num_samples = raw_clip.get_num_samples();
+			if (num_samples <= 1)
+				return false;	// We have 1 or fewer samples, can't wrap
 
-			if (settings.rotation_format == rotation_format8::quatf_full &&
-				settings.translation_format == vector_format8::vector3f_full &&
-				settings.scale_format == vector_format8::vector3f_full)
-				return;	// We requested raw data, don't optimize anything
-
-			if (context.num_samples <= 1)
-				return;	// We have 1 or fewer samples, can't wrap
-
-			if (context.num_bones == 0)
-				return;	// No data present
-
-			ACL_ASSERT(context.segments[0].bone_streams->rotations.get_rotation_format() == rotation_format8::quatf_full, "Expected full precision");
-			ACL_ASSERT(context.segments[0].bone_streams->translations.get_vector_format() == vector_format8::vector3f_full, "Expected full precision");
-			ACL_ASSERT(context.segments[0].bone_streams->scales.get_vector_format() == vector_format8::vector3f_full, "Expected full precision");
-			ACL_ASSERT(context.num_segments == 1, "Cannot optimize multi-segments");
+			const uint32_t num_transforms = raw_clip.get_num_transforms();
+			if (num_transforms == 0)
+				return false;	// No data present
 
 			// Detect if our last sample matches the first, if it does we are looping and we can
 			// remove the last sample and wrap instead of clamping
 			bool is_wrapping = true;
 
-			const itransform_error_metric& error_metric = *settings.error_metric;
+			const uint32_t last_sample_index = num_samples - 1;
+			const bool has_additive_base = raw_clip.has_additive_base();
+			const bool has_scale = raw_clip.has_scale();
+			const bool needs_conversion = error_metric.needs_conversion(has_scale);
 
-			segment_context& segment = context.segments[0];
-			const uint32_t last_sample_index = segment.num_samples - 1;
-			const bool has_additive_base = context.has_additive_base;
-			const bool needs_conversion = error_metric.needs_conversion(context.has_scale);
+			const rigid_shell_metadata_t* rigid_shell_metadata = raw_clip.get_rigid_shell_metadata();
 
 			const uint32_t dirty_transform_indices[2] = { 0, 1 };
 			rtm::qvvf local_transforms[2];
@@ -87,7 +80,7 @@ namespace acl
 			alignas(16) uint8_t local_transforms_converted[1024];	// Big enough for 2 transforms for sure
 			alignas(16) uint8_t base_transforms_converted[1024];	// Big enough for 2 transforms for sure
 
-			const size_t metric_transform_size = error_metric.get_transform_size(context.has_scale);
+			const size_t metric_transform_size = error_metric.get_transform_size(has_scale);
 			ACL_ASSERT(metric_transform_size * 2 <= sizeof(local_transforms_converted), "Transform size is too large");
 
 			itransform_error_metric::convert_transforms_args convert_transforms_args_local;
@@ -118,24 +111,21 @@ namespace acl
 			calculate_error_args.transform0 = &local_transforms_converted[metric_transform_size * 0];
 			calculate_error_args.transform1 = &local_transforms_converted[metric_transform_size * 1];
 
-			const uint32_t num_transforms = segment.num_bones;
 			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 			{
-				const rigid_shell_metadata_t& shell = context.clip_shell_metadata[transform_index];
+				const rigid_shell_metadata_t& shell = rigid_shell_metadata[transform_index];
 
 				calculate_error_args.construct_sphere_shell(shell.local_shell_distance);
 
 				const rtm::scalarf precision = rtm::scalar_set(shell.precision);
 
-				const transform_streams& lossy_transform_stream = segment.bone_streams[transform_index];
+				const rtm::quatf first_rotation = raw_clip.get_transform_rotation(transform_index, 0);
+				const rtm::vector4f first_translation = raw_clip.get_transform_translation(transform_index, 0);
+				const rtm::vector4f first_scale = raw_clip.get_transform_scale(transform_index, 0);
 
-				const rtm::quatf first_rotation = lossy_transform_stream.rotations.get_sample_clamped(0);
-				const rtm::vector4f first_translation = lossy_transform_stream.translations.get_sample_clamped(0);
-				const rtm::vector4f first_scale = lossy_transform_stream.scales.get_sample_clamped(0);
-
-				const rtm::quatf last_rotation = lossy_transform_stream.rotations.get_sample_clamped(last_sample_index);
-				const rtm::vector4f last_translation = lossy_transform_stream.translations.get_sample_clamped(last_sample_index);
-				const rtm::vector4f last_scale = lossy_transform_stream.scales.get_sample_clamped(last_sample_index);
+				const rtm::quatf last_rotation = raw_clip.get_transform_rotation(transform_index, last_sample_index);
+				const rtm::vector4f last_translation = raw_clip.get_transform_translation(transform_index, last_sample_index);
+				const rtm::vector4f last_scale = raw_clip.get_transform_scale(transform_index, last_sample_index);
 
 				local_transforms[0] = rtm::qvv_set(first_rotation, first_translation, first_scale);
 				local_transforms[1] = rtm::qvv_set(last_rotation, last_translation, last_scale);
@@ -147,19 +137,18 @@ namespace acl
 
 				if (has_additive_base)
 				{
-					const segment_context& additive_base_segment = additive_base_clip_context.segments[0];
-					const transform_streams& additive_base_bone_stream = additive_base_segment.bone_streams[transform_index];
+					const uint32_t base_num_samples = additive_base_clip.get_num_samples();
 
-					const uint32_t base_last_sample_index = additive_base_segment.num_samples - 1;
+					const uint32_t base_last_sample_index = base_num_samples - 1;
 					convert_transforms_args_base.sample_index = base_last_sample_index;
 
-					const rtm::quatf base_first_rotation = additive_base_bone_stream.rotations.get_sample_clamped(0);
-					const rtm::vector4f base_first_translation = additive_base_bone_stream.translations.get_sample_clamped(0);
-					const rtm::vector4f base_first_scale = additive_base_bone_stream.scales.get_sample_clamped(0);
+					const rtm::quatf base_first_rotation = additive_base_clip.get_transform_rotation(transform_index, 0);
+					const rtm::vector4f base_first_translation = additive_base_clip.get_transform_translation(transform_index, 0);
+					const rtm::vector4f base_first_scale = additive_base_clip.get_transform_scale(transform_index, 0);
 
-					const rtm::quatf base_last_rotation = additive_base_bone_stream.rotations.get_sample_clamped(base_last_sample_index);
-					const rtm::vector4f base_last_translation = additive_base_bone_stream.translations.get_sample_clamped(base_last_sample_index);
-					const rtm::vector4f base_last_scale = additive_base_bone_stream.scales.get_sample_clamped(base_last_sample_index);
+					const rtm::quatf base_last_rotation = additive_base_clip.get_transform_rotation(transform_index, base_last_sample_index);
+					const rtm::vector4f base_last_translation = additive_base_clip.get_transform_translation(transform_index, base_last_sample_index);
+					const rtm::vector4f base_last_scale = additive_base_clip.get_transform_scale(transform_index, base_last_sample_index);
 
 					base_transforms[0] = rtm::qvv_set(base_first_rotation, base_first_translation, base_first_scale);
 					base_transforms[1] = rtm::qvv_set(base_last_rotation, base_last_translation, base_last_scale);
@@ -182,6 +171,42 @@ namespace acl
 				}
 			}
 
+			return is_wrapping;
+		}
+
+		inline void optimize_looping(clip_context& context, const clip_context& additive_base_clip_context, const compression_settings& settings)
+		{
+			if (!settings.optimize_loops)
+				return;	// We don't want to optimize loops, nothing to do
+
+			if (context.looping_policy == sample_looping_policy::wrap)
+				return;	// Already optimized, nothing to do
+
+			if (settings.rotation_format == rotation_format8::quatf_full &&
+				settings.translation_format == vector_format8::vector3f_full &&
+				settings.scale_format == vector_format8::vector3f_full)
+				return;	// We requested raw data, don't optimize anything
+
+			if (context.num_samples <= 1)
+				return;	// We have 1 or fewer samples, can't wrap
+
+			if (context.num_bones == 0)
+				return;	// No data present
+
+			segment_context& segment = context.segments[0];
+
+			ACL_ASSERT(segment.bone_streams->rotations.get_rotation_format() == rotation_format8::quatf_full, "Expected full precision");
+			ACL_ASSERT(segment.bone_streams->translations.get_vector_format() == vector_format8::vector3f_full, "Expected full precision");
+			ACL_ASSERT(segment.bone_streams->scales.get_vector_format() == vector_format8::vector3f_full, "Expected full precision");
+			ACL_ASSERT(context.num_segments == 1, "Cannot optimize multi-segments");
+
+			// Detect if our last sample matches the first, if it does we are looping and we can
+			// remove the last sample and wrap instead of clamping
+			const bool is_wrapping = is_clip_looping(
+				transform_clip_context_adapter_t(context),
+				transform_clip_context_adapter_t(additive_base_clip_context),
+				*settings.error_metric);
+
 			if (is_wrapping)
 			{
 				// Our last sample matches the first, we can wrap
@@ -190,6 +215,7 @@ namespace acl
 
 				segment.num_samples--;
 
+				const uint32_t num_transforms = segment.num_bones;
 				for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 				{
 					segment.bone_streams[transform_index].rotations.strip_last_sample();
