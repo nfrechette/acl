@@ -227,6 +227,11 @@ namespace acl
 			}
 		};
 
+		template<class clip_adapter_t>
+		void sort_transform_indices_parent_first(
+			const clip_adapter_t& clip,
+			uint32_t* sorted_transforms_parent_first,
+			uint32_t num_transforms);
 
 		bool initialize_clip_context(
 			iallocator& allocator,
