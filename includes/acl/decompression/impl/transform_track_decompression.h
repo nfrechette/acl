@@ -1889,9 +1889,9 @@ namespace acl
 				num_animated_scales += count_set_bits(scale_sub_track_type_ & 0xAAAAAAAA);
 			}
 
-			uint32_t rotation_group_sample_index;
-			uint32_t translation_group_sample_index;
-			uint32_t scale_group_sample_index;
+			uint32_t rotation_group_sample_index = 0;
+			uint32_t translation_group_sample_index = 0;
+			uint32_t scale_group_sample_index = 0;
 
 			constant_track_cache_v0 constant_track_cache;
 
