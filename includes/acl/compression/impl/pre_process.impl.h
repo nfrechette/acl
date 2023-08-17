@@ -286,7 +286,7 @@ namespace acl
 			}
 		}
 
-		inline uint32_t get_uniform_sample_key(const track_array_qvvf& track_list, float sample_time)
+		inline uint32_t pre_process_get_uniform_sample_key(const track_array_qvvf& track_list, float sample_time)
 		{
 			return get_uniform_sample_key(
 				transform_track_array_adapter_t(track_list),
@@ -294,7 +294,7 @@ namespace acl
 				sample_time);
 		}
 
-		inline bool RTM_SIMD_CALL are_samples_constant(
+		inline bool RTM_SIMD_CALL pre_process_are_samples_constant(
 			pre_process_context_t& context,
 			const track_array_qvvf& track_list,
 			uint32_t track_index,
@@ -408,7 +408,7 @@ namespace acl
 					const float additive_sample_time = num_base_samples > 1 ? (normalized_sample_time * base_duration) : 0.0F;
 
 					// With uniform sample distributions, we do not interpolate.
-					const uint32_t base_sample_index = get_uniform_sample_key(*settings.additive_base, additive_sample_time);
+					const uint32_t base_sample_index = pre_process_get_uniform_sample_key(*settings.additive_base, additive_sample_time);
 
 					const track_qvvf& base_track = (*settings.additive_base)[track_index];
 					const rtm::quatf base_rotation = base_track[base_sample_index].rotation;
@@ -454,21 +454,21 @@ namespace acl
 				track_qvvf& track_ = track_list[track_index];
 
 				const rtm::quatf reference_rotation = track_[0].rotation;
-				if (are_samples_constant(context, track_list, track_index, rtm::quat_to_vector(reference_rotation), animation_track_type8::rotation))
+				if (pre_process_are_samples_constant(context, track_list, track_index, rtm::quat_to_vector(reference_rotation), animation_track_type8::rotation))
 				{
 					for (uint32_t sample_index = 1; sample_index < num_samples_per_track; ++sample_index)
 						track_[sample_index].rotation = reference_rotation;
 				}
 
 				const rtm::vector4f reference_translation = track_[0].translation;
-				if (are_samples_constant(context, track_list, track_index, reference_translation, animation_track_type8::translation))
+				if (pre_process_are_samples_constant(context, track_list, track_index, reference_translation, animation_track_type8::translation))
 				{
 					for (uint32_t sample_index = 1; sample_index < num_samples_per_track; ++sample_index)
 						track_[sample_index].translation = reference_translation;
 				}
 
 				const rtm::vector4f reference_scale = track_[0].scale;
-				if (are_samples_constant(context, track_list, track_index, reference_scale, animation_track_type8::scale))
+				if (pre_process_are_samples_constant(context, track_list, track_index, reference_scale, animation_track_type8::scale))
 				{
 					for (uint32_t sample_index = 1; sample_index < num_samples_per_track; ++sample_index)
 						track_[sample_index].scale = reference_scale;
@@ -489,21 +489,21 @@ namespace acl
 				const track_desc_transformf& desc = track_.get_description();
 
 				const rtm::quatf reference_rotation = desc.default_value.rotation;
-				if (are_samples_constant(context, track_list, track_index, rtm::quat_to_vector(reference_rotation), animation_track_type8::rotation))
+				if (pre_process_are_samples_constant(context, track_list, track_index, rtm::quat_to_vector(reference_rotation), animation_track_type8::rotation))
 				{
 					for (uint32_t sample_index = 0; sample_index < num_samples_per_track; ++sample_index)
 						track_[sample_index].rotation = reference_rotation;
 				}
 
 				const rtm::vector4f reference_translation = desc.default_value.translation;
-				if (are_samples_constant(context, track_list, track_index, reference_translation, animation_track_type8::translation))
+				if (pre_process_are_samples_constant(context, track_list, track_index, reference_translation, animation_track_type8::translation))
 				{
 					for (uint32_t sample_index = 0; sample_index < num_samples_per_track; ++sample_index)
 						track_[sample_index].translation = reference_translation;
 				}
 
 				const rtm::vector4f reference_scale = desc.default_value.scale;
-				if (are_samples_constant(context, track_list, track_index, reference_scale, animation_track_type8::scale))
+				if (pre_process_are_samples_constant(context, track_list, track_index, reference_scale, animation_track_type8::scale))
 				{
 					for (uint32_t sample_index = 0; sample_index < num_samples_per_track; ++sample_index)
 						track_[sample_index].scale = reference_scale;
