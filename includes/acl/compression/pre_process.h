@@ -79,8 +79,8 @@ namespace acl
 		// This is lossy.
 		sanitize_default_tracks = 0x10,
 
-		// Performs all pre-process actions
-		all = 0xFF,
+		// Performs all recommended pre-process actions
+		recommended = normalize_rotations | optimize_looping | sanitize_constant_tracks | sanitize_default_tracks,
 	};
 
 	ACL_IMPL_ENUM_FLAGS_OPERATORS(pre_process_actions)
@@ -101,7 +101,7 @@ namespace acl
 	struct pre_process_settings_t
 	{
 		// The list of actions to perform
-		pre_process_actions actions = pre_process_actions::all;
+		pre_process_actions actions = pre_process_actions::recommended;
 
 		// The precision policy to follow
 		pre_process_precision_policy precision_policy = pre_process_precision_policy::lossless;
