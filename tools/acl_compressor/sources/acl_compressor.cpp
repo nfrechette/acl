@@ -1130,7 +1130,7 @@ static int safe_main_impl(int argc, char* argv[])
 	// Pre-process
 	{
 		pre_process_settings_t pre_process_settings;
-		pre_process_settings.actions = pre_process_actions::all;
+		pre_process_settings.actions = pre_process_actions::recommended;
 		pre_process_settings.precision_policy = pre_process_precision_policy::lossy;
 
 		if (sjson_type == sjson_file_type::raw_clip)

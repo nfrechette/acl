@@ -18,7 +18,7 @@ When pre-processing transform tracks, selecting the right [error metric](error_m
 using namespace acl;
 
 pre_process_settings_t settings;
-settings.actions = pre_process_actions::all;
+settings.actions = pre_process_actions::recommended;
 settings.precision_policy = pre_process_precision_policy::lossy;
 
 // Required for transform track pre-processing
