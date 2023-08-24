@@ -175,6 +175,13 @@ namespace acl
 		compressed_tracks(const compressed_tracks&) = delete;
 		compressed_tracks* operator=(const compressed_tracks&) = delete;
 
+		// Do not use 'delete' or an equivalent allocator function as it won't know
+		// the correct allocated size. Deallocating an instance must match how it has
+		// been allocated.
+		// See iallocator::deallocate
+		// e.g: allocator->deallocate(tracks, tracks->get_size());
+		~compressed_tracks() = delete;
+
 		////////////////////////////////////////////////////////////////////////////////
 		// Raw buffer header that isn't included in the hash.
 		////////////////////////////////////////////////////////////////////////////////
