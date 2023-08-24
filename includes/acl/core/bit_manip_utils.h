@@ -32,8 +32,9 @@
 
 #include <cstdint>
 
+// Popcount intrinsic support
 #if !defined(ACL_USE_POPCOUNT) && !defined(RTM_NO_INTRINSICS)
-	// TODO: Enable this for PlayStation 4 as well, what is the define and can we use it in public code?
+	// TODO: Enable this for other publicly available console defines as well
 	#if defined(_DURANGO) || defined(_XBOX_ONE)
 		// Enable pop-count type instructions on Xbox One
 		#define ACL_USE_POPCOUNT
@@ -44,8 +45,9 @@
 	#include <nmmintrin.h>
 #endif
 
+// BMI intrinsic support
 #if !defined(ACL_BMI_INTRINSICS) && !defined(RTM_NO_INTRINSICS)
-	// TODO: Enable this for PlayStation 4 as well, what is the define and can we use it in public code?
+	// TODO: Enable this for other publicly available console defines as well
 	#if defined(_DURANGO) || defined(_XBOX_ONE)
 		// Enable BMI type instructions on Xbox One
 		#define ACL_BMI_INTRINSICS
