@@ -173,9 +173,7 @@ namespace acl
 		// Hide everything
 		compressed_tracks() = delete;
 		compressed_tracks(const compressed_tracks&) = delete;
-		compressed_tracks(compressed_tracks&&) = delete;
 		compressed_tracks* operator=(const compressed_tracks&) = delete;
-		compressed_tracks* operator=(compressed_tracks&&) = delete;
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Raw buffer header that isn't included in the hash.
