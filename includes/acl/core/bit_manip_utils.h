@@ -51,7 +51,10 @@
 	#if defined(_DURANGO) || defined(_XBOX_ONE)
 		// Enable BMI type instructions on Xbox One
 		#define ACL_BMI_INTRINSICS
-	#elif defined(RTM_AVX_INTRINSICS) && !(defined(_MSC_VER) && defined(__clang__))
+	#elif defined(__BMI__)
+		// Clang and GCC define __BMI__ when -mbmi is used
+		#define ACL_BMI_INTRINSICS
+	#elif defined(RTM_AVX_INTRINSICS) && defined(RTM_COMPILER_MSVC)
 		// Enable BMI when AVX is enabled except with clang under Windows
 		// Note: It seems that the Clang toolchain with MSVC enables BMI only with AVX2 unlike
 		// MSVC which enables it with AVX
