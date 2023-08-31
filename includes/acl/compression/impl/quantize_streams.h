@@ -38,7 +38,7 @@
 #include "acl/compression/impl/clip_context.h"
 #include "acl/compression/impl/sample_streams.h"
 #include "acl/compression/impl/normalize_streams.h"
-#include "acl/compression/impl/convert_rotation_streams.h"
+#include "acl/compression/impl/convert_rotation.transform.h"
 #include "acl/compression/impl/rigid_shell_utils.h"
 #include "acl/compression/transform_error_metrics.h"
 #include "acl/compression/compression_settings.h"
