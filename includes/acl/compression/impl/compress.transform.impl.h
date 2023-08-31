@@ -41,7 +41,7 @@
 #include "acl/compression/impl/clip_context.h"
 #include "acl/compression/impl/track_stream.h"
 #include "acl/compression/impl/convert_rotation_streams.h"
-#include "acl/compression/impl/compact_constant_streams.h"
+#include "acl/compression/impl/compact.transform.h"
 #include "acl/compression/impl/keyframe_stripping.h"
 #include "acl/compression/impl/normalize_streams.h"
 #include "acl/compression/impl/optimize_looping.h"
