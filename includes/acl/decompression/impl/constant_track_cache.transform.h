@@ -28,7 +28,7 @@
 #include "acl/core/track_formats.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/decompression/impl/track_cache.h"
-#include "acl/decompression/impl/transform_decompression_context.h"
+#include "acl/decompression/impl/decompression_context.transform.h"
 #include "acl/math/quat_packing.h"
 #include "acl/math/quatf.h"
 
