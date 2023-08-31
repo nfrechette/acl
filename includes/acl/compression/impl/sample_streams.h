@@ -34,7 +34,7 @@
 #include "acl/math/quat_packing.h"
 #include "acl/math/vector4_packing.h"
 #include "acl/compression/impl/track_stream.h"
-#include "acl/compression/impl/normalize_streams.h"
+#include "acl/compression/impl/normalize.transform.h"
 #include "acl/compression/impl/convert_rotation.transform.h"
 #include "acl/compression/impl/transform_clip_adapters.h"
 

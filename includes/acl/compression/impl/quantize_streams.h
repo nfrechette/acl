@@ -37,7 +37,7 @@
 #include "acl/compression/impl/transform_bit_rate_permutations.h"
 #include "acl/compression/impl/clip_context.h"
 #include "acl/compression/impl/sample_streams.h"
-#include "acl/compression/impl/normalize_streams.h"
+#include "acl/compression/impl/normalize.transform.h"
 #include "acl/compression/impl/convert_rotation.transform.h"
 #include "acl/compression/impl/rigid_shell_utils.h"
 #include "acl/compression/transform_error_metrics.h"
