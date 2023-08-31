@@ -50,7 +50,7 @@
 //#define ACL_IMPL_ENABLE_CONSTANT_ERROR_CORRECTION
 
 #ifdef ACL_IMPL_ENABLE_CONSTANT_ERROR_CORRECTION
-#include "acl/compression/impl/normalize_streams.h"
+#include "acl/compression/impl/normalize.transform.h"
 #endif
 
 ACL_IMPL_FILE_PRAGMA_PUSH

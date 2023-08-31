@@ -39,7 +39,7 @@
 #include "acl/compression/track_array.h"
 #include "acl/compression/impl/track_list_context.h"
 #include "acl/compression/impl/compact.scalar.h"
-#include "acl/compression/impl/normalize_track_impl.h"
+#include "acl/compression/impl/normalize.scalar.h"
 #include "acl/compression/impl/optimize_looping.h"
 #include "acl/compression/impl/quantize_track_impl.h"
 #include "acl/compression/impl/track_range_impl.h"
