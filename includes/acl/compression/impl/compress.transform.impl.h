@@ -44,7 +44,7 @@
 #include "acl/compression/impl/compact.transform.h"
 #include "acl/compression/impl/keyframe_stripping.h"
 #include "acl/compression/impl/normalize.transform.h"
-#include "acl/compression/impl/optimize_looping.h"
+#include "acl/compression/impl/optimize_looping.transform.h"
 #include "acl/compression/impl/quantize_streams.h"
 #include "acl/compression/impl/segment_streams.h"
 #include "acl/compression/impl/write_segment_data.h"
