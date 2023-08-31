@@ -40,9 +40,9 @@
 #include "acl/decompression/database/database.h"
 #include "acl/decompression/impl/decompression_context_selector.h"
 #include "acl/decompression/impl/decompression_version_selector.h"
-#include "acl/decompression/impl/scalar_track_decompression.h"
-#include "acl/decompression/impl/transform_track_decompression.h"
-#include "acl/decompression/impl/universal_track_decompression.h"
+#include "acl/decompression/impl/decompression.scalar.h"
+#include "acl/decompression/impl/decompression.transform.h"
+#include "acl/decompression/impl/decompression.universal.h"
 #include "acl/math/vector4_packing.h"
 
 #include <rtm/types.h>
