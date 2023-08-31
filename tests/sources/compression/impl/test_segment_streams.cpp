@@ -24,7 +24,7 @@
 
 #include <catch2/catch.hpp>
 
-#include <acl/compression/impl/segment_streams.h>
+#include <acl/compression/impl/segment.transform.h>
 #include <acl/core/ansi_allocator.h>
 
 TEST_CASE("Segment splitting", "[compression][impl]")
