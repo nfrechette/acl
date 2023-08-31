@@ -27,7 +27,7 @@
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/decompression/impl/track_cache.h"
-#include "acl/decompression/impl/transform_decompression_context.h"
+#include "acl/decompression/impl/decompression_context.transform.h"
 #include "acl/math/quatf.h"
 #include "acl/math/vector4f.h"
 
