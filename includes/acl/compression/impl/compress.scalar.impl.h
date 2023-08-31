@@ -41,7 +41,7 @@
 #include "acl/compression/impl/compact.scalar.h"
 #include "acl/compression/impl/normalize.scalar.h"
 #include "acl/compression/impl/optimize_looping.scalar.h"
-#include "acl/compression/impl/quantize_track_impl.h"
+#include "acl/compression/impl/quantize.scalar.h"
 #include "acl/compression/impl/track_range_impl.h"
 #include "acl/compression/impl/write_compression_stats_impl.h"
 #include "acl/compression/impl/write_track_data_impl.h"
