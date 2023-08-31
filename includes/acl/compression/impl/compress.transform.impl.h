@@ -40,7 +40,7 @@
 #include "acl/compression/track_array.h"
 #include "acl/compression/impl/clip_context.h"
 #include "acl/compression/impl/track_stream.h"
-#include "acl/compression/impl/convert_rotation_streams.h"
+#include "acl/compression/impl/convert_rotation.transform.h"
 #include "acl/compression/impl/compact.transform.h"
 #include "acl/compression/impl/keyframe_stripping.h"
 #include "acl/compression/impl/normalize_streams.h"
