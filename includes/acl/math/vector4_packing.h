@@ -1162,7 +1162,7 @@ namespace acl
 		case vector_format8::vector3f_full:		return sizeof(float) * 3;
 		case vector_format8::vector3f_variable:
 		default:
-			ACL_ASSERT(false, "Invalid or unsupported vector format: %s", get_vector_format_name(format));
+			ACL_ASSERT(false, "Invalid or unsupported vector format: " ACL_STRING_FORMAT_SPECIFIER, get_vector_format_name(format));
 			return 0;
 		}
 	}

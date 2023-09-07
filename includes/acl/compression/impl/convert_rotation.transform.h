@@ -60,7 +60,7 @@ namespace acl
 				return rtm::quat_to_vector(rtm::quat_ensure_positive_w(rtm::vector_to_quat(rotation)));
 			case rotation_format8::quatf_drop_w_variable:
 			default:
-				ACL_ASSERT(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(to));
+				ACL_ASSERT(false, "Invalid or unsupported rotation format: " ACL_STRING_FORMAT_SPECIFIER, get_rotation_format_name(to));
 				return rotation;
 			}
 		}
@@ -94,7 +94,7 @@ namespace acl
 						break;
 					case rotation_format8::quatf_drop_w_variable:
 					default:
-						ACL_ASSERT(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(high_precision_format));
+						ACL_ASSERT(false, "Invalid or unsupported rotation format: " ACL_STRING_FORMAT_SPECIFIER, get_rotation_format_name(high_precision_format));
 						break;
 					}
 
