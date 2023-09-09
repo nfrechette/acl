@@ -356,8 +356,8 @@ namespace acl
 					segment_key_frame1 = count_set_bits(and_not(0xFFFFFFFFU >> key_frame1, sample_indices1));
 
 					// Nasty but safe since they have the same layout
-					segment_header0 = reinterpret_cast<const segment_header*>(segment_tier0_header0);
-					segment_header1 = reinterpret_cast<const segment_header*>(segment_tier0_header0);
+					segment_header0 = static_cast<const segment_header*>(segment_tier0_header0);
+					segment_header1 = static_cast<const segment_header*>(segment_tier0_header0);
 				}
 				else
 				{
@@ -509,8 +509,8 @@ namespace acl
 					segment_key_frame1 = count_set_bits(and_not(0xFFFFFFFFU >> segment_key_frame1, sample_indices1));
 
 					// Nasty but safe since they have the same layout
-					segment_header0 = reinterpret_cast<const segment_header*>(segment_tier0_header0);
-					segment_header1 = reinterpret_cast<const segment_header*>(segment_tier0_header1);
+					segment_header0 = static_cast<const segment_header*>(segment_tier0_header0);
+					segment_header1 = static_cast<const segment_header*>(segment_tier0_header1);
 				}
 				else
 				{
