@@ -22,7 +22,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include <catch2/catch.hpp>
+#include "catch2.impl.h"
 
 #include <acl/core/impl/variable_bit_rates.h>
 #include <acl/math/vector4_packing.h>

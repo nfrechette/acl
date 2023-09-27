@@ -23,7 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #define CATCH_CONFIG_RUNNER
-#include <catch2/catch.hpp>
+#include "catch2.impl.h"
 
 #include <jni.h>
 

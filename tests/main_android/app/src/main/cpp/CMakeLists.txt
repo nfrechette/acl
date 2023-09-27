@@ -7,6 +7,7 @@ set(PROJECT_ROOT_DIR "${PROJECT_SOURCE_DIR}/../../../..")
 include_directories("${PROJECT_ROOT_DIR}/../../includes")
 include_directories("${PROJECT_ROOT_DIR}/../../external/rtm/includes")
 include_directories("${PROJECT_ROOT_DIR}/../../external/catch2/single_include")
+include_directories("${PROJECT_ROOT_DIR}/../sources")
 
 if(USE_SJSON)
 	include_directories("${PROJECT_ROOT_DIR}/../../external/sjson-cpp/includes")
