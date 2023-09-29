@@ -113,8 +113,17 @@
 	#define NOPROXYSTUB
 	#define NORPC
 
+	#if defined(_MSC_VER) && !defined(__clang__)
+		#pragma warning(push)
+		#pragma warning(disable : 5039)	// Pointer to function without noexcept passed to extern "C"
+	#endif
+
 	#include <windows.h>
 	#include <conio.h>
+
+	#if defined(_MSC_VER) && !defined(__clang__)
+		#pragma warning(pop)
+	#endif
 
 #endif    // _WIN32
 
