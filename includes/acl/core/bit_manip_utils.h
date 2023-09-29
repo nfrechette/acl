@@ -83,51 +83,6 @@ namespace acl
 
 	//////////////////////////////////////////////////////////////////////////
 	// Counts the number of '1' bits (aka: pop-count)
-	inline uint8_t count_set_bits(uint8_t value)
-	{
-#if defined(ACL_USE_POPCOUNT)
-		return (uint8_t)_mm_popcnt_u32(value);
-#elif defined(RTM_NEON_INTRINSICS)
-		return (uint8_t)vget_lane_u8(vcnt_u8(vcreate_u8(value)), 0);
-#else
-		value = value - ((value >> 1) & 0x55);
-		value = (value & 0x33) + ((value >> 2) & 0x33);
-		return ((value + (value >> 4)) & 0x0F);
-#endif
-	}
-
-	//////////////////////////////////////////////////////////////////////////
-	// Counts the number of '1' bits (aka: pop-count)
-	inline uint16_t count_set_bits(uint16_t value)
-	{
-#if defined(ACL_USE_POPCOUNT)
-		return (uint16_t)_mm_popcnt_u32(value);
-#elif defined(RTM_NEON_INTRINSICS)
-		return (uint16_t)vget_lane_u16(vpaddl_u8(vcnt_u8(vcreate_u8(value))), 0);
-#else
-		value = value - ((value >> 1) & 0x5555);
-		value = (value & 0x3333) + ((value >> 2) & 0x3333);
-		return uint16_t(((value + (value >> 4)) & 0x0F0F) * 0x0101) >> 8;
-#endif
-	}
-
-	//////////////////////////////////////////////////////////////////////////
-	// Counts the number of '1' bits (aka: pop-count)
-	inline uint32_t count_set_bits(uint32_t value)
-	{
-#if defined(ACL_USE_POPCOUNT)
-		return _mm_popcnt_u32(value);
-#elif defined(RTM_NEON_INTRINSICS)
-		return (uint32_t)vget_lane_u32(vpaddl_u16(vpaddl_u8(vcnt_u8(vcreate_u8(value)))), 0);
-#else
-		value = value - ((value >> 1) & 0x55555555);
-		value = (value & 0x33333333) + ((value >> 2) & 0x33333333);
-		return (((value + (value >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
-#endif
-	}
-
-	//////////////////////////////////////////////////////////////////////////
-	// Counts the number of '1' bits (aka: pop-count)
 	inline uint64_t count_set_bits(uint64_t value)
 	{
 #if defined(ACL_USE_POPCOUNT)
@@ -138,6 +93,47 @@ namespace acl
 		value = value - ((value >> 1) & 0x5555555555555555ULL);
 		value = (value & 0x3333333333333333ULL) + ((value >> 2) & 0x3333333333333333ULL);
 		return (((value + (value >> 4)) & 0x0F0F0F0F0F0F0F0FULL) * 0x0101010101010101ULL) >> 56;
+#endif
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Counts the number of '1' bits (aka: pop-count)
+	inline uint32_t count_set_bits(uint32_t value)
+	{
+#if defined(ACL_USE_POPCOUNT)
+		return _mm_popcnt_u32(value);
+#elif defined(RTM_NEON_INTRINSICS)
+		return static_cast<uint32_t>(vget_lane_u32(vpaddl_u16(vpaddl_u8(vcnt_u8(vcreate_u8(value)))), 0));
+#else
+		value = value - ((value >> 1) & 0x55555555U);
+		value = (value & 0x33333333U) + ((value >> 2) & 0x33333333U);
+		return (((value + (value >> 4)) & 0x0F0F0F0FU) * 0x01010101U) >> 24;
+#endif
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Counts the number of '1' bits (aka: pop-count)
+	inline uint16_t count_set_bits(uint16_t value)
+	{
+#if defined(ACL_USE_POPCOUNT)
+		return static_cast<uint16_t>(_mm_popcnt_u32(value));
+#elif defined(RTM_NEON_INTRINSICS)
+		return static_cast<uint16_t>(vget_lane_u16(vpaddl_u8(vcnt_u8(vcreate_u8(value))), 0));
+#else
+		return static_cast<uint16_t>(count_set_bits(static_cast<uint32_t>(value)));
+#endif
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Counts the number of '1' bits (aka: pop-count)
+	inline uint8_t count_set_bits(uint8_t value)
+	{
+#if defined(ACL_USE_POPCOUNT)
+		return static_cast<uint8_t>(_mm_popcnt_u32(value));
+#elif defined(RTM_NEON_INTRINSICS)
+		return static_cast<uint8_t>(vget_lane_u8(vcnt_u8(vcreate_u8(value)), 0));
+#else
+		return static_cast<uint8_t>(count_set_bits(static_cast<uint32_t>(value)));
 #endif
 	}
 
