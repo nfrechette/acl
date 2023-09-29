@@ -1808,7 +1808,7 @@ namespace acl
 			// Build a mask to strip out the scale sub-track types if we have no scale present
 			// has_scale is either 0 or 1, negating yields 0 (0x00000000) or -1 (0xFFFFFFFF)
 			// Equivalent to: has_scale ? 0xFFFFFFFF : 0x00000000
-			const uint32_t scale_sub_track_mask = -int32_t(has_scale);
+			const uint32_t scale_sub_track_mask = static_cast<uint32_t>(-int32_t(has_scale));
 
 			const uint32_t sub_track_entry_index = track_index / 16;
 			const uint32_t packed_index = track_index % 16;

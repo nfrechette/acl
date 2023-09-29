@@ -89,7 +89,7 @@ namespace acl
 
 		const uint32_t w32 = uint32_t(vector_u64);
 
-		return _mm_castsi128_ps(_mm_set_epi32(w32, z32, y32, x32));
+		return _mm_castsi128_ps(_mm_set_epi32(static_cast<int32_t>(w32), static_cast<int32_t>(z32), static_cast<int32_t>(y32), static_cast<int32_t>(x32)));
 #elif defined(RTM_NEON_INTRINSICS)
 		const uint32_t byte_offset = bit_offset / 8;
 		const uint32_t shift_offset = bit_offset % 8;
@@ -315,13 +315,18 @@ namespace acl
 		vector_u32 = byte_swap(vector_u32);
 		const uint32_t w32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
 
-		__m128i int_value = _mm_set_epi32(w32, z32, y32, x32);
+		__m128i int_value = _mm_set_epi32(static_cast<int32_t>(w32), static_cast<int32_t>(z32), static_cast<int32_t>(y32), static_cast<int32_t>(x32));
 		int_value = _mm_and_si128(int_value, mask);
 		const __m128 value = _mm_cvtepi32_ps(int_value);
 		return _mm_mul_ps(value, inv_max_value);
 #elif defined(RTM_NEON_INTRINSICS)
 		const uint32_t bit_shift = 32 - num_bits;
+#if defined(RTM_COMPILER_MSVC)
+		// MSVC uses an alias
+		uint32x4_t mask = vdupq_n_u32(static_cast<int32_t>(k_packed_constants[num_bits].mask));
+#else
 		uint32x4_t mask = vdupq_n_u32(k_packed_constants[num_bits].mask);
+#endif
 		float inv_max_value = k_packed_constants[num_bits].max_value;
 
 		uint32_t byte_offset = bit_offset / 8;
@@ -412,7 +417,7 @@ namespace acl
 		const uint32_t y32 = uint32_t(vector_u64);
 
 		// TODO: Convert to u64 first before set1_epi64 or equivalent?
-		return _mm_castsi128_ps(_mm_set_epi32(y32, x32, y32, x32));
+		return _mm_castsi128_ps(_mm_set_epi32(static_cast<int32_t>(y32), static_cast<int32_t>(x32), static_cast<int32_t>(y32), static_cast<int32_t>(x32)));
 #elif defined(RTM_NEON_INTRINSICS)
 		const uint32_t byte_offset = bit_offset / 8;
 		const uint32_t shift_offset = bit_offset % 8;
@@ -497,7 +502,7 @@ namespace acl
 
 		const uint32_t z32 = uint32_t(vector_u64);
 
-		return _mm_castsi128_ps(_mm_set_epi32(x32, z32, y32, x32));
+		return _mm_castsi128_ps(_mm_set_epi32(static_cast<int32_t>(x32), static_cast<int32_t>(z32), static_cast<int32_t>(y32), static_cast<int32_t>(x32)));
 #elif defined(RTM_NEON64_INTRINSICS) && defined(__clang__) && __clang_major__ == 3 && __clang_minor__ == 8
 		// Clang 3.8 has a bug in its codegen and we have to use a slightly slower impl to avoid it
 		// This is a pretty old version but UE 4.23 still uses it on android
@@ -962,13 +967,18 @@ namespace acl
 		vector_u32 = byte_swap(vector_u32);
 		const uint32_t z32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
 
-		__m128i int_value = _mm_set_epi32(x32, z32, y32, x32);
+		__m128i int_value = _mm_set_epi32(static_cast<int32_t>(x32), static_cast<int32_t>(z32), static_cast<int32_t>(y32), static_cast<int32_t>(x32));
 		int_value = _mm_and_si128(int_value, mask);
 		const __m128 value = _mm_cvtepi32_ps(int_value);
 		return _mm_mul_ps(value, inv_max_value);
 #elif defined(RTM_NEON_INTRINSICS)
 		const uint32_t bit_shift = 32 - num_bits;
+#if defined(RTM_COMPILER_MSVC)
+		// MSVC uses an alias
+		uint32x4_t mask = vdupq_n_u32(static_cast<int32_t>(k_packed_constants[num_bits].mask));
+#else
 		uint32x4_t mask = vdupq_n_u32(k_packed_constants[num_bits].mask);
+#endif
 		float inv_max_value = k_packed_constants[num_bits].max_value;
 
 		uint32_t byte_offset = bit_offset / 8;
@@ -1090,13 +1100,18 @@ namespace acl
 		vector_u32 = byte_swap(vector_u32);
 		const uint32_t y32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
 
-		__m128i int_value = _mm_set_epi32(y32, x32, y32, x32);
+		__m128i int_value = _mm_set_epi32(static_cast<int32_t>(y32), static_cast<int32_t>(x32), static_cast<int32_t>(y32), static_cast<int32_t>(x32));
 		int_value = _mm_and_si128(int_value, mask);
 		const __m128 value = _mm_cvtepi32_ps(int_value);
 		return _mm_mul_ps(value, inv_max_value);
 #elif defined(RTM_NEON_INTRINSICS)
 		const uint32_t bit_shift = 32 - num_bits;
+#if defined(RTM_COMPILER_MSVC)
+		// MSVC uses an alias
+		uint32x2_t mask = vdup_n_u32(static_cast<int32_t>(k_packed_constants[num_bits].mask));
+#else
 		uint32x2_t mask = vdup_n_u32(k_packed_constants[num_bits].mask);
+#endif
 		float inv_max_value = k_packed_constants[num_bits].max_value;
 
 		uint32_t byte_offset = bit_offset / 8;

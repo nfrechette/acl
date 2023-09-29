@@ -140,7 +140,7 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 				va_end(args);
 
 				if (count >= 0 && count < buffer_size)
-					throw runtime_assert(std::string(&buffer[0], count));
+					throw runtime_assert(std::string(&buffer[0], static_cast<std::string::size_type>(count)));
 				else
 					throw runtime_assert("Failed to format assert message!\n");
 			}

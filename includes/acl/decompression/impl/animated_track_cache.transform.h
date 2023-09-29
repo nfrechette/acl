@@ -571,7 +571,7 @@ namespace acl
 						// Merge sample.xy together (1x shuffle)
 						// Merge sample.xyz together (1x shuffle)
 						// Convert to floats and normalize
-						__m128i xyz = _mm_setr_epi32(x, y, z, 0);
+						__m128i xyz = _mm_setr_epi32(static_cast<int32_t>(x), static_cast<int32_t>(y), static_cast<int32_t>(z), 0);
 						__m128 xyzf = _mm_cvtepi32_ps(xyz);
 						rotation_as_vec = _mm_mul_ps(xyzf, _mm_set_ps1(1.0F / 65535.0F));
 #elif defined(RTM_NEON_INTRINSICS)
@@ -657,7 +657,7 @@ namespace acl
 			if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
 			{
 #if defined(RTM_SSE2_INTRINSICS)
-				const __m128i ignore_masks_v8 = _mm_set_epi32(0, 0, clip_range_ignore_mask, segment_range_ignore_mask);
+				const __m128i ignore_masks_v8 = _mm_set_epi32(0, 0, static_cast<int32_t>(clip_range_ignore_mask), static_cast<int32_t>(segment_range_ignore_mask));
 				range_reduction_masks = _mm_unpacklo_epi8(ignore_masks_v8, ignore_masks_v8);
 #elif defined(RTM_NEON_INTRINSICS)
 				const int8x8_t ignore_masks_v8 = vcreate_s8((uint64_t(clip_range_ignore_mask) << 32) | segment_range_ignore_mask);
@@ -765,7 +765,7 @@ namespace acl
 					// Merge sample.xy together (1x shuffle)
 					// Merge sample.xyz together (1x shuffle)
 					// Convert to floats and normalize
-					__m128i xyz = _mm_setr_epi32(x, y, z, 0);
+					__m128i xyz = _mm_setr_epi32(static_cast<int32_t>(x), static_cast<int32_t>(y), static_cast<int32_t>(z), 0);
 					__m128 xyzf = _mm_cvtepi32_ps(xyz);
 					rotation_as_vec = _mm_mul_ps(xyzf, _mm_set_ps1(1.0F / 65535.0F));
 #elif defined(RTM_NEON_INTRINSICS)
@@ -824,8 +824,8 @@ namespace acl
 					const uint32_t extent_z = segment_range_data[20];
 
 #if defined(RTM_SSE2_INTRINSICS)
-					__m128i min_u32 = _mm_setr_epi32(min_x, min_y, min_z, 0);
-					__m128i extent_u32 = _mm_setr_epi32(extent_x, extent_y, extent_z, 0);
+					__m128i min_u32 = _mm_setr_epi32(static_cast<int32_t>(min_x), static_cast<int32_t>(min_y), static_cast<int32_t>(min_z), 0);
+					__m128i extent_u32 = _mm_setr_epi32(static_cast<int32_t>(extent_x), static_cast<int32_t>(extent_y), static_cast<int32_t>(extent_z), 0);
 
 					rtm::vector4f segment_range_min = _mm_cvtepi32_ps(min_u32);
 					rtm::vector4f segment_range_extent = _mm_cvtepi32_ps(extent_u32);
@@ -877,7 +877,7 @@ namespace acl
 			const compressed_tracks_version16 version = get_version<decompression_settings_adapter_type>(decomp_context.get_version());
 
 			// See write_format_per_track_data(..) for details
-			const uint32_t num_raw_bit_rate_bits = version >= compressed_tracks_version16::v02_01_99_1 ? 31 : 32;
+			const uint32_t num_raw_bit_rate_bits = version >= compressed_tracks_version16::v02_01_99_1 ? 31U : 32U;
 
 			const uint8_t* format_per_track_data = segment_sampling_context.format_per_track_data;
 			const uint8_t* segment_range_data = segment_sampling_context.segment_range_data;
@@ -998,7 +998,7 @@ namespace acl
 			const compressed_tracks_version16 version = get_version<decompression_settings_adapter_type>(decomp_context.get_version());
 
 			// See write_format_per_track_data(..) for details
-			const uint32_t num_raw_bit_rate_bits = version >= compressed_tracks_version16::v02_01_99_1 ? 31 : 32;
+			const uint32_t num_raw_bit_rate_bits = version >= compressed_tracks_version16::v02_01_99_1 ? 31U : 32U;
 
 			const uint8_t* format_per_track_data = segment_sampling_context.format_per_track_data;
 			const uint8_t* segment_range_data = segment_sampling_context.segment_range_data;
@@ -1111,12 +1111,12 @@ namespace acl
 			const compressed_tracks_version16 version = get_version<decompression_settings_adapter_type>(decomp_context.get_version());
 
 			// See write_format_per_track_data(..) for details
-			const uint32_t num_raw_bit_rate_bits = version >= compressed_tracks_version16::v02_01_99_1 ? 31 : 32;
+			const uint32_t num_raw_bit_rate_bits = version >= compressed_tracks_version16::v02_01_99_1 ? 31U : 32U;
 
 			// TODO: Do the same with NEON
 #if defined(RTM_AVX_INTRINSICS)
 			const __m128i zero = _mm_setzero_si128();
-			const __m128i num_raw_bit_rate_bits_v = _mm_set1_epi32(num_raw_bit_rate_bits);
+			const __m128i num_raw_bit_rate_bits_v = _mm_set1_epi32(static_cast<int32_t>(num_raw_bit_rate_bits));
 			__m128i group_bit_size_per_component0_v = zero;
 			__m128i group_bit_size_per_component1_v = zero;
 
@@ -1154,8 +1154,8 @@ namespace acl
 			group_bit_size_per_component0_v = _mm_hadd_epi32(_mm_hadd_epi32(group_bit_size_per_component0_v, group_bit_size_per_component0_v), group_bit_size_per_component0_v);
 			group_bit_size_per_component1_v = _mm_hadd_epi32(_mm_hadd_epi32(group_bit_size_per_component1_v, group_bit_size_per_component1_v), group_bit_size_per_component1_v);
 
-			out_group_bit_size_per_component0 = _mm_cvtsi128_si32(group_bit_size_per_component0_v);
-			out_group_bit_size_per_component1 = _mm_cvtsi128_si32(group_bit_size_per_component1_v);
+			out_group_bit_size_per_component0 = static_cast<uint32_t>(_mm_cvtsi128_si32(group_bit_size_per_component0_v));
+			out_group_bit_size_per_component1 = static_cast<uint32_t>(_mm_cvtsi128_si32(group_bit_size_per_component1_v));
 #else
 			uint32_t group_bit_size_per_component0 = 0;
 			uint32_t group_bit_size_per_component1 = 0;
