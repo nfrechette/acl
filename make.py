@@ -54,6 +54,7 @@ def parse_argv():
 	misc.add_argument('-nosimd', dest='use_simd', action='store_false', help='Compile without SIMD instructions')
 	misc.add_argument('-simd', dest='use_simd', action='store_true', help='Compile with default SIMD instructions')
 	misc.add_argument('-nosjson', dest='use_sjson', action='store_false', help='Compile without SJSON support')
+	misc.add_argument('-allwarnings', dest='allwarnings', action='store_true', help='Enable all warnings, MSVC only')
 	misc.add_argument('-num_threads', help='No. to use while compiling and regressing')
 	misc.add_argument('-tests_matching', help='Only run tests whose names match this regex')
 	misc.add_argument('-ci', action='store_true', help='Whether or not this is a Continuous Integration build')
@@ -66,7 +67,7 @@ def parse_argv():
 		num_threads = 4
 
 	parser.set_defaults(build=False, clean=False, clean_only=False, unit_test=False, regression_test=False, bench=False, run_bench=False, pull_bench=False,
-		compiler=None, config='Release', cpu=None, cpp_version='11', use_avx=False, use_popcnt=False, use_simd=True, use_sjson=True,
+		compiler=None, config='Release', cpu=None, cpp_version='11', use_avx=False, use_popcnt=False, use_simd=True, use_sjson=True, allwarnings=False,
 		num_threads=num_threads, tests_matching='')
 
 	args = parser.parse_args()
@@ -347,6 +348,10 @@ def do_generate_solution(build_dir, cmake_script_dir, regression_test_data_dir, 
 	if not args.use_sjson:
 		print('Disabling SJSON support')
 		extra_switches.append('-DUSE_SJSON:BOOL=false')
+
+	if args.allwarnings and compiler.startswith('vs'):
+		print('Enabling all warnings')
+		extra_switches.append('-DENABLE_ALL_WARNINGS:BOOL=true')
 
 	if args.bench:
 		extra_switches.append('-DBUILD_BENCHMARK_EXE:BOOL=true')
