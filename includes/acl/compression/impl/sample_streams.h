@@ -231,6 +231,7 @@ namespace acl
 			case rotation_format8::quatf_drop_w_full:
 				packed_rotation = rotation;
 				break;
+			case rotation_format8::quatf_drop_w_variable:
 			default:
 				ACL_ASSERT(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(desired_format));
 				packed_rotation = rtm::vector_zero();
@@ -372,6 +373,7 @@ namespace acl
 			case vector_format8::vector3f_full:
 				packed_translation = translation;
 				break;
+			case vector_format8::vector3f_variable:
 			default:
 				ACL_ASSERT(false, "Invalid or unsupported vector format: %s", get_vector_format_name(desired_format));
 				packed_translation = rtm::vector_zero();
@@ -511,6 +513,7 @@ namespace acl
 			case vector_format8::vector3f_full:
 				packed_scale = scale;
 				break;
+			case vector_format8::vector3f_variable:
 			default:
 				ACL_ASSERT(false, "Invalid or unsupported vector format: %s", get_vector_format_name(desired_format));
 				packed_scale = scale;

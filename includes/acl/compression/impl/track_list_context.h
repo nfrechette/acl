@@ -209,6 +209,7 @@ namespace acl
 					out_track = std::move(track);
 					break;
 				}
+				case track_type8::qvvf:
 				default:
 					ACL_ASSERT(false, "Unexpected track type");
 					are_samples_valid = false;

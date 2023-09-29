@@ -312,6 +312,7 @@ void RTM_SIMD_CALL validate_scalar_tracks(const track_array& raw_tracks, const a
 			error = rtm::vector_abs(rtm::vector_sub(raw_value, lossy_value));
 			break;
 		}
+		case track_type8::qvvf:
 		default:
 			ACL_ASSERT(false, "Unsupported track type");
 			break;
@@ -499,6 +500,7 @@ void validate_accuracy(
 				ACL_ASSERT(rtm::vector_all_near_equal(lossy_value_, lossy_value, 0.00001F), "Failed to sample track %u at time %f", track_index, sample_time);
 				break;
 			}
+			case track_type8::qvvf:
 			default:
 				ACL_ASSERT(false, "Unsupported track type");
 				break;

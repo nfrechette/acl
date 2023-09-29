@@ -77,6 +77,9 @@ namespace acl
 				case track_category8::scalarf:
 					context.range_list[track_index] = track_range(extract_scalarf_range(track));
 					break;
+				case track_category8::scalard:
+				case track_category8::transformf:
+				case track_category8::transformd:
 				default:
 					ACL_ASSERT(false, "Invalid track category");
 					break;

@@ -82,6 +82,9 @@ namespace acl
 				switch (category)
 				{
 				case track_category8::scalarf:	return range.scalarf.is_constant(threshold);
+				case track_category8::scalard:
+				case track_category8::transformf:
+				case track_category8::transformd:
 				default:
 					ACL_ASSERT(false, "Invalid track category");
 					return false;
