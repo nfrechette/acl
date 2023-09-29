@@ -1260,7 +1260,7 @@ static int safe_main_impl(int argc, char* argv[])
 #endif
 
 #ifdef _WIN32
-static LONG WINAPI unhandled_exception_filter(EXCEPTION_POINTERS *info)
+static LONG WINAPI unhandled_exception_filter(EXCEPTION_POINTERS *info) noexcept
 {
 	(void)info;
 
