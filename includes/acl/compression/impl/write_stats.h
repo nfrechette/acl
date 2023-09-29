@@ -580,7 +580,7 @@ namespace acl
 				const uint32_t segment_animated_data_size = calculate_segment_animated_data_size(clip);
 				known_data_size += segment_animated_data_size;
 
-				const int32_t unknown_overhead_size = compressed_size - known_data_size;
+				const int32_t unknown_overhead_size = static_cast<int32_t>(compressed_size) - static_cast<int32_t>(known_data_size);
 				ACL_ASSERT(unknown_overhead_size >= 0, "Overhead size should be positive");
 				writer["unknown_overhead_size"] = unknown_overhead_size;
 			}

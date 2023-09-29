@@ -80,7 +80,7 @@ namespace acl
 
 		const uint32_t x32 = uint32_t(vector_u64);
 
-		return rtm::scalarf{ _mm_castsi128_ps(_mm_set1_epi32(x32)) };
+		return rtm::scalarf{ _mm_castsi128_ps(_mm_set1_epi32(static_cast<int32_t>(x32))) };
 #elif defined(RTM_NEON_INTRINSICS)
 		const uint32_t byte_offset = bit_offset / 8;
 		const uint32_t shift_offset = bit_offset % 8;
@@ -145,7 +145,7 @@ namespace acl
 		vector_u32 = byte_swap(vector_u32);
 		const uint32_t x32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
 
-		const __m128 value = _mm_cvtsi32_ss(inv_max_value, x32 & mask);
+		const __m128 value = _mm_cvtsi32_ss(inv_max_value, static_cast<int32_t>(x32 & mask));
 		return rtm::scalarf{ _mm_mul_ss(value, inv_max_value) };
 #elif defined(RTM_NEON_INTRINSICS)
 		const uint32_t bit_shift = 32 - num_bits;
@@ -157,7 +157,7 @@ namespace acl
 		vector_u32 = byte_swap(vector_u32);
 		const uint32_t x32 = (vector_u32 >> (bit_shift - (bit_offset % 8)));
 
-		const int32_t value_u32 = x32 & mask;
+		const int32_t value_u32 = static_cast<int32_t>(x32 & mask);
 		const float value_f32 = static_cast<float>(value_u32);
 		return value_f32 * inv_max_value;
 #else

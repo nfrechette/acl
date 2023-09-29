@@ -292,7 +292,7 @@ namespace acl
 
 						if (needs_conversion)
 						{
-							const uint32_t nearest_base_sample_index = static_cast<uint32_t>(rtm::scalar_round_bankers(normalized_sample_time * additive_base_clip.num_samples));
+							const uint32_t nearest_base_sample_index = static_cast<uint32_t>(rtm::scalar_round_bankers(normalized_sample_time * float(additive_base_clip.num_samples)));
 							convert_transforms_args_base.sample_index = nearest_base_sample_index;
 							convert_transforms_impl(error_metric_, convert_transforms_args_base, sample_base_local_transforms);
 						}
@@ -1166,19 +1166,19 @@ namespace acl
 
 				const bool rotation_supports_constant_tracks = segment.are_rotations_normalized;
 				if (is_rotation_variable && !segment.bone_streams[bone_index].is_rotation_constant)
-					bone_bit_rate.rotation = rotation_supports_constant_tracks ? 0 : k_lowest_bit_rate;
+					bone_bit_rate.rotation = rotation_supports_constant_tracks ? static_cast<uint8_t>(0) : k_lowest_bit_rate;
 				else
 					bone_bit_rate.rotation = k_invalid_bit_rate;
 
 				const bool translation_supports_constant_tracks = segment.are_translations_normalized;
 				if (is_translation_variable && !segment.bone_streams[bone_index].is_translation_constant)
-					bone_bit_rate.translation = translation_supports_constant_tracks ? 0 : k_lowest_bit_rate;
+					bone_bit_rate.translation = translation_supports_constant_tracks ? static_cast<uint8_t>(0) : k_lowest_bit_rate;
 				else
 					bone_bit_rate.translation = k_invalid_bit_rate;
 
 				const bool scale_supports_constant_tracks = segment.are_scales_normalized;
 				if (is_scale_variable && !segment.bone_streams[bone_index].is_scale_constant)
-					bone_bit_rate.scale = scale_supports_constant_tracks ? 0 : k_lowest_bit_rate;
+					bone_bit_rate.scale = scale_supports_constant_tracks ? static_cast<uint8_t>(0) : k_lowest_bit_rate;
 				else
 					bone_bit_rate.scale = k_invalid_bit_rate;
 			}
@@ -1450,7 +1450,7 @@ namespace acl
 				{
 					// From child to parent, increase the bit rate indiscriminately
 					uint32_t num_maxed_out = 0;
-					for (int32_t chain_link_index = num_bones_in_chain - 1; chain_link_index >= 0; --chain_link_index)
+					for (int32_t chain_link_index = static_cast<int32_t>(num_bones_in_chain) - 1; chain_link_index >= 0; --chain_link_index)
 					{
 						const uint32_t chain_bone_index = context.chain_bone_indices[chain_link_index];
 
@@ -1530,7 +1530,7 @@ namespace acl
 				if (error >= error_threshold && context.rotation_format == rotation_format8::quatf_full)
 				{
 					// From child to parent, max out the bit rate
-					for (int32_t chain_link_index = num_bones_in_chain - 1; chain_link_index >= 0; --chain_link_index)
+					for (int32_t chain_link_index = static_cast<int32_t>(num_bones_in_chain) - 1; chain_link_index >= 0; --chain_link_index)
 					{
 						const uint32_t chain_bone_index = context.chain_bone_indices[chain_link_index];
 						transform_bit_rates& bone_bit_rate = context.bit_rate_per_bone[chain_bone_index];

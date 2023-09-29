@@ -108,7 +108,7 @@ namespace acl
 			// Transform only
 			bool get_has_scale() const { ACL_ASSERT(track_type == track_type8::qvvf, "Transform tracks only"); return (misc_packed & 1) != 0; }
 			void set_has_scale(bool has_scale) { ACL_ASSERT(track_type == track_type8::qvvf, "Transform tracks only"); misc_packed = (misc_packed & ~1) | static_cast<uint32_t>(has_scale); }
-			int32_t get_default_scale() const { ACL_ASSERT(track_type == track_type8::qvvf, "Transform tracks only"); return (misc_packed >> 1) & 1; }
+			int32_t get_default_scale() const { ACL_ASSERT(track_type == track_type8::qvvf, "Transform tracks only"); return static_cast<int32_t>((misc_packed >> 1) & 1); }
 			void set_default_scale(uint32_t scale) { ACL_ASSERT(track_type == track_type8::qvvf, "Transform tracks only"); ACL_ASSERT(scale == 0 || scale == 1, "Invalid default scale"); misc_packed = (misc_packed & ~(1 << 1)) | (scale << 1); }
 			vector_format8 get_scale_format() const { ACL_ASSERT(track_type == track_type8::qvvf, "Transform tracks only"); return static_cast<vector_format8>((misc_packed >> 2) & 1); }
 			void set_scale_format(vector_format8 format) { ACL_ASSERT(track_type == track_type8::qvvf, "Transform tracks only"); misc_packed = (misc_packed & ~(1 << 2)) | (static_cast<uint32_t>(format) << 2); }

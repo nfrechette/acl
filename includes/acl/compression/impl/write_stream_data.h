@@ -508,7 +508,7 @@ namespace acl
 				//    - 1 bit to dictate if rotations contain 3 or 4 components (to allow mixing full quats in with packed quats)
 				//    - 2 bits to dictate which rotation component is dropped (to allow the largest component to be dropped over our segment)
 
-				format_per_track_group[group_size] = (bit_rate == k_highest_bit_rate) ? 31 : (uint8_t)num_bits;
+				format_per_track_group[group_size] = (bit_rate == k_highest_bit_rate) ? static_cast<uint8_t>(31) : (uint8_t)num_bits;
 			};
 
 			auto group_flush_action = [&format_per_track_data, format_per_track_data_end, &format_per_track_group](animation_track_type8 group_type, uint32_t group_size)

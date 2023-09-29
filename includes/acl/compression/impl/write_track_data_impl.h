@@ -54,7 +54,7 @@ namespace acl
 				const uint32_t track_index = context.track_output_indices[output_index];
 
 				if (per_track_metadata != nullptr)
-					per_track_metadata[output_index].bit_rate = context.is_constant(track_index) ? 0 : context.bit_rate_list[track_index].scalar.value;
+					per_track_metadata[output_index].bit_rate = context.is_constant(track_index) ? static_cast<uint8_t>(0) : context.bit_rate_list[track_index].scalar.value;
 
 				output_buffer += sizeof(track_metadata);
 			}
