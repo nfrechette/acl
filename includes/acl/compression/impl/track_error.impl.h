@@ -142,6 +142,10 @@ namespace acl
 			{
 			}
 
+			// Cannot copy or move
+			calculate_track_error_args(const calculate_track_error_args&) = delete;
+			calculate_track_error_args& operator=(const calculate_track_error_args&) = delete;
+
 			// Scalar and transforms
 			ierror_calculation_adapter& adapter;
 			uint32_t num_samples = 0;
@@ -414,6 +418,10 @@ namespace acl
 			{
 			}
 
+			// Cannot copy or move
+			error_calculation_adapter(const error_calculation_adapter&) = delete;
+			error_calculation_adapter& operator=(const error_calculation_adapter&) = delete;
+
 			virtual void sample_tracks0(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
 			{
 				raw_tracks_.sample_tracks(sample_time, rounding_policy, track_writer);
@@ -483,6 +491,7 @@ namespace acl
 				deallocate_type_array(allocator_, output_bone_mapping, num_output_bones);
 			}
 
+			// Cannot copy or move
 			error_calculation_adapter(const error_calculation_adapter&) = delete;
 			error_calculation_adapter& operator=(const error_calculation_adapter&) = delete;
 
@@ -592,6 +601,7 @@ namespace acl
 				deallocate_type_array(allocator_, output_bone_mapping, num_output_bones);
 			}
 
+			// Cannot copy or move
 			error_calculation_adapter(const error_calculation_adapter&) = delete;
 			error_calculation_adapter& operator=(const error_calculation_adapter&) = delete;
 
@@ -702,6 +712,10 @@ namespace acl
 			{
 			}
 
+			// Cannot copy or move
+			error_calculation_adapter(const error_calculation_adapter&) = delete;
+			error_calculation_adapter& operator=(const error_calculation_adapter&) = delete;
+
 			virtual void sample_tracks0(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
 			{
 				context0_.seek(sample_time, rounding_policy);
@@ -757,6 +771,10 @@ namespace acl
 			{
 			}
 
+			// Cannot copy or move
+			error_calculation_adapter(const error_calculation_adapter&) = delete;
+			error_calculation_adapter& operator=(const error_calculation_adapter&) = delete;
+
 			virtual void sample_tracks0(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
 			{
 				raw_tracks0_.sample_tracks(sample_time, rounding_policy, track_writer);
@@ -800,6 +818,10 @@ namespace acl
 				, raw_tracks1_(raw_tracks1__)
 			{
 			}
+
+			// Cannot copy or move
+			error_calculation_adapter(const error_calculation_adapter&) = delete;
+			error_calculation_adapter& operator=(const error_calculation_adapter&) = delete;
 
 			virtual void sample_tracks0(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
 			{

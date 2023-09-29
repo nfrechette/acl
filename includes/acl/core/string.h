@@ -82,6 +82,10 @@ namespace acl
 				deallocate_type_array(*m_allocator, m_c_str, std::strlen(m_c_str) + 1);
 		}
 
+		// No support for copy semantics
+		string(const string&) = delete;
+		string& operator=(const string&) = delete;
+
 		string(string&& other) noexcept
 			: m_allocator(other.m_allocator)
 			, m_c_str(other.m_c_str)

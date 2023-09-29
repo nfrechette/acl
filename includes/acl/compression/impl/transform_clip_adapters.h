@@ -94,6 +94,10 @@ namespace acl
 			{
 			}
 
+			// Can't copy or move
+			transform_clip_context_adapter_t(const transform_clip_context_adapter_t&) = delete;
+			transform_clip_context_adapter_t& operator=(const transform_clip_context_adapter_t&) = delete;
+
 			bool is_valid() const { return true; }
 
 			// Clip wide metadata

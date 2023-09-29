@@ -64,6 +64,10 @@ namespace acl
 			{
 			}
 
+			// Cannot copy or move
+			pre_process_context_t(const pre_process_context_t&) = delete;
+			pre_process_context_t& operator=(const pre_process_context_t&) = delete;
+
 			~pre_process_context_t()
 			{
 				deallocate_type_array(allocator, shell_metadata, track_list.get_num_tracks());

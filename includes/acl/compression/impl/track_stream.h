@@ -405,6 +405,16 @@ namespace acl
 
 		struct transform_streams
 		{
+			transform_streams() = default;
+
+			// Can't copy
+			transform_streams(const transform_streams&) = delete;
+			transform_streams& operator=(const transform_streams&) = delete;
+
+			// Can move
+			transform_streams(transform_streams&&) = default;
+			transform_streams& operator=(transform_streams&&) = default;
+
 			rtm::qvvf default_value					= rtm::qvv_identity();
 
 			// Sample 0 before we normalize over the segment.
