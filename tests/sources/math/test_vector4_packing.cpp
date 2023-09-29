@@ -158,7 +158,7 @@ static uint32_t test_pack_vector4_XX(uint32_t start_bit_rate, uint32_t end_bit_r
 	for (uint32_t bit_rate = start_bit_rate; bit_rate < end_bit_rate; ++bit_rate)
 	{
 		uint32_t num_bits = acl_impl::get_num_bits_at_bit_rate(bit_rate);
-		uint32_t max_value = (1 << num_bits) - 1;
+		uint32_t max_value = (1U << num_bits) - 1;
 
 		// 4 values at a time to speed things up
 		for (uint32_t value = 0; value <= max_value; value += 4)
@@ -398,7 +398,7 @@ static uint32_t test_pack_vector3_XX(uint32_t start_bit_rate, uint32_t end_bit_r
 	for (uint32_t bit_rate = start_bit_rate; bit_rate < end_bit_rate; ++bit_rate)
 	{
 		uint32_t num_bits = acl_impl::get_num_bits_at_bit_rate(bit_rate);
-		uint32_t max_value = (1 << num_bits) - 1;
+		uint32_t max_value = (1U << num_bits) - 1;
 
 		// 3 values at a time to speed things up
 		for (uint32_t value = 0; value <= max_value; value += 3)
@@ -475,7 +475,7 @@ TEST_CASE("decay_vector3_XX", "[math][vector4][decay]")
 	for (uint8_t bit_rate = 1; bit_rate < acl_impl::k_highest_bit_rate; ++bit_rate)
 	{
 		uint32_t num_bits = acl_impl::get_num_bits_at_bit_rate(bit_rate);
-		uint32_t max_value = (1 << num_bits) - 1;
+		uint32_t max_value = (1U << num_bits) - 1;
 
 		// 3 values at a time to speed things up
 		for (uint32_t value = 0; value <= max_value; value += 3)
@@ -549,7 +549,7 @@ static uint32_t test_pack_vector2_XX(uint32_t start_bit_rate, uint32_t end_bit_r
 	for (uint32_t bit_rate = start_bit_rate; bit_rate < end_bit_rate; ++bit_rate)
 	{
 		uint32_t num_bits = acl_impl::get_num_bits_at_bit_rate(bit_rate);
-		uint32_t max_value = (1 << num_bits) - 1;
+		uint32_t max_value = (1U << num_bits) - 1;
 
 		// 2 values at a time to speed things up
 		for (uint32_t value = 0; value <= max_value; value += 2)

@@ -49,7 +49,7 @@ TEST_CASE("scalar packing math", "[math][scalar][packing]")
 	const uint8_t max_num_bits = 23;
 	for (uint8_t num_bits = 1; num_bits < max_num_bits; ++num_bits)
 	{
-		const uint32_t max_value = (1 << num_bits) - 1;
+		const uint32_t max_value = (1U << num_bits) - 1;
 
 		CHECK(pack_scalar_unsigned(0.0F, num_bits) == 0);
 		CHECK(pack_scalar_unsigned(1.0F, num_bits) == max_value);
@@ -126,7 +126,7 @@ static uint32_t test_unpack_scalarf_uXX_unsafe(uint32_t start_bit_rate, uint32_t
 	for (uint32_t bit_rate = start_bit_rate; bit_rate < end_bit_rate; ++bit_rate)
 	{
 		uint32_t num_bits = acl_impl::get_num_bits_at_bit_rate(bit_rate);
-		uint32_t max_value = (1 << num_bits) - 1;
+		uint32_t max_value = (1U << num_bits) - 1;
 		for (uint32_t value = 0; value <= max_value; ++value)
 		{
 			const float value_unsigned = scalar_clamp(unpack_scalar_unsigned(value, num_bits), 0.0F, 1.0F);

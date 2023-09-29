@@ -576,7 +576,7 @@ namespace acl
 			// Bits [1, 16): unused (15 bits)
 
 			bool get_is_bulk_data_inline() const { return (misc_packed & (1 << 0)) != 0; }
-			void set_is_bulk_data_inline(bool is_inline) { misc_packed = (misc_packed & ~(1 << 0)) | (static_cast<uint16_t>(is_inline) << 0); }
+			void set_is_bulk_data_inline(bool is_inline) { misc_packed = static_cast<uint16_t>((misc_packed & ~(static_cast<uint16_t>(1) << 0)) | (static_cast<uint16_t>(is_inline) << 0)); }
 
 			//////////////////////////////////////////////////////////////////////////
 			// Utility functions that return pointers from their respective offsets.

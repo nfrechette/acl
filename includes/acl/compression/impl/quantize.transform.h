@@ -1814,7 +1814,7 @@ namespace acl
 			const uint32_t num_segments = lossy_clip_context.num_segments;
 
 			uint32_t* num_stripped_in_segment = allocate_type_array<uint32_t>(allocator, num_segments);
-			std::fill(num_stripped_in_segment, num_stripped_in_segment + num_segments, 0);
+			std::fill(num_stripped_in_segment, num_stripped_in_segment + num_segments, 0U);
 
 			// Now that every segment has been populated, the stripping order is relative to each segment
 			// We need it to be relative to the whole clip

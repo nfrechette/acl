@@ -567,7 +567,7 @@ namespace acl
 				const segment_header* input_segment_headers = input_transforms_header.get_segment_headers();
 				const optional_metadata_header& input_metadata_header = get_optional_metadata_header(*input_tracks);
 
-				const uint32_t num_sub_tracks_per_bone = input_header.get_has_scale() ? 3 : 2;
+				const uint32_t num_sub_tracks_per_bone = input_header.get_has_scale() ? 3U : 2U;
 
 				// Calculate how many sub-track packed entries we have
 				// Each sub-track is 2 bits packed within a 32 bit entry
