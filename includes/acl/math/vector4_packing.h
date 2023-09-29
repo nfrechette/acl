@@ -267,7 +267,7 @@ namespace acl
 		{
 			explicit constexpr PackedTableEntry(uint8_t num_bits_)
 				: max_value(num_bits_ == 0 ? 1.0F : (1.0F / float((1 << num_bits_) - 1)))
-				, mask((1 << num_bits_) - 1)
+				, mask((1U << num_bits_) - 1)
 			{}
 
 			float max_value;
@@ -921,7 +921,7 @@ namespace acl
 		{
 			explicit constexpr PackedTableEntry(uint8_t num_bits_)
 				: max_value(num_bits_ == 0 ? 1.0F : (1.0F / float((1 << num_bits_) - 1)))
-				, mask((1 << num_bits_) - 1)
+				, mask((1U << num_bits_) - 1)
 			{}
 
 			float max_value;
@@ -1056,7 +1056,7 @@ namespace acl
 		{
 			explicit constexpr PackedTableEntry(uint8_t num_bits_)
 				: max_value(num_bits_ == 0 ? 1.0F : (1.0F / float((1 << num_bits_) - 1)))
-				, mask((1 << num_bits_) - 1)
+				, mask((1U << num_bits_) - 1)
 			{}
 
 			float max_value;

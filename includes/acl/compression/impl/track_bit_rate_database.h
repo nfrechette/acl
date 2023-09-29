@@ -365,7 +365,7 @@ namespace acl
 			const bool has_scale = raw_bone_steams->segment->clip->has_scale;
 			m_has_scale = has_scale;
 
-			const uint32_t num_tracks_per_transform = has_scale ? 3 : 2;
+			const uint32_t num_tracks_per_transform = has_scale ? 3U : 2U;
 			const uint32_t num_entries_per_transform = num_tracks_per_transform * k_num_bit_rates_cached_per_track;
 			m_num_entries_per_transform = num_entries_per_transform;
 

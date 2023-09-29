@@ -109,7 +109,7 @@ namespace acl
 		bitset_index_ref(bitset_description desc_, uint32_t bit_index)
 			: desc(desc_)
 			, offset(bit_index / 32)
-			, mask(1 << (31 - (bit_index % 32)))
+			, mask(1U << (31 - (bit_index % 32)))
 		{
 			ACL_ASSERT(desc_.is_bit_index_valid(bit_index), "Invalid bit index: %d", bit_index);
 		}
@@ -138,7 +138,7 @@ namespace acl
 		(void)desc;
 
 		const uint32_t offset = bit_index / 32;
-		const uint32_t mask = 1 << (31 - (bit_index % 32));
+		const uint32_t mask = 1U << (31 - (bit_index % 32));
 
 		if (value)
 			bitset[offset] |= mask;
@@ -176,7 +176,7 @@ namespace acl
 		(void)desc;
 
 		const uint32_t offset = bit_index / 32;
-		const uint32_t mask = 1 << (31 - (bit_index % 32));
+		const uint32_t mask = 1U << (31 - (bit_index % 32));
 
 		return (bitset[offset] & mask) != 0;
 	}

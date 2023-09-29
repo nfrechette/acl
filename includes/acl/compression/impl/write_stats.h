@@ -306,7 +306,7 @@ namespace acl
 				// Range data
 				if (are_any_enum_flags_set(range_reduction, range_reduction_flags8::rotations) && !bone_stream.is_rotation_constant)
 				{
-					const uint32_t num_components = bone_stream.rotations.get_rotation_format() == rotation_format8::quatf_full ? 8 : 6;
+					const uint32_t num_components = bone_stream.rotations.get_rotation_format() == rotation_format8::quatf_full ? 8U : 6U;
 					result += num_components * k_segment_range_reduction_num_bytes_per_component;
 				}
 			}

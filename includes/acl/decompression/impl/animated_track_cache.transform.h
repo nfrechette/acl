@@ -520,7 +520,7 @@ namespace acl
 			const compressed_tracks_version16 version = get_version<decompression_settings_type>(decomp_context.get_version());
 
 			// See write_format_per_track_data(..) for details
-			const uint32_t num_raw_bit_rate_bits = version >= compressed_tracks_version16::v02_01_99_1 ? 31 : 32;
+			const uint32_t num_raw_bit_rate_bits = version >= compressed_tracks_version16::v02_01_99_1 ? 31U : 32U;
 
 			uint32_t segment_range_ignore_mask = 0;
 			uint32_t clip_range_ignore_mask = 0;
@@ -695,7 +695,7 @@ namespace acl
 			const compressed_tracks_version16 version = get_version<decompression_settings_type>(decomp_context.get_version());
 
 			// See write_format_per_track_data(..) for details
-			const uint32_t num_raw_bit_rate_bits = version >= compressed_tracks_version16::v02_01_99_1 ? 31 : 32;
+			const uint32_t num_raw_bit_rate_bits = version >= compressed_tracks_version16::v02_01_99_1 ? 31U : 32U;
 
 			uint32_t segment_range_ignore_mask = 0;
 			uint32_t clip_range_ignore_mask = 0;
@@ -1257,19 +1257,19 @@ namespace acl
 				const uint32_t num_animated_rotation_sub_tracks_padded = align_to(transform_header.num_animated_rotation_sub_tracks, 4);
 
 				// Rotation range data follows translations, no padding
-				const uint32_t rotation_clip_range_data_size = are_rotations_variable ? (sizeof(rtm::float3f) * 2) : 0;
+				const uint32_t rotation_clip_range_data_size = are_rotations_variable ? (sizeof(rtm::float3f) * 2U) : 0U;
 				const uint8_t* clip_range_data_translations = clip_range_data_rotations + (transform_header.num_animated_rotation_sub_tracks * rotation_clip_range_data_size);
 				clip_sampling_context_translations.clip_range_data = clip_range_data_translations;
 
 				// Rotation metadata is padded to 4 sub-tracks (1 byte each)
-				const uint32_t rotation_per_track_metadata_size = are_rotations_variable ? 1 : 0;
+				const uint32_t rotation_per_track_metadata_size = are_rotations_variable ? 1U : 0U;
 				const uint8_t* format_per_track_data_translations0 = format_per_track_data_rotations0 + (num_animated_rotation_sub_tracks_padded * rotation_per_track_metadata_size);
 				const uint8_t* format_per_track_data_translations1 = format_per_track_data_rotations1 + (num_animated_rotation_sub_tracks_padded * rotation_per_track_metadata_size);
 				segment_sampling_context_translations[0].format_per_track_data = format_per_track_data_translations0;
 				segment_sampling_context_translations[1].format_per_track_data = format_per_track_data_translations1;
 
 				// Rotation range data is padded to 4 sub-tracks (6 bytes each)
-				const uint32_t rotation_segment_range_data_size = are_rotations_variable ? 6 : 0;
+				const uint32_t rotation_segment_range_data_size = are_rotations_variable ? 6U : 0U;
 				const uint8_t* segment_range_data_translations0 = segment_range_data_rotations0 + (num_animated_rotation_sub_tracks_padded * rotation_segment_range_data_size);
 				const uint8_t* segment_range_data_translations1 = segment_range_data_rotations1 + (num_animated_rotation_sub_tracks_padded * rotation_segment_range_data_size);
 				segment_sampling_context_translations[0].segment_range_data = segment_range_data_translations0;
@@ -1290,14 +1290,14 @@ namespace acl
 					const bool are_translations_variable = translation_format == vector_format8::vector3f_variable && decompression_settings_translation_adapter_type::is_vector_format_supported(vector_format8::vector3f_variable);
 
 					// Scale data just follows the translation data without any extra padding
-					const uint32_t translation_clip_range_data_size = are_translations_variable ? (sizeof(rtm::float3f) * 2) : 0;
+					const uint32_t translation_clip_range_data_size = are_translations_variable ? (sizeof(rtm::float3f) * 2U) : 0U;
 					clip_sampling_context_scales.clip_range_data = clip_range_data_translations + (transform_header.num_animated_translation_sub_tracks * translation_clip_range_data_size);
 
-					const uint32_t translation_per_track_metadata_size = are_translations_variable ? 1 : 0;
+					const uint32_t translation_per_track_metadata_size = are_translations_variable ? 1U : 0U;
 					segment_sampling_context_scales[0].format_per_track_data = format_per_track_data_translations0 + (transform_header.num_animated_translation_sub_tracks * translation_per_track_metadata_size);
 					segment_sampling_context_scales[1].format_per_track_data = format_per_track_data_translations1 + (transform_header.num_animated_translation_sub_tracks * translation_per_track_metadata_size);
 
-					const uint32_t translation_segment_range_data_size = are_translations_variable ? 6 : 0;
+					const uint32_t translation_segment_range_data_size = are_translations_variable ? 6U : 0U;
 					segment_sampling_context_scales[0].segment_range_data = segment_range_data_translations0 + (transform_header.num_animated_translation_sub_tracks * translation_segment_range_data_size);
 					segment_sampling_context_scales[1].segment_range_data = segment_range_data_translations1 + (transform_header.num_animated_translation_sub_tracks * translation_segment_range_data_size);
 

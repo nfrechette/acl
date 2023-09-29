@@ -43,14 +43,14 @@ namespace acl
 	{
 		ACL_ASSERT(num_bits < 31, "Attempting to pack on too many bits");
 		ACL_ASSERT(input >= 0.0F && input <= 1.0F, "Expected normalized unsigned input value: %f", input);
-		const uint32_t max_value = (1 << num_bits) - 1;
+		const uint32_t max_value = (1U << num_bits) - 1;
 		return static_cast<uint32_t>(rtm::scalar_round_symmetric(input * rtm::scalar_safe_to_float(max_value)));
 	}
 
 	inline float unpack_scalar_unsigned(uint32_t input, uint32_t num_bits)
 	{
 		ACL_ASSERT(num_bits < 31, "Attempting to unpack from too many bits");
-		const uint32_t max_value = (1 << num_bits) - 1;
+		const uint32_t max_value = (1U << num_bits) - 1;
 		ACL_ASSERT(input <= max_value, "Input value too large: %ull", input);
 		// For performance reasons, unpacking is faster when multiplying with the reciprocal
 		const float inv_max_value = 1.0F / rtm::scalar_safe_to_float(max_value);
@@ -118,7 +118,7 @@ namespace acl
 		{
 			explicit constexpr PackedTableEntry(uint8_t num_bits_)
 				: max_value(num_bits_ == 0 ? 1.0F : (1.0F / float((1 << num_bits_) - 1)))
-				, mask((1 << num_bits_) - 1)
+				, mask((1U << num_bits_) - 1)
 			{}
 
 			float max_value;

@@ -278,7 +278,7 @@ namespace acl
 			uint32_t num_animated_variable_sub_tracks_padded = 0;
 			const uint32_t format_per_track_data_size = get_format_per_track_data_size(lossy_clip_context, settings.rotation_format, settings.translation_format, settings.scale_format, &num_animated_variable_sub_tracks_padded);
 
-			const uint32_t num_sub_tracks_per_bone = lossy_clip_context.has_scale ? 3 : 2;
+			const uint32_t num_sub_tracks_per_bone = lossy_clip_context.has_scale ? 3U : 2U;
 
 			// Calculate how many sub-track packed entries we have
 			// Each sub-track is 2 bits packed within a 32 bit entry
@@ -407,7 +407,7 @@ namespace acl
 			header->set_scale_format(settings.scale_format);
 			header->set_has_scale(lossy_clip_context.has_scale);
 			// Our default scale is 1.0 if we have no additive base or if we don't use 'additive1', otherwise it is 0.0
-			header->set_default_scale(!is_additive || additive_format != additive_clip_format8::additive1 ? 1 : 0);
+			header->set_default_scale(!is_additive || additive_format != additive_clip_format8::additive1 ? 1U : 0U);
 			header->set_has_database(false);
 			header->set_has_trivial_default_values(has_trivial_defaults);
 			header->set_has_stripped_keyframes(lossy_clip_context.has_stripped_keyframes);
