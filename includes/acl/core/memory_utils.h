@@ -297,30 +297,30 @@ namespace acl
 		while (true)
 		{
 			uint64_t src_byte_offset = src_bit_offset / 8;
-			uint8_t src_byte_bit_offset = safe_static_cast<uint8_t>(src_bit_offset % 8);
+			uint32_t src_byte_bit_offset = safe_static_cast<uint32_t>(src_bit_offset % 8);
 			uint64_t dest_byte_offset = dest_bit_offset / 8;
-			uint8_t dest_byte_bit_offset = safe_static_cast<uint8_t>(dest_bit_offset % 8);
+			uint32_t dest_byte_bit_offset = safe_static_cast<uint32_t>(dest_bit_offset % 8);
 
 			const uint8_t* src_bytes = add_offset_to_ptr<const uint8_t>(src, src_byte_offset);
 			uint8_t* dest_byte = add_offset_to_ptr<uint8_t>(dest, dest_byte_offset);
 
 			// We'll copy only as many bits as there fits within 'dest' or as there are left
-			uint8_t num_bits_dest_remain_in_byte = 8 - dest_byte_bit_offset;
-			uint8_t num_bits_src_remain_in_byte = 8 - src_byte_bit_offset;
-			uint64_t num_bits_copied = std::min<uint64_t>(std::min<uint8_t>(num_bits_dest_remain_in_byte, num_bits_src_remain_in_byte), num_bits_to_copy);
-			uint8_t num_bits_copied_u8 = safe_static_cast<uint8_t>(num_bits_copied);
+			uint32_t num_bits_dest_remain_in_byte = 8 - dest_byte_bit_offset;
+			uint32_t num_bits_src_remain_in_byte = 8 - src_byte_bit_offset;
+			uint64_t num_bits_copied = std::min<uint64_t>(std::min<uint32_t>(num_bits_dest_remain_in_byte, num_bits_src_remain_in_byte), num_bits_to_copy);
+			uint32_t num_bits_copied_u32 = safe_static_cast<uint32_t>(num_bits_copied);
 
 			// We'll shift and mask to retain the 'dest' bits prior to our offset and whatever remains after the copy
-			uint8_t dest_shift_offset = dest_byte_bit_offset;
-			uint8_t dest_byte_mask = ~(0xFF >> dest_shift_offset) | ~(0xFF << (8 - num_bits_copied_u8 - dest_byte_bit_offset));
+			uint32_t dest_shift_offset = dest_byte_bit_offset;
+			uint32_t dest_byte_mask = ~(0xFFU >> dest_shift_offset) | ~(0xFFU << (8 - num_bits_copied_u32 - dest_byte_bit_offset));
 
-			uint8_t src_shift_offset = 8 - src_byte_bit_offset - num_bits_copied_u8;
-			uint8_t src_byte_mask = 0xFF >> (8 - num_bits_copied_u8);
-			uint8_t src_insert_shift_offset = 8 - num_bits_copied_u8 - dest_byte_bit_offset;
+			uint32_t src_shift_offset = 8 - src_byte_bit_offset - num_bits_copied_u32;
+			uint32_t src_byte_mask = 0xFFU >> (8 - num_bits_copied_u32);
+			uint32_t src_insert_shift_offset = 8 - num_bits_copied_u32 - dest_byte_bit_offset;
 
-			uint8_t partial_dest_value = *dest_byte & dest_byte_mask;
-			uint8_t partial_src_value = (*src_bytes >> src_shift_offset) & src_byte_mask;
-			*dest_byte = partial_dest_value | (partial_src_value << src_insert_shift_offset);
+			uint32_t partial_dest_value = *dest_byte & dest_byte_mask;
+			uint32_t partial_src_value = (*src_bytes >> src_shift_offset) & src_byte_mask;
+			*dest_byte = safe_static_cast<uint8_t>(partial_dest_value | (partial_src_value << src_insert_shift_offset));
 
 			if (num_bits_to_copy <= num_bits_copied)
 				break;	// Done
