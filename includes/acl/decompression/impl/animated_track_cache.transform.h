@@ -1114,7 +1114,7 @@ namespace acl
 			const uint32_t num_raw_bit_rate_bits = version >= compressed_tracks_version16::v02_01_99_1 ? 31U : 32U;
 
 			// TODO: Do the same with NEON
-#if defined(RTM_AVX_INTRINSICS)
+#if defined(RTM_SSE3_INTRINSICS)
 			const __m128i zero = _mm_setzero_si128();
 			const __m128i num_raw_bit_rate_bits_v = _mm_set1_epi32(static_cast<int32_t>(num_raw_bit_rate_bits));
 			__m128i group_bit_size_per_component0_v = zero;
