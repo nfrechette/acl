@@ -92,6 +92,7 @@ namespace acl
 				error = rtm::vector_abs(rtm::vector_sub(raw_value, lossy_value));
 				break;
 			}
+			case track_type8::qvvf:
 			default:
 				ACL_ASSERT(false, "Unsupported track type");
 				error = rtm::vector_zero();

@@ -67,6 +67,9 @@ namespace acl
 				case track_category8::scalarf:
 					is_constant = is_scalarf_track_constant(mut_track, range);
 					break;
+				case track_category8::scalard:
+				case track_category8::transformf:
+				case track_category8::transformd:
 				default:
 					ACL_ASSERT(false, "Invalid track category");
 					break;

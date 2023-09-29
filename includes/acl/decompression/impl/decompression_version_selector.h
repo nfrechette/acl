@@ -131,6 +131,8 @@ namespace acl
 				case compressed_tracks_version16::v02_01_99_1:
 				case compressed_tracks_version16::v02_01_00:
 					return acl_impl::initialize_v0<decompression_settings_type>(context, tracks, database);
+				case compressed_tracks_version16::none:
+				case compressed_tracks_version16::any:
 				default:
 					ACL_ASSERT(false, "Unsupported version");
 					return false;
@@ -148,6 +150,8 @@ namespace acl
 				case compressed_tracks_version16::v02_01_99_1:
 				case compressed_tracks_version16::v02_01_00:
 					return acl_impl::relocated_v0<decompression_settings_type>(context, tracks, database);
+				case compressed_tracks_version16::none:
+				case compressed_tracks_version16::any:
 				default:
 					ACL_ASSERT(false, "Unsupported version");
 					return false;
@@ -165,6 +169,8 @@ namespace acl
 				case compressed_tracks_version16::v02_01_99_1:
 				case compressed_tracks_version16::v02_01_00:
 					return acl_impl::is_bound_to_v0(context, tracks);
+				case compressed_tracks_version16::none:
+				case compressed_tracks_version16::any:
 				default:
 					ACL_ASSERT(false, "Unsupported version");
 					return false;
@@ -182,6 +188,8 @@ namespace acl
 				case compressed_tracks_version16::v02_01_99_1:
 				case compressed_tracks_version16::v02_01_00:
 					return acl_impl::is_bound_to_v0(context, database);
+				case compressed_tracks_version16::none:
+				case compressed_tracks_version16::any:
 				default:
 					ACL_ASSERT(false, "Unsupported version");
 					return false;
@@ -200,6 +208,8 @@ namespace acl
 				case compressed_tracks_version16::v02_01_00:
 					acl_impl::set_looping_policy_v0<decompression_settings_type>(context, policy);
 					break;
+				case compressed_tracks_version16::none:
+				case compressed_tracks_version16::any:
 				default:
 					ACL_ASSERT(false, "Unsupported version");
 					break;
@@ -218,6 +228,8 @@ namespace acl
 				case compressed_tracks_version16::v02_01_00:
 					acl_impl::seek_v0<decompression_settings_type>(context, sample_time, rounding_policy);
 					break;
+				case compressed_tracks_version16::none:
+				case compressed_tracks_version16::any:
 				default:
 					ACL_ASSERT(false, "Unsupported version");
 					break;
@@ -236,6 +248,8 @@ namespace acl
 				case compressed_tracks_version16::v02_01_00:
 					acl_impl::decompress_tracks_v0<decompression_settings_type>(context, writer);
 					break;
+				case compressed_tracks_version16::none:
+				case compressed_tracks_version16::any:
 				default:
 					ACL_ASSERT(false, "Unsupported version");
 					break;
@@ -254,6 +268,8 @@ namespace acl
 				case compressed_tracks_version16::v02_01_00:
 					acl_impl::decompress_track_v0<decompression_settings_type>(context, track_index, writer);
 					break;
+				case compressed_tracks_version16::none:
+				case compressed_tracks_version16::any:
 				default:
 					ACL_ASSERT(false, "Unsupported version");
 					break;

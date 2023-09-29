@@ -912,6 +912,7 @@ static itransform_error_metric* create_additive_error_metric(iallocator& allocat
 		return allocate_type<additive_qvvf_transform_error_metric<additive_clip_format8::additive0>>(allocator);
 	case additive_clip_format8::additive1:
 		return allocate_type<additive_qvvf_transform_error_metric<additive_clip_format8::additive1>>(allocator);
+	case additive_clip_format8::none:
 	default:
 		return nullptr;
 	}

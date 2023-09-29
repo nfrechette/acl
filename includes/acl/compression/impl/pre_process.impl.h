@@ -80,6 +80,7 @@ namespace acl
 				case track_type8::vector4f:
 					pre_process_optimize_looping_scalar<track_type8::vector4f>(track_list);
 					break;
+				case track_type8::qvvf:
 				default:
 					ACL_ASSERT(false, "Unexpected track type");
 					break;
@@ -136,6 +137,7 @@ namespace acl
 					case track_type8::vector4f:
 						pre_process_sanitize_constant_tracks_scalar<track_type8::vector4f>(track_);
 						break;
+					case track_type8::qvvf:
 					default:
 						ACL_ASSERT(false, "Unexpected track type");
 						break;

@@ -58,6 +58,7 @@ namespace acl
 			case rotation_format8::quatf_drop_w_full:
 				// Drop W, we just ensure it is positive and write it back, the W component can be ignored afterwards
 				return rtm::quat_to_vector(rtm::quat_ensure_positive_w(rtm::vector_to_quat(rotation)));
+			case rotation_format8::quatf_drop_w_variable:
 			default:
 				ACL_ASSERT(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(to));
 				return rotation;
@@ -91,6 +92,7 @@ namespace acl
 						// Drop W, we just ensure it is positive and write it back, the W component can be ignored afterwards
 						rotation = rtm::quat_ensure_positive_w(rotation);
 						break;
+					case rotation_format8::quatf_drop_w_variable:
 					default:
 						ACL_ASSERT(false, "Invalid or unsupported rotation format: %s", get_rotation_format_name(high_precision_format));
 						break;

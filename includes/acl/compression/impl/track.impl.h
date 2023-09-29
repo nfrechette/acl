@@ -113,9 +113,13 @@ namespace acl
 	{
 		switch (m_category)
 		{
-		default:
 		case track_category8::scalarf:		return m_desc.scalar.output_index;
 		case track_category8::transformf:	return m_desc.transform.output_index;
+		case track_category8::scalard:
+		case track_category8::transformd:
+		default:
+			ACL_ASSERT(false, "Invalid category");
+			return k_invalid_track_index;
 		}
 	}
 
@@ -176,6 +180,8 @@ namespace acl
 		{
 		case track_category8::scalarf:		return m_desc.scalar.is_valid();
 		case track_category8::transformf:	return m_desc.transform.is_valid();
+		case track_category8::scalard:
+		case track_category8::transformd:
 		default:							return error_result("Invalid category");
 		}
 	}
