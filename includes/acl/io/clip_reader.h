@@ -88,6 +88,16 @@ namespace acl
 
 		bool has_settings = false;
 		compression_settings settings;
+
+		sjson_raw_clip() = default;
+
+		// Can't copy
+		sjson_raw_clip(const sjson_raw_clip&) = delete;
+		sjson_raw_clip& operator=(const sjson_raw_clip&) = delete;
+
+		// Can move
+		sjson_raw_clip(sjson_raw_clip&&) = default;
+		sjson_raw_clip& operator=(sjson_raw_clip&&) = default;
 	};
 
 	//////////////////////////////////////////////////////////////////////////
@@ -101,6 +111,16 @@ namespace acl
 
 		bool has_settings = false;
 		compression_settings settings;
+
+		sjson_raw_track_list() = default;
+
+		// Can't copy
+		sjson_raw_track_list(const sjson_raw_track_list&) = delete;
+		sjson_raw_track_list& operator=(const sjson_raw_track_list&) = delete;
+
+		// Can move
+		sjson_raw_track_list(sjson_raw_track_list&&) = default;
+		sjson_raw_track_list& operator=(sjson_raw_track_list&&) = default;
 	};
 
 #if defined(RTM_COMPILER_CLANG)

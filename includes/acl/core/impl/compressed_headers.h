@@ -226,6 +226,8 @@ namespace acl
 		// Header for transform 'compressed_tracks'
 		struct transform_tracks_header
 		{
+			transform_tracks_header() = delete;	// Not needed
+
 			// The number of segments contained.
 			uint32_t						num_segments;
 
@@ -401,6 +403,10 @@ namespace acl
 		// Header for runtime database segments
 		struct database_runtime_segment_header
 		{
+			// Can't copy or move due to atomic
+			database_runtime_segment_header(const database_runtime_segment_header&) = delete;
+			database_runtime_segment_header& operator=(const database_runtime_segment_header&) = delete;
+
 			// Each segment can be split into at most 3 tiers with tier 0 being in the compressed clip itself.
 			// As such, each segment can be split into at most 2 tiers within the database, each with it's own
 			// chunk. Each segment contains at most 32 samples. Tiers are sorted in order from most important

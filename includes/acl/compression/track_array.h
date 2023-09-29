@@ -229,12 +229,20 @@ namespace acl
 		track_array_typed(iallocator& allocator, uint32_t num_tracks) : track_array(allocator, num_tracks) {}
 
 		//////////////////////////////////////////////////////////////////////////
+		// Cannot copy
+		track_array_typed(const track_array_typed&) = delete;
+
+		//////////////////////////////////////////////////////////////////////////
 		// Move constructor for a track array.
 		track_array_typed(track_array_typed&& other) noexcept : track_array(static_cast<track_array&&>(other)) {}
 
 		//////////////////////////////////////////////////////////////////////////
 		// Destroys a track array.
 		~track_array_typed() = default;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Cannot copy
+		track_array_typed& operator=(const track_array_typed&) = delete;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Move assignment for a track array.

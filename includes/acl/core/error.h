@@ -118,6 +118,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 		class runtime_assert final : public std::runtime_error
 		{
+			runtime_assert() = delete;					// Default constructor not needed
+
 			using std::runtime_error::runtime_error;	// Inherit constructors
 		};
 
