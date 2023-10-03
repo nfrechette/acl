@@ -321,12 +321,11 @@ namespace acl
 			segment_range_min_zzzz = _mm_andnot_ps(segment_range_ignore_mask_v, segment_range_min_zzzz);
 #elif defined(RTM_NEON_INTRINSICS)
 			// Mask out the segment min we ignore
-			const uint32x4_t segment_range_ignore_mask_vu32 = vreinterpretq_u32_s32(vmovl_s16(vget_low_s16(range_reduction_masks)));
-			const float32x4_t segment_range_ignore_mask_v = vreinterpretq_f32_u32(segment_range_ignore_mask_vu32);
+			const uint32x4_t segment_range_ignore_mask_v = vreinterpretq_u32_s32(vmovl_s16(vget_low_s16(range_reduction_masks)));
 
-			segment_range_min_xxxx = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(segment_range_min_xxxx), segment_range_ignore_mask_vu32));
-			segment_range_min_yyyy = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(segment_range_min_yyyy), segment_range_ignore_mask_vu32));
-			segment_range_min_zzzz = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(segment_range_min_zzzz), segment_range_ignore_mask_vu32));
+			segment_range_min_xxxx = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(segment_range_min_xxxx), segment_range_ignore_mask_v));
+			segment_range_min_yyyy = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(segment_range_min_yyyy), segment_range_ignore_mask_v));
+			segment_range_min_zzzz = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(segment_range_min_zzzz), segment_range_ignore_mask_v));
 #else
 			const rtm::vector4f zero_v = rtm::vector_zero();
 
@@ -400,8 +399,8 @@ namespace acl
 			const __m128 clip_range_mask0 = _mm_castsi128_ps(_mm_unpackhi_epi16(range_reduction_masks0, range_reduction_masks0));
 			const __m128 clip_range_mask1 = _mm_castsi128_ps(_mm_unpackhi_epi16(range_reduction_masks1, range_reduction_masks1));
 #elif defined(RTM_NEON_INTRINSICS)
-			const float32x4_t clip_range_mask0 = vreinterpretq_f32_s32(vmovl_s16(vget_high_s16(range_reduction_masks0)));
-			const float32x4_t clip_range_mask1 = vreinterpretq_f32_s32(vmovl_s16(vget_high_s16(range_reduction_masks1)));
+			const uint32x4_t clip_range_mask0 = vreinterpretq_u32_s32(vmovl_s16(vget_high_s16(range_reduction_masks0)));
+			const uint32x4_t clip_range_mask1 = vreinterpretq_u32_s32(vmovl_s16(vget_high_s16(range_reduction_masks1)));
 #else
 			const uint32_t clip_range_mask_u32_0 = uint32_t(range_reduction_masks0 >> 32);
 			const uint32_t clip_range_mask_u32_1 = uint32_t(range_reduction_masks1 >> 32);
@@ -427,13 +426,13 @@ namespace acl
 			const rtm::vector4f clip_range_min_yyyy1 = _mm_andnot_ps(clip_range_mask1, clip_range_min_yyyy);
 			const rtm::vector4f clip_range_min_zzzz1 = _mm_andnot_ps(clip_range_mask1, clip_range_min_zzzz);
 #elif defined(RTM_NEON_INTRINSICS)
-			const rtm::vector4f clip_range_min_xxxx0 = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(clip_range_min_xxxx), vreinterpretq_u32_f32(clip_range_mask0)));
-			const rtm::vector4f clip_range_min_yyyy0 = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(clip_range_min_yyyy), vreinterpretq_u32_f32(clip_range_mask0)));
-			const rtm::vector4f clip_range_min_zzzz0 = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(clip_range_min_zzzz), vreinterpretq_u32_f32(clip_range_mask0)));
+			const rtm::vector4f clip_range_min_xxxx0 = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(clip_range_min_xxxx), clip_range_mask0));
+			const rtm::vector4f clip_range_min_yyyy0 = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(clip_range_min_yyyy), clip_range_mask0));
+			const rtm::vector4f clip_range_min_zzzz0 = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(clip_range_min_zzzz), clip_range_mask0));
 
-			const rtm::vector4f clip_range_min_xxxx1 = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(clip_range_min_xxxx), vreinterpretq_u32_f32(clip_range_mask1)));
-			const rtm::vector4f clip_range_min_yyyy1 = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(clip_range_min_yyyy), vreinterpretq_u32_f32(clip_range_mask1)));
-			const rtm::vector4f clip_range_min_zzzz1 = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(clip_range_min_zzzz), vreinterpretq_u32_f32(clip_range_mask1)));
+			const rtm::vector4f clip_range_min_xxxx1 = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(clip_range_min_xxxx), clip_range_mask1));
+			const rtm::vector4f clip_range_min_yyyy1 = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(clip_range_min_yyyy), clip_range_mask1));
+			const rtm::vector4f clip_range_min_zzzz1 = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(clip_range_min_zzzz), clip_range_mask1));
 #else
 			const rtm::vector4f zero_v = rtm::vector_zero();
 
