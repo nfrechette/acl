@@ -200,6 +200,9 @@ namespace acl
 
 			if (settings.additive_base == nullptr)
 				return error_result("Missing 'additive_base' when 'additive_format' is used");
+
+			if (settings.additive_base->is_empty())
+				return error_result("'additive_base' cannot be empty when 'additive_format' is used");
 		}
 
 		// Disable floating point exceptions during compression because we leverage all SIMD lanes
