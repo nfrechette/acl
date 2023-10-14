@@ -37,14 +37,14 @@ jobs:
         with:
           submodules: 'recursive'
       - name: Build with wrapper
-        uses: docker://ghcr.io/nfrechette/toolchain-amd64-linux-sonarcloud:v2
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-linux-sonarcloud:v3
         with:
-          args: '/build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir bw_output python3 make.py -compiler clang14 -config Release -cpu x64 -build'
+          args: '/build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir bw_output python3 make.py -compiler clang15 -config Release -cpu x64 -build'
       - name: Run Sonar Scanner and upload to Sonarcloud
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: https://sonarcloud.io
-        uses: docker://ghcr.io/nfrechette/toolchain-amd64-linux-sonarcloud:v2
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-linux-sonarcloud:v3
         with:
-          args: '/sonar-scanner-4.7.0.2747-linux/bin/sonar-scanner'
+          args: '/sonar-scanner-5.0.1.3006-linux/bin/sonar-scanner'
