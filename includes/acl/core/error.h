@@ -78,7 +78,7 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 		namespace error_impl
 		{
-			inline void on_assert_abort(const char* expression, int line, const char* file, const char* format, ...)
+			[[noreturn]] inline void on_assert_abort(const char* expression, int line, const char* file, const char* format, ...)
 			{
 				(void)expression;
 				(void)line;
@@ -125,7 +125,7 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 		namespace error_impl
 		{
-			inline void on_assert_throw(const char* expression, int line, const char* file, const char* format, ...)
+			[[noreturn]] inline void on_assert_throw(const char* expression, int line, const char* file, const char* format, ...)
 			{
 				(void)expression;
 				(void)line;
