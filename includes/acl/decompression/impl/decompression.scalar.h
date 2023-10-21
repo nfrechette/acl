@@ -504,7 +504,7 @@ namespace acl
 				const sample_rounding_policy rounding_policy = static_cast<sample_rounding_policy>(context.rounding_policy);
 				const sample_rounding_policy rounding_policy_ = writer.get_rounding_policy(rounding_policy, track_index);
 				ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
-				
+
 				interpolation_alpha = rtm::scalar_set(apply_rounding_policy(context.interpolation_alpha, rounding_policy_));
 			}
 
