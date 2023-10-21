@@ -161,7 +161,7 @@ namespace acl
 			if (context.settings.precision_policy == pre_process_precision_policy::lossless)
 				return;	// This pre-process action is lossy, do nothing
 
-			track_array& track_list = context.track_list;
+			const track_array& track_list = context.track_list;
 			const track_category8 track_category = track_list.get_track_category();
 
 			if (track_category == track_category8::scalarf)
