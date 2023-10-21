@@ -56,7 +56,6 @@ namespace acl
 				, buffer_size(0)
 				, num_tracks(num_tracks_)
 				, type(type_)
-				, padding()
 			{
 				// Large enough to accommodate the largest type
 				buffer_size = sizeof(rtm::qvvf) * num_tracks_;
@@ -218,7 +217,7 @@ namespace acl
 			track_type8 type;
 
 			// Must pad to a multiple of 16 bytes for derived types
-			uint8_t padding[sizeof(void*) == 4 ? 15 : 3];
+			uint8_t padding[sizeof(void*) == 4 ? 15 : 3] = {0};
 		};
 
 		//////////////////////////////////////////////////////////////////////////
