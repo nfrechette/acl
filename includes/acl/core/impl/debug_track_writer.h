@@ -71,7 +71,7 @@ namespace acl
 			// Cannot copy or move
 			debug_track_writer(const debug_track_writer&) = delete;
 			debug_track_writer& operator=(const debug_track_writer&) = delete;
-			
+
 			//////////////////////////////////////////////////////////////////////////
 			// For performance reasons, this writer skips all default sub-tracks.
 			// It is the responsibility of the caller to pre-populate them by calling initialize_with_defaults().
