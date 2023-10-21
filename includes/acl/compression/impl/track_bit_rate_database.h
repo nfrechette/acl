@@ -115,7 +115,7 @@ namespace acl
 
 			track_bit_rate_database*		m_database;
 			uint32_t						m_track_index;
-			transform_bit_rates						m_bit_rates;
+			transform_bit_rates				m_bit_rates;
 
 			uint32_t						m_rotation_cache_index;
 			uint32_t						m_translation_cache_index;
@@ -156,7 +156,7 @@ namespace acl
 
 			iallocator&						m_allocator;
 			track_bit_rate_database*		m_database;
-			const transform_bit_rates*				m_bit_rates;
+			const transform_bit_rates*		m_bit_rates;
 			transform_indices*				m_indices;
 			uint32_t						m_num_transforms;
 
