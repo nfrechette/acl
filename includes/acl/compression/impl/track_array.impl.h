@@ -63,7 +63,7 @@ namespace acl
 		: m_allocator(other.m_allocator)
 		, m_tracks(other.m_tracks)
 		, m_num_tracks(other.m_num_tracks)
-		, m_looping_policy(sample_looping_policy::non_looping)
+		, m_looping_policy(other.m_looping_policy)
 		, m_name(std::move(other.m_name))
 	{
 		other.m_allocator = nullptr;	// Make sure we don't free our data since we no longer own it
@@ -80,6 +80,7 @@ namespace acl
 		std::swap(m_allocator, other.m_allocator);
 		std::swap(m_tracks, other.m_tracks);
 		std::swap(m_num_tracks, other.m_num_tracks);
+		std::swap(m_looping_policy, other.m_looping_policy);
 		std::swap(m_name, other.m_name);
 		return *this;
 	}
