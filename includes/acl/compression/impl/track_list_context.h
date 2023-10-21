@@ -67,39 +67,25 @@ namespace acl
 
 		struct track_list_context
 		{
-			iallocator* allocator;
-			const track_array* reference_list;
+			iallocator* allocator = nullptr;
+			const track_array* reference_list = nullptr;
 
 			track_array track_list;
 
-			track_range* range_list;
-			uint32_t* constant_tracks_bitset;
-			track_bit_rate* bit_rate_list;
-			uint32_t* track_output_indices;
+			track_range* range_list = nullptr;
+			uint32_t* constant_tracks_bitset = nullptr;
+			track_bit_rate* bit_rate_list = nullptr;
+			uint32_t* track_output_indices = nullptr;
 
-			uint32_t num_tracks;
-			uint32_t num_output_tracks;
-			uint32_t num_samples;
-			float sample_rate;
-			float duration;
+			uint32_t num_tracks = 0;
+			uint32_t num_output_tracks = 0;
+			uint32_t num_samples = 0;
+			float sample_rate = 0.0F;
+			float duration = 0.0F;
 
-			sample_looping_policy looping_policy;
+			sample_looping_policy looping_policy = sample_looping_policy::non_looping;
 
-			track_list_context()
-				: allocator(nullptr)
-				, reference_list(nullptr)
-				, track_list()
-				, range_list(nullptr)
-				, constant_tracks_bitset(nullptr)
-				, bit_rate_list(nullptr)
-				, track_output_indices(nullptr)
-				, num_tracks(0)
-				, num_output_tracks(0)
-				, num_samples(0)
-				, sample_rate(0.0F)
-				, duration(0.0F)
-				, looping_policy(sample_looping_policy::non_looping)
-			{}
+			track_list_context() = default;
 
 			~track_list_context()
 			{
