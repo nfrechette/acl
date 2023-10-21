@@ -98,7 +98,6 @@ namespace acl
 			single_track_query()
 				: m_database(nullptr)
 				, m_track_index(0xFFFFFFFFU)
-				, m_bit_rates()
 				, m_rotation_cache_index(0xFFFFFFFFU)
 				, m_translation_cache_index(0xFFFFFFFFU)
 				, m_scale_cache_index(0xFFFFFFFFU)
@@ -221,11 +220,8 @@ namespace acl
 				uint32_t			scale_generation_ids[4];
 
 				transform_cache_entry()
-					: rotation_bit_rates()
-					, rotation_generation_ids{ 0, 0, 0, 0 }
-					, translation_bit_rates()
+					: rotation_generation_ids{ 0, 0, 0, 0 }
 					, translation_generation_ids{ 0, 0, 0, 0 }
-					, scale_bit_rates()
 					, scale_generation_ids{ 0, 0, 0, 0 }
 				{}
 

@@ -73,7 +73,6 @@ namespace acl
 
 	template<class database_settings_type>
 	inline database_context<database_settings_type>::database_context()
-		: m_context()
 	{
 		m_context.reset();
 
