@@ -194,9 +194,9 @@ namespace acl
 			{
 				using SrcRealType = typename safe_underlying_type<SrcType, std::is_enum<SrcType>::value>::type;
 
-				if (static_condition<(std::is_signed<DstType>::value == std::is_signed<SrcRealType>::value)>::test())
+				if (static_condition<std::is_signed<DstType>::value == std::is_signed<SrcRealType>::value>::test())
 					return SrcType(DstType(input)) == input;
-				else if (static_condition<(std::is_signed<SrcRealType>::value)>::test())
+				else if (static_condition<std::is_signed<SrcRealType>::value>::test())
 					return int64_t(input) >= 0 && SrcType(DstType(input)) == input;
 				else
 					return uint64_t(input) <= uint64_t(std::numeric_limits<DstType>::max());
