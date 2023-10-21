@@ -27,6 +27,9 @@
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 
+#include <rtm/impl/detect_compiler.h>
+#include <rtm/impl/detect_cpp_version.h>
+
 ACL_IMPL_FILE_PRAGMA_PUSH
 
 //////////////////////////////////////////////////////////////////////////
@@ -174,16 +177,16 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 //////////////////////////////////////////////////////////////////////////
 
 // Allow deprecation support
-#if defined(__has_cpp_attribute) && __cplusplus >= 201402L
+#if defined(__has_cpp_attribute) && RTM_CPP_VERSION >= RTM_CPP_VERSION_14
 	#if __has_cpp_attribute(deprecated)
 		#define ACL_DEPRECATED(msg) [[deprecated(msg)]]
 	#endif
 #endif
 
 #if !defined(ACL_DEPRECATED)
-	#if defined(__GNUC__) || defined(__clang__)
+	#if defined(RTM_COMPILER_GCC) || defined(RTM_COMPILER_CLANG)
 		#define ACL_DEPRECATED(msg) __attribute__((deprecated))
-	#elif defined(_MSC_VER)
+	#elif defined(RTM_COMPILER_MSVC)
 		#define ACL_DEPRECATED(msg) __declspec(deprecated)
 	#else
 		#define ACL_DEPRECATED(msg)
