@@ -50,7 +50,6 @@ namespace acl
 
 	template<class decompression_settings_type>
 	inline decompression_context<decompression_settings_type>::decompression_context()
-		: m_context()
 	{
 		m_context.reset();
 

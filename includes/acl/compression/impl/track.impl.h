@@ -51,8 +51,6 @@ namespace acl
 		, m_type(track_type8::float1f)
 		, m_category(track_category8::scalarf)
 		, m_sample_size(0)
-		, m_desc()
-		, m_name()
 	{}
 
 	inline track::track(track&& other) noexcept

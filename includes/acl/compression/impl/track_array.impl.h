@@ -50,7 +50,6 @@ namespace acl
 		, m_tracks(nullptr)
 		, m_num_tracks(0)
 		, m_looping_policy(sample_looping_policy::non_looping)
-		, m_name()
 	{}
 
 	inline track_array::track_array(iallocator& allocator, uint32_t num_tracks)
@@ -58,7 +57,6 @@ namespace acl
 		, m_tracks(allocate_type_array<track>(allocator, num_tracks))
 		, m_num_tracks(num_tracks)
 		, m_looping_policy(sample_looping_policy::non_looping)
-		, m_name()
 	{}
 
 	inline track_array::track_array(track_array&& other) noexcept
