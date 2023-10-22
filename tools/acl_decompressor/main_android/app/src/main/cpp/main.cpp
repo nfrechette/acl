@@ -40,6 +40,8 @@
 
 #include <benchmark.h>
 
+#include <acl/core/impl/bit_cast.impl.h>
+
 static int load_file(AAssetManager* asset_manager, const char* filename, void*& out_buffer, size_t& out_buffer_size)
 {
 	AAsset* asset = AAssetManager_open(asset_manager, filename, AASSET_MODE_UNKNOWN);
@@ -147,7 +149,7 @@ extern "C" jint Java_com_acl_decompressor_MainActivity_nativeMain(JNIEnv* env, j
 			continue;
 		}
 
-		acl::compressed_tracks* raw_tracks = reinterpret_cast<acl::compressed_tracks*>(clip_buffer);
+		acl::compressed_tracks* raw_tracks = acl::acl_impl::bit_cast<acl::compressed_tracks*>(clip_buffer);
 
 		prepare_clip(clip, *raw_tracks, compressed_clips);
 

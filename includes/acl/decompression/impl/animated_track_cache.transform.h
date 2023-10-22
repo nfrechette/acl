@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/version.h"
+#include "acl/core/impl/bit_cast.impl.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/decompression/impl/track_cache.h"
 #include "acl/decompression/impl/decompression_context.transform.h"
@@ -269,12 +270,12 @@ namespace acl
 			{
 				// First segment data is duplicated
 				// Use 256 bit stores to avoid doing too many stores which might stall
-				_mm256_store_ps(reinterpret_cast<float*>(&output_scratch.segment_range_min[0]), _mm256_set_m128(segment_range_min_xxxx, segment_range_min_xxxx));
-				_mm256_store_ps(reinterpret_cast<float*>(&output_scratch.segment_range_min[2]), _mm256_set_m128(segment_range_min_yyyy, segment_range_min_yyyy));
-				_mm256_store_ps(reinterpret_cast<float*>(&output_scratch.segment_range_min[4]), _mm256_set_m128(segment_range_min_zzzz, segment_range_min_zzzz));
-				_mm256_store_ps(reinterpret_cast<float*>(&output_scratch.segment_range_extent[0]), _mm256_set_m128(segment_range_extent_xxxx, segment_range_extent_xxxx));
-				_mm256_store_ps(reinterpret_cast<float*>(&output_scratch.segment_range_extent[2]), _mm256_set_m128(segment_range_extent_yyyy, segment_range_extent_yyyy));
-				_mm256_store_ps(reinterpret_cast<float*>(&output_scratch.segment_range_extent[4]), _mm256_set_m128(segment_range_extent_zzzz, segment_range_extent_zzzz));
+				_mm256_store_ps(bit_cast<float*>(&output_scratch.segment_range_min[0]), _mm256_set_m128(segment_range_min_xxxx, segment_range_min_xxxx));
+				_mm256_store_ps(bit_cast<float*>(&output_scratch.segment_range_min[2]), _mm256_set_m128(segment_range_min_yyyy, segment_range_min_yyyy));
+				_mm256_store_ps(bit_cast<float*>(&output_scratch.segment_range_min[4]), _mm256_set_m128(segment_range_min_zzzz, segment_range_min_zzzz));
+				_mm256_store_ps(bit_cast<float*>(&output_scratch.segment_range_extent[0]), _mm256_set_m128(segment_range_extent_xxxx, segment_range_extent_xxxx));
+				_mm256_store_ps(bit_cast<float*>(&output_scratch.segment_range_extent[2]), _mm256_set_m128(segment_range_extent_yyyy, segment_range_extent_yyyy));
+				_mm256_store_ps(bit_cast<float*>(&output_scratch.segment_range_extent[4]), _mm256_set_m128(segment_range_extent_zzzz, segment_range_extent_zzzz));
 			}
 			else
 			{
@@ -357,13 +358,13 @@ namespace acl
 			// Load and mask out our segment range data
 			const __m256 one_v = _mm256_set1_ps(1.0F);
 
-			__m256 segment_range_min_xxxx0_xxxx1 = _mm256_load_ps(reinterpret_cast<const float*>(&segment_scratch.segment_range_min[0]));
-			__m256 segment_range_min_yyyy0_yyyy1 = _mm256_load_ps(reinterpret_cast<const float*>(&segment_scratch.segment_range_min[2]));
-			__m256 segment_range_min_zzzz0_zzzz1 = _mm256_load_ps(reinterpret_cast<const float*>(&segment_scratch.segment_range_min[4]));
+			__m256 segment_range_min_xxxx0_xxxx1 = _mm256_load_ps(bit_cast<const float*>(&segment_scratch.segment_range_min[0]));
+			__m256 segment_range_min_yyyy0_yyyy1 = _mm256_load_ps(bit_cast<const float*>(&segment_scratch.segment_range_min[2]));
+			__m256 segment_range_min_zzzz0_zzzz1 = _mm256_load_ps(bit_cast<const float*>(&segment_scratch.segment_range_min[4]));
 
-			__m256 segment_range_extent_xxxx0_xxxx1 = _mm256_load_ps(reinterpret_cast<const float*>(&segment_scratch.segment_range_extent[0]));
-			__m256 segment_range_extent_yyyy0_yyyy1 = _mm256_load_ps(reinterpret_cast<const float*>(&segment_scratch.segment_range_extent[2]));
-			__m256 segment_range_extent_zzzz0_zzzz1 = _mm256_load_ps(reinterpret_cast<const float*>(&segment_scratch.segment_range_extent[4]));
+			__m256 segment_range_extent_xxxx0_xxxx1 = _mm256_load_ps(bit_cast<const float*>(&segment_scratch.segment_range_extent[0]));
+			__m256 segment_range_extent_yyyy0_yyyy1 = _mm256_load_ps(bit_cast<const float*>(&segment_scratch.segment_range_extent[2]));
+			__m256 segment_range_extent_zzzz0_zzzz1 = _mm256_load_ps(bit_cast<const float*>(&segment_scratch.segment_range_extent[4]));
 
 			// Mask out the segment min we ignore
 			const __m128 segment_range_ignore_mask_v0 = _mm_castsi128_ps(_mm_unpacklo_epi16(range_reduction_masks0, range_reduction_masks0));
@@ -848,7 +849,7 @@ namespace acl
 
 				if (clip_range_ignore_mask == 0)
 				{
-					const float* clip_range_data = reinterpret_cast<const float*>(clip_sampling_context.clip_range_data) + unpack_index;	// Offset to our sample
+					const float* clip_range_data = bit_cast<const float*>(clip_sampling_context.clip_range_data) + unpack_index;	// Offset to our sample
 
 					const float min_x = clip_range_data[group_size * 0];
 					const float min_y = clip_range_data[group_size * 1];
@@ -1123,8 +1124,8 @@ namespace acl
 			for (uint32_t group_index = 0; group_index < num_groups_to_skip; ++group_index)
 			{
 				const uint32_t group_offset = group_index * 4;
-				const __m128i group_bit_size_per_component0_u8 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(format_per_track_data0 + group_offset));
-				const __m128i group_bit_size_per_component1_u8 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(format_per_track_data1 + group_offset));
+				const __m128i group_bit_size_per_component0_u8 = _mm_loadu_si128(bit_cast<const __m128i*>(format_per_track_data0 + group_offset));
+				const __m128i group_bit_size_per_component1_u8 = _mm_loadu_si128(bit_cast<const __m128i*>(format_per_track_data1 + group_offset));
 
 				// Unpack from uint8_t to uint32_t
 				__m128i group_bit_size_per_component0_u32 = _mm_unpacklo_epi16(_mm_unpacklo_epi8(group_bit_size_per_component0_u8, zero), zero);

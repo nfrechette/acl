@@ -27,6 +27,7 @@
 #include "acl/core/compressed_tracks.h"
 #include "acl/core/floating_point_exceptions.h"
 #include "acl/core/iallocator.h"
+#include "acl/core/impl/bit_cast.impl.h"
 #include "acl/compression/compress.h"
 #include "acl/compression/convert.h"
 #include "acl/compression/track_array.h"
@@ -678,42 +679,42 @@ static void compare_raw_with_compressed(iallocator& allocator, const track_array
 			{
 			case track_type8::float1f:
 			{
-				const float raw_sample = *reinterpret_cast<const float*>(raw_track[sample_index]);
+				const float raw_sample = *acl_impl::bit_cast<const float*>(raw_track[sample_index]);
 				const float compressed_sample = writer.read_float1(track_index);
 				ACL_ASSERT(raw_sample == compressed_sample, "Unexpected sample");
 				break;
 			}
 			case track_type8::float2f:
 			{
-				const rtm::vector4f raw_sample = rtm::vector_load2(reinterpret_cast<const rtm::float2f*>(raw_track[sample_index]));
+				const rtm::vector4f raw_sample = rtm::vector_load2(acl_impl::bit_cast<const rtm::float2f*>(raw_track[sample_index]));
 				const rtm::vector4f compressed_sample = writer.read_float2(track_index);
 				ACL_ASSERT(rtm::vector_all_near_equal2(raw_sample, compressed_sample, 0.0F), "Unexpected sample");
 				break;
 			}
 			case track_type8::float3f:
 			{
-				const rtm::vector4f raw_sample = rtm::vector_load3(reinterpret_cast<const rtm::float3f*>(raw_track[sample_index]));
+				const rtm::vector4f raw_sample = rtm::vector_load3(acl_impl::bit_cast<const rtm::float3f*>(raw_track[sample_index]));
 				const rtm::vector4f compressed_sample = writer.read_float3(track_index);
 				ACL_ASSERT(rtm::vector_all_near_equal3(raw_sample, compressed_sample, 0.0F), "Unexpected sample");
 				break;
 			}
 			case track_type8::float4f:
 			{
-				const rtm::vector4f raw_sample = rtm::vector_load(reinterpret_cast<const rtm::float4f*>(raw_track[sample_index]));
+				const rtm::vector4f raw_sample = rtm::vector_load(acl_impl::bit_cast<const rtm::float4f*>(raw_track[sample_index]));
 				const rtm::vector4f compressed_sample = writer.read_float4(track_index);
 				ACL_ASSERT(rtm::vector_all_near_equal(raw_sample, compressed_sample, 0.0F), "Unexpected sample");
 				break;
 			}
 			case track_type8::vector4f:
 			{
-				const rtm::vector4f raw_sample = *reinterpret_cast<const rtm::vector4f*>(raw_track[sample_index]);
+				const rtm::vector4f raw_sample = *acl_impl::bit_cast<const rtm::vector4f*>(raw_track[sample_index]);
 				const rtm::vector4f compressed_sample = writer.read_vector4(track_index);
 				ACL_ASSERT(rtm::vector_all_near_equal(raw_sample, compressed_sample, 0.0F), "Unexpected sample");
 				break;
 			}
 			case track_type8::qvvf:
 			{
-				const rtm::qvvf raw_sample = *reinterpret_cast<const rtm::qvvf*>(raw_track[sample_index]);
+				const rtm::qvvf raw_sample = *acl_impl::bit_cast<const rtm::qvvf*>(raw_track[sample_index]);
 				const rtm::qvvf compressed_sample = writer.read_qvv(track_index);
 
 				// Rotations can differ a bit due to how we normalize during interpolation

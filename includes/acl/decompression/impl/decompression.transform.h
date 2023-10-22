@@ -34,6 +34,7 @@
 #include "acl/core/track_formats.h"
 #include "acl/core/track_writer.h"
 #include "acl/core/impl/atomic.impl.h"
+#include "acl/core/impl/bit_cast.impl.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/impl/variable_bit_rates.h"
 #include "acl/decompression/database/database.h"
@@ -103,7 +104,7 @@ namespace acl
 			ACL_ASSERT(scale_format == packed_scale_format, "Statically compiled scale format (%s) differs from the compressed scale format (%s)!", get_vector_format_name(scale_format), get_vector_format_name(packed_scale_format));
 
 			// Context is always the first member and versions should always match
-			const database_context_v0* db = reinterpret_cast<const database_context_v0*>(database);
+			const database_context_v0* db = bit_cast<const database_context_v0*>(database);
 
 			context.tracks = &tracks;
 			context.db = db;
@@ -137,7 +138,7 @@ namespace acl
 				return false;	// Hash is different, this instance did not relocate, it is different
 
 			// Context is always the first member and versions should always match
-			const database_context_v0* db = reinterpret_cast<const database_context_v0*>(database);
+			const database_context_v0* db = bit_cast<const database_context_v0*>(database);
 			const uint32_t db_hash = db != nullptr ? db->db_hash : 0;
 
 			if (context.db_hash != db_hash)
@@ -223,7 +224,7 @@ namespace acl
 			// Most clips will have their sub-track types fit into 1 or 2 cache lines, we'll prefetch 2
 			// to be safe
 			{
-				const uint8_t* sub_track_types = reinterpret_cast<const uint8_t*>(transform_header.get_sub_track_types());
+				const uint8_t* sub_track_types = bit_cast<const uint8_t*>(transform_header.get_sub_track_types());
 
 				ACL_IMPL_SEEK_PREFETCH(sub_track_types);
 				ACL_IMPL_SEEK_PREFETCH(sub_track_types + 64);

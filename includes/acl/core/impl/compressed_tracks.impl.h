@@ -28,6 +28,7 @@
 
 #include "acl/version.h"
 #include "acl/core/track_desc.h"
+#include "acl/core/impl/bit_cast.impl.h"
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
@@ -40,27 +41,27 @@ namespace acl
 		// Hide these implementations, they shouldn't be needed in user-space
 		inline const tracks_header& get_tracks_header(const compressed_tracks& tracks)
 		{
-			return *reinterpret_cast<const tracks_header*>(reinterpret_cast<const uint8_t*>(&tracks) + sizeof(raw_buffer_header));
+			return *bit_cast<const tracks_header*>(bit_cast<const uint8_t*>(&tracks) + sizeof(raw_buffer_header));
 		}
 
 		inline const scalar_tracks_header& get_scalar_tracks_header(const compressed_tracks& tracks)
 		{
-			return *reinterpret_cast<const scalar_tracks_header*>(reinterpret_cast<const uint8_t*>(&tracks) + sizeof(raw_buffer_header) + sizeof(tracks_header));
+			return *bit_cast<const scalar_tracks_header*>(bit_cast<const uint8_t*>(&tracks) + sizeof(raw_buffer_header) + sizeof(tracks_header));
 		}
 
 		inline transform_tracks_header& get_transform_tracks_header(compressed_tracks& tracks)
 		{
-			return *reinterpret_cast<transform_tracks_header*>(reinterpret_cast<uint8_t*>(&tracks) + sizeof(raw_buffer_header) + sizeof(tracks_header));
+			return *bit_cast<transform_tracks_header*>(bit_cast<uint8_t*>(&tracks) + sizeof(raw_buffer_header) + sizeof(tracks_header));
 		}
 
 		inline const transform_tracks_header& get_transform_tracks_header(const compressed_tracks& tracks)
 		{
-			return *reinterpret_cast<const transform_tracks_header*>(reinterpret_cast<const uint8_t*>(&tracks) + sizeof(raw_buffer_header) + sizeof(tracks_header));
+			return *bit_cast<const transform_tracks_header*>(bit_cast<const uint8_t*>(&tracks) + sizeof(raw_buffer_header) + sizeof(tracks_header));
 		}
 
 		inline const optional_metadata_header& get_optional_metadata_header(const compressed_tracks& tracks)
 		{
-			return *reinterpret_cast<const optional_metadata_header*>(reinterpret_cast<const uint8_t*>(&tracks) + tracks.get_size() - sizeof(optional_metadata_header));
+			return *bit_cast<const optional_metadata_header*>(bit_cast<const uint8_t*>(&tracks) + tracks.get_size() - sizeof(optional_metadata_header));
 		}
 	}
 
@@ -204,7 +205,7 @@ namespace acl
 			return false;	// Metadata isn't stored
 
 		const uint8_t* descriptions = metadata_header.get_track_descriptions(*this);
-		const float* description_data = reinterpret_cast<const float*>(descriptions + (track_index * sizeof(float) * 1));
+		const float* description_data = acl_impl::bit_cast<const float*>(descriptions + (track_index * sizeof(float) * 1));
 
 		out_description.output_index = track_index;
 		out_description.precision = description_data[0];
@@ -246,7 +247,7 @@ namespace acl
 		if (version >= compressed_tracks_version16::v02_01_99_1)
 			track_description_size -= sizeof(float) * 3;
 
-		const float* description_data = reinterpret_cast<const float*>(descriptions + (size_t(track_index) * track_description_size));
+		const float* description_data = acl_impl::bit_cast<const float*>(descriptions + (size_t(track_index) * track_description_size));
 
 		// Because the data has already been compressed, any track output remapping has already happened
 		// which means the output_index is just the track_index

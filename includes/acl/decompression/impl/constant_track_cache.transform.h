@@ -26,6 +26,7 @@
 
 #include "acl/version.h"
 #include "acl/core/track_formats.h"
+#include "acl/core/impl/bit_cast.impl.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/decompression/impl/track_cache.h"
 #include "acl/decompression/impl/decompression_context.transform.h"
@@ -159,9 +160,9 @@ namespace acl
 						// The last group contains no padding so we have to make to align our reads properly
 						const uint32_t load_size = unpack_count * sizeof(float);
 
-						rtm::vector4f xxxx = rtm::vector_load(reinterpret_cast<const float*>(constant_track_data + load_size * 0));
-						rtm::vector4f yyyy = rtm::vector_load(reinterpret_cast<const float*>(constant_track_data + load_size * 1));
-						rtm::vector4f zzzz = rtm::vector_load(reinterpret_cast<const float*>(constant_track_data + load_size * 2));
+						rtm::vector4f xxxx = rtm::vector_load(bit_cast<const float*>(constant_track_data + load_size * 0));
+						rtm::vector4f yyyy = rtm::vector_load(bit_cast<const float*>(constant_track_data + load_size * 1));
+						rtm::vector4f zzzz = rtm::vector_load(bit_cast<const float*>(constant_track_data + load_size * 2));
 
 						// Update our read ptr
 						constant_track_data += load_size * 3;
@@ -244,7 +245,7 @@ namespace acl
 				{
 					// Data is in SOA form
 					const uint32_t group_size = std::min<uint32_t>(rotations.num_left_to_unpack, 4);
-					const float* constant_track_data = reinterpret_cast<const float*>(constant_data_rotations) + unpack_index;
+					const float* constant_track_data = bit_cast<const float*>(constant_data_rotations) + unpack_index;
 					const float x = constant_track_data[group_size * 0];
 					const float y = constant_track_data[group_size * 1];
 					const float z = constant_track_data[group_size * 2];

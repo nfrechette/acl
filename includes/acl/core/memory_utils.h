@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/version.h"
+#include "acl/core/impl/bit_cast.impl.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/error.h"
 
@@ -82,7 +83,7 @@ namespace acl
 	RTM_FORCE_INLINE bool is_aligned_to(PtrType* value, size_t alignment)
 	{
 		ACL_ASSERT(is_power_of_two(alignment), "Alignment value must be a power of two");
-		return (reinterpret_cast<intptr_t>(value) & (alignment - 1)) == 0;
+		return (acl_impl::bit_cast<intptr_t>(value) & (alignment - 1)) == 0;
 	}
 
 	template<typename IntegralType>
@@ -102,7 +103,7 @@ namespace acl
 	RTM_FORCE_INLINE PtrType* align_to(PtrType* value, size_t alignment)
 	{
 		ACL_ASSERT(is_power_of_two(alignment), "Alignment value must be a power of two");
-		return reinterpret_cast<PtrType*>((reinterpret_cast<intptr_t>(value) + (alignment - 1)) & ~(alignment - 1));
+		return acl_impl::bit_cast<PtrType*>((acl_impl::bit_cast<intptr_t>(value) + (alignment - 1)) & ~(alignment - 1));
 	}
 
 	template<typename IntegralType>
@@ -132,8 +133,8 @@ namespace acl
 		{
 			RTM_FORCE_INLINE static DestPtrType* cast(SrcType* input)
 			{
-				ACL_ASSERT(is_aligned_to(input, alignof(DestPtrType)), "reinterpret_cast would result in an unaligned pointer");
-				return reinterpret_cast<DestPtrType*>(input);
+				ACL_ASSERT(is_aligned_to(input, alignof(DestPtrType)), "bit_cast would result in an unaligned pointer");
+				return acl_impl::bit_cast<DestPtrType*>(input);
 			}
 		};
 
@@ -148,15 +149,15 @@ namespace acl
 		{
 			RTM_FORCE_INLINE static DestPtrType* cast(SrcType input)
 			{
-				ACL_ASSERT(is_aligned_to(input, alignof(DestPtrType)), "reinterpret_cast would result in an unaligned pointer");
-				return reinterpret_cast<DestPtrType*>(input);
+				ACL_ASSERT(is_aligned_to(input, alignof(DestPtrType)), "bit_cast would result in an unaligned pointer");
+				return acl_impl::bit_cast<DestPtrType*>(input);
 			}
 		};
 
 		template<typename SrcType>
 		struct safe_int_to_ptr_cast_impl<void, SrcType>
 		{
-			RTM_FORCE_INLINE static constexpr void* cast(SrcType input) { return reinterpret_cast<void*>(input); }
+			RTM_FORCE_INLINE static constexpr void* cast(SrcType input) { return acl_impl::bit_cast<void*>(input); }
 		};
 	}
 
@@ -241,7 +242,7 @@ namespace acl
 	template<typename OutputPtrType, typename InputPtrType, typename offset_type>
 	RTM_FORCE_INLINE OutputPtrType* add_offset_to_ptr(InputPtrType* ptr, offset_type offset)
 	{
-		return safe_ptr_cast<OutputPtrType>(reinterpret_cast<uintptr_t>(ptr) + offset);
+		return safe_ptr_cast<OutputPtrType>(acl_impl::bit_cast<uintptr_t>(ptr) + offset);
 	}
 
 	RTM_FORCE_INLINE uint16_t byte_swap(uint16_t value)
@@ -355,7 +356,7 @@ namespace acl
 	RTM_FORCE_INLINE void memory_prefetch(const void* ptr)
 	{
 #if defined(RTM_SSE2_INTRINSICS)
-		_mm_prefetch(reinterpret_cast<const char*>(ptr), _MM_HINT_T0);
+		_mm_prefetch(acl_impl::bit_cast<const char*>(ptr), _MM_HINT_T0);
 #elif defined(RTM_COMPILER_GCC) || defined(RTM_COMPILER_CLANG)
 		__builtin_prefetch(ptr, 0, 3);
 #elif defined(RTM_NEON64_INTRINSICS) && defined(RTM_COMPILER_MSVC)

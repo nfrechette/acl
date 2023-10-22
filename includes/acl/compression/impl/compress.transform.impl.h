@@ -35,6 +35,7 @@
 #include "acl/core/floating_point_exceptions.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/scope_profiler.h"
+#include "acl/core/impl/bit_cast.impl.h"
 #include "acl/compression/compression_settings.h"
 #include "acl/compression/output_stats.h"
 #include "acl/compression/track_array.h"
@@ -386,7 +387,7 @@ namespace acl
 			std::memset(buffer, 0, buffer_size);
 
 			uint8_t* buffer_start = buffer;
-			out_compressed_tracks = reinterpret_cast<compressed_tracks*>(buffer);
+			out_compressed_tracks = bit_cast<compressed_tracks*>(buffer);
 
 			raw_buffer_header* buffer_header = safe_ptr_cast<raw_buffer_header>(buffer);
 			buffer += sizeof(raw_buffer_header);
@@ -459,7 +460,7 @@ namespace acl
 			uint32_t written_metadata_contributing_error_size = 0;
 			if (metadata_size != 0)
 			{
-				optional_metadata_header* metadata_header = reinterpret_cast<optional_metadata_header*>(buffer_start + buffer_size - sizeof(optional_metadata_header));
+				optional_metadata_header* metadata_header = bit_cast<optional_metadata_header*>(buffer_start + buffer_size - sizeof(optional_metadata_header));
 				uint32_t metadata_offset = metadata_start_offset;	// Relative to the start of our compressed_tracks
 
 				if (settings.metadata.include_track_list_name)

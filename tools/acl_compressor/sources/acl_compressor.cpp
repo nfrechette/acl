@@ -23,6 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl_compressor.h"
+#include "acl/core/impl/bit_cast.impl.h"
 
 #define DEBUG_MEGA_LARGE_CLIP 0
 
@@ -523,7 +524,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 
 			std::ofstream output_file_stream(output_bin_filename, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
 			if (output_file_stream.is_open())
-				output_file_stream.write(reinterpret_cast<const char*>(compressed_tracks_), compressed_tracks_->get_size());
+				output_file_stream.write(acl::acl_impl::bit_cast<const char*>(compressed_tracks_), compressed_tracks_->get_size());
 		}
 
 		// TODO
@@ -532,7 +533,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 		{
 			std::ofstream output_file_stream(options.output_db_filename, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
 			if (output_file_stream.is_open())
-				output_file_stream.write(reinterpret_cast<const char*>(db), db->get_size());
+				output_file_stream.write(acl::acl_impl::bit_cast<const char*>(db), db->get_size());
 		}
 #endif
 
@@ -613,7 +614,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 
 			std::ofstream output_file_stream(output_bin_filename, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
 			if (output_file_stream.is_open())
-				output_file_stream.write(reinterpret_cast<const char*>(compressed_tracks_), compressed_tracks_->get_size());
+				output_file_stream.write(acl::acl_impl::bit_cast<const char*>(compressed_tracks_), compressed_tracks_->get_size());
 		}
 
 		allocator.deallocate(compressed_tracks_, compressed_tracks_->get_size());
@@ -707,7 +708,7 @@ static bool read_acl_bin_file(iallocator& allocator, const Options& options, acl
 		return false;
 #endif
 
-	out_tracks = reinterpret_cast<acl::compressed_tracks*>(tracks_data);
+	out_tracks = acl::acl_impl::bit_cast<acl::compressed_tracks*>(tracks_data);
 	if (file_size != out_tracks->get_size() || out_tracks->is_valid(true).any())
 	{
 		printf("Invalid binary ACL file provided\n");
@@ -1026,7 +1027,7 @@ static int safe_main_impl(int argc, char* argv[])
 			if (result.any())
 			{
 				printf("Failed to convert input binary track list\n");
-				deallocate_type_array(allocator, reinterpret_cast<char*>(bin_tracks), bin_tracks->get_size());
+				deallocate_type_array(allocator, acl::acl_impl::bit_cast<char*>(bin_tracks), bin_tracks->get_size());
 				return -1;
 			}
 
@@ -1038,14 +1039,14 @@ static int safe_main_impl(int argc, char* argv[])
 			if (result.any())
 			{
 				printf("Failed to convert input binary track list\n");
-				deallocate_type_array(allocator, reinterpret_cast<char*>(bin_tracks), bin_tracks->get_size());
+				deallocate_type_array(allocator, acl::acl_impl::bit_cast<char*>(bin_tracks), bin_tracks->get_size());
 				return -1;
 			}
 
 			sjson_type = sjson_file_type::raw_track_list;
 		}
 
-		deallocate_type_array(allocator, reinterpret_cast<char*>(bin_tracks), bin_tracks->get_size());
+		deallocate_type_array(allocator, acl::acl_impl::bit_cast<char*>(bin_tracks), bin_tracks->get_size());
 	}
 	else
 	{

@@ -32,6 +32,7 @@
 #include "acl/core/track_desc.h"
 #include "acl/core/track_traits.h"
 #include "acl/core/track_types.h"
+#include "acl/core/impl/bit_cast.impl.h"
 
 #include <cstdint>
 
@@ -215,7 +216,7 @@ namespace acl
 	inline void track::get_copy_impl(iallocator& allocator, track& out_track) const
 	{
 		out_track.m_allocator = &allocator;
-		out_track.m_data = reinterpret_cast<uint8_t*>(allocator.allocate(m_data_size));
+		out_track.m_data = acl_impl::bit_cast<uint8_t*>(allocator.allocate(m_data_size));
 		out_track.m_num_samples = m_num_samples;
 		out_track.m_stride = m_stride;
 		out_track.m_data_size = m_data_size;
@@ -248,28 +249,28 @@ namespace acl
 	inline typename track_typed<track_type_>::sample_type& track_typed<track_type_>::operator[](uint32_t index)
 	{
 		ACL_ASSERT(index < m_num_samples, "Invalid sample index. %u >= %u", index, m_num_samples);
-		return *reinterpret_cast<sample_type*>(m_data + (size_t(index) * m_stride));
+		return *acl_impl::bit_cast<sample_type*>(m_data + (size_t(index) * m_stride));
 	}
 
 	template<track_type8 track_type_>
 	inline const typename track_typed<track_type_>::sample_type& track_typed<track_type_>::operator[](uint32_t index) const
 	{
 		ACL_ASSERT(index < m_num_samples, "Invalid sample index. %u >= %u", index, m_num_samples);
-		return *reinterpret_cast<const sample_type*>(m_data + (size_t(index) * m_stride));
+		return *acl_impl::bit_cast<const sample_type*>(m_data + (size_t(index) * m_stride));
 	}
 
 	template<track_type8 track_type_>
 	inline typename track_typed<track_type_>::sample_type* track_typed<track_type_>::get_data()
 	{
 		ACL_ASSERT(m_stride == sizeof(sample_type), "Samples are not contiguous in memory, this function is unsafe");
-		return reinterpret_cast<sample_type*>(m_data);
+		return acl_impl::bit_cast<sample_type*>(m_data);
 	}
 
 	template<track_type8 track_type_>
 	inline const typename track_typed<track_type_>::sample_type* track_typed<track_type_>::get_data() const
 	{
 		ACL_ASSERT(m_stride == sizeof(sample_type), "Samples are not contiguous in memory, this function is unsafe");
-		return reinterpret_cast<const sample_type*>(m_data);
+		return acl_impl::bit_cast<const sample_type*>(m_data);
 	}
 
 	template<track_type8 track_type_>
@@ -305,35 +306,35 @@ namespace acl
 	{
 		const size_t num_samples_ = num_samples;
 		const size_t data_size = num_samples_ * sizeof(sample_type);
-		const uint8_t* data_raw = reinterpret_cast<const uint8_t*>(data);
+		const uint8_t* data_raw = acl_impl::bit_cast<const uint8_t*>(data);
 
 		// Copy the data manually to avoid preserving the stride
-		sample_type* data_copy = reinterpret_cast<sample_type*>(allocator.allocate(data_size));
+		sample_type* data_copy = acl_impl::bit_cast<sample_type*>(allocator.allocate(data_size));
 		for (size_t index = 0; index < num_samples_; ++index)
-			data_copy[index] = *reinterpret_cast<const sample_type*>(data_raw + (index * stride));
+			data_copy[index] = *acl_impl::bit_cast<const sample_type*>(data_raw + (index * stride));
 
-		return track_typed<track_type_>(&allocator, reinterpret_cast<uint8_t*>(data_copy), num_samples, sizeof(sample_type), data_size, sample_rate, desc);
+		return track_typed<track_type_>(&allocator, acl_impl::bit_cast<uint8_t*>(data_copy), num_samples, sizeof(sample_type), data_size, sample_rate, desc);
 	}
 
 	template<track_type8 track_type_>
 	inline track_typed<track_type_> track_typed<track_type_>::make_reserve(const typename track_typed<track_type_>::desc_type& desc, iallocator& allocator, uint32_t num_samples, float sample_rate)
 	{
 		const size_t data_size = size_t(num_samples) * sizeof(sample_type);
-		return track_typed<track_type_>(&allocator, reinterpret_cast<uint8_t*>(allocator.allocate(data_size)), num_samples, sizeof(sample_type), data_size, sample_rate, desc);
+		return track_typed<track_type_>(&allocator, acl_impl::bit_cast<uint8_t*>(allocator.allocate(data_size)), num_samples, sizeof(sample_type), data_size, sample_rate, desc);
 	}
 
 	template<track_type8 track_type_>
 	inline track_typed<track_type_> track_typed<track_type_>::make_owner(const typename track_typed<track_type_>::desc_type& desc, iallocator& allocator, sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride)
 	{
 		const size_t data_size = size_t(num_samples) * stride;
-		return track_typed<track_type_>(&allocator, reinterpret_cast<uint8_t*>(data), num_samples, stride, data_size, sample_rate, desc);
+		return track_typed<track_type_>(&allocator, acl_impl::bit_cast<uint8_t*>(data), num_samples, stride, data_size, sample_rate, desc);
 	}
 
 	template<track_type8 track_type_>
 	inline track_typed<track_type_> track_typed<track_type_>::make_ref(const typename track_typed<track_type_>::desc_type& desc, sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride)
 	{
 		const size_t data_size = size_t(num_samples) * stride;
-		return track_typed<track_type_>(nullptr, reinterpret_cast<uint8_t*>(data), num_samples, stride, data_size, sample_rate, desc);
+		return track_typed<track_type_>(nullptr, acl_impl::bit_cast<uint8_t*>(data), num_samples, stride, data_size, sample_rate, desc);
 	}
 
 	template<track_type8 track_type_>
