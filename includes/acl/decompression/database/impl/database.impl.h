@@ -31,6 +31,7 @@
 #include "acl/core/compressed_database.h"
 #include "acl/core/compressed_tracks_version.h"
 #include "acl/core/impl/atomic.impl.h"
+#include "acl/core/impl/bit_cast.impl.h"
 #include "acl/decompression/database/impl/database_context.h"
 
 #include <cstdint>
@@ -130,16 +131,16 @@ namespace acl
 		// Initialize everything to 0
 		std::memset(runtime_data_buffer, 0, runtime_data_size);
 
-		m_context.loaded_chunks[0] = reinterpret_cast<uint32_t*>(runtime_data_buffer);
+		m_context.loaded_chunks[0] = acl_impl::bit_cast<uint32_t*>(runtime_data_buffer);
 		runtime_data_buffer += medium_bitset_size;
 
-		m_context.streaming_chunks[0] = reinterpret_cast<uint32_t*>(runtime_data_buffer);
+		m_context.streaming_chunks[0] = acl_impl::bit_cast<uint32_t*>(runtime_data_buffer);
 		runtime_data_buffer += medium_bitset_size;
 
-		m_context.loaded_chunks[1] = reinterpret_cast<uint32_t*>(runtime_data_buffer);
+		m_context.loaded_chunks[1] = acl_impl::bit_cast<uint32_t*>(runtime_data_buffer);
 		runtime_data_buffer += low_bitset_size;
 
-		m_context.streaming_chunks[1] = reinterpret_cast<uint32_t*>(runtime_data_buffer);
+		m_context.streaming_chunks[1] = acl_impl::bit_cast<uint32_t*>(runtime_data_buffer);
 		runtime_data_buffer += low_bitset_size;
 
 		m_context.clip_segment_headers = align_to(runtime_data_buffer, 8);	// Align runtime headers
@@ -259,16 +260,16 @@ namespace acl
 		// Initialize everything to 0
 		std::memset(runtime_data_buffer, 0, runtime_data_size);
 
-		m_context.loaded_chunks[0] = reinterpret_cast<uint32_t*>(runtime_data_buffer);
+		m_context.loaded_chunks[0] = acl_impl::bit_cast<uint32_t*>(runtime_data_buffer);
 		runtime_data_buffer += medium_bitset_size;
 
-		m_context.streaming_chunks[0] = reinterpret_cast<uint32_t*>(runtime_data_buffer);
+		m_context.streaming_chunks[0] = acl_impl::bit_cast<uint32_t*>(runtime_data_buffer);
 		runtime_data_buffer += medium_bitset_size;
 
-		m_context.loaded_chunks[1] = reinterpret_cast<uint32_t*>(runtime_data_buffer);
+		m_context.loaded_chunks[1] = acl_impl::bit_cast<uint32_t*>(runtime_data_buffer);
 		runtime_data_buffer += low_bitset_size;
 
-		m_context.streaming_chunks[1] = reinterpret_cast<uint32_t*>(runtime_data_buffer);
+		m_context.streaming_chunks[1] = acl_impl::bit_cast<uint32_t*>(runtime_data_buffer);
 		runtime_data_buffer += low_bitset_size;
 
 		m_context.clip_segment_headers = align_to(runtime_data_buffer, 8);	// Align runtime headers
@@ -299,7 +300,7 @@ namespace acl
 		ACL_ASSERT(!is_streaming(quality_tier::lowest_importance), "Behavior is undefined if context is reset while streaming is in progress");
 
 		const uint32_t runtime_data_size = acl_impl::calculate_runtime_data_size(*m_context.db);
-		deallocate_type_array(*m_context.allocator, reinterpret_cast<uint8_t*>(m_context.loaded_chunks[0]), runtime_data_size);
+		deallocate_type_array(*m_context.allocator, acl_impl::bit_cast<uint8_t*>(m_context.loaded_chunks[0]), runtime_data_size);
 
 		// Just reset the DB pointer, this will mark us as no longer initialized indicating everything is stale
 		m_context.db = nullptr;

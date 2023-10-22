@@ -28,6 +28,7 @@
 #include "acl/core/compressed_tracks.h"
 #include "acl/core/floating_point_exceptions.h"
 #include "acl/core/iallocator.h"
+#include "acl/core/impl/bit_cast.impl.h"
 #include "acl/compression/compress.h"
 #include "acl/compression/track_array.h"
 #include "acl/compression/track_error.h"
@@ -694,8 +695,8 @@ void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, cons
 	#pragma warning(disable : 6387)
 #endif
 
-	std::memcpy(reinterpret_cast<uint8_t*>(compressed_tracks_copy0), db_tracks0[0], db_tracks0[0]->get_size());
-	std::memcpy(reinterpret_cast<uint8_t*>(compressed_tracks_copy1), db_tracks1[0], db_tracks1[0]->get_size());
+	std::memcpy(bit_cast<uint8_t*>(compressed_tracks_copy0), db_tracks0[0], db_tracks0[0]->get_size());
+	std::memcpy(bit_cast<uint8_t*>(compressed_tracks_copy1), db_tracks1[0], db_tracks1[0]->get_size());
 
 #if defined(RTM_COMPILER_MSVC)
 	#pragma warning(pop)

@@ -28,6 +28,7 @@
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/track_formats.h"
+#include "acl/core/impl/bit_cast.impl.h"
 #include "acl/core/impl/variable_bit_rates.h"
 #include "acl/compression/impl/sample_streams.h"
 #include "acl/compression/impl/track_stream.h"
@@ -383,7 +384,7 @@ namespace acl
 			m_track_size = track_size;
 
 			const uint32_t data_size = track_size * num_cached_tracks;
-			m_data = reinterpret_cast<uint8_t*>(allocator.allocate(data_size, 64));
+			m_data = bit_cast<uint8_t*>(allocator.allocate(data_size, 64));
 			m_data_size = data_size;
 			m_num_cached_tracks = num_cached_tracks;
 		}

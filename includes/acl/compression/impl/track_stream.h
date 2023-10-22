@@ -31,6 +31,7 @@
 #include "acl/core/time_utils.h"
 #include "acl/core/track_formats.h"
 #include "acl/core/track_types.h"
+#include "acl/core/impl/bit_cast.impl.h"
 #include "acl/core/impl/variable_bit_rates.h"
 #include "acl/math/quat_packing.h"
 #include "acl/math/vector4_packing.h"
@@ -128,7 +129,7 @@ namespace acl
 
 			track_stream(iallocator& allocator, uint32_t num_samples, uint32_t sample_size, float sample_rate, animation_track_type8 type, track_format8 format, uint8_t bit_rate)
 				: m_allocator(&allocator)
-				, m_samples(reinterpret_cast<uint8_t*>(allocator.allocate(sample_size * size_t(num_samples) + k_padding, 16)))
+				, m_samples(bit_cast<uint8_t*>(allocator.allocate(sample_size * size_t(num_samples) + k_padding, 16)))
 				, m_num_samples_allocated(num_samples)
 				, m_num_samples(num_samples)
 				, m_sample_size(sample_size)
@@ -180,7 +181,7 @@ namespace acl
 				if (m_allocator != nullptr)
 				{
 					copy.m_allocator = m_allocator;
-					copy.m_samples = reinterpret_cast<uint8_t*>(m_allocator->allocate(m_sample_size * size_t(m_num_samples) + k_padding, 16));
+					copy.m_samples = bit_cast<uint8_t*>(m_allocator->allocate(m_sample_size * size_t(m_num_samples) + k_padding, 16));
 					copy.m_num_samples_allocated = m_num_samples;
 					copy.m_num_samples = m_num_samples;
 					copy.m_sample_size = m_sample_size;

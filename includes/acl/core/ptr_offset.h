@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/version.h"
+#include "acl/core/impl/bit_cast.impl.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/memory_utils.h"
 
@@ -69,7 +70,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Constructs a valid offset from a base pointer and another pointer part of the same aggregate.
-		constexpr ptr_offset(const void* base, const void* ptr) : m_value(safe_static_cast<offset_type>(reinterpret_cast<const uint8_t*>(ptr) - reinterpret_cast<const uint8_t*>(base))) {}
+		constexpr ptr_offset(const void* base, const void* ptr) : m_value(safe_static_cast<offset_type>(acl_impl::bit_cast<const uint8_t*>(ptr) - acl_impl::bit_cast<const uint8_t*>(base))) {}
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Constructs an invalid offset.

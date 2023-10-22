@@ -38,6 +38,8 @@
 
 #include <benchmark.h>
 
+#include <acl/core/impl/bit_cast.impl.h>
+
 static int get_bundle_resource_path(const char* resource_filename, char* out_path, size_t path_max_size)
 {
 	CFStringRef resource_filename_str = CFStringCreateWithCString(nullptr, resource_filename, kCFStringEncodingUTF8);
@@ -110,7 +112,7 @@ int main(int argc, char* argv[])
 			continue;
 		}
 
-		const acl::compressed_tracks* raw_tracks = reinterpret_cast<const acl::compressed_tracks*>(buffer.data());
+		const acl::compressed_tracks* raw_tracks = acl::acl_impl::bit_cast<const acl::compressed_tracks*>(buffer.data());
 
 		prepare_clip(clip, *raw_tracks, compressed_clips);
 	}

@@ -27,6 +27,7 @@
 #include <acl/core/ansi_allocator.h>
 #include <acl/core/compressed_tracks.h>
 #include <acl/core/memory_utils.h>
+#include <acl/core/impl/bit_cast.impl.h>
 #include <acl/compression/compress.h>
 #include <acl/compression/convert.h>
 
@@ -169,7 +170,7 @@ static void setup_benchmark_state(acl::compressed_tracks& compressed_tracks)
 		uint8_t* buffer = clip_copy_buffer + (copy_index * padded_clip_size);
 		std::memcpy(buffer, &compressed_tracks, compressed_size);
 
-		decompression_instances[copy_index] = reinterpret_cast<acl::compressed_tracks*>(buffer);
+		decompression_instances[copy_index] = acl::acl_impl::bit_cast<acl::compressed_tracks*>(buffer);
 	}
 
 	// Create our decompression contexts
@@ -188,7 +189,7 @@ static void memset_impl(uint8_t* buffer, size_t buffer_size, uint8_t value)
 
 static void benchmark_decompression(benchmark::State& state)
 {
-	acl::compressed_tracks& compressed_tracks = *reinterpret_cast<acl::compressed_tracks*>(state.range(0));
+	acl::compressed_tracks& compressed_tracks = *acl::acl_impl::bit_cast<acl::compressed_tracks*>(state.range(0));
 	const PlaybackDirection playback_direction = static_cast<PlaybackDirection>(state.range(1));
 	const DecompressionFunction decompression_function = static_cast<DecompressionFunction>(state.range(2));
 
@@ -371,7 +372,7 @@ bool read_clip(const std::string& clip_dir, const std::string& clip, acl::ialloc
 		return false;
 	}
 
-	out_compressed_tracks = reinterpret_cast<acl::compressed_tracks*>(buffer);
+	out_compressed_tracks = acl::acl_impl::bit_cast<acl::compressed_tracks*>(buffer);
 	return true;
 }
 
@@ -425,16 +426,16 @@ bool prepare_clip(const std::string& clip_name, const acl::compressed_tracks& ra
 	// Dynamically register our benchmark
 	benchmark::internal::Benchmark* bench = benchmark::internal::RegisterBenchmarkInternal(new benchmark::internal::FunctionBenchmark(clip_name.c_str(), benchmark_decompression));
 
-	bench->Args({ reinterpret_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Forward, (int64_t)DecompressionFunction::DecompressPose });
-	bench->Args({ reinterpret_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Forward, (int64_t)DecompressionFunction::DecompressBone });
+	bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Forward, (int64_t)DecompressionFunction::DecompressPose });
+	bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Forward, (int64_t)DecompressionFunction::DecompressBone });
 
 	// These are for debugging purposes and aren't measured as often
 	// By design, ACL's performance should be consistent regardless of the playback direction
-	//bench->Args({ reinterpret_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Forward, (int64_t)DecompressionFunction::Memcpy });
-	//bench->Args({ reinterpret_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Backward, (int64_t)DecompressionFunction::DecompressPose });
-	//bench->Args({ reinterpret_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Backward, (int64_t)DecompressionFunction::DecompressBone });
-	//bench->Args({ reinterpret_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Random, (int64_t)DecompressionFunction::DecompressPose });
-	//bench->Args({ reinterpret_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Random, (int64_t)DecompressionFunction::DecompressBone });
+	//bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Forward, (int64_t)DecompressionFunction::Memcpy });
+	//bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Backward, (int64_t)DecompressionFunction::DecompressPose });
+	//bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Backward, (int64_t)DecompressionFunction::DecompressBone });
+	//bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Random, (int64_t)DecompressionFunction::DecompressPose });
+	//bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Random, (int64_t)DecompressionFunction::DecompressBone });
 
 	// Name our arguments
 	bench->ArgNames({ "", "Dir", "Func" });

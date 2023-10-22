@@ -27,6 +27,7 @@
 #include "acl/version.h"
 #include "acl/core/error.h"
 #include "acl/core/memory_utils.h"
+#include "acl/core/impl/bit_cast.impl.h"
 #include "acl/core/impl/compiler_utils.h"
 
 #include <type_traits>
@@ -76,7 +77,7 @@ namespace acl
 	template<typename allocated_type, typename... args>
 	allocated_type* allocate_type(iallocator& allocator, args&&... arguments)
 	{
-		allocated_type* ptr = reinterpret_cast<allocated_type*>(allocator.allocate(sizeof(allocated_type), alignof(allocated_type)));
+		allocated_type* ptr = acl_impl::bit_cast<allocated_type*>(allocator.allocate(sizeof(allocated_type), alignof(allocated_type)));
 		if (acl_impl::is_trivially_default_constructible<allocated_type>::value)
 			return ptr;
 		return new(ptr) allocated_type(std::forward<args>(arguments)...);
@@ -86,7 +87,7 @@ namespace acl
 	allocated_type* allocate_type_aligned(iallocator& allocator, size_t alignment, args&&... arguments)
 	{
 		ACL_ASSERT(is_alignment_valid<allocated_type>(alignment), "Invalid alignment: %u. Expected a power of two at least equal to %u", alignment, alignof(allocated_type));
-		allocated_type* ptr = reinterpret_cast<allocated_type*>(allocator.allocate(sizeof(allocated_type), alignment));
+		allocated_type* ptr = acl_impl::bit_cast<allocated_type*>(allocator.allocate(sizeof(allocated_type), alignment));
 		if (acl_impl::is_trivially_default_constructible<allocated_type>::value)
 			return ptr;
 		return new(ptr) allocated_type(std::forward<args>(arguments)...);
@@ -107,7 +108,7 @@ namespace acl
 	template<typename allocated_type, typename... args>
 	allocated_type* allocate_type_array(iallocator& allocator, size_t num_elements, args&&... arguments)
 	{
-		allocated_type* ptr = reinterpret_cast<allocated_type*>(allocator.allocate(sizeof(allocated_type) * num_elements, alignof(allocated_type)));
+		allocated_type* ptr = acl_impl::bit_cast<allocated_type*>(allocator.allocate(sizeof(allocated_type) * num_elements, alignof(allocated_type)));
 		if (acl_impl::is_trivially_default_constructible<allocated_type>::value)
 			return ptr;
 		for (size_t element_index = 0; element_index < num_elements; ++element_index)
@@ -119,7 +120,7 @@ namespace acl
 	allocated_type* allocate_type_array_aligned(iallocator& allocator, size_t num_elements, size_t alignment, args&&... arguments)
 	{
 		ACL_ASSERT(is_alignment_valid<allocated_type>(alignment), "Invalid alignment: %zu. Expected a power of two at least equal to %zu", alignment, alignof(allocated_type));
-		allocated_type* ptr = reinterpret_cast<allocated_type*>(allocator.allocate(sizeof(allocated_type) * num_elements, alignment));
+		allocated_type* ptr = acl_impl::bit_cast<allocated_type*>(allocator.allocate(sizeof(allocated_type) * num_elements, alignment));
 		if (acl_impl::is_trivially_default_constructible<allocated_type>::value)
 			return ptr;
 		for (size_t element_index = 0; element_index < num_elements; ++element_index)

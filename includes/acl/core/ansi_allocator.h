@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/version.h"
+#include "acl/core/impl/bit_cast.impl.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/error.h"
@@ -143,7 +144,7 @@ namespace acl
 				const void* allocated_ptr = ptr;
 				ptr = align_to(add_offset_to_ptr<void>(ptr, sizeof(size_t)), alignment);
 
-				const size_t padding_size = safe_static_cast<size_t>(reinterpret_cast<uintptr_t>(ptr) - reinterpret_cast<uintptr_t>(allocated_ptr));
+				const size_t padding_size = safe_static_cast<size_t>(acl_impl::bit_cast<uintptr_t>(ptr) - acl_impl::bit_cast<uintptr_t>(allocated_ptr));
 				size_t* padding_size_ptr = add_offset_to_ptr<size_t>(ptr, -sizeof(size_t));
 				*padding_size_ptr = padding_size;
 			}

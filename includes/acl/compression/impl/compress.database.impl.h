@@ -32,6 +32,7 @@
 #include "acl/core/error_result.h"
 #include "acl/core/hash.h"
 #include "acl/core/iallocator.h"
+#include "acl/core/impl/bit_cast.impl.h"
 
 #include <cstdint>
 
@@ -110,7 +111,7 @@ namespace acl
 
 					if (tracks->get_version() >= compressed_tracks_version16::v02_01_99_2)
 					{
-						clip_error.keyframe_metadata = reinterpret_cast<const keyframe_stripping_metadata_t*>(metadata_header.get_contributing_error(*tracks));
+						clip_error.keyframe_metadata = bit_cast<const keyframe_stripping_metadata_t*>(metadata_header.get_contributing_error(*tracks));
 					}
 					else
 					{
@@ -121,7 +122,7 @@ namespace acl
 						const uint32_t* segment_start_indices = has_multiple_segments ? transform_header.get_segment_start_indices() : nullptr;
 						const uint32_t num_segments = has_multiple_segments ? transform_header.num_segments : 1;	// HACK to avoid static analysis warning
 
-						const frame_contributing_error* contributing_errors = reinterpret_cast<const frame_contributing_error*>(metadata_header.get_contributing_error(*tracks));
+						const frame_contributing_error* contributing_errors = bit_cast<const frame_contributing_error*>(metadata_header.get_contributing_error(*tracks));
 
 						for (uint32_t segment_index = 0; segment_index < num_segments; ++segment_index)
 						{
@@ -681,7 +682,7 @@ namespace acl
 				std::memset(buffer, 0, buffer_size);
 
 				uint8_t* buffer_start = buffer;
-				out_compressed_tracks[list_index] = reinterpret_cast<compressed_tracks*>(buffer);
+				out_compressed_tracks[list_index] = bit_cast<compressed_tracks*>(buffer);
 
 				raw_buffer_header* buffer_header = safe_ptr_cast<raw_buffer_header>(buffer);
 				buffer += sizeof(raw_buffer_header);
@@ -739,7 +740,7 @@ namespace acl
 
 				if (metadata_size != 0)
 				{
-					optional_metadata_header* metadata_header = reinterpret_cast<optional_metadata_header*>(buffer_start + buffer_size - sizeof(optional_metadata_header));
+					optional_metadata_header* metadata_header = bit_cast<optional_metadata_header*>(buffer_start + buffer_size - sizeof(optional_metadata_header));
 					uint32_t metadata_offset = metadata_start_offset;	// Relative to the start of our compressed_tracks
 
 					// Setup our metadata offsets
@@ -1107,7 +1108,7 @@ namespace acl
 						}
 
 						// Calculate the finale offset for our chunk's data relative to the bulk data start and the final header size
-						const uint32_t chunk_data_offset = static_cast<uint32_t>(reinterpret_cast<uint8_t*>(chunk_header) - bulk_data);
+						const uint32_t chunk_data_offset = static_cast<uint32_t>(bit_cast<uint8_t*>(chunk_header) - bulk_data);
 						const uint32_t chunk_header_size = sizeof(database_chunk_header) + chunk_header->num_segments * sizeof(database_chunk_segment_header);
 
 						// Update the sample offset from being relative to the start of the sample data to the start of the bulk data
@@ -1161,7 +1162,7 @@ namespace acl
 			uint8_t* database_buffer = allocate_type_array_aligned<uint8_t>(context.allocator, database_buffer_size, alignof(compressed_database));
 			std::memset(database_buffer, 0, database_buffer_size);
 
-			compressed_database* database = reinterpret_cast<compressed_database*>(database_buffer);
+			compressed_database* database = bit_cast<compressed_database*>(database_buffer);
 
 			const uint8_t* database_buffer_start = database_buffer;
 
@@ -1344,7 +1345,7 @@ namespace acl
 
 		// Allocate and setup our new database
 		uint8_t* database_buffer = allocate_type_array_aligned<uint8_t>(allocator, db_size, alignof(compressed_database));
-		out_split_database = reinterpret_cast<compressed_database*>(database_buffer);
+		out_split_database = bit_cast<compressed_database*>(database_buffer);
 
 		std::memcpy(database_buffer, &database, db_size);
 
@@ -1429,7 +1430,7 @@ namespace acl
 		// Allocate and setup our new database
 		uint8_t* database_buffer = allocate_type_array_aligned<uint8_t>(allocator, database_buffer_size, alignof(compressed_database));
 		std::memset(database_buffer, 0, database_buffer_size);
-		out_stripped_database = reinterpret_cast<compressed_database*>(database_buffer);
+		out_stripped_database = bit_cast<compressed_database*>(database_buffer);
 
 		raw_buffer_header* database_buffer_header = safe_ptr_cast<raw_buffer_header>(database_buffer);
 		database_buffer += sizeof(raw_buffer_header);
