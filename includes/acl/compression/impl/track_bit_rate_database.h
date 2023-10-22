@@ -211,19 +211,13 @@ namespace acl
 				// We also keep a generation id to determine the least recently used bit rates to evict from the cache.
 
 				bit_rates_union		rotation_bit_rates;
-				uint32_t			rotation_generation_ids[4];
+				uint32_t			rotation_generation_ids[4] = { 0, 0, 0, 0 };
 
 				bit_rates_union		translation_bit_rates;
-				uint32_t			translation_generation_ids[4];
+				uint32_t			translation_generation_ids[4] = { 0, 0, 0, 0 };
 
 				bit_rates_union		scale_bit_rates;
-				uint32_t			scale_generation_ids[4];
-
-				transform_cache_entry()
-					: rotation_generation_ids{ 0, 0, 0, 0 }
-					, translation_generation_ids{ 0, 0, 0, 0 }
-					, scale_generation_ids{ 0, 0, 0, 0 }
-				{}
+				uint32_t			scale_generation_ids[4] = { 0, 0, 0, 0 };
 
 				static int32_t find_bit_rate_index(const bit_rates_union& bit_rates, uint32_t search_bit_rate);
 			};
