@@ -44,32 +44,32 @@ namespace acl
 		// one offset for the base, and index with the tier * desc.size
 		struct database_context_v0
 		{
-			//														//   offsets
+			//																	//   offsets
 			// Only member used to detect if we are initialized, must be first
-			const compressed_database* db;							//   0 |   0
+			const compressed_database* db = nullptr;							//   0 |   0
 
 			// We use arrays so we can index with (tier - 1) as our index
 			// Index 0 = medium importance tier, index 1 = low importance
 
 			// Runtime related data, commonly accessed
-			uint8_t* clip_segment_headers;							//   4 |   8
+			uint8_t* clip_segment_headers = nullptr;							//   4 |   8
 
-			const uint8_t* bulk_data[k_num_database_tiers];			//   8 |  16
+			const uint8_t* bulk_data[k_num_database_tiers] = { nullptr };		//   8 |  16
 
 			// Streaming related data not commonly accessed
-			database_streamer* streamers[k_num_database_tiers];		//  16 |  32
+			database_streamer* streamers[k_num_database_tiers] = { nullptr };	//  16 |  32
 
-			uint32_t* loaded_chunks[k_num_database_tiers];			//  24 |  48
-			uint32_t* streaming_chunks[k_num_database_tiers];		//  32 |  64
+			uint32_t* loaded_chunks[k_num_database_tiers] = { nullptr };		//  24 |  48
+			uint32_t* streaming_chunks[k_num_database_tiers] = { nullptr };		//  32 |  64
 
-			iallocator* allocator;									//  40 |  72
+			iallocator* allocator = nullptr;									//  40 |  72
 
 			// Cached hash of the bound database instance
-			uint32_t db_hash;										//  44 |  88
+			uint32_t db_hash = 0;												//  44 |  88
 
-			uint8_t padding1[sizeof(void*) == 4 ? 16 : 36];			//  48 |  92
+			uint8_t padding1[sizeof(void*) == 4 ? 16 : 36] = { 0 };				//  48 |  92
 
-			//											Total size:	    64 | 128
+			//														Total size:	    64 | 128
 
 			//////////////////////////////////////////////////////////////////////////
 

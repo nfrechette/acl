@@ -58,26 +58,26 @@ namespace acl
 	{
 		struct persistent_scalar_decompression_context_v0
 		{
-			// Clip related data									//   offsets
+			// Clip related data											//   offsets
 			// Only member used to detect if we are initialized, must be first
-			const compressed_tracks* tracks;						//   0 |   0
+			const compressed_tracks* tracks = nullptr;						//   0 |   0
 
 			// Cached hash of the bound compressed track instance
-			uint32_t tracks_hash;									//   4 |   8
+			uint32_t tracks_hash = 0;										//   4 |   8
 
 			// Only used when the wrap loop policy isn't supported
-			float duration;											//   8 |  12
+			float duration = 0.0F;											//   8 |  12
 
 			// Seeking related data
-			float interpolation_alpha;								//  12 |  16
-			float sample_time;										//  16 |  20
+			float interpolation_alpha = 0.0F;								//  12 |  16
+			float sample_time = 0.0F;										//  16 |  20
 
-			uint32_t key_frame_bit_offsets[2];						//  20 |  24	// Variable quantization
+			uint32_t key_frame_bit_offsets[2] = { 0 };						//  20 |  24	// Variable quantization
 
-			uint8_t looping_policy;									//  28 |  32
-			uint8_t rounding_policy;								//  29 |  33
+			uint8_t looping_policy = 0;										//  28 |  32
+			uint8_t rounding_policy = 0;									//  29 |  33
 
-			uint8_t padding_tail[sizeof(void*) == 4 ? 34 : 30];		//  30 |  34
+			uint8_t padding_tail[sizeof(void*) == 4 ? 34 : 30] = { 0 };		//  30 |  34
 
 			//////////////////////////////////////////////////////////////////////////
 
