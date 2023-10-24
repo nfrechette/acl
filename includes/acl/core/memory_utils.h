@@ -161,16 +161,18 @@ namespace acl
 		};
 	}
 
-	template<typename DestPtrType, typename SrcType>
-	RTM_FORCE_INLINE DestPtrType* safe_ptr_cast(SrcType* input)
+	// Casts a pointer type into a pointer of a different type with an alignment runtime check
+	template<typename dest_ptr_t, typename src_ptr_t>
+	RTM_FORCE_INLINE dest_ptr_t* safe_ptr_cast(src_ptr_t* input)
 	{
-		return memory_impl::safe_ptr_to_ptr_cast_impl<DestPtrType, SrcType>::cast(input);
+		return memory_impl::safe_ptr_to_ptr_cast_impl<dest_ptr_t, src_ptr_t>::cast(input);
 	}
 
-	template<typename DestPtrType, typename SrcType>
-	RTM_FORCE_INLINE DestPtrType* safe_ptr_cast(SrcType input)
+	// Casts an integral type into a pointer type with an alignment runtime check
+	template<typename dest_ptr_t, typename src_int_t>
+	RTM_FORCE_INLINE dest_ptr_t* safe_ptr_cast(src_int_t input)
 	{
-		return memory_impl::safe_int_to_ptr_cast_impl<DestPtrType, SrcType>::cast(input);
+		return memory_impl::safe_int_to_ptr_cast_impl<dest_ptr_t, src_int_t>::cast(input);
 	}
 
 #if defined(RTM_COMPILER_GCC)
