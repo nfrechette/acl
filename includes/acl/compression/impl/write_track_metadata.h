@@ -47,7 +47,7 @@ namespace acl
 		{
 			ACL_ASSERT(out_track_list_name == nullptr || out_track_list_name[0] == 0, "Buffer overrun detected");
 
-			uint8_t* output_buffer = bit_cast<uint8_t*>(out_track_list_name);
+			const uint8_t* output_buffer = bit_cast<uint8_t*>(out_track_list_name);
 			const uint8_t* output_buffer_start = output_buffer;
 
 			const string& name = tracks.get_name();
@@ -121,7 +121,7 @@ namespace acl
 				return k_invalid_track_index;
 			};
 
-			uint8_t* output_buffer = bit_cast<uint8_t*>(out_parent_track_indices);
+			const uint8_t* output_buffer = bit_cast<uint8_t*>(out_parent_track_indices);
 			const uint8_t* output_buffer_start = output_buffer;
 
 			for (uint32_t output_index = 0; output_index < num_output_tracks; ++output_index)

@@ -47,7 +47,7 @@ namespace acl
 		{
 			ACL_ASSERT(context.is_valid(), "Invalid context");
 
-			uint8_t* output_buffer = bit_cast<uint8_t*>(per_track_metadata);
+			const uint8_t* output_buffer = bit_cast<uint8_t*>(per_track_metadata);
 			const uint8_t* output_buffer_start = output_buffer;
 
 			for (uint32_t output_index = 0; output_index < context.num_output_tracks; ++output_index)
