@@ -345,7 +345,7 @@ namespace acl
 	template<typename data_type>
 	RTM_FORCE_INLINE data_type aligned_load(const void* input)
 	{
-		return *safe_ptr_cast<const data_type, const void*>(input);
+		return *safe_ptr_cast<const data_type>(input);
 	}
 
 	template<typename data_type>
