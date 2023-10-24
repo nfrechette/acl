@@ -150,14 +150,14 @@ namespace acl
 			RTM_FORCE_INLINE static DestPtrType* cast(SrcType input)
 			{
 				ACL_ASSERT(is_aligned_to(input, alignof(DestPtrType)), "bit_cast would result in an unaligned pointer");
-				return acl_impl::bit_cast<DestPtrType*>(input);
+				return acl_impl::bit_cast<DestPtrType*>(static_cast<uintptr_t>(input));
 			}
 		};
 
 		template<typename SrcType>
 		struct safe_int_to_ptr_cast_impl<void, SrcType>
 		{
-			RTM_FORCE_INLINE static constexpr void* cast(SrcType input) { return acl_impl::bit_cast<void*>(input); }
+			RTM_FORCE_INLINE static constexpr void* cast(SrcType input) { return acl_impl::bit_cast<void*>(static_cast<uintptr_t>(input)); }
 		};
 	}
 
