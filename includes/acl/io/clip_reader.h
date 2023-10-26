@@ -1029,16 +1029,10 @@ namespace acl
 				}
 
 				if (!has_error && !m_parser.array_ends())
-				{
 					has_error = true;
-					break;
-				}
 
 				if (!has_error && !m_parser.object_ends())
-				{
 					has_error = true;
-					break;
-				}
 
 				if (has_error)
 				{
@@ -1066,6 +1060,8 @@ namespace acl
 						ACL_ASSERT(false, "Unsupported track type");
 						break;
 					}
+
+					goto error;
 				}
 				else
 				{
