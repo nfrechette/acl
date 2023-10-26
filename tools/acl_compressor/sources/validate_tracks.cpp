@@ -271,7 +271,7 @@ void RTM_SIMD_CALL validate_scalar_tracks(const track_array& raw_tracks, const a
 		if (output_index == k_invalid_track_index)
 			continue;	// Track is being stripped, ignore it
 
-		rtm::vector4f error = zero;
+		rtm::vector4f error;
 
 		switch (reference.type)
 		{
@@ -315,6 +315,7 @@ void RTM_SIMD_CALL validate_scalar_tracks(const track_array& raw_tracks, const a
 		case track_type8::qvvf:
 		default:
 			ACL_ASSERT(false, "Unsupported track type");
+			error = zero;
 			break;
 		}
 
