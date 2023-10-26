@@ -273,7 +273,6 @@ void RTM_SIMD_CALL validate_scalar_tracks(const track_array& raw_tracks, const a
 
 		rtm::vector4f error = zero;
 
-		//switch (track_type)
 		switch (reference.type)
 		{
 		case track_type8::float1f:
