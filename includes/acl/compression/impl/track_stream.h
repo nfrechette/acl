@@ -251,7 +251,7 @@ namespace acl
 					// isn't very accurate on small inputs, we need to normalize
 					return rtm::quat_normalize(rtm::quat_from_positive_w(rotation));
 				default:
-					ACL_ASSERT(false, "Invalid or unsupported rotation format: " ACL_STRING_FORMAT_SPECIFIER, get_rotation_format_name(m_format.rotation));
+					ACL_ASSERT(false, "Invalid or unsupported rotation format: " ACL_ASSERT_STRING_FORMAT_SPECIFIER, get_rotation_format_name(m_format.rotation));
 					return rtm::vector_to_quat(rotation);
 				}
 			};

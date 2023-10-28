@@ -84,7 +84,7 @@ namespace acl
 		template<class decompression_settings_type, class database_settings_type>
 		inline bool initialize_v0(persistent_transform_decompression_context_v0& context, const compressed_tracks& tracks, const database_context<database_settings_type>* database)
 		{
-			ACL_ASSERT(tracks.get_algorithm_type() == algorithm_type8::uniformly_sampled, "Invalid algorithm type [" ACL_STRING_FORMAT_SPECIFIER "], expected [" ACL_STRING_FORMAT_SPECIFIER "]", get_algorithm_name(tracks.get_algorithm_type()), get_algorithm_name(algorithm_type8::uniformly_sampled));
+			ACL_ASSERT(tracks.get_algorithm_type() == algorithm_type8::uniformly_sampled, "Invalid algorithm type [" ACL_ASSERT_STRING_FORMAT_SPECIFIER "], expected [" ACL_ASSERT_STRING_FORMAT_SPECIFIER "]", get_algorithm_name(tracks.get_algorithm_type()), get_algorithm_name(algorithm_type8::uniformly_sampled));
 
 			using translation_adapter = acl_impl::translation_decompression_settings_adapter<decompression_settings_type>;
 			using scale_adapter = acl_impl::scale_decompression_settings_adapter<decompression_settings_type>;
@@ -99,9 +99,9 @@ namespace acl
 			const vector_format8 translation_format = get_vector_format<translation_adapter>(packed_translation_format);
 			const vector_format8 scale_format = get_vector_format<scale_adapter>(packed_scale_format);
 
-			ACL_ASSERT(rotation_format == packed_rotation_format, "Statically compiled rotation format (" ACL_STRING_FORMAT_SPECIFIER ") differs from the compressed rotation format (" ACL_STRING_FORMAT_SPECIFIER ")!", get_rotation_format_name(rotation_format), get_rotation_format_name(packed_rotation_format));
-			ACL_ASSERT(translation_format == packed_translation_format, "Statically compiled translation format (" ACL_STRING_FORMAT_SPECIFIER ") differs from the compressed translation format (" ACL_STRING_FORMAT_SPECIFIER ")!", get_vector_format_name(translation_format), get_vector_format_name(packed_translation_format));
-			ACL_ASSERT(scale_format == packed_scale_format, "Statically compiled scale format (" ACL_STRING_FORMAT_SPECIFIER ") differs from the compressed scale format (" ACL_STRING_FORMAT_SPECIFIER ")!", get_vector_format_name(scale_format), get_vector_format_name(packed_scale_format));
+			ACL_ASSERT(rotation_format == packed_rotation_format, "Statically compiled rotation format (" ACL_ASSERT_STRING_FORMAT_SPECIFIER ") differs from the compressed rotation format (" ACL_ASSERT_STRING_FORMAT_SPECIFIER ")!", get_rotation_format_name(rotation_format), get_rotation_format_name(packed_rotation_format));
+			ACL_ASSERT(translation_format == packed_translation_format, "Statically compiled translation format (" ACL_ASSERT_STRING_FORMAT_SPECIFIER ") differs from the compressed translation format (" ACL_ASSERT_STRING_FORMAT_SPECIFIER ")!", get_vector_format_name(translation_format), get_vector_format_name(packed_translation_format));
+			ACL_ASSERT(scale_format == packed_scale_format, "Statically compiled scale format (" ACL_ASSERT_STRING_FORMAT_SPECIFIER ") differs from the compressed scale format (" ACL_ASSERT_STRING_FORMAT_SPECIFIER ")!", get_vector_format_name(scale_format), get_vector_format_name(packed_scale_format));
 
 			// Context is always the first member and versions should always match
 			const database_context_v0* db = bit_cast<const database_context_v0*>(database);
