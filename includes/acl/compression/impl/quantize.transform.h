@@ -344,7 +344,7 @@ namespace acl
 					break;
 				case rotation_format8::quatf_drop_w_variable:
 				default:
-					ACL_ASSERT(false, "Invalid or unsupported rotation format: " ACL_STRING_FORMAT_SPECIFIER, get_rotation_format_name(rotation_format));
+					ACL_ASSERT(false, "Invalid or unsupported rotation format: " ACL_ASSERT_STRING_FORMAT_SPECIFIER, get_rotation_format_name(rotation_format));
 					break;
 				}
 			}
@@ -439,7 +439,7 @@ namespace acl
 		{
 			// We expect all our samples to have the same width of sizeof(rtm::vector4f)
 			ACL_ASSERT(raw_stream.get_sample_size() == sizeof(rtm::vector4f), "Unexpected translation sample size. %u != %zu", raw_stream.get_sample_size(), sizeof(rtm::vector4f));
-			ACL_ASSERT(raw_stream.get_vector_format() == vector_format8::vector3f_full, "Expected a vector3f_full vector format, found: " ACL_STRING_FORMAT_SPECIFIER, get_vector_format_name(raw_stream.get_vector_format()));
+			ACL_ASSERT(raw_stream.get_vector_format() == vector_format8::vector3f_full, "Expected a vector3f_full vector format, found: " ACL_ASSERT_STRING_FORMAT_SPECIFIER, get_vector_format_name(raw_stream.get_vector_format()));
 
 			const uint32_t num_samples = raw_stream.get_num_samples();
 			const uint32_t sample_size = get_packed_vector_size(translation_format);
@@ -458,7 +458,7 @@ namespace acl
 					break;
 				case vector_format8::vector3f_variable:
 				default:
-					ACL_ASSERT(false, "Invalid or unsupported vector format: " ACL_STRING_FORMAT_SPECIFIER, get_vector_format_name(translation_format));
+					ACL_ASSERT(false, "Invalid or unsupported vector format: " ACL_ASSERT_STRING_FORMAT_SPECIFIER, get_vector_format_name(translation_format));
 					break;
 				}
 			}
@@ -489,7 +489,7 @@ namespace acl
 
 			// We expect all our samples to have the same width of sizeof(rtm::vector4f)
 			ACL_ASSERT(lossy_translations.get_sample_size() == sizeof(rtm::vector4f), "Unexpected translation sample size. %u != %zu", lossy_translations.get_sample_size(), sizeof(rtm::vector4f));
-			ACL_ASSERT(lossy_translations.get_vector_format() == vector_format8::vector3f_full, "Expected a vector3f_full vector format, found: " ACL_STRING_FORMAT_SPECIFIER, get_vector_format_name(lossy_translations.get_vector_format()));
+			ACL_ASSERT(lossy_translations.get_vector_format() == vector_format8::vector3f_full, "Expected a vector3f_full vector format, found: " ACL_ASSERT_STRING_FORMAT_SPECIFIER, get_vector_format_name(lossy_translations.get_vector_format()));
 
 			const uint32_t num_samples = is_constant_bit_rate(bit_rate) ? 1 : lossy_translations.get_num_samples();
 			const uint32_t sample_size = sizeof(uint64_t) * 2;
@@ -555,7 +555,7 @@ namespace acl
 		{
 			// We expect all our samples to have the same width of sizeof(rtm::vector4f)
 			ACL_ASSERT(raw_stream.get_sample_size() == sizeof(rtm::vector4f), "Unexpected scale sample size. %u != %zu", raw_stream.get_sample_size(), sizeof(rtm::vector4f));
-			ACL_ASSERT(raw_stream.get_vector_format() == vector_format8::vector3f_full, "Expected a vector3f_full vector format, found: " ACL_STRING_FORMAT_SPECIFIER, get_vector_format_name(raw_stream.get_vector_format()));
+			ACL_ASSERT(raw_stream.get_vector_format() == vector_format8::vector3f_full, "Expected a vector3f_full vector format, found: " ACL_ASSERT_STRING_FORMAT_SPECIFIER, get_vector_format_name(raw_stream.get_vector_format()));
 
 			const uint32_t num_samples = raw_stream.get_num_samples();
 			const uint32_t sample_size = get_packed_vector_size(scale_format);
@@ -574,7 +574,7 @@ namespace acl
 					break;
 				case vector_format8::vector3f_variable:
 				default:
-					ACL_ASSERT(false, "Invalid or unsupported vector format: " ACL_STRING_FORMAT_SPECIFIER, get_vector_format_name(scale_format));
+					ACL_ASSERT(false, "Invalid or unsupported vector format: " ACL_ASSERT_STRING_FORMAT_SPECIFIER, get_vector_format_name(scale_format));
 					break;
 				}
 			}
@@ -605,7 +605,7 @@ namespace acl
 
 			// We expect all our samples to have the same width of sizeof(rtm::vector4f)
 			ACL_ASSERT(lossy_scales.get_sample_size() == sizeof(rtm::vector4f), "Unexpected scale sample size. %u != %zu", lossy_scales.get_sample_size(), sizeof(rtm::vector4f));
-			ACL_ASSERT(lossy_scales.get_vector_format() == vector_format8::vector3f_full, "Expected a vector3f_full vector format, found: " ACL_STRING_FORMAT_SPECIFIER, get_vector_format_name(lossy_scales.get_vector_format()));
+			ACL_ASSERT(lossy_scales.get_vector_format() == vector_format8::vector3f_full, "Expected a vector3f_full vector format, found: " ACL_ASSERT_STRING_FORMAT_SPECIFIER, get_vector_format_name(lossy_scales.get_vector_format()));
 
 			const uint32_t num_samples = is_constant_bit_rate(bit_rate) ? 1 : lossy_scales.get_num_samples();
 			const uint32_t sample_size = sizeof(uint64_t) * 2;

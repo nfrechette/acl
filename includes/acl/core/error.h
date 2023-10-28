@@ -60,7 +60,7 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 //    #define ACL_ASSERT(expression, format, ...) checkf(expression, ANSI_TO_TCHAR(format), #__VA_ARGS__)
 //
 //    [Custom String Format Specifier]
-//    Note that if you use a custom function, you may need to override the ACL_STRING_FORMAT_SPECIFIER
+//    Note that if you use a custom function, you may need to override the ACL_ASSERT_STRING_FORMAT_SPECIFIER
 //    to properly handle ANSI/Unicode support. The C++11 standard does not support a way to say that '%s'
 //    always means an ANSI string (with 'const char*' as type). MSVC does support '%hs' but other compilers
 //    do not.
@@ -71,8 +71,8 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 //////////////////////////////////////////////////////////////////////////
 
 // See [Custom String Format Specifier] for details
-#if !defined(ACL_STRING_FORMAT_SPECIFIER)
-	#define ACL_STRING_FORMAT_SPECIFIER "%s"
+#if !defined(ACL_ASSERT_STRING_FORMAT_SPECIFIER)
+	#define ACL_ASSERT_STRING_FORMAT_SPECIFIER "%s"
 #endif
 
 #if defined(ACL_ON_ASSERT_ABORT)

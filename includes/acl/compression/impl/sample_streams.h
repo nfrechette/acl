@@ -75,7 +75,7 @@ namespace acl
 					return unpack_vector3_uXX_unsafe(num_bits_at_bit_rate, ptr, 0);
 				}
 			default:
-				ACL_ASSERT(false, "Invalid or unsupported rotation format: " ACL_STRING_FORMAT_SPECIFIER, get_rotation_format_name(format));
+				ACL_ASSERT(false, "Invalid or unsupported rotation format: " ACL_ASSERT_STRING_FORMAT_SPECIFIER, get_rotation_format_name(format));
 				return rtm::vector_zero();
 			}
 		}
@@ -98,7 +98,7 @@ namespace acl
 					return unpack_vector3_uXX_unsafe(num_bits_at_bit_rate, ptr, 0);
 				}
 			default:
-				ACL_ASSERT(false, "Invalid or unsupported vector format: " ACL_STRING_FORMAT_SPECIFIER, get_vector_format_name(format));
+				ACL_ASSERT(false, "Invalid or unsupported vector format: " ACL_ASSERT_STRING_FORMAT_SPECIFIER, get_vector_format_name(format));
 				return rtm::vector_zero();
 			}
 		}
@@ -115,7 +115,7 @@ namespace acl
 				// isn't very accurate on small inputs, we need to normalize
 				return rtm::quat_normalize(rtm::quat_from_positive_w(rotation));
 			default:
-				ACL_ASSERT(false, "Invalid or unsupported rotation format: " ACL_STRING_FORMAT_SPECIFIER, get_rotation_format_name(format));
+				ACL_ASSERT(false, "Invalid or unsupported rotation format: " ACL_ASSERT_STRING_FORMAT_SPECIFIER, get_rotation_format_name(format));
 				return rtm::quat_identity();
 			}
 		}
@@ -232,7 +232,7 @@ namespace acl
 				packed_rotation = rotation;
 				break;
 			default:
-				ACL_ASSERT(false, "Invalid or unsupported rotation format: " ACL_STRING_FORMAT_SPECIFIER, get_rotation_format_name(desired_format));
+				ACL_ASSERT(false, "Invalid or unsupported rotation format: " ACL_ASSERT_STRING_FORMAT_SPECIFIER, get_rotation_format_name(desired_format));
 				packed_rotation = rtm::vector_zero();
 				break;
 			}
@@ -373,7 +373,7 @@ namespace acl
 				packed_translation = translation;
 				break;
 			default:
-				ACL_ASSERT(false, "Invalid or unsupported vector format: " ACL_STRING_FORMAT_SPECIFIER, get_vector_format_name(desired_format));
+				ACL_ASSERT(false, "Invalid or unsupported vector format: " ACL_ASSERT_STRING_FORMAT_SPECIFIER, get_vector_format_name(desired_format));
 				packed_translation = rtm::vector_zero();
 				break;
 			}
@@ -512,7 +512,7 @@ namespace acl
 				packed_scale = scale;
 				break;
 			default:
-				ACL_ASSERT(false, "Invalid or unsupported vector format: " ACL_STRING_FORMAT_SPECIFIER, get_vector_format_name(desired_format));
+				ACL_ASSERT(false, "Invalid or unsupported vector format: " ACL_ASSERT_STRING_FORMAT_SPECIFIER, get_vector_format_name(desired_format));
 				packed_scale = scale;
 				break;
 			}

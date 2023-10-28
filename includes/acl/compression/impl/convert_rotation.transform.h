@@ -59,7 +59,7 @@ namespace acl
 				// Drop W, we just ensure it is positive and write it back, the W component can be ignored afterwards
 				return rtm::quat_to_vector(rtm::quat_ensure_positive_w(rtm::vector_to_quat(rotation)));
 			default:
-				ACL_ASSERT(false, "Invalid or unsupported rotation format: " ACL_STRING_FORMAT_SPECIFIER, get_rotation_format_name(to));
+				ACL_ASSERT(false, "Invalid or unsupported rotation format: " ACL_ASSERT_STRING_FORMAT_SPECIFIER, get_rotation_format_name(to));
 				return rotation;
 			}
 		}
@@ -92,7 +92,7 @@ namespace acl
 						rotation = rtm::quat_ensure_positive_w(rotation);
 						break;
 					default:
-						ACL_ASSERT(false, "Invalid or unsupported rotation format: " ACL_STRING_FORMAT_SPECIFIER, get_rotation_format_name(high_precision_format));
+						ACL_ASSERT(false, "Invalid or unsupported rotation format: " ACL_ASSERT_STRING_FORMAT_SPECIFIER, get_rotation_format_name(high_precision_format));
 						break;
 					}
 
