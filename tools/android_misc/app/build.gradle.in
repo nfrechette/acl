@@ -1,6 +1,7 @@
 apply plugin: 'com.android.application'
 
 android {
+    ndkVersion "20.1.5948944"
     compileSdkVersion 28
     defaultConfig {
         applicationId "@ACL_ANDROID_PROJECT_PACKAGE_NAME@"
