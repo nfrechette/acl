@@ -74,22 +74,13 @@ if __name__ == "__main__":
 	summary_output_dir = '{}-{}-summary'.format(acl_raw, version)
 	error_output_dir = '{}-{}-error'.format(acl_raw, version)
 
-	high_output_dir = '{}-{}-high'.format(acl_raw, version)
-	highest_output_dir = '{}-{}-highest'.format(acl_raw, version)
-
 	cmds = []
 	if safe_create_dir(summary_output_dir):
 		output_log = os.path.join(summary_output_dir, 'output.log')
-		cmds.append(('{} acl_compressor.py -acl="{}" -stats="{}" -csv_summary -parallel=14 -no_progress_bar -level=medium'.format(python_exe, acl_raw, summary_output_dir, version), output_log))
-	if safe_create_dir(high_output_dir):
-		output_log = os.path.join(high_output_dir, 'output.log')
-		cmds.append(('{} acl_compressor.py -acl="{}" -stats="{}" -csv_summary -parallel=14 -no_progress_bar -level=high'.format(python_exe, acl_raw, high_output_dir, version), output_log))
-	if safe_create_dir(highest_output_dir):
-		output_log = os.path.join(highest_output_dir, 'output.log')
-		cmds.append(('{} acl_compressor.py -acl="{}" -stats="{}" -csv_summary -parallel=14 -no_progress_bar -level=highest'.format(python_exe, acl_raw, highest_output_dir, version), output_log))
+		cmds.append(('{} acl_compressor.py -acl="{}" -stats="{}" -csv_summary -parallel=14 -no_progress_bar -level=automatic'.format(python_exe, acl_raw, summary_output_dir, version), output_log))
 	if safe_create_dir(error_output_dir):
 		output_log = os.path.join(error_output_dir, 'output.log')
-		cmds.append(('{} acl_compressor.py -acl="{}" -stats="{}" -csv_error -parallel=30 -no_progress_bar -level=medium -stat_exhaustive'.format(python_exe, acl_raw, error_output_dir, version), output_log))
+		cmds.append(('{} acl_compressor.py -acl="{}" -stats="{}" -csv_error -parallel=30 -no_progress_bar -level=automatic -stat_exhaustive'.format(python_exe, acl_raw, error_output_dir, version), output_log))
 
 	root_dir = os.path.join(os.getcwd(), '../acl_compressor')
 	os.chdir(root_dir)
