@@ -1142,7 +1142,14 @@ static int safe_main_impl(int argc, char* argv[])
 	{
 		pre_process_settings_t pre_process_settings;
 		pre_process_settings.actions = pre_process_actions::recommended;
-		pre_process_settings.precision_policy = pre_process_precision_policy::lossy;
+
+		// If we retain full precision, use lossless pre-processing
+		if (settings.rotation_format == rotation_format8::quatf_full &&
+			settings.translation_format == vector_format8::vector3f_full &&
+			settings.scale_format == vector_format8::vector3f_full)
+			pre_process_settings.precision_policy = pre_process_precision_policy::lossless;
+		else
+			pre_process_settings.precision_policy = pre_process_precision_policy::lossy;
 
 		if (sjson_type == sjson_file_type::raw_clip)
 		{
