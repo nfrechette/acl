@@ -20,7 +20,7 @@ REGRESSION_TEST_DATA_SOURCE_URL = 'https://github.com/nfrechette/acl-test-data/r
 CURRENT_REGRESSION_TEST_DATA_FILENAME = 'acl_regression_tests_v2.zip'
 
 # The current decompression data version in use
-current_decomp_data = 'decomp_data_v7'
+current_decomp_data = 'decomp_data_v8'
 
 def is_host_cpu_arm64():
 	is_arm64_cpu = False
