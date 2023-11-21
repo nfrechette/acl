@@ -54,7 +54,7 @@ namespace acl
 		template<uint64_t num_bits>
 		static constexpr bitset_description make_from_num_bits()
 		{
-			static_assert(num_bits <= std::numeric_limits<uint32_t>::max() - 31, "Number of bits exceeds the maximum number allowed");
+			static_assert(num_bits <= (std::numeric_limits<uint32_t>::max)() - 31, "Number of bits exceeds the maximum number allowed");
 			return bitset_description((uint32_t(num_bits) + 32 - 1) / 32);
 		}
 
@@ -62,7 +62,7 @@ namespace acl
 		// Creates a bit set description from a runtime known number of bits.
 		inline static bitset_description make_from_num_bits(uint32_t num_bits)
 		{
-			ACL_ASSERT(num_bits <= std::numeric_limits<uint32_t>::max() - 31, "Number of bits exceeds the maximum number allowed");
+			ACL_ASSERT(num_bits <= (std::numeric_limits<uint32_t>::max)() - 31, "Number of bits exceeds the maximum number allowed");
 			return bitset_description((num_bits + 32 - 1) / 32);
 		}
 

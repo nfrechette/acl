@@ -258,7 +258,7 @@ namespace acl
 
 			rtm::quatf RTM_SIMD_CALL get_sample_clamped(uint32_t sample_index) const
 			{
-				return get_sample(std::min(sample_index, m_num_samples - 1));
+				return get_sample((std::min)(sample_index, m_num_samples - 1));
 			}
 		};
 
@@ -298,7 +298,7 @@ namespace acl
 
 			rtm::vector4f RTM_SIMD_CALL get_sample_clamped(uint32_t sample_index) const
 			{
-				return get_sample(std::min(sample_index, m_num_samples - 1));
+				return get_sample((std::min)(sample_index, m_num_samples - 1));
 			}
 		};
 
@@ -338,7 +338,7 @@ namespace acl
 
 			rtm::vector4f RTM_SIMD_CALL get_sample_clamped(uint32_t sample_index) const
 			{
-				return get_sample(std::min(sample_index, m_num_samples - 1));
+				return get_sample((std::min)(sample_index, m_num_samples - 1));
 			}
 		};
 
