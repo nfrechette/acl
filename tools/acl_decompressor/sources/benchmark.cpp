@@ -30,6 +30,7 @@
 #include <acl/core/impl/bit_cast.impl.h>
 #include <acl/compression/compress.h>
 #include <acl/compression/convert.h>
+#include "acl/compression/pre_process.h"
 
 #include <benchmark/benchmark.h>
 
@@ -402,9 +403,19 @@ bool prepare_clip(const std::string& clip_name, const acl::compressed_tracks& ra
 		return false;
 	}
 
-	acl::compression_settings settings = acl::get_default_compression_settings();
-
 	acl::qvvf_transform_error_metric error_metric;
+
+	// Pre-process
+	{
+		acl::pre_process_settings_t pre_process_settings;
+		pre_process_settings.actions = acl::pre_process_actions::recommended;
+		pre_process_settings.precision_policy = acl::pre_process_precision_policy::lossy;
+		pre_process_settings.error_metric = &error_metric;
+
+		acl::pre_process_track_list(s_allocator, pre_process_settings, track_list);
+	}
+
+	acl::compression_settings settings = acl::get_default_compression_settings();
 	settings.error_metric = &error_metric;
 
 	acl::output_stats stats;
