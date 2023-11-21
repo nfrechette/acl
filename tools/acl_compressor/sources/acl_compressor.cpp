@@ -22,48 +22,12 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "acl_compressor.h"
-#include "acl/core/impl/bit_cast.impl.h"
-
 #define DEBUG_MEGA_LARGE_CLIP 0
 
 // Enable 64 bit file IO
 #ifndef _WIN32
 	#define _FILE_OFFSET_BITS 64
 #endif
-
-// Used to debug and validate that we compile without sjson-cpp
-// Defaults to being enabled
-#if defined(ACL_USE_SJSON)
-	#include <sjson/writer.h>
-	#include <sjson/parser.h>
-#else
-	namespace sjson { class ArrayWriter; }
-#endif
-
-#if defined(RTM_COMPILER_MSVC) && RTM_COMPILER_MSVC > RTM_COMPILER_MSVC_2015
-// VS2015 internal state appears to get corrupted when some forward declarations are made
-#include "acl/fwd.h"	// Make sure forward declaration matches
-#endif
-
-#include "acl/core/ansi_allocator.h"
-#include "acl/core/floating_point_exceptions.h"
-#include "acl/core/string.h"
-#include "acl/core/impl/debug_track_writer.h"
-#include "acl/compression/compress.h"
-#include "acl/compression/convert.h"
-#include "acl/compression/pre_process.h"
-#include "acl/compression/transform_pose_utils.h"	// Just to test compilation
-#include "acl/decompression/decompress.h"
-#include "acl/io/clip_reader.h"
-
-#include <cstring>
-#include <cstdio>
-#include <fstream>
-#include <streambuf>
-#include <sstream>
-#include <string>
-#include <memory>
 
 #if defined(_WIN32)
 	// The below excludes some other unused services from the windows headers -- see windows.h for details.
@@ -91,7 +55,7 @@
 	#define NOMB                    // MB_* and MessageBox()
 	#define NOMEMMGR                // GMEM_*, LMEM_*, GHND, LHND, associated routines
 	#define NOMETAFILE                // typedef METAFILEPICT
-#if !defined(NOMINMAX)
+#if !defined(NOMINMAX) && 0			// We leave MIN/MAX macros enabled, they are defined by default and we must handle it
 	#define NOMINMAX                // Macros min(a,b) and max(a,b)
 #endif
 	#define NOMSG                    // typedef MSG and associated routines
@@ -127,6 +91,42 @@
 	#endif
 
 #endif    // _WIN32
+
+#include "acl_compressor.h"
+#include "acl/core/impl/bit_cast.impl.h"
+
+// Used to debug and validate that we compile without sjson-cpp
+// Defaults to being enabled
+#if defined(ACL_USE_SJSON)
+	#include <sjson/writer.h>
+	#include <sjson/parser.h>
+#else
+	namespace sjson { class ArrayWriter; }
+#endif
+
+#if defined(RTM_COMPILER_MSVC) && RTM_COMPILER_MSVC > RTM_COMPILER_MSVC_2015
+	// VS2015 internal state appears to get corrupted when some forward declarations are made
+	#include "acl/fwd.h"	// Make sure forward declaration matches
+#endif
+
+#include "acl/core/ansi_allocator.h"
+#include "acl/core/floating_point_exceptions.h"
+#include "acl/core/string.h"
+#include "acl/core/impl/debug_track_writer.h"
+#include "acl/compression/compress.h"
+#include "acl/compression/convert.h"
+#include "acl/compression/pre_process.h"
+#include "acl/compression/transform_pose_utils.h"	// Just to test compilation
+#include "acl/decompression/decompress.h"
+#include "acl/io/clip_reader.h"
+
+#include <cstring>
+#include <cstdio>
+#include <fstream>
+#include <streambuf>
+#include <sstream>
+#include <string>
+#include <memory>
 
 using namespace acl;
 
