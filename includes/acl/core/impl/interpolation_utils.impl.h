@@ -89,7 +89,7 @@ namespace acl
 		uint32_t sample_index1;
 		if (looping_policy == sample_looping_policy::clamp)
 		{
-			sample_index1 = std::min(next_sample_index, last_sample_index);
+			sample_index1 = (std::min)(next_sample_index, last_sample_index);
 			ACL_ASSERT(sample_index0 <= sample_index1 && sample_index1 < num_samples, "Invalid sample indices: 0 <= %u <= %u < %u", sample_index0, sample_index1, num_samples);
 		}
 		else
@@ -172,7 +172,7 @@ namespace acl
 		uint32_t sample_index1;
 		if (looping_policy == sample_looping_policy::clamp)
 		{
-			sample_index1 = std::min(next_sample_index, last_sample_index);
+			sample_index1 = (std::min)(next_sample_index, last_sample_index);
 			ACL_ASSERT(sample_index0 <= sample_index1 && sample_index1 < num_samples, "Invalid sample indices: 0 <= %u <= %u < %u", sample_index0, sample_index1, num_samples);
 		}
 		else

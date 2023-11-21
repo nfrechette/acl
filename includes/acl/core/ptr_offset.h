@@ -120,7 +120,7 @@ namespace acl
 
 	private:
 		// Value representing an invalid offset
-		static constexpr offset_type k_invalid_value = std::numeric_limits<offset_type>::max();
+		static constexpr offset_type k_invalid_value = (std::numeric_limits<offset_type>::max)();
 
 		// Actual offset value.
 		offset_type m_value;
