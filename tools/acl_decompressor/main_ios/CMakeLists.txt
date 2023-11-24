@@ -66,6 +66,9 @@ endif()
 # Enable SJSON
 add_definitions(-DACL_USE_SJSON)
 
+# Set XCode properties
+set_property(TARGET ${PROJECT_NAME} PROPERTY XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.acl.acl-decompressor")
+
 target_link_libraries(${PROJECT_NAME} PRIVATE "-framework CoreFoundation")
 
 set_target_properties(${PROJECT_NAME} PROPERTIES MACOSX_BUNDLE_INFO_PLIST ${PROJECT_SOURCE_DIR}/Info.plist.in)

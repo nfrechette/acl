@@ -57,3 +57,6 @@ endif()
 # Enable ANSI heap debug checks
 add_definitions(-DACL_ALLOCATOR_TRACK_NUM_ALLOCATIONS)
 add_definitions(-DACL_ALLOCATOR_TRACK_ALL_ALLOCATIONS)
+
+# Set XCode properties
+set_property(TARGET ${PROJECT_NAME} PROPERTY XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.acl.acl-unit-tests")

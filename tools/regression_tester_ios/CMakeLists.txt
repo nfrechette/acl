@@ -67,4 +67,7 @@ endif()
 # Enable SJSON
 add_definitions(-DACL_USE_SJSON)
 
+# Set XCode properties
+set_property(TARGET ${PROJECT_NAME} PROPERTY XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.acl.acl-regression-tester")
+
 target_link_libraries(${PROJECT_NAME} "-framework CoreFoundation")
