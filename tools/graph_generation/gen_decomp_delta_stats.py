@@ -154,7 +154,6 @@ if __name__ == "__main__":
 		bone_medians_mbsec_csv = []
 
 		for clip_name in clip_names:
-			pose_size = pose_size_per_clip[clip_name]
 			pose_cold_median_us = pose_medians_us[clip_name]
 			bone_cold_median_us = bone_medians_us[clip_name]
 
