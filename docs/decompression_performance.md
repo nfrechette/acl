@@ -11,15 +11,14 @@ Note that the data is not yet conveniently packaged.
 
 Here are the platforms we measure on:
 
-*  Desktop: Intel i7-6850K @ 3.8 GHz (for v1.2 and earlier)
-*  Desktop: Ryzen 2950X @ 3.5 GHz (for v1.3 and later)
-*  Laptop: MacBook Pro mid 2014 @ 2.6 GHz
-*  Phone: Android Pixel 3 @ 2.5 GHz
+*  Desktop: Ryzen 2950X @ 3.5 GHz
+*  Phone: Android Pixel 3 @ 2.5 GHz (for v2.0 and earlier)
+*  Phone: Android Pixel 7 @ 2.85 GHz (for v2.1 and later)
 *  Tablet: iPad Pro 10.5 inch @ 2.39 GHz
 
 We only show a few compilers and architectures to keep the graphs readable.
 
-**Unless otherwise specified, the results are from release [2.0.0](https://github.com/nfrechette/acl/releases/tag/v2.0.0)**
+**Unless otherwise specified, the results are from release [2.1.0](https://github.com/nfrechette/acl/releases/tag/v2.1.0)**
 
 ## Uniformly sampled algorithm
 
@@ -27,9 +26,9 @@ The uniformly sampled algorithm offers consistent performance regardless of the 
 
 | Clip Name    | Forward   | Backward  | Random    |
 | ------------ | --------- | --------- | --------- |
-| 104_30       | 0.978 us  | 1.010 us  | 1.014 us  |
-| Trooper_1    | 2.432 us  | 2.258 us  | 2.402 us  |
-| Trooper_Main | 30.953 us | 30.658 us | 30.776 us |
+| 104_30       | 0.910 us  | 0.961 us  | 0.960 us  |
+| Trooper_1    | 2.304 us  | 2.137 us  | 2.354 us  |
+| Trooper_Main | 28.837 us | 29.782 us | 29.918 us |
 
 As can be seen, the performance is consistent regardless of the playback direction. It also remains consistent regardless of the clip sample rate and the clip playback rate.
 

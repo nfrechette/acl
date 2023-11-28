@@ -1,16 +1,30 @@
 inputs =
 [
 	{
-		header = "VS 2017 x64"
-		name = "vs2017-x64"
-		stats_dir = "K:\\test_animations\\decomp_stats-2.0.0\\decomp-stats-vs2017-x64-2.0.0"
-		version = "2.0"
+		header = "VS 2022 x64"
+		name = "vs2022-x64"
+		stats_dir = "K:\\test_animations\\decomp_stats-2.1.0\\decomp-stats-vs2022-x64-2.1.0"
+		version = "2.1"
 		source = "acl"
 	}
 	{
-		header = "OS X x64"
-		name = "osx-x64"
-		stats_dir = "K:\\test_animations\\decomp_stats-2.0.0\\decomp-stats-osx-x64-2.0.0"
+		header = "iOS arm64"
+		name = "ios-arm64"
+		stats_dir = "K:\\test_animations\\decomp_stats-2.1.0\\decomp-stats-ios-arm64-2.1.0"
+		version = "2.1"
+		source = "acl"
+	}
+	{
+		header = "Pixel 7 arm64"
+		name = "Pixel 7-arm64"
+		stats_dir = "K:\\test_animations\\decomp_stats-2.1.0\\decomp-stats-p7-arm64-2.1.0"
+		version = "2.1"
+		source = "acl"
+	}
+	{
+		header = "VS 2017 x64"
+		name = "vs2017-x64"
+		stats_dir = "K:\\test_animations\\decomp_stats-2.0.0\\decomp-stats-vs2017-x64-2.0.0"
 		version = "2.0"
 		source = "acl"
 	}
@@ -22,38 +36,10 @@ inputs =
 		source = "acl"
 	}
 	{
-		header = "Android arm64"
-		name = "android-arm64"
+		header = "Pixel 3 arm64"
+		name = "pixel3-arm64"
 		stats_dir = "K:\\test_animations\\decomp_stats-2.0.0\\decomp-stats-p3-arm64-2.0.0"
 		version = "2.0"
-		source = "acl"
-	}
-	{
-		header = "VS 2017 x64"
-		name = "vs2017-x64"
-		stats_dir = "K:\\test_animations\\decomp_stats-1.3.0\\decomp-stats-vs2017-x64-1.3.0"
-		version = "1.3"
-		source = "acl"
-	}
-	{
-		header = "OS X x64"
-		name = "osx-x64"
-		stats_dir = "K:\\test_animations\\decomp_stats-1.3.0\\decomp-stats-osx-x64-1.3.0"
-		version = "1.3"
-		source = "acl"
-	}
-	{
-		header = "iOS arm64"
-		name = "ios-arm64"
-		stats_dir = "K:\\test_animations\\decomp_stats-1.3.0\\decomp-stats-ios-arm64-1.3.0"
-		version = "1.3"
-		source = "acl"
-	}
-	{
-		header = "Android arm64"
-		name = "android-arm64"
-		stats_dir = "K:\\test_animations\\decomp_stats-1.3.0\\decomp-stats-p3-arm64-1.3.0"
-		version = "1.3"
 		source = "acl"
 	}
 ]
