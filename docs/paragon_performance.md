@@ -1,14 +1,14 @@
 # Paragon database performance
 
-|                       | v2.0.0 | v1.3.0 | v1.2.0  |
+|                       | v2.1.0 | v2.0.0 | v1.3.0 |
 | --------------------- | ------------- | ------------- | ------------- |
-| **Compressed size**   | 208.93 MB | 208.32 MB | 218.58 MB |
-| **Compression ratio** | 20.47 : 1 | 20.53 : 1 | 19.56 : 1 |
-| **Compression time**  | 8m 10.69s | 10m 23.05s | 28m 56.48s |
-| **Compression speed**  | 8923.56 KB/sec | 7027.87 KB/sec | 2521.62 KB/sec |
-| **Max error**         | 4.1029 cm | 2.8669 cm | 4.0184 cm |
-| **Error 99<sup>th</sup> percentile** | 0.0099 cm | 0.0099 cm | 0.0116 cm |
-| **Samples below error threshold** | 99.04 % | 99.04 % | 98.85 % |
+| **Compressed size**   | 181.25 MB | 208.93 MB | 208.32 MB |
+| **Compression ratio** | 23.59 : 1 | 20.47 : 1 | 20.53 : 1 |
+| **Compression time**  | 22m 40.51s | 8m 10.69s | 10m 23.05s |
+| **Compression speed**  | 3218.44 KB/sec | 8923.56 KB/sec | 7027.87 KB/sec |
+| **Max error**         | 3.9834 cm | 4.1029 cm | 2.8669 cm |
+| **Error 99<sup>th</sup> percentile** | 0.0096 cm | 0.0099 cm | 0.0099 cm |
+| **Samples below error threshold** | 99.52 % | 99.04 % | 99.04 % |
 
 Notes:
 
@@ -41,7 +41,7 @@ ACL supports various compression methods but only the overall best variant will 
 
 The error is measured **3cm** away from each bone to simulate the visual mesh skinning process as described [here](error_metrics.md) with the default error threshold of **0.01cm**. The **99th** percentile and the number of samples below the error threshold are calculated by measuring the error on every bone at every sample.
 
-The performance of ACL in Unreal Engine 4 is tracked by the plugin [here](https://github.com/nfrechette/acl-ue4-plugin/blob/develop/Docs/paragon_performance.md).
+The performance of ACL in Unreal Engine is tracked by the plugin [here](https://github.com/nfrechette/acl-ue4-plugin/blob/develop/Docs/paragon_performance.md).
 
 # Results in images
 
