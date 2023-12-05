@@ -1,5 +1,24 @@
 # Significant changes per release
 
+## 2.1.0
+
+*  Add support for bind pose stripping
+*  Add support for loop handling through looping policy
+*  Add support for pre-processing
+*  Add automatic compression level selection
+*  Optimize compression through dominant shell computation
+*  Add support for per sub-track rounding
+*  Use error metric to detect constant/default sub-tracks
+*  Tons of cleanup and minor improvements
+*  Run regression tests with CI
+*  Update to RTM 2.2.0
+*  Update to sjson-cpp 0.9.0
+*  Add support for GCC 12 and 13
+*  Add support for clang 15
+*  Add support for XCode 14
+*  Add support for C++14, C++17, and C++20
+*  Add support for MSYS2
+
 ## 2.0.6
 
 *  Force macro expansion in version namespace identifier
