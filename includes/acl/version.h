@@ -31,8 +31,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #define ACL_VERSION_MAJOR 2
-#define ACL_VERSION_MINOR 0
-#define ACL_VERSION_PATCH 99
+#define ACL_VERSION_MINOR 1
+#define ACL_VERSION_PATCH 0
 
 ////////////////////////////////////////////////////////////////////////////////
 // In order to allow multiple versions of this library to coexist side by side
