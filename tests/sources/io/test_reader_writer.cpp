@@ -24,23 +24,6 @@
 
 #include "catch2.impl.h"
 
-#if defined(ACL_USE_SJSON)
-	#include <sjson/parser.h>
-	#include <sjson/writer.h>
-#endif
-
-#include <acl/core/ansi_allocator.h>
-#include <acl/io/clip_reader.h>
-#include <acl/io/clip_writer.h>
-
-#include <rtm/qvvd.h>
-#include <rtm/scalarf.h>
-
-#include <chrono>
-#include <cstdio>
-#include <cstdlib>
-#include <thread>
-
 #if defined(_WIN32)
 	// The below excludes some other unused services from the windows headers -- see windows.h for details.
 	#define NOGDICAPMASKS            // CC_*, LC_*, PC_*, CP_*, TC_*, RC_
@@ -67,7 +50,7 @@
 	#define NOMB                    // MB_* and MessageBox()
 	#define NOMEMMGR                // GMEM_*, LMEM_*, GHND, LHND, associated routines
 	#define NOMETAFILE                // typedef METAFILEPICT
-#if !defined(NOMINMAX)
+#if !defined(NOMINMAX) && 0			// We leave MIN/MAX macros enabled, they are defined by default and we must handle it
 	#define NOMINMAX                // Macros min(a,b) and max(a,b)
 #endif
 	#define NOMSG                    // typedef MSG and associated routines
@@ -102,6 +85,23 @@
 		#pragma warning(pop)
 	#endif
 #endif    // _WIN32
+
+#if defined(ACL_USE_SJSON)
+	#include <sjson/parser.h>
+	#include <sjson/writer.h>
+#endif
+
+#include <acl/core/ansi_allocator.h>
+#include <acl/io/clip_reader.h>
+#include <acl/io/clip_writer.h>
+
+#include <rtm/qvvd.h>
+#include <rtm/scalarf.h>
+
+#include <chrono>
+#include <cstdio>
+#include <cstdlib>
+#include <thread>
 
 using namespace acl;
 
