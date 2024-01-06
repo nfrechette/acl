@@ -28,6 +28,7 @@
 #include "acl/core/impl/compiler_utils.h"
 
 #include <cstdint>
+#include <iterator>
 #include <type_traits>
 
 ACL_IMPL_FILE_PRAGMA_PUSH

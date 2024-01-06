@@ -26,6 +26,7 @@
 
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
+#include "acl/compression/impl/optimize_looping.transform.h"
 #include "acl/compression/impl/pre_process.common.h"
 #include "acl/compression/impl/transform_clip_adapters.h"
 
