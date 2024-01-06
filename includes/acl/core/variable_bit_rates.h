@@ -65,8 +65,7 @@ namespace acl
 	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
 	constexpr bool is_raw_bit_rate(uint32_t bit_rate) { return bit_rate == 24; }
 
-	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
-	struct BoneBitRate
+	struct ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0") BoneBitRate
 	{
 		uint8_t rotation;
 		uint8_t translation;
