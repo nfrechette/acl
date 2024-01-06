@@ -26,12 +26,18 @@ foreach(HEADER_FILE ${ALL_PUBLIC_HEADER_FILES})
 	# Strip the root of the include path
 	string(SUBSTRING ${HEADER_FILE} ${HEADER_FILE_ACL_POS} -1 HEADER_INCLUDE_PATH)
 
-	# Configure our cpp file content
-	set(ACL_SINGLE_INCLUDE_NAME ${HEADER_INCLUDE_PATH})
-
 	# Sanitize our filename so we can generate a unique cpp file for it
 	string(REPLACE "/" "_" HEADER_SANITIZED_FILENAME ${HEADER_INCLUDE_PATH})
 	string(REPLACE "\\" "_" HEADER_SANITIZED_FILENAME ${HEADER_SANITIZED_FILENAME})
+
+	# Skip deprecated headers
+	string(FIND ${HEADER_FILE} "acl_core_utils.h" HEADER_CORE_UTILS)
+	if(${HEADER_CORE_UTILS} EQUAL -1)
+		continue()
+	endif()
+
+	# Configure our cpp file content
+	set(ACL_SINGLE_INCLUDE_NAME ${HEADER_INCLUDE_PATH})
 
 	# Generate our single include cpp file
 	configure_file(${PROJECT_SOURCE_DIR}/single_include.cpp.in single_include_${HEADER_SANITIZED_FILENAME}.cpp @ONLY)
