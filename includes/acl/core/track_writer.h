@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/version.h"
+#include "acl/core/sample_rounding_policy.h"
 #include "acl/core/impl/compiler_utils.h"
 
 #include <rtm/types.h>

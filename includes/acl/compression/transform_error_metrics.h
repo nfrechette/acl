@@ -28,6 +28,7 @@
 #include "acl/core/additive_utils.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/hash.h"
+#include "acl/core/track_types.h"
 
 #include <rtm/matrix3x4f.h>
 #include <rtm/qvvf.h>

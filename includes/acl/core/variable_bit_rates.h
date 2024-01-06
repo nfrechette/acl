@@ -26,6 +26,7 @@
 
 #include "acl/version.h"
 #include "acl/core/error.h"
+#include "acl/core/memory_utils.h"
 #include "acl/core/impl/compiler_utils.h"
 
 #include <cstdint>
@@ -49,8 +50,6 @@ namespace acl
 	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
 	constexpr uint8_t k_highest_bit_rate = 24;
 
-	static_assert(get_array_size(k_bit_rate_num_bits) == 25, "Expecting 25 bit rates");
-
 	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
 	inline uint32_t get_num_bits_at_bit_rate(uint32_t bit_rate)
 	{
@@ -66,8 +65,7 @@ namespace acl
 	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
 	constexpr bool is_raw_bit_rate(uint32_t bit_rate) { return bit_rate == 24; }
 
-	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
-	struct BoneBitRate
+	struct ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0") BoneBitRate
 	{
 		uint8_t rotation;
 		uint8_t translation;
