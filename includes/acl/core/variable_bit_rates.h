@@ -50,8 +50,6 @@ namespace acl
 	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
 	constexpr uint8_t k_highest_bit_rate = 24;
 
-	static_assert(get_array_size(k_bit_rate_num_bits) == 25, "Expecting 25 bit rates");
-
 	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
 	inline uint32_t get_num_bits_at_bit_rate(uint32_t bit_rate)
 	{
