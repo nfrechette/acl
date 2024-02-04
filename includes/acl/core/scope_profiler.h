@@ -52,11 +52,15 @@ namespace acl
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Manually stops the profiler.
-		void stop();
+		scope_profiler& stop();
+
+		////////////////////////////////////////////////////////////////////////////////
+		// Returns whether the profiler has been stopped or not.
+		bool is_stopped() const { return m_start_time != m_end_time; }
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Returns the elapsed time in nanoseconds since the profiler was started.
-		std::chrono::nanoseconds get_elapsed_time() const { return std::chrono::duration_cast<std::chrono::nanoseconds>(m_end_time - m_start_time); }
+		std::chrono::nanoseconds get_elapsed_time() const;
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Returns the elapsed time in microseconds since the profiler was started.
@@ -74,11 +78,13 @@ namespace acl
 		scope_profiler(const scope_profiler&) = delete;
 		scope_profiler& operator=(const scope_profiler&) = delete;
 
+		using time_point_t = std::chrono::time_point<std::chrono::high_resolution_clock>;
+
 		// The time at which the profiler started.
-		std::chrono::time_point<std::chrono::high_resolution_clock>		m_start_time;
+		time_point_t	m_start_time;
 
 		// The time at which the profiler stopped.
-		std::chrono::time_point<std::chrono::high_resolution_clock>		m_end_time;
+		time_point_t	m_end_time;
 	};
 
 	//////////////////////////////////////////////////////////////////////////
@@ -88,10 +94,18 @@ namespace acl
 		m_start_time = m_end_time = std::chrono::high_resolution_clock::now();
 	}
 
-	inline void scope_profiler::stop()
+	inline scope_profiler& scope_profiler::stop()
 	{
-		if (m_start_time == m_end_time)
+		if (!is_stopped())
 			m_end_time = std::chrono::high_resolution_clock::now();
+
+		return *this;
+	}
+
+	inline std::chrono::nanoseconds scope_profiler::get_elapsed_time() const
+	{
+		const time_point_t end = is_stopped() ? m_end_time : std::chrono::high_resolution_clock::now();
+		return std::chrono::duration_cast<std::chrono::nanoseconds>(end - m_start_time);
 	}
 
 	ACL_IMPL_VERSION_NAMESPACE_END
