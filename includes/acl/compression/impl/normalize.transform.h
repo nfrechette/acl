@@ -54,7 +54,7 @@ namespace acl
 
 			rtm::vector4f min = rtm::vector_set(1e10F);
 			rtm::vector4f max = rtm::vector_set(-1e10F);
-			
+
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
 				const rtm::vector4f sample = stream.get_raw_sample<rtm::vector4f>(sample_index);
