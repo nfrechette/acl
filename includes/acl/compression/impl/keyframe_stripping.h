@@ -25,8 +25,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/version.h"
+#include "acl/core/scope_profiler.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/compression/compression_settings.h"
+#include "acl/compression/impl/compression_stats.h"
 
 #include <cstdint>
 
@@ -38,10 +40,16 @@ namespace acl
 
 	namespace acl_impl
 	{
-		inline void strip_keyframes(clip_context& lossy_clip_context, const compression_settings& settings)
+		inline void strip_keyframes(clip_context& lossy_clip_context, const compression_settings& settings, compression_stats_t& compression_stats)
 		{
 			if (!settings.keyframe_stripping.is_enabled())
 				return;	// We don't want to strip keyframes, nothing to do
+
+			(void)compression_stats;
+
+#if defined(ACL_USE_SJSON)
+			scope_profiler keyframe_stripping_time;
+#endif
 
 			const bitset_description hard_keyframes_desc = bitset_description::make_from_num_bits<32>();
 			const uint32_t num_keyframes = lossy_clip_context.num_samples;
@@ -130,6 +138,10 @@ namespace acl
 			}
 
 			lossy_clip_context.has_stripped_keyframes = num_keyframes_to_strip != 0;
+
+#if defined(ACL_USE_SJSON)
+			compression_stats.keyframe_stripping_elapsed_seconds = keyframe_stripping_time.get_elapsed_seconds();
+#endif
 		}
 	}
 

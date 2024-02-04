@@ -28,8 +28,10 @@
 #include "acl/core/iallocator.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/error.h"
+#include "acl/core/scope_profiler.h"
 #include "acl/compression/compression_settings.h"
 #include "acl/compression/impl/clip_context.h"
+#include "acl/compression/impl/compression_stats.h"
 
 #include <cstdint>
 
@@ -125,13 +127,23 @@ namespace acl
 			return num_samples_per_segment;
 		}
 
-		inline void segment_streams(iallocator& allocator, clip_context& clip, const compression_segmenting_settings& settings)
+		inline void segment_streams(
+			iallocator& allocator,
+			clip_context& clip,
+			const compression_segmenting_settings& settings,
+			compression_stats_t& compression_stats)
 		{
 			ACL_ASSERT(clip.num_segments == 1, "clip_context must have a single segment.");
 			ACL_ASSERT(settings.ideal_num_samples <= settings.max_num_samples, "Invalid num samples for segmenting settings. %u > %u", settings.ideal_num_samples, settings.max_num_samples);
 
 			if (clip.num_samples <= settings.max_num_samples)
 				return;
+
+			(void)compression_stats;
+
+#if defined(ACL_USE_SJSON)
+			scope_profiler segmenting_time;
+#endif
 
 			// We split our samples over multiple segments, but some might be empty at the end after re-balancing
 			uint32_t num_estimated_segments = 0;
@@ -238,6 +250,10 @@ namespace acl
 			deallocate_type_array(allocator, num_samples_per_segment, num_estimated_segments);
 			destroy_segment_context(allocator, *clip_segment);
 			deallocate_type_array(allocator, clip_segment, 1);
+
+#if defined(ACL_USE_SJSON)
+			compression_stats.segmenting_elapsed_seconds = segmenting_time.get_elapsed_seconds();
+#endif
 		}
 	}
 

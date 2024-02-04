@@ -28,8 +28,10 @@
 #include "acl/core/iallocator.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/error.h"
+#include "acl/core/scope_profiler.h"
 #include "acl/core/track_formats.h"
 #include "acl/compression/impl/clip_context.h"
+#include "acl/compression/impl/compression_stats.h"
 
 #include <rtm/quatf.h>
 #include <rtm/vector4f.h>
@@ -105,10 +107,24 @@ namespace acl
 			}
 		}
 
-		inline void convert_rotation_streams(iallocator& allocator, clip_context& context, rotation_format8 rotation_format)
+		inline void convert_rotation_streams(
+			iallocator& allocator,
+			clip_context& context,
+			rotation_format8 rotation_format,
+			compression_stats_t& compression_stats)
 		{
+			(void)compression_stats;
+
+#if defined(ACL_USE_SJSON)
+			scope_profiler convert_rotations_time;
+#endif
+
 			for (segment_context& segment : context.segment_iterator())
 				convert_rotation_streams(allocator, segment, rotation_format);
+
+#if defined(ACL_USE_SJSON)
+			compression_stats.convert_rotations_elapsed_seconds = convert_rotations_time.get_elapsed_seconds();
+#endif
 		}
 	}
 

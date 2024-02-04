@@ -34,6 +34,7 @@
 #include "acl/compression/transform_error_metrics.h"
 #include "acl/compression/track_error.h"
 #include "acl/compression/impl/clip_context.h"
+#include "acl/compression/impl/compression_stats.h"
 
 #include <sjson/writer.h>
 
@@ -403,7 +404,8 @@ namespace acl
 		inline void write_stats(iallocator& allocator, const track_array_qvvf& track_list, const clip_context& clip,
 			const compressed_tracks& compressed_clip, const compression_settings& settings, const compression_segmenting_settings& segmenting_settings,
 			range_reduction_flags8 range_reduction, const clip_context& raw_clip,
-			const clip_context& additive_base_clip_context, const scope_profiler& compression_time,
+			const clip_context& additive_base_clip_context,
+			const compression_stats_t& compression_stats,
 			output_stats& stats)
 		{
 			ACL_ASSERT(stats.writer != nullptr, "Attempted to log stats without a writer");
@@ -455,7 +457,7 @@ namespace acl
 			writer["raw_size"] = raw_size;
 			writer["compressed_size"] = compressed_size;
 			writer["compression_ratio"] = compression_ratio;
-			writer["compression_time"] = compression_time.get_elapsed_seconds();
+			writer["compression_time"] = compression_stats.total_elapsed_seconds;
 			writer["duration"] = compressed_clip.get_duration();
 			writer["num_samples"] = compressed_clip.get_num_samples_per_track();
 			writer["num_bones"] = compressed_clip.get_num_tracks();
@@ -608,6 +610,27 @@ namespace acl
 						});
 				}
 			};
+
+			if (are_any_enum_flags_set(stats.logging, stat_logging::detailed))
+			{
+				writer["timings"] = [&](sjson::ObjectWriter& timings_writer)
+				{
+					timings_writer["total"] = compression_stats.total_elapsed_seconds;
+
+					timings_writer["initialization"] = compression_stats.initialization_elapsed_seconds;
+					timings_writer["optimize_looping"] = compression_stats.optimize_looping_elapsed_seconds;
+					timings_writer["convert_rotations"] = compression_stats.convert_rotations_elapsed_seconds;
+					timings_writer["extract_clip_ranges"] = compression_stats.extract_clip_ranges_elapsed_seconds;
+					timings_writer["compact_constant_sub_tracks"] = compression_stats.compact_constant_sub_tracks_elapsed_seconds;
+					timings_writer["normalize_over_clip"] = compression_stats.normalize_clip_elapsed_seconds;
+					timings_writer["segmenting"] = compression_stats.segmenting_elapsed_seconds;
+					timings_writer["extract_segment_ranges"] = compression_stats.extract_segment_ranges_elapsed_seconds;
+					timings_writer["normalize_over_segments"] = compression_stats.normalize_segment_elapsed_seconds;
+					timings_writer["bit_rate_optimization"] = compression_stats.bit_rate_optimization_elapsed_seconds;
+					timings_writer["keyframe_stripping"] = compression_stats.keyframe_stripping_elapsed_seconds;
+					timings_writer["output_packing"] = compression_stats.output_packing_elapsed_seconds;
+				};
+			}
 		}
 	}
 

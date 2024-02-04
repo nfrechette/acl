@@ -29,10 +29,12 @@
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/error.h"
 #include "acl/core/enum_utils.h"
+#include "acl/core/scope_profiler.h"
 #include "acl/core/track_formats.h"
 #include "acl/core/track_types.h"
 #include "acl/core/range_reduction_types.h"
 #include "acl/compression/impl/clip_context.h"
+#include "acl/compression/impl/compression_stats.h"
 
 #include <rtm/vector4f.h>
 
@@ -92,18 +94,34 @@ namespace acl
 			}
 		}
 
-		inline void extract_clip_bone_ranges(iallocator& allocator, clip_context& context)
+		inline void extract_clip_bone_ranges(iallocator& allocator, clip_context& context, compression_stats_t& compression_stats)
 		{
+			(void)compression_stats;
+
+#if defined(ACL_USE_SJSON)
+			scope_profiler extract_clip_ranges_time;
+#endif
+
 			context.ranges = allocate_type_array<transform_range>(allocator, context.num_bones);
 
 			ACL_ASSERT(context.num_segments == 1, "context must contain a single segment!");
 			const segment_context& segment = context.segments[0];
 
 			acl_impl::extract_bone_ranges_impl(segment, context.ranges);
+
+#if defined(ACL_USE_SJSON)
+			compression_stats.extract_clip_ranges_elapsed_seconds = extract_clip_ranges_time.get_elapsed_seconds();
+#endif
 		}
 
-		inline void extract_segment_bone_ranges(iallocator& allocator, clip_context& context)
+		inline void extract_segment_bone_ranges(iallocator& allocator, clip_context& context, compression_stats_t& compression_stats)
 		{
+			(void)compression_stats;
+
+#if defined(ACL_USE_SJSON)
+			scope_profiler extract_segment_ranges_time;
+#endif
+
 			const rtm::vector4f one = rtm::vector_set(1.0F);
 			const rtm::vector4f zero = rtm::vector_zero();
 			const float max_range_value_flt = float((1 << k_segment_range_reduction_num_bits_per_component) - 1);
@@ -173,6 +191,10 @@ namespace acl
 						bone_range.scale = fixup_range(bone_range.scale);
 				}
 			}
+
+#if defined(ACL_USE_SJSON)
+			compression_stats.extract_segment_ranges_elapsed_seconds = extract_segment_ranges_time.get_elapsed_seconds();
+#endif
 		}
 
 		inline rtm::vector4f RTM_SIMD_CALL normalize_sample(rtm::vector4f_arg0 sample, const track_stream_range& range)
@@ -321,8 +343,14 @@ namespace acl
 			}
 		}
 
-		inline void normalize_clip_streams(clip_context& context, range_reduction_flags8 range_reduction)
+		inline void normalize_clip_streams(clip_context& context, range_reduction_flags8 range_reduction, compression_stats_t& compression_stats)
 		{
+			(void)compression_stats;
+
+#if defined(ACL_USE_SJSON)
+			scope_profiler normalize_clip_time;
+#endif
+
 			ACL_ASSERT(context.num_segments == 1, "context must contain a single segment!");
 			segment_context& segment = context.segments[0];
 
@@ -345,10 +373,20 @@ namespace acl
 				normalize_scale_streams(segment.bone_streams, context.ranges, segment.num_bones);
 				context.are_scales_normalized = true;
 			}
+
+#if defined(ACL_USE_SJSON)
+			compression_stats.normalize_clip_elapsed_seconds = normalize_clip_time.get_elapsed_seconds();
+#endif
 		}
 
-		inline void normalize_segment_streams(clip_context& context, range_reduction_flags8 range_reduction)
+		inline void normalize_segment_streams(clip_context& context, range_reduction_flags8 range_reduction, compression_stats_t& compression_stats)
 		{
+			(void)compression_stats;
+
+#if defined(ACL_USE_SJSON)
+			scope_profiler normalize_segments_time;
+#endif
+
 			for (segment_context& segment : context.segment_iterator())
 			{
 				if (are_any_enum_flags_set(range_reduction, range_reduction_flags8::rotations))
@@ -400,6 +438,10 @@ namespace acl
 
 				segment.range_data_size = range_data_size;
 			}
+
+#if defined(ACL_USE_SJSON)
+			compression_stats.normalize_segment_elapsed_seconds = normalize_segments_time.get_elapsed_seconds();
+#endif
 		}
 	}
 

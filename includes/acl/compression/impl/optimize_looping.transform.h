@@ -27,9 +27,11 @@
 #include "acl/version.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/error.h"
+#include "acl/core/scope_profiler.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/compression/compression_settings.h"
 #include "acl/compression/impl/clip_context.h"
+#include "acl/compression/impl/compression_stats.h"
 #include "acl/compression/impl/segment_context.h"
 #include "acl/compression/impl/transform_clip_adapters.h"
 
@@ -173,7 +175,11 @@ namespace acl
 			return is_wrapping;
 		}
 
-		inline void optimize_looping(clip_context& context, const clip_context& additive_base_clip_context, const compression_settings& settings)
+		inline void optimize_looping(
+			clip_context& context,
+			const clip_context& additive_base_clip_context,
+			const compression_settings& settings,
+			compression_stats_t& compression_stats)
 		{
 			if (!settings.optimize_loops)
 				return;	// We don't want to optimize loops, nothing to do
@@ -191,6 +197,12 @@ namespace acl
 
 			if (context.num_bones == 0)
 				return;	// No data present
+
+			(void)compression_stats;
+
+#if defined(ACL_USE_SJSON)
+			scope_profiler optimize_loop_time;
+#endif
 
 			segment_context& segment = context.segments[0];
 
@@ -224,6 +236,10 @@ namespace acl
 						segment.bone_streams[transform_index].scales.strip_last_sample();
 				}
 			}
+
+#if defined(ACL_USE_SJSON)
+			compression_stats.optimize_looping_elapsed_seconds = optimize_loop_time.get_elapsed_seconds();
+#endif
 		}
 	}
 
