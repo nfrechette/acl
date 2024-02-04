@@ -4,7 +4,7 @@
 
 ### Realtime Math
 
-[Realtime Math v2.2-develop](https://github.com/nfrechette/rtm) (MIT License) is used for its optimized math.
+[Realtime Math v2.3.0](https://github.com/nfrechette/rtm) (MIT License) is used for its optimized math.
 
 ## Development dependencies
 
