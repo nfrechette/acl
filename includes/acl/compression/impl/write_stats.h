@@ -611,7 +611,7 @@ namespace acl
 				}
 			};
 
-			if (are_any_enum_flags_set(stats.logging, stat_logging::detailed))
+			if (are_all_enum_flags_set(stats.logging, stat_logging::detailed))
 			{
 				writer["timings"] = [&](sjson::ObjectWriter& timings_writer)
 				{
