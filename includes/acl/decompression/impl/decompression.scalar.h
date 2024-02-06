@@ -284,7 +284,7 @@ namespace acl
 					rtm::scalarf value;
 					if (num_bits_per_component == 0)	// Constant bit rate
 					{
-						value = rtm::scalar_load(constant_values);
+						value = rtm::scalar_load_as_scalar(constant_values);
 						constant_values += 1;
 					}
 					else
@@ -301,8 +301,8 @@ namespace acl
 							value0 = unpack_scalarf_uXX_unsafe(num_bits_per_component, animated_values, track_bit_offset0);
 							value1 = unpack_scalarf_uXX_unsafe(num_bits_per_component, animated_values, track_bit_offset1);
 
-							const rtm::scalarf range_min = rtm::scalar_load(range_values);
-							const rtm::scalarf range_extent = rtm::scalar_load(range_values + 1);
+							const rtm::scalarf range_min = rtm::scalar_load_as_scalar(range_values);
+							const rtm::scalarf range_extent = rtm::scalar_load_as_scalar(range_values + 1);
 							value0 = rtm::scalar_mul_add(value0, range_extent, range_min);
 							value1 = rtm::scalar_mul_add(value1, range_extent, range_min);
 							range_values += 2;
@@ -548,7 +548,7 @@ namespace acl
 			{
 				rtm::scalarf value;
 				if (num_bits_per_component == 0)	// Constant bit rate
-					value = rtm::scalar_load(constant_values);
+					value = rtm::scalar_load_as_scalar(constant_values);
 				else
 				{
 					rtm::scalarf value0;
@@ -563,8 +563,8 @@ namespace acl
 						value0 = unpack_scalarf_uXX_unsafe(num_bits_per_component, animated_values, context.key_frame_bit_offsets[0] + track_bit_offset);
 						value1 = unpack_scalarf_uXX_unsafe(num_bits_per_component, animated_values, context.key_frame_bit_offsets[1] + track_bit_offset);
 
-						const rtm::scalarf range_min = rtm::scalar_load(range_values);
-						const rtm::scalarf range_extent = rtm::scalar_load(range_values + num_element_components);
+						const rtm::scalarf range_min = rtm::scalar_load_as_scalar(range_values);
+						const rtm::scalarf range_extent = rtm::scalar_load_as_scalar(range_values + num_element_components);
 						value0 = rtm::scalar_mul_add(value0, range_extent, range_min);
 						value1 = rtm::scalar_mul_add(value1, range_extent, range_min);
 					}
