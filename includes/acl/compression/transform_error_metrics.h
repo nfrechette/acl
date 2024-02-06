@@ -350,9 +350,9 @@ namespace acl
 			const rtm::vector4f lossy_vtx1 = rtm::qvv_mul_point3(vtx1, lossy_transform_);
 			const rtm::vector4f lossy_vtx2 = rtm::qvv_mul_point3(vtx2, lossy_transform_);
 
-			const rtm::scalarf vtx0_error = rtm::vector_distance3(raw_vtx0, lossy_vtx0);
-			const rtm::scalarf vtx1_error = rtm::vector_distance3(raw_vtx1, lossy_vtx1);
-			const rtm::scalarf vtx2_error = rtm::vector_distance3(raw_vtx2, lossy_vtx2);
+			const rtm::scalarf vtx0_error = rtm::vector_distance3_as_scalar(raw_vtx0, lossy_vtx0);
+			const rtm::scalarf vtx1_error = rtm::vector_distance3_as_scalar(raw_vtx1, lossy_vtx1);
+			const rtm::scalarf vtx2_error = rtm::vector_distance3_as_scalar(raw_vtx2, lossy_vtx2);
 
 			return rtm::scalar_max(rtm::scalar_max(vtx0_error, vtx1_error), vtx2_error);
 		}
@@ -371,8 +371,8 @@ namespace acl
 			const rtm::vector4f lossy_vtx0 = rtm::qvv_mul_point3_no_scale(vtx0, lossy_transform_);
 			const rtm::vector4f lossy_vtx1 = rtm::qvv_mul_point3_no_scale(vtx1, lossy_transform_);
 
-			const rtm::scalarf vtx0_error = rtm::vector_distance3(raw_vtx0, lossy_vtx0);
-			const rtm::scalarf vtx1_error = rtm::vector_distance3(raw_vtx1, lossy_vtx1);
+			const rtm::scalarf vtx0_error = rtm::vector_distance3_as_scalar(raw_vtx0, lossy_vtx0);
+			const rtm::scalarf vtx1_error = rtm::vector_distance3_as_scalar(raw_vtx1, lossy_vtx1);
 
 			return rtm::scalar_max(vtx0_error, vtx1_error);
 		}
@@ -453,9 +453,9 @@ namespace acl
 			const rtm::vector4f lossy_vtx1 = rtm::matrix_mul_point3(vtx1, lossy_transform_);
 			const rtm::vector4f lossy_vtx2 = rtm::matrix_mul_point3(vtx2, lossy_transform_);
 
-			const rtm::scalarf vtx0_error = rtm::vector_distance3(raw_vtx0, lossy_vtx0);
-			const rtm::scalarf vtx1_error = rtm::vector_distance3(raw_vtx1, lossy_vtx1);
-			const rtm::scalarf vtx2_error = rtm::vector_distance3(raw_vtx2, lossy_vtx2);
+			const rtm::scalarf vtx0_error = rtm::vector_distance3_as_scalar(raw_vtx0, lossy_vtx0);
+			const rtm::scalarf vtx1_error = rtm::vector_distance3_as_scalar(raw_vtx1, lossy_vtx1);
+			const rtm::scalarf vtx2_error = rtm::vector_distance3_as_scalar(raw_vtx2, lossy_vtx2);
 
 			return rtm::scalar_max(rtm::scalar_max(vtx0_error, vtx1_error), vtx2_error);
 		}

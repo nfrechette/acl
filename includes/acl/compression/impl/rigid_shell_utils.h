@@ -129,9 +129,9 @@ namespace acl
 					const rtm::vector4f raw_vtx1 = rtm::qvv_mul_point3(vtx1, raw_transform);
 					const rtm::vector4f raw_vtx2 = rtm::qvv_mul_point3(vtx2, raw_transform);
 
-					const rtm::scalarf vtx0_distance = rtm::vector_length3(raw_vtx0);
-					const rtm::scalarf vtx1_distance = rtm::vector_length3(raw_vtx1);
-					const rtm::scalarf vtx2_distance = rtm::vector_length3(raw_vtx2);
+					const rtm::scalarf vtx0_distance = rtm::vector_length3_as_scalar(raw_vtx0);
+					const rtm::scalarf vtx1_distance = rtm::vector_length3_as_scalar(raw_vtx1);
+					const rtm::scalarf vtx2_distance = rtm::vector_length3_as_scalar(raw_vtx2);
 
 					const rtm::scalarf transform_length = rtm::scalar_max(rtm::scalar_max(vtx0_distance, vtx1_distance), vtx2_distance);
 					parent_shell_distance = rtm::scalar_max(parent_shell_distance, transform_length);
@@ -245,9 +245,9 @@ namespace acl
 					const rtm::vector4f raw_vtx1 = rtm::qvv_mul_point3(vtx1, raw_transform);
 					const rtm::vector4f raw_vtx2 = rtm::qvv_mul_point3(vtx2, raw_transform);
 
-					const rtm::scalarf vtx0_distance = rtm::vector_length3(raw_vtx0);
-					const rtm::scalarf vtx1_distance = rtm::vector_length3(raw_vtx1);
-					const rtm::scalarf vtx2_distance = rtm::vector_length3(raw_vtx2);
+					const rtm::scalarf vtx0_distance = rtm::vector_length3_as_scalar(raw_vtx0);
+					const rtm::scalarf vtx1_distance = rtm::vector_length3_as_scalar(raw_vtx1);
+					const rtm::scalarf vtx2_distance = rtm::vector_length3_as_scalar(raw_vtx2);
 
 					const rtm::scalarf transform_length = rtm::scalar_max(rtm::scalar_max(vtx0_distance, vtx1_distance), vtx2_distance);
 					parent_shell_distance = rtm::scalar_max(parent_shell_distance, transform_length);

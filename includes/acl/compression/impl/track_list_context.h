@@ -137,7 +137,7 @@ namespace acl
 					for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 					{
 						const vector4f sample = vector_load1(&typed_ref_track[sample_index]);
-						are_samples_valid &= scalar_is_finite(scalarf(vector_get_x(sample)));
+						are_samples_valid &= scalar_is_finite(vector_get_x_as_scalar(sample));
 						track[sample_index] = sample;
 					}
 					out_track = std::move(track);

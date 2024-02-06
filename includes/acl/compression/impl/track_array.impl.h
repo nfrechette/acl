@@ -251,8 +251,8 @@ namespace acl
 				ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
 				const float alpha = interpolation_alpha_per_policy[static_cast<int>(rounding_policy_)];
 
-				const rtm::scalarf value0 = rtm::scalar_load(&track__[key_frame0]);
-				const rtm::scalarf value1 = rtm::scalar_load(&track__[key_frame1]);
+				const rtm::scalarf value0 = rtm::scalar_load_as_scalar(&track__[key_frame0]);
+				const rtm::scalarf value1 = rtm::scalar_load_as_scalar(&track__[key_frame1]);
 				const rtm::scalarf value = rtm::scalar_lerp(value0, value1, rtm::scalar_set(alpha));
 				writer.write_float1(track_index, value);
 			}
@@ -371,8 +371,8 @@ namespace acl
 		{
 			const track_float1f& track__ = track_cast<track_float1f>(track_);
 
-			const rtm::scalarf value0 = rtm::scalar_load(&track__[key_frame0]);
-			const rtm::scalarf value1 = rtm::scalar_load(&track__[key_frame1]);
+			const rtm::scalarf value0 = rtm::scalar_load_as_scalar(&track__[key_frame0]);
+			const rtm::scalarf value1 = rtm::scalar_load_as_scalar(&track__[key_frame1]);
 			const rtm::scalarf value = rtm::scalar_lerp(value0, value1, rtm::scalar_set(interpolation_alpha));
 			writer.write_float1(track_index, value);
 			break;
