@@ -40,6 +40,7 @@
 #include "acl/compression/output_stats.h"
 #include "acl/compression/track_array.h"
 #include "acl/compression/impl/clip_context.h"
+#include "acl/compression/impl/compression_stats.h"
 #include "acl/compression/impl/track_stream.h"
 #include "acl/compression/impl/convert_rotation.transform.h"
 #include "acl/compression/impl/compact.transform.h"
@@ -142,8 +143,12 @@ namespace acl
 			if (result.any())
 				return result;
 
+			compression_stats_t compression_stats;
+			(void)compression_stats;
+
 #if defined(ACL_USE_SJSON)
 			scope_profiler compression_time;
+			scope_profiler initialization_time;
 #endif
 
 			// Segmenting settings are an implementation detail
@@ -223,40 +228,44 @@ namespace acl
 			if (is_additive)
 				additive_base_clip_context.clip_shell_metadata = clip_shell_metadata;
 
+#if defined(ACL_USE_SJSON)
+			compression_stats.initialization_elapsed_seconds = initialization_time.get_elapsed_seconds();
+#endif
+
 			// Wrap instead of clamp if we loop
-			optimize_looping(lossy_clip_context, additive_base_clip_context, settings);
+			optimize_looping(lossy_clip_context, additive_base_clip_context, settings, compression_stats);
 
 			// Convert our rotations if we need to
-			convert_rotation_streams(allocator, lossy_clip_context, settings.rotation_format);
+			convert_rotation_streams(allocator, lossy_clip_context, settings.rotation_format, compression_stats);
 
 			// Extract our clip ranges now, we need it for compacting the constant streams
-			extract_clip_bone_ranges(allocator, lossy_clip_context);
+			extract_clip_bone_ranges(allocator, lossy_clip_context, compression_stats);
 
 			// Compact and collapse the constant streams
-			compact_constant_streams(allocator, lossy_clip_context, additive_base_clip_context, track_list, settings);
+			compact_constant_streams(allocator, lossy_clip_context, additive_base_clip_context, track_list, settings, compression_stats);
 
 			uint32_t clip_range_data_size = 0;
 			if (range_reduction != range_reduction_flags8::none)
 			{
 				// Normalize our samples into the clip wide ranges per bone
-				normalize_clip_streams(lossy_clip_context, range_reduction);
+				normalize_clip_streams(lossy_clip_context, range_reduction, compression_stats);
 				clip_range_data_size = get_clip_range_data_size(lossy_clip_context, range_reduction, settings.rotation_format);
 			}
 
-			segment_streams(allocator, lossy_clip_context, segmenting_settings);
+			segment_streams(allocator, lossy_clip_context, segmenting_settings, compression_stats);
 
 			// If we have a single segment, skip segment range reduction since it won't help
 			if (range_reduction != range_reduction_flags8::none && lossy_clip_context.num_segments > 1)
 			{
 				// Extract and fixup our segment wide ranges per bone
-				extract_segment_bone_ranges(allocator, lossy_clip_context);
+				extract_segment_bone_ranges(allocator, lossy_clip_context, compression_stats);
 
 				// Normalize our samples into the segment wide ranges per bone
-				normalize_segment_streams(lossy_clip_context, range_reduction);
+				normalize_segment_streams(lossy_clip_context, range_reduction, compression_stats);
 			}
 
 			// Find how many bits we need per sub-track and quantize everything
-			quantize_streams(allocator, lossy_clip_context, settings, raw_clip_context, additive_base_clip_context, out_stats);
+			quantize_streams(allocator, lossy_clip_context, settings, raw_clip_context, additive_base_clip_context, out_stats, compression_stats);
 
 			uint32_t num_output_bones = 0;
 			uint32_t* output_bone_mapping = create_output_track_mapping(allocator, track_list, num_output_bones);
@@ -265,9 +274,12 @@ namespace acl
 			calculate_animated_data_size(lossy_clip_context, output_bone_mapping, num_output_bones);
 
 			// Remove whole keyframes as needed
-			strip_keyframes(lossy_clip_context, settings);
+			strip_keyframes(lossy_clip_context, settings, compression_stats);
 
 			// Compression is done! Time to pack things.
+#if defined(ACL_USE_SJSON)
+			scope_profiler output_packing_time;
+#endif
 
 			if (remove_contributing_error)
 				settings.metadata.include_contributing_error = false;
@@ -517,6 +529,10 @@ namespace acl
 			buffer_header->size = buffer_size;
 			buffer_header->hash = hash32(safe_ptr_cast<const uint8_t>(header), buffer_size - sizeof(raw_buffer_header));	// Hash everything but the raw buffer header
 
+#if defined(ACL_USE_SJSON)
+			compression_stats.output_packing_elapsed_seconds = output_packing_time.get_elapsed_seconds();
+#endif
+
 #if defined(ACL_HAS_ASSERT_CHECKS)
 			{
 				// Make sure we wrote the right amount of data
@@ -575,10 +591,10 @@ namespace acl
 #endif
 
 #if defined(ACL_USE_SJSON)
-			compression_time.stop();
+			compression_stats.total_elapsed_seconds = compression_time.stop().get_elapsed_seconds();
 
 			if (out_stats.logging != stat_logging::none)
-				write_stats(allocator, track_list, lossy_clip_context, *out_compressed_tracks, settings, segmenting_settings, range_reduction, raw_clip_context, additive_base_clip_context, compression_time, out_stats);
+				write_stats(allocator, track_list, lossy_clip_context, *out_compressed_tracks, settings, segmenting_settings, range_reduction, raw_clip_context, additive_base_clip_context, compression_stats, out_stats);
 #endif
 
 			deallocate_type_array(allocator, output_bone_mapping, num_output_bones);

@@ -29,7 +29,9 @@
 #include "acl/core/track_formats.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/error.h"
+#include "acl/core/scope_profiler.h"
 #include "acl/compression/impl/clip_context.h"
+#include "acl/compression/impl/compression_stats.h"
 #include "acl/compression/impl/rigid_shell_utils.h"
 #include "acl/compression/transform_error_metrics.h"
 
@@ -349,8 +351,20 @@ namespace acl
 		// By default, constant sub-tracks will retain the first sample.
 		// A constant sub-track is a default sub-track if its unique sample can be replaced by the default value
 		// without exceeding our error threshold.
-		inline void compact_constant_streams(iallocator& allocator, clip_context& context, const clip_context& additive_base_clip_context, const track_array_qvvf& track_list, const compression_settings& settings)
+		inline void compact_constant_streams(
+			iallocator& allocator,
+			clip_context& context,
+			const clip_context& additive_base_clip_context,
+			const track_array_qvvf& track_list,
+			const compression_settings& settings,
+			compression_stats_t& compression_stats)
 		{
+			(void)compression_stats;
+
+#if defined(ACL_USE_SJSON)
+			scope_profiler compact_constant_sub_tracks_time;
+#endif
+
 			ACL_ASSERT(context.num_segments == 1, "context must contain a single segment!");
 
 			segment_context& segment = context.segments[0];
@@ -654,6 +668,10 @@ namespace acl
 					extract_clip_bone_ranges(allocator, context);
 				}
 			}
+#endif
+
+#if defined(ACL_USE_SJSON)
+			compression_stats.compact_constant_sub_tracks_elapsed_seconds = compact_constant_sub_tracks_time.get_elapsed_seconds();
 #endif
 		}
 	}

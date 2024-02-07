@@ -28,6 +28,7 @@
 #include "acl/core/iallocator.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/error.h"
+#include "acl/core/scope_profiler.h"
 #include "acl/core/time_utils.h"
 #include "acl/core/track_formats.h"
 #include "acl/core/impl/variable_bit_rates.h"
@@ -36,6 +37,7 @@
 #include "acl/compression/impl/track_bit_rate_database.h"
 #include "acl/compression/impl/transform_bit_rate_permutations.h"
 #include "acl/compression/impl/clip_context.h"
+#include "acl/compression/impl/compression_stats.h"
 #include "acl/compression/impl/sample_streams.h"
 #include "acl/compression/impl/normalize.transform.h"
 #include "acl/compression/impl/convert_rotation.transform.h"
@@ -1850,12 +1852,24 @@ namespace acl
 			deallocate_type_array(allocator, num_stripped_in_segment, num_segments);
 		}
 
-		inline void quantize_streams(iallocator& allocator, clip_context& clip, const compression_settings& settings, const clip_context& raw_clip_context, const clip_context& additive_base_clip_context, const output_stats& out_stats)
+		inline void quantize_streams(
+			iallocator& allocator,
+			clip_context& clip,
+			const compression_settings& settings,
+			const clip_context& raw_clip_context,
+			const clip_context& additive_base_clip_context,
+			const output_stats& out_stats,
+			compression_stats_t& compression_stats)
 		{
 			(void)out_stats;
+			(void)compression_stats;
 
 			if (clip.num_bones == 0 || clip.num_samples == 0)
 				return;
+
+#if defined(ACL_USE_SJSON)
+			scope_profiler bit_rate_optimization_time;
+#endif
 
 			const bool is_rotation_variable = is_rotation_format_variable(settings.rotation_format);
 			const bool is_translation_variable = is_vector_format_variable(settings.translation_format);
@@ -1909,6 +1923,10 @@ namespace acl
 			// If we need the contributing error of each keyframe, sort them for the whole clip
 			if (settings.metadata.include_contributing_error)
 				sort_contributing_error(allocator, clip);
+
+#if defined(ACL_USE_SJSON)
+			compression_stats.bit_rate_optimization_elapsed_seconds = bit_rate_optimization_time.get_elapsed_seconds();
+#endif
 
 #if defined(ACL_USE_SJSON)
 			if (are_all_enum_flags_set(out_stats.logging, stat_logging::detailed))
