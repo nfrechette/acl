@@ -1038,6 +1038,7 @@ namespace acl
 
 		constexpr uint32_t increment_and_clamp_bit_rate(uint32_t bit_rate, uint32_t increment)
 		{
+			// If the bit rate is already above highest (e.g 255 if constant), leave it as is otherwise increment and clamp
 			return bit_rate >= k_highest_bit_rate ? bit_rate : std::min<uint32_t>(bit_rate + increment, k_highest_bit_rate);
 		}
 
