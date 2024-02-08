@@ -315,7 +315,8 @@ namespace acl
 						track_bit_offset1 += num_sample_bits;
 					}
 
-					writer.write_float1(track_index, value);
+					if (!writer.skip_track_float1(track_index))
+						writer.write_float1(track_index, value);
 				}
 				else if (track_type == track_type8::float2f && decompression_settings_type::is_track_type_supported(track_type8::float2f))
 				{
@@ -353,7 +354,8 @@ namespace acl
 						track_bit_offset1 += num_sample_bits;
 					}
 
-					writer.write_float2(track_index, value);
+					if (!writer.skip_track_float2(track_index))
+						writer.write_float2(track_index, value);
 				}
 				else if (track_type == track_type8::float3f && decompression_settings_type::is_track_type_supported(track_type8::float3f))
 				{
@@ -391,7 +393,8 @@ namespace acl
 						track_bit_offset1 += num_sample_bits;
 					}
 
-					writer.write_float3(track_index, value);
+					if (!writer.skip_track_float3(track_index))
+						writer.write_float3(track_index, value);
 				}
 				else if (track_type == track_type8::float4f && decompression_settings_type::is_track_type_supported(track_type8::float4f))
 				{
@@ -429,7 +432,8 @@ namespace acl
 						track_bit_offset1 += num_sample_bits;
 					}
 
-					writer.write_float4(track_index, value);
+					if (!writer.skip_track_float4(track_index))
+						writer.write_float4(track_index, value);
 				}
 				else if (track_type == track_type8::vector4f && decompression_settings_type::is_track_type_supported(track_type8::vector4f))
 				{
@@ -467,7 +471,8 @@ namespace acl
 						track_bit_offset1 += num_sample_bits;
 					}
 
-					writer.write_vector4(track_index, value);
+					if (!writer.skip_track_vector4(track_index))
+						writer.write_vector4(track_index, value);
 				}
 			}
 
