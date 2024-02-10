@@ -39,7 +39,38 @@ namespace acl
 
 	namespace acl_impl
 	{
-		constexpr uint8_t k_local_bit_rate_permutations_no_scale[625][2] =
+		// Buffer size in bytes: 25
+		constexpr uint8_t k_local_bit_rate_permutations_1_dof[25][1] =
+		{
+			{ 0 },		// 0 bits per transform
+			{ 1 },		// 3 bits per transform
+			{ 2 },		// 6 bits per transform
+			{ 3 },		// 9 bits per transform
+			{ 4 },		// 12 bits per transform
+			{ 5 },		// 15 bits per transform
+			{ 6 },		// 18 bits per transform
+			{ 7 },		// 21 bits per transform
+			{ 8 },		// 24 bits per transform
+			{ 9 },		// 27 bits per transform
+			{ 10 },		// 30 bits per transform
+			{ 11 },		// 33 bits per transform
+			{ 12 },		// 36 bits per transform
+			{ 13 },		// 39 bits per transform
+			{ 14 },		// 42 bits per transform
+			{ 15 },		// 45 bits per transform
+			{ 16 },		// 48 bits per transform
+			{ 17 },		// 51 bits per transform
+			{ 18 },		// 54 bits per transform
+			{ 19 },		// 57 bits per transform
+			{ 20 },		// 60 bits per transform
+			{ 21 },		// 63 bits per transform
+			{ 22 },		// 66 bits per transform
+			{ 23 },		// 69 bits per transform
+			{ 24 },		// 96 bits per transform
+		};
+
+		// Buffer size in bytes: 1250
+		constexpr uint8_t k_local_bit_rate_permutations_2_dof[625][2] =
 		{
 			{ 0, 0 },		// 0 bits per transform
 			{ 0, 1 },		// 3 bits per transform
@@ -668,7 +699,8 @@ namespace acl
 			{ 24, 24 },		// 192 bits per transform
 		};
 
-		constexpr uint8_t k_local_bit_rate_permutations[15625][3] =
+		// Buffer size in bytes: 46875
+		constexpr uint8_t k_local_bit_rate_permutations_3_dof[15625][3] =
 		{
 			{ 0, 0, 0 },		// 0 bits per transform
 			{ 0, 0, 1 },		// 3 bits per transform
