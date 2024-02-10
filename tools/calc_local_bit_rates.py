@@ -17,30 +17,45 @@ if __name__ == "__main__":
 		print('Python 3.4 or higher needed to run this script')
 		sys.exit(1)
 
-	permutation_tries = []
-	permutation_tries_no_scale = []
+	permutation_dof_1 = []
+	permutation_dof_2 = []
+	permutation_dof_3 = []
 
-	for rotation_bit_rate in range(k_num_bit_rates):
-		for translation_bit_rate in range(k_num_bit_rates):
-			transform_size = k_bit_rate_num_bits[rotation_bit_rate] * 3 + k_bit_rate_num_bits[translation_bit_rate] * 3
-			permutation_tries_no_scale.append((transform_size, rotation_bit_rate, translation_bit_rate))
+	for dof_1 in range(k_num_bit_rates):
+		dof_1_size = k_bit_rate_num_bits[dof_1] * 3;
+		permutation_dof_1.append((dof_1_size, dof_1))
 
-			for scale_bit_rate in range(k_num_bit_rates):
-				transform_size = k_bit_rate_num_bits[rotation_bit_rate] * 3 + k_bit_rate_num_bits[translation_bit_rate] * 3 + k_bit_rate_num_bits[scale_bit_rate] * 3
-				permutation_tries.append((transform_size, rotation_bit_rate, translation_bit_rate, scale_bit_rate))
+		for dof_2 in range(k_num_bit_rates):
+			dof_2_size = dof_1_size + k_bit_rate_num_bits[dof_2] * 3
+			permutation_dof_2.append((dof_2_size, dof_1, dof_2))
+
+			for dof_3 in range(k_num_bit_rates):
+				dof_3_size = dof_2_size + k_bit_rate_num_bits[dof_3] * 3
+				permutation_dof_3.append((dof_3_size, dof_1, dof_2, dof_3))
 
 	# Sort by transform size, then by each bit rate
-	permutation_tries.sort()
-	permutation_tries_no_scale.sort()
+	permutation_dof_1.sort()
+	permutation_dof_2.sort()
+	permutation_dof_3.sort()
 
-	print('constexpr uint8_t k_local_bit_rate_permutations_no_scale[{}][2] ='.format(len(permutation_tries_no_scale)))
+	print('// Buffer size in bytes: {}'.format(len(permutation_dof_1) * 1));
+	print('constexpr uint8_t k_local_bit_rate_permutations_1_dof[{}][1] ='.format(len(permutation_dof_1)))
 	print('{')
-	for transform_size, rotation_bit_rate, translation_bit_rate in permutation_tries_no_scale:
-		print('\t{{ {}, {} }},\t\t// {} bits per transform'.format(rotation_bit_rate, translation_bit_rate, transform_size))
+	for transform_size, dof_1 in permutation_dof_1:
+		print('\t{{ {} }},\t\t// {} bits per transform'.format(dof_1, transform_size))
 	print('};')
 	print()
-	print('constexpr uint8_t k_local_bit_rate_permutations[{}][3] ='.format(len(permutation_tries)))
+	print('// Buffer size in bytes: {}'.format(len(permutation_dof_2) * 2));
+	print('constexpr uint8_t k_local_bit_rate_permutations_2_dof[{}][2] ='.format(len(permutation_dof_2)))
 	print('{')
-	for transform_size, rotation_bit_rate, translation_bit_rate, scale_bit_rate in permutation_tries:
-		print('\t{{ {}, {}, {} }},\t\t// {} bits per transform'.format(rotation_bit_rate, translation_bit_rate, scale_bit_rate, transform_size))
+	for transform_size, dof_1, dof_2 in permutation_dof_2:
+		print('\t{{ {}, {} }},\t\t// {} bits per transform'.format(dof_1, dof_2, transform_size))
 	print('};')
+	print()
+	print('// Buffer size in bytes: {}'.format(len(permutation_dof_3) * 3));
+	print('constexpr uint8_t k_local_bit_rate_permutations_3_dof[{}][3] ='.format(len(permutation_dof_3)))
+	print('{')
+	for transform_size, dof_1, dof_2, dof_3 in permutation_dof_3:
+		print('\t{{ {}, {}, {} }},\t\t// {} bits per transform'.format(dof_1, dof_2, dof_3, transform_size))
+	print('};')
+	print()
