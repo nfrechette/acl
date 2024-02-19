@@ -1114,6 +1114,11 @@ namespace acl
 			const bool is_translation_variable = is_vector_format_variable(translation_format);
 			const bool is_scale_variable = segment_context_has_scale(segment) && is_vector_format_variable(scale_format);
 
+			// If our inputs aren't normalized per segment, we can't store them on 0 bits because we'll have no
+			// segment range information. This occurs when we have a single segment.
+			const uint8_t k_constant_segment_bit_rate = 0;
+			const uint8_t k_lowest_non_constant_bit_rate = k_lowest_bit_rate;
+
 			const uint32_t num_bones = segment.num_bones;
 			for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
@@ -1121,19 +1126,19 @@ namespace acl
 
 				const bool rotation_supports_constant_tracks = segment.are_rotations_normalized;
 				if (is_rotation_variable && !segment.bone_streams[bone_index].is_rotation_constant)
-					bone_bit_rate.rotation = rotation_supports_constant_tracks ? static_cast<uint8_t>(0) : k_lowest_bit_rate;
+					bone_bit_rate.rotation = rotation_supports_constant_tracks ? k_constant_segment_bit_rate : k_lowest_non_constant_bit_rate;
 				else
 					bone_bit_rate.rotation = k_invalid_bit_rate;
 
 				const bool translation_supports_constant_tracks = segment.are_translations_normalized;
 				if (is_translation_variable && !segment.bone_streams[bone_index].is_translation_constant)
-					bone_bit_rate.translation = translation_supports_constant_tracks ? static_cast<uint8_t>(0) : k_lowest_bit_rate;
+					bone_bit_rate.translation = translation_supports_constant_tracks ? k_constant_segment_bit_rate : k_lowest_non_constant_bit_rate;
 				else
 					bone_bit_rate.translation = k_invalid_bit_rate;
 
 				const bool scale_supports_constant_tracks = segment.are_scales_normalized;
 				if (is_scale_variable && !segment.bone_streams[bone_index].is_scale_constant)
-					bone_bit_rate.scale = scale_supports_constant_tracks ? static_cast<uint8_t>(0) : k_lowest_bit_rate;
+					bone_bit_rate.scale = scale_supports_constant_tracks ? k_constant_segment_bit_rate : k_lowest_non_constant_bit_rate;
 				else
 					bone_bit_rate.scale = k_invalid_bit_rate;
 			}
