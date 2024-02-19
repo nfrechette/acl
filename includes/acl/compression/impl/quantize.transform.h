@@ -56,10 +56,10 @@
 #include <cstdint>
 #include <functional>
 
-#define ACL_IMPL_DEBUG_LEVEL_NONE					0
-#define ACL_IMPL_DEBUG_LEVEL_SUMMARY_ONLY			1
-#define ACL_IMPL_DEBUG_LEVEL_BASIC_INFO				2
-#define ACL_IMPL_DEBUG_LEVEL_VERBOSE_INFO			3
+#define ACL_IMPL_DEBUG_LEVEL_NONE					0		// No logging whatsoever
+#define ACL_IMPL_DEBUG_LEVEL_SUMMARY_ONLY			1		// Logs a summary at the end
+#define ACL_IMPL_DEBUG_LEVEL_BASIC_INFO				2		// Logs the best bit rate after each pass
+#define ACL_IMPL_DEBUG_LEVEL_VERBOSE_INFO			3		// Logs every attempted bit rate
 
 // Dumps details of quantization optimization process
 // Use debug levels above to control debug output
@@ -900,7 +900,7 @@ namespace acl
 				if (bone_bit_rates.rotation == k_invalid_bit_rate && bone_bit_rates.translation == k_invalid_bit_rate && bone_bit_rates.scale == k_invalid_bit_rate)
 				{
 #if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_BASIC_INFO
-					printf("%u: Best bit rates: %u | %u | %u\n", bone_index, bone_bit_rates.rotation, bone_bit_rates.translation, bone_bit_rates.scale);
+					printf("%8u: Best bit rates: [%3u, %3u, %3u] (all constant)\n", bone_index, bone_bit_rates.rotation, bone_bit_rates.translation, bone_bit_rates.scale);
 #endif
 					continue;	// Every track bit rate is constant/default, nothing else to do
 				}
@@ -981,7 +981,7 @@ namespace acl
 				}
 
 #if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_BASIC_INFO
-				printf("%u: Best bit rates: %u | %u | %u\n", bone_index, best_bit_rates.rotation, best_bit_rates.translation, best_bit_rates.scale);
+				printf("%8u: Best bit rates: [%3u, %3u, %3u] @ %.4f%s (local)\n", bone_index, best_bit_rates.rotation, best_bit_rates.translation, best_bit_rates.scale, best_error, is_error_good_enough ? "" : " (too high)");
 #endif
 
 				context.bit_rate_per_bone[bone_index] = best_bit_rates;
@@ -1242,7 +1242,14 @@ namespace acl
 				context.num_bones_in_chain = num_bones_in_chain;
 
 				float error = calculate_max_error_at_bit_rate_object(context, bone_index, error_scan_stop_condition::until_error_too_high);
-				if (error < error_threshold)
+
+#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_BASIC_INFO
+				printf("%8u: Bit rates: [%3u, %3u, %3u] @ %.4f%s (object)\n",
+					bone_index, context.bit_rate_per_bone[bone_index].rotation, context.bit_rate_per_bone[bone_index].translation, context.bit_rate_per_bone[bone_index].scale,
+					error, error < error_threshold ? "" : " (too high)");
+#endif
+
+				if (error < error_threshold || k_skip_object_space_optim)
 					continue;
 
 				const float initial_error = error;
@@ -1360,15 +1367,20 @@ namespace acl
 						float new_error = calculate_max_error_at_bit_rate_object(context, bone_index, error_scan_stop_condition::until_end_of_segment);
 						std::swap(context.bit_rate_per_bone, best_bit_rates);
 
-						for (uint32_t i = 0; i < context.num_bones; ++i)
+						for (uint32_t i = 0; i < num_bones; ++i)
 						{
 							const transform_bit_rates& bone_bit_rate = context.bit_rate_per_bone[i];
 							const transform_bit_rates& best_bone_bit_rate = best_bit_rates[i];
-							bool rotation_differs = bone_bit_rate.rotation != best_bone_bit_rate.rotation;
-							bool translation_differs = bone_bit_rate.translation != best_bone_bit_rate.translation;
-							bool scale_differs = bone_bit_rate.scale != best_bone_bit_rate.scale;
+							const bool rotation_differs = bone_bit_rate.rotation != best_bone_bit_rate.rotation;
+							const bool translation_differs = bone_bit_rate.translation != best_bone_bit_rate.translation;
+							const bool scale_differs = bone_bit_rate.scale != best_bone_bit_rate.scale;
 							if (rotation_differs || translation_differs || scale_differs)
-								printf("%u: %u | %u | %u => %u  %u %u (%f)\n", i, bone_bit_rate.rotation, bone_bit_rate.translation, bone_bit_rate.scale, best_bone_bit_rate.rotation, best_bone_bit_rate.translation, best_bone_bit_rate.scale, new_error);
+							{
+								printf("%8u: [%3u, %3u, %3u] @ %.4f => [%3u, %3u, %3u] @ %.4f%s (new permutation)\n",
+									i, bone_bit_rate.rotation, bone_bit_rate.translation, bone_bit_rate.scale,
+									original_error, best_bone_bit_rate.rotation, best_bone_bit_rate.translation, best_bone_bit_rate.scale,
+									new_error, new_error < error_threshold ? "" : " (too high)");
+							}
 						}
 #endif
 
@@ -1383,15 +1395,20 @@ namespace acl
 					float new_error = calculate_max_error_at_bit_rate_object(context, bone_index, error_scan_stop_condition::until_end_of_segment);
 					std::swap(context.bit_rate_per_bone, best_bit_rates);
 
-					for (uint32_t i = 0; i < context.num_bones; ++i)
+					for (uint32_t i = 0; i < num_bones; ++i)
 					{
 						const transform_bit_rates& bone_bit_rate = context.bit_rate_per_bone[i];
 						const transform_bit_rates& best_bone_bit_rate = best_bit_rates[i];
-						bool rotation_differs = bone_bit_rate.rotation != best_bone_bit_rate.rotation;
-						bool translation_differs = bone_bit_rate.translation != best_bone_bit_rate.translation;
-						bool scale_differs = bone_bit_rate.scale != best_bone_bit_rate.scale;
+						const bool rotation_differs = bone_bit_rate.rotation != best_bone_bit_rate.rotation;
+						const bool translation_differs = bone_bit_rate.translation != best_bone_bit_rate.translation;
+						const bool scale_differs = bone_bit_rate.scale != best_bone_bit_rate.scale;
 						if (rotation_differs || translation_differs || scale_differs)
-							printf("%u: %u | %u | %u => %u  %u %u (%f)\n", i, bone_bit_rate.rotation, bone_bit_rate.translation, bone_bit_rate.scale, best_bone_bit_rate.rotation, best_bone_bit_rate.translation, best_bone_bit_rate.scale, new_error);
+						{
+							printf("%8u: [%3u, %3u, %3u] @ %.4f => [%3u, %3u, %3u] @ %.4f%s (alternate permutation)\n",
+								i, bone_bit_rate.rotation, bone_bit_rate.translation, bone_bit_rate.scale,
+								initial_error, best_bone_bit_rate.rotation, best_bone_bit_rate.translation, best_bone_bit_rate.scale,
+								new_error, new_error < error_threshold ? "" : " (too high)");
+						}
 					}
 #endif
 
@@ -1430,6 +1447,10 @@ namespace acl
 								break;
 							}
 
+#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_BASIC_INFO
+							const float old_error = error;
+#endif
+
 							// If rotation == translation and translation has room, bias translation
 							// This seems to yield an overall tiny win but it isn't always the case.
 							// TODO: Brute force this?
@@ -1444,18 +1465,22 @@ namespace acl
 
 							if (error < best_bit_rate_error)
 							{
-								best_bone_bit_rate = bone_bit_rate;
-								best_bit_rate_error = error;
-
 #if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_BASIC_INFO
-								printf("%u: => %u %u %u (%f)\n", chain_bone_index, bone_bit_rate.rotation, bone_bit_rate.translation, bone_bit_rate.scale, error);
+								printf("%8u: [%3u, %3u, %3u] @ %.4f => [%3u, %3u, %3u] @ %.4f%s (aggressive bumping)\n",
+									chain_bone_index, best_bone_bit_rate.rotation, best_bone_bit_rate.translation, best_bone_bit_rate.scale,
+									old_error, bone_bit_rate.rotation, bone_bit_rate.translation, bone_bit_rate.scale,
+									error, error < error_threshold ? "" : " (too high)");
+
 								for (uint32_t i = chain_link_index + 1; i < num_bones_in_chain; ++i)
 								{
 									const uint32_t chain_bone_index2 = context.chain_bone_indices[chain_link_index];
 									float error2 = calculate_max_error_at_bit_rate_object(context, chain_bone_index2, error_scan_stop_condition::until_end_of_segment);
-									printf("  %u: => (%f)\n", i, error2);
+									printf("  %8u .. @ %.4f (in chain)\n", i, error2);
 								}
 #endif
+
+								best_bone_bit_rate = bone_bit_rate;
+								best_bit_rate_error = error;
 							}
 						}
 
@@ -1488,12 +1513,25 @@ namespace acl
 					for (int32_t chain_link_index = static_cast<int32_t>(num_bones_in_chain) - 1; chain_link_index >= 0; --chain_link_index)
 					{
 						const uint32_t chain_bone_index = context.chain_bone_indices[chain_link_index];
+
+#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_BASIC_INFO
+						const transform_bit_rates old_bone_bit_rate = context.bit_rate_per_bone[chain_bone_index];
+#endif
+
 						transform_bit_rates& bone_bit_rate = context.bit_rate_per_bone[chain_bone_index];
 						bone_bit_rate.rotation = std::max<uint8_t>(bone_bit_rate.rotation, k_highest_bit_rate);
 						bone_bit_rate.translation = std::max<uint8_t>(bone_bit_rate.translation, k_highest_bit_rate);
 						bone_bit_rate.scale = std::max<uint8_t>(bone_bit_rate.scale, k_highest_bit_rate);
 
 						error = calculate_max_error_at_bit_rate_object(context, bone_index, error_scan_stop_condition::until_end_of_segment);
+
+#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_BASIC_INFO
+						printf("%8u: [%3u, %3u, %3u] => [%3u, %3u, %3u] @ %.4f%s (failsafe)\n",
+							chain_bone_index, old_bone_bit_rate.rotation, old_bone_bit_rate.translation, old_bone_bit_rate.scale,
+							bone_bit_rate.rotation, bone_bit_rate.translation, bone_bit_rate.scale,
+							error, error < error_threshold ? "" : " (too high)");
+#endif
+
 						if (error < error_threshold)
 							break;
 					}
@@ -1512,7 +1550,7 @@ namespace acl
 
 				float error = calculate_max_error_at_bit_rate_object(context, bone_index, error_scan_stop_condition::until_end_of_segment);
 				const transform_bit_rates& bone_bit_rate = context.bit_rate_per_bone[bone_index];
-				printf("%u: %u | %u | %u => %f %s\n", bone_index, bone_bit_rate.rotation, bone_bit_rate.translation, bone_bit_rate.scale, error, error >= error_threshold ? "!" : "");
+				printf("%8u: [%3u, %3u, %3u] @ %.4f%s\n", bone_index, bone_bit_rate.rotation, bone_bit_rate.translation, bone_bit_rate.scale, error, error < error_threshold ? "" : " (too high)");
 			}
 #endif
 
