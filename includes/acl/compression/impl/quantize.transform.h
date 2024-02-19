@@ -133,7 +133,7 @@ namespace acl
 			uint8_t* lossy_object_pose;				// 1 per transform
 			size_t metric_transform_size;
 
-			transform_bit_rates* bit_rate_per_bone;			// 1 per transform
+			transform_bit_rates* bit_rate_per_bone;	// 1 per transform
 			uint32_t* parent_transform_indices;		// 1 per transform
 			uint32_t* self_transform_indices;		// 1 per transform
 
