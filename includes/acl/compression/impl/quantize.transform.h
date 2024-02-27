@@ -1254,7 +1254,7 @@ namespace acl
 					error, error < error_threshold ? "" : " (too high)");
 #endif
 
-				if (error < error_threshold || k_skip_object_space_optim)
+				if (error < error_threshold)
 					continue;
 
 				const float initial_error = error;
