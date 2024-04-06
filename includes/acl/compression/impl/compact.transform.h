@@ -113,7 +113,7 @@ namespace acl
 			apply_additive_to_base_args.local_transforms = needs_conversion ? (const void*)&local_transforms_converted[0] : (const void*)&local_transforms[0];
 			apply_additive_to_base_args.num_transforms = 2;
 
-			qvvf_transform_error_metric::calculate_error_args calculate_error_args;
+			itransform_error_metric::calculate_error_args calculate_error_args;
 			calculate_error_args.construct_sphere_shell(shell.local_shell_distance);
 			calculate_error_args.transform0 = &local_transforms_converted[metric_transform_size * 0];
 			calculate_error_args.transform1 = &local_transforms_converted[metric_transform_size * 1];
