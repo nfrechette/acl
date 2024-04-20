@@ -49,6 +49,7 @@
 #include "acl/compression/impl/optimize_looping.transform.h"
 #include "acl/compression/impl/quantize.transform.h"
 #include "acl/compression/impl/segment.transform.h"
+#include "acl/compression/impl/topology_metadata.h"
 #include "acl/compression/impl/write_segment_data.h"
 #include "acl/compression/impl/write_stats.h"
 #include "acl/compression/impl/write_stream_data.h"
@@ -215,6 +216,15 @@ namespace acl
 
 			if (settings.level == compression_level8::automatic)
 				settings.level = find_best_compression_level(lossy_clip_context);
+
+			// Clip topology metadata, not specific to clip context
+			clip_topology_t clip_topology;
+			build_clip_topology(allocator, track_list, clip_topology);
+
+			raw_clip_context.topology = &clip_topology;
+			lossy_clip_context.topology = &clip_topology;
+			if (is_additive)
+				additive_base_clip_context.topology = &clip_topology;
 
 			// Topology dependent data, not specific to clip context
 			const uint32_t num_input_transforms = raw_clip_context.num_bones;

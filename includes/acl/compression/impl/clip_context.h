@@ -36,6 +36,7 @@
 #include "acl/compression/compression_settings.h"
 #include "acl/compression/track_array.h"
 #include "acl/compression/impl/segment_context.h"
+#include "acl/compression/impl/topology_metadata.h"
 
 #include <rtm/quatf.h>
 #include <rtm/vector4f.h>
@@ -182,6 +183,11 @@ namespace acl
 			// Data is aggregate of whole clip
 			// Shared between all clip contexts, not owned
 			const rigid_shell_metadata_t* clip_shell_metadata	= nullptr;
+
+			// Topology metadata
+			// Data is aggregate of whole clip
+			// Shared between all clip contexts, not owned
+			const clip_topology_t* topology				= nullptr;
 
 			// Optional if we request it in the compression settings
 			// Sorted by stripping order within this clip

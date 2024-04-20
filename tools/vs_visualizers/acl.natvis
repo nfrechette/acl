@@ -177,7 +177,43 @@
         <ValuePointer Condition="m_type == acl::animation_track_type8::scale">(rtm::float4f*)m_samples</ValuePointer>
       </ArrayItems>
     </Expand>
+  </Type>
 
+  <Type Name="acl::acl_impl::transform_topology_t">
+    <DisplayString Condition="num_children == 0">parent={parent_index}, num_children={num_children} (leaf)</DisplayString>
+    <DisplayString>parent={parent_index}, num_children={num_children}</DisplayString>
+    <Expand>
+      <Item Name="parent_index">parent_index</Item>
+      <Item Name="is_root">parent_index == k_invalid_track_index</Item>
+      <Item Name="is_leaf">num_children == 0</Item>
+      <Synthetic Name="Children">
+        <DisplayString>count={num_children}</DisplayString>
+        <Expand>
+          <ArrayItems>
+            <Size>num_children</Size>
+            <ValuePointer>children</ValuePointer>
+          </ArrayItems>
+        </Expand>
+      </Synthetic>
+      <Synthetic Name="Leaves">
+        <DisplayString>count={num_leaves}</DisplayString>
+        <Expand>
+          <ArrayItems>
+            <Size>num_leaves</Size>
+            <ValuePointer>leaves</ValuePointer>
+          </ArrayItems>
+        </Expand>
+      </Synthetic>
+    </Expand>
+  </Type>
+
+  <Type Name="acl::acl_impl::clip_topology_t">
+    <Expand>
+      <ArrayItems>
+        <Size>num_transforms</Size>
+        <ValuePointer>transforms</ValuePointer>
+      </ArrayItems>
+    </Expand>
   </Type>
 
 </AutoVisualizer>
