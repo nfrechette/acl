@@ -67,6 +67,16 @@ namespace acl
 			uint8_t rotation;
 			uint8_t translation;
 			uint8_t scale;
+
+			uint32_t get_num_bits() const
+			{
+				uint32_t num_bits = 0;
+				num_bits += rotation != k_invalid_bit_rate ? get_num_bits_at_bit_rate(rotation) : 0;
+				num_bits += translation != k_invalid_bit_rate ? get_num_bits_at_bit_rate(translation) : 0;
+				num_bits += scale != k_invalid_bit_rate ? get_num_bits_at_bit_rate(scale) : 0;
+
+				return num_bits;
+			}
 		};
 	}
 
