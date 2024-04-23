@@ -85,9 +85,9 @@ namespace acl
 			track_array_qvvf& track_list = track_array_cast<track_array_qvvf>(context.track_list);
 
 			transform_track_array_adapter_t clip_adapter(&track_list, context.settings.additive_format);
-			clip_adapter.rigid_shell_metadata = context.get_shell_metadata();
 
 			const bool is_looping = is_clip_looping(
+				context.allocator,
 				clip_adapter,
 				transform_track_array_adapter_t(context.settings.additive_base, additive_clip_format8::none),
 				*context.settings.error_metric);

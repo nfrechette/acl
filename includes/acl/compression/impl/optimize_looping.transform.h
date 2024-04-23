@@ -34,6 +34,7 @@
 #include "acl/compression/impl/compression_stats.h"
 #include "acl/compression/impl/segment_context.h"
 #include "acl/compression/impl/transform_clip_adapters.h"
+#include "acl/compression/impl/topology_metadata.h"
 
 #include <rtm/quatf.h>
 #include <rtm/vector4f.h>
@@ -50,6 +51,7 @@ namespace acl
 	{
 		template<class clip_adapter_t>
 		inline bool is_clip_looping(
+			iallocator& allocator,
 			const clip_adapter_t& raw_clip,
 			const clip_adapter_t& additive_base_clip,
 			const itransform_error_metric& error_metric)
@@ -64,113 +66,127 @@ namespace acl
 			if (num_transforms == 0)
 				return false;	// No data present
 
-			// Detect if our last sample matches the first, if it does we are looping and we can
-			// remove the last sample and wrap instead of clamping
-			bool is_wrapping = true;
+			const bool has_scale = true;	// We assume we have scale for simplicity
+			if (error_metric.needs_conversion(has_scale))
+				return false;	// We don't support error metrics that require conversion
 
+			const uint32_t first_sample_index = 0;
 			const uint32_t last_sample_index = num_samples - 1;
+
 			const bool has_additive_base = raw_clip.has_additive_base();
-			const bool has_scale = raw_clip.has_scale();
-			const bool needs_conversion = error_metric.needs_conversion(has_scale);
+			const uint32_t base_num_samples = has_additive_base ? additive_base_clip.get_num_samples() : 0;
+			const uint32_t base_first_sample_index = 0;
+			const uint32_t base_last_sample_index = has_additive_base ? (base_num_samples - 1) : 0;
 
-			const rigid_shell_metadata_t* rigid_shell_metadata = raw_clip.get_rigid_shell_metadata();
+			uint32_t* dirty_transform_indices = allocate_type_array<uint32_t>(allocator, num_transforms);
+			uint32_t* parent_transform_indices = allocate_type_array<uint32_t>(allocator, num_transforms);
+			rtm::qvvf* clip_transforms = allocate_type_array<rtm::qvvf>(allocator, num_transforms * 2);
+			rtm::qvvf* base_transforms = allocate_type_array<rtm::qvvf>(allocator, num_transforms * 2);
 
-			const uint32_t dirty_transform_indices[2] = { 0, 1 };
-			rtm::qvvf local_transforms[2];
-			rtm::qvvf base_transforms[2];
-			alignas(16) uint8_t local_transforms_converted[1024];	// Big enough for 2 transforms for sure
-			alignas(16) uint8_t base_transforms_converted[1024];	// Big enough for 2 transforms for sure
+			rtm::qvvf* clip_transforms_first = clip_transforms;
+			rtm::qvvf* clip_transforms_last = clip_transforms + num_transforms;
 
-			const size_t metric_transform_size = error_metric.get_transform_size(has_scale);
-			ACL_ASSERT(metric_transform_size * 2 <= sizeof(local_transforms_converted), "Transform size is too large");
-
-			itransform_error_metric::convert_transforms_args convert_transforms_args_local;
-			convert_transforms_args_local.dirty_transform_indices = &dirty_transform_indices[0];
-			convert_transforms_args_local.num_dirty_transforms = 2;
-			convert_transforms_args_local.transforms = &local_transforms[0];
-			convert_transforms_args_local.num_transforms = 2;
-			convert_transforms_args_local.sample_index = last_sample_index;
-			convert_transforms_args_local.is_additive_base = false;
-			convert_transforms_args_local.is_lossy = true;
-
-			itransform_error_metric::convert_transforms_args convert_transforms_args_base;
-			convert_transforms_args_base.dirty_transform_indices = &dirty_transform_indices[0];
-			convert_transforms_args_base.num_dirty_transforms = 2;
-			convert_transforms_args_base.transforms = &base_transforms[0];
-			convert_transforms_args_base.num_transforms = 2;
-			convert_transforms_args_base.is_additive_base = true;
-			convert_transforms_args_base.is_lossy = false;
-
-			itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args;
-			apply_additive_to_base_args.dirty_transform_indices = &dirty_transform_indices[0];
-			apply_additive_to_base_args.num_dirty_transforms = 2;
-			apply_additive_to_base_args.base_transforms = needs_conversion ? (const void*)&base_transforms_converted[0] : (const void*)&base_transforms[0];
-			apply_additive_to_base_args.local_transforms = needs_conversion ? (const void*)&local_transforms_converted[0] : (const void*)&local_transforms[0];
-			apply_additive_to_base_args.num_transforms = 2;
-
-			itransform_error_metric::calculate_error_args calculate_error_args;
-			calculate_error_args.transform0 = &local_transforms_converted[metric_transform_size * 0];
-			calculate_error_args.transform1 = &local_transforms_converted[metric_transform_size * 1];
+			rtm::qvvf* base_transforms_first = base_transforms;
+			rtm::qvvf* base_transforms_last = base_transforms + num_transforms;
 
 			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 			{
-				const rigid_shell_metadata_t& shell = rigid_shell_metadata[transform_index];
+				dirty_transform_indices[transform_index] = transform_index;
+				parent_transform_indices[transform_index] = raw_clip.get_transform_parent_index(transform_index);
+			}
 
-				calculate_error_args.construct_sphere_shell(shell.local_shell_distance);
-
-				const rtm::scalarf precision = rtm::scalar_set(shell.precision);
-
-				const rtm::quatf first_rotation = raw_clip.get_transform_rotation(transform_index, 0);
-				const rtm::vector4f first_translation = raw_clip.get_transform_translation(transform_index, 0);
-				const rtm::vector4f first_scale = raw_clip.get_transform_scale(transform_index, 0);
+			// Sample our transforms in local space
+			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
+			{
+				const rtm::quatf first_rotation = raw_clip.get_transform_rotation(transform_index, first_sample_index);
+				const rtm::vector4f first_translation = raw_clip.get_transform_translation(transform_index, first_sample_index);
+				const rtm::vector4f first_scale = raw_clip.get_transform_scale(transform_index, first_sample_index);
 
 				const rtm::quatf last_rotation = raw_clip.get_transform_rotation(transform_index, last_sample_index);
 				const rtm::vector4f last_translation = raw_clip.get_transform_translation(transform_index, last_sample_index);
 				const rtm::vector4f last_scale = raw_clip.get_transform_scale(transform_index, last_sample_index);
 
-				local_transforms[0] = rtm::qvv_set(first_rotation, first_translation, first_scale);
-				local_transforms[1] = rtm::qvv_set(last_rotation, last_translation, last_scale);
-
-				if (needs_conversion)
-					error_metric.convert_transforms(convert_transforms_args_local, &local_transforms_converted[0]);
-				else
-					std::memcpy(&local_transforms_converted[0], &local_transforms[0], metric_transform_size * 2);
+				clip_transforms_first[transform_index] = rtm::qvv_set(first_rotation, first_translation, first_scale);
+				clip_transforms_last[transform_index] = rtm::qvv_set(last_rotation, last_translation, last_scale);
 
 				if (has_additive_base)
 				{
-					const uint32_t base_num_samples = additive_base_clip.get_num_samples();
-
-					const uint32_t base_last_sample_index = base_num_samples - 1;
-					convert_transforms_args_base.sample_index = base_last_sample_index;
-
-					const rtm::quatf base_first_rotation = additive_base_clip.get_transform_rotation(transform_index, 0);
-					const rtm::vector4f base_first_translation = additive_base_clip.get_transform_translation(transform_index, 0);
-					const rtm::vector4f base_first_scale = additive_base_clip.get_transform_scale(transform_index, 0);
+					const rtm::quatf base_first_rotation = additive_base_clip.get_transform_rotation(transform_index, base_first_sample_index);
+					const rtm::vector4f base_first_translation = additive_base_clip.get_transform_translation(transform_index, base_first_sample_index);
+					const rtm::vector4f base_first_scale = additive_base_clip.get_transform_scale(transform_index, base_first_sample_index);
 
 					const rtm::quatf base_last_rotation = additive_base_clip.get_transform_rotation(transform_index, base_last_sample_index);
 					const rtm::vector4f base_last_translation = additive_base_clip.get_transform_translation(transform_index, base_last_sample_index);
 					const rtm::vector4f base_last_scale = additive_base_clip.get_transform_scale(transform_index, base_last_sample_index);
 
-					base_transforms[0] = rtm::qvv_set(base_first_rotation, base_first_translation, base_first_scale);
-					base_transforms[1] = rtm::qvv_set(base_last_rotation, base_last_translation, base_last_scale);
-
-					if (needs_conversion)
-						error_metric.convert_transforms(convert_transforms_args_base, &base_transforms_converted[0]);
-					else
-						std::memcpy(&base_transforms_converted[0], &base_transforms[0], metric_transform_size * 2);
-
-					error_metric.apply_additive_to_base(apply_additive_to_base_args, &local_transforms_converted[0]);
-				}
-
-				const rtm::scalarf vtx_error = error_metric.calculate_error(calculate_error_args);
-
-				// If our error exceeds the desired precision, we are not wrapping
-				if (rtm::scalar_greater_than(vtx_error, precision))
-				{
-					is_wrapping = false;
-					break;
+					base_transforms_first[transform_index] = rtm::qvv_set(base_first_rotation, base_first_translation, base_first_scale);
+					base_transforms_last[transform_index] = rtm::qvv_set(base_last_rotation, base_last_translation, base_last_scale);
 				}
 			}
+
+			// Apply our base if we have one
+			if (has_additive_base)
+			{
+				itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args;
+				apply_additive_to_base_args.dirty_transform_indices = dirty_transform_indices;
+				apply_additive_to_base_args.num_dirty_transforms = num_transforms;
+				apply_additive_to_base_args.base_transforms = (const void*)base_transforms_first;
+				apply_additive_to_base_args.local_transforms = (const void*)clip_transforms_first;
+				apply_additive_to_base_args.num_transforms = num_transforms;
+
+				error_metric.apply_additive_to_base(apply_additive_to_base_args, clip_transforms_first);
+
+				apply_additive_to_base_args.base_transforms = (const void*)base_transforms_last;
+				apply_additive_to_base_args.local_transforms = (const void*)clip_transforms_last;
+
+				error_metric.apply_additive_to_base(apply_additive_to_base_args, clip_transforms_last);
+			}
+
+			// Convert to object space
+			{
+				itransform_error_metric::local_to_object_space_args local_to_object_space_args;
+				local_to_object_space_args.dirty_transform_indices = dirty_transform_indices;
+				local_to_object_space_args.num_dirty_transforms = num_transforms;
+				local_to_object_space_args.parent_transform_indices = parent_transform_indices;
+				local_to_object_space_args.local_transforms = (const void*)clip_transforms_first;
+				local_to_object_space_args.num_transforms = num_transforms;
+
+				error_metric.local_to_object_space(local_to_object_space_args, clip_transforms_first);
+
+				local_to_object_space_args.local_transforms = (const void*)clip_transforms_last;
+
+				error_metric.local_to_object_space(local_to_object_space_args, clip_transforms_last);
+			}
+
+			// Detect if our last sample matches the first, if it does we are looping and we can
+			// remove the last sample and wrap instead of clamping
+			bool is_wrapping = true;
+			{
+				for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
+				{
+					const float shell_distance = raw_clip.get_transform_shell_distance(transform_index);
+					const rtm::scalarf precision = rtm::scalar_set(raw_clip.get_transform_precision(transform_index));
+
+					itransform_error_metric::calculate_error_args calculate_error_args;
+					calculate_error_args.construct_sphere_shell(shell_distance);
+					calculate_error_args.transform0 = clip_transforms_first + transform_index;
+					calculate_error_args.transform1 = clip_transforms_last + transform_index;
+
+					const rtm::scalarf error = error_metric.calculate_error(calculate_error_args);
+
+					// If our error exceeds the desired precision, we are not wrapping
+					if (rtm::scalar_greater_than(error, precision))
+					{
+						is_wrapping = false;
+						break;
+					}
+				}
+			}
+
+			deallocate_type_array(allocator, dirty_transform_indices, num_transforms);
+			deallocate_type_array(allocator, parent_transform_indices, num_transforms);
+			deallocate_type_array(allocator, clip_transforms, num_transforms * 2);
+			deallocate_type_array(allocator, base_transforms, num_transforms * 2);
 
 			return is_wrapping;
 		}
@@ -214,6 +230,7 @@ namespace acl
 			// Detect if our last sample matches the first, if it does we are looping and we can
 			// remove the last sample and wrap instead of clamping
 			const bool is_wrapping = is_clip_looping(
+				*context.allocator,
 				transform_clip_context_adapter_t(context),
 				transform_clip_context_adapter_t(additive_base_clip_context),
 				*settings.error_metric);
