@@ -28,6 +28,7 @@
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/compression/track_array.h"
 #include "acl/compression/impl/clip_context.h"
+#include "acl/compression/impl/topology_metadata.h"
 
 #include <rtm/quatf.h>
 #include <rtm/vector4f.h>
@@ -58,6 +59,7 @@ namespace acl
 			bool has_additive_base() const { return false; }
 			additive_clip_format8 get_additive_format() const { return additive_clip_format8::none; }
 			const uint32_t* get_sorted_transforms_parent_first() const { return nullptr; }
+			const clip_topology_t* get_topology() const { return nullptr; }
 
 			// Per transform metadata
 			float get_transform_shell_distance(uint32_t transform_index) const { (void)transform_index; return 0.0F; }
@@ -110,6 +112,7 @@ namespace acl
 			additive_clip_format8 get_additive_format() const { return context.additive_format; }
 			const uint32_t* get_sorted_transforms_parent_first() const { return context.sorted_transforms_parent_first; }
 			const rigid_shell_metadata_t* get_rigid_shell_metadata() const { return context.clip_shell_metadata; }
+			const clip_topology_t* get_topology() const { return context.topology; }
 
 			// Per transform metadata
 			float get_transform_shell_distance(uint32_t transform_index) const
@@ -177,6 +180,7 @@ namespace acl
 			// Set manually when needed
 			const uint32_t* sorted_transforms_parent_first = nullptr;
 			const rigid_shell_metadata_t* rigid_shell_metadata = nullptr;
+			const clip_topology_t* topology = nullptr;
 
 			explicit transform_track_array_adapter_t(const track_array_qvvf& track_list_)
 				: track_list(&track_list_)
@@ -201,6 +205,7 @@ namespace acl
 			additive_clip_format8 get_additive_format() const { return additive_format; }
 			const uint32_t* get_sorted_transforms_parent_first() const { return sorted_transforms_parent_first; }
 			const rigid_shell_metadata_t* get_rigid_shell_metadata() const { return rigid_shell_metadata; }
+			const clip_topology_t* get_topology() const { return topology; }
 
 			// Per transform metadata
 			float get_transform_shell_distance(uint32_t transform_index) const
