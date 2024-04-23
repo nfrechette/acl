@@ -39,14 +39,25 @@ namespace acl
 
 	namespace acl_impl
 	{
+		inline const_array_iterator<uint32_t> clip_topology_t::roots_first_iterator() const
+		{
+			return make_iterator(static_cast<const uint32_t*>(transform_indices_sorted_parent_first), num_transforms);
+		}
+
+		inline const_array_reverse_iterator<uint32_t> clip_topology_t::leaves_first_iterator() const
+		{
+			return make_reverse_iterator(static_cast<const uint32_t*>(transform_indices_sorted_parent_first), num_transforms);
+		}
+
 		inline clip_topology_t::~clip_topology_t()
 		{
 			if (allocator == nullptr)
 				return;	// Not initialized
 
 			deallocate_type_array(*allocator, transforms, num_transforms);
-			deallocate_type_array(*allocator, children_indices, num_children_indices);
-			deallocate_type_array(*allocator, leaf_indices, num_leaf_indices);
+			deallocate_type_array(*allocator, transform_indices_sorted_parent_first, num_transforms);
+			deallocate_type_array(*allocator, aggregate_children_indices, num_aggregate_children_indices);
+			deallocate_type_array(*allocator, aggregate_leaf_indices, num_aggregate_leaf_indices);
 		}
 
 		inline void build_clip_topology(iallocator& allocator, const track_array_qvvf& track_list, clip_topology_t& out_topology)
@@ -161,12 +172,51 @@ namespace acl
 				}
 			}
 
+			uint32_t* transform_indices_sorted_parent_first = allocate_type_array<uint32_t>(allocator, num_transforms);
+			uint32_t num_root_transforms = 0;
+			uint32_t num_leaf_transforms = 0;
+			{
+				for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
+				{
+					transform_indices_sorted_parent_first[transform_index] = transform_index;
+
+					if (topology_per_transform[transform_index].is_root())
+						num_root_transforms++;
+					else if (topology_per_transform[transform_index].is_leaf())
+						num_leaf_transforms++;
+				}
+
+				// We sort our transform indices by parent first
+				// If two transforms have the same parent index, we sort them by their transform index
+				const auto sort_predicate = [&topology_per_transform](const uint32_t lhs_transform_index, const uint32_t rhs_transform_index)
+					{
+						const uint32_t lhs_parent_index = topology_per_transform[lhs_transform_index].parent_index;
+						const uint32_t rhs_parent_index = topology_per_transform[rhs_transform_index].parent_index;
+
+						// If the transforms don't have the same parent, sort by the parent index
+						// We add 1 to parent indices to cause the invalid index to wrap around to 0
+						// since parents come first, they'll have the lowest value
+						if (lhs_parent_index != rhs_parent_index)
+							return (lhs_parent_index + 1) < (rhs_parent_index + 1);
+
+						// Both transforms have the same parent, sort by their index
+						return lhs_transform_index < rhs_transform_index;
+					};
+
+				std::sort(transform_indices_sorted_parent_first, transform_indices_sorted_parent_first + num_transforms, sort_predicate);
+			}
+
 			out_topology.transforms = topology_per_transform;
+			out_topology.transform_indices_sorted_parent_first = transform_indices_sorted_parent_first;
+			out_topology.root_transform_indices = transform_indices_sorted_parent_first;
+			out_topology.num_root_transforms = num_root_transforms;
+			out_topology.leaf_transform_indices = transform_indices_sorted_parent_first + (num_transforms - num_leaf_transforms);
+			out_topology.num_leaf_transforms = num_leaf_transforms;
 			out_topology.num_transforms = num_transforms;
-			out_topology.children_indices = clip_children_indices;
-			out_topology.num_children_indices = num_children_transforms;
-			out_topology.leaf_indices = clip_leaf_indices;
-			out_topology.num_leaf_indices = num_leaf_transform_indices;
+			out_topology.aggregate_children_indices = clip_children_indices;
+			out_topology.num_aggregate_children_indices = num_children_transforms;
+			out_topology.aggregate_leaf_indices = clip_leaf_indices;
+			out_topology.num_aggregate_leaf_indices = num_leaf_transform_indices;
 			out_topology.allocator = &allocator;
 		}
 	}

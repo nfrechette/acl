@@ -517,7 +517,7 @@ namespace acl
 				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 				{
 					// Iterate over parent transforms first
-					for (uint32_t bone_index : make_iterator(context.sorted_transforms_parent_first, num_transforms))
+					for (uint32_t bone_index : context.topology->roots_first_iterator())
 					{
 						rtm::qvvf& original_object_transform = original_object_pose[bone_index];
 

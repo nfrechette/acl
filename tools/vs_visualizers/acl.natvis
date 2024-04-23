@@ -209,10 +209,42 @@
 
   <Type Name="acl::acl_impl::clip_topology_t">
     <Expand>
-      <ArrayItems>
-        <Size>num_transforms</Size>
-        <ValuePointer>transforms</ValuePointer>
-      </ArrayItems>
+      <Synthetic Name="Transforms">
+        <DisplayString>count={num_transforms}</DisplayString>
+        <Expand>
+          <ArrayItems>
+            <Size>num_transforms</Size>
+            <ValuePointer>transforms</ValuePointer>
+          </ArrayItems>
+        </Expand>
+      </Synthetic>
+      <Synthetic Name="TransformIndicesRootFirst">
+        <DisplayString>count={num_transforms}</DisplayString>
+        <Expand>
+          <ArrayItems>
+            <Size>num_transforms</Size>
+            <ValuePointer>transform_indices_sorted_parent_first</ValuePointer>
+          </ArrayItems>
+        </Expand>
+      </Synthetic>
+      <Synthetic Name="Roots">
+        <DisplayString>count={num_root_transforms}</DisplayString>
+        <Expand>
+          <ArrayItems>
+            <Size>num_root_transforms</Size>
+            <ValuePointer>root_transform_indices</ValuePointer>
+          </ArrayItems>
+        </Expand>
+      </Synthetic>
+      <Synthetic Name="Leaves">
+        <DisplayString>count={num_leaf_transforms}</DisplayString>
+        <Expand>
+          <ArrayItems>
+            <Size>num_leaf_transforms</Size>
+            <ValuePointer>leaf_transform_indices</ValuePointer>
+          </ArrayItems>
+        </Expand>
+      </Synthetic>
     </Expand>
   </Type>
 

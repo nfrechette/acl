@@ -42,6 +42,7 @@
 #include "acl/compression/impl/normalize.transform.h"
 #include "acl/compression/impl/convert_rotation.transform.h"
 #include "acl/compression/impl/rigid_shell_utils.h"
+#include "acl/compression/impl/topology_metadata.h"
 #include "acl/compression/transform_error_metrics.h"
 #include "acl/compression/compression_settings.h"
 
@@ -94,6 +95,7 @@ namespace acl
 			const transform_metadata* metadata;
 			uint32_t num_bones;
 			const itransform_error_metric* error_metric;
+			const clip_topology_t* topology;
 
 			track_bit_rate_database bit_rate_database;
 			single_track_query local_query;
@@ -151,6 +153,7 @@ namespace acl
 				, metadata(clip_.metadata)
 				, num_bones(clip_.num_bones)
 				, error_metric(settings_.error_metric)
+				, topology(clip_.topology)
 				, bit_rate_database(allocator_, settings_.rotation_format, settings_.translation_format, settings_.scale_format, clip_.segments->bone_streams, raw_clip_.segments->bone_streams, clip_.num_bones, clip_.segments->num_samples)
 				, local_query()
 				, all_local_query(allocator_)
@@ -1238,7 +1241,7 @@ namespace acl
 			// Iterate from the root transforms first
 			// I attempted to iterate from leaves first and the memory footprint was severely worse
 			const uint32_t num_bones = context.num_bones;
-			for (const uint32_t bone_index : make_iterator(context.raw_clip.sorted_transforms_parent_first, num_bones))
+			for (const uint32_t bone_index : context.topology->roots_first_iterator())
 			{
 				// Update our context with the new bone data
 				const float error_threshold = context.shell_metadata_per_transform[bone_index].precision;

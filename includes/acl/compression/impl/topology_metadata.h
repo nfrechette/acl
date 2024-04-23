@@ -26,6 +26,7 @@
 
 #include "acl/version.h"
 #include "acl/core/iallocator.h"
+#include "acl/core/iterator.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/compression/track_array.h"
 
@@ -70,25 +71,46 @@ namespace acl
 			// Topology information per transform
 			transform_topology_t* transforms			= nullptr;
 
+			// List of transform indices sorted by parent first then sibling transforms are sorted by their transform index
+			uint32_t* transform_indices_sorted_parent_first = nullptr;
+
 			// Number of transforms
 			uint32_t num_transforms						= 0;
 
+			// List of root transform indices (points into transform_indices_sorted_parent_first)
+			const uint32_t* root_transform_indices		= nullptr;
+
+			// Number of root transforms
+			uint32_t num_root_transforms				= 0;
+
+			// List of leaf transform indices (points into transform_indices_sorted_parent_first)
+			const uint32_t* leaf_transform_indices		= nullptr;
+
+			// Number of leaf transforms
+			uint32_t num_leaf_transforms				= 0;
+
 			// Global list of children indices
 			// Each transform contains a pointer into this list
-			uint32_t* children_indices					= nullptr;
+			uint32_t* aggregate_children_indices		= nullptr;
 
 			// Size of global list of children indices
-			uint32_t num_children_indices				= 0;
+			uint32_t num_aggregate_children_indices		= 0;
 
 			// Global list of leaf indices
 			// Each transform contains a pointer into this list
-			uint32_t* leaf_indices						= nullptr;
+			uint32_t* aggregate_leaf_indices			= nullptr;
 
 			// Size of global list of leaf indices
-			uint32_t num_leaf_indices					= 0;
+			uint32_t num_aggregate_leaf_indices			= 0;
 
 			// The allocator used for the topology metadata, never null if initialized
 			iallocator* allocator						= nullptr;
+
+			// Returns an iterator that returns transform indices roots first (root to leaf)
+			const_array_iterator<uint32_t> roots_first_iterator() const;
+
+			// Returns an iterator that returns transform indices leaves first (leaf to root)
+			const_array_reverse_iterator<uint32_t> leaves_first_iterator() const;
 
 			~clip_topology_t();
 		};
