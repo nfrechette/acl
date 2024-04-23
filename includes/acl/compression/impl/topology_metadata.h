@@ -112,6 +112,9 @@ namespace acl
 			// Returns an iterator that returns transform indices leaves first (leaf to root)
 			const_array_reverse_iterator<uint32_t> leaves_first_iterator() const;
 
+			// Returns an iterator that returns the transform indices of the leaves
+			const_array_iterator<uint32_t> leaves_iterator() const;
+
 			~clip_topology_t();
 		};
 

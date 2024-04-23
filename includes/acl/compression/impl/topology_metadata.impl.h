@@ -49,6 +49,11 @@ namespace acl
 			return make_reverse_iterator(static_cast<const uint32_t*>(transform_indices_sorted_parent_first), num_transforms);
 		}
 
+		inline const_array_iterator<uint32_t> clip_topology_t::leaves_iterator() const
+		{
+			return make_iterator(static_cast<const uint32_t*>(leaf_transform_indices), num_leaf_transforms);
+		}
+
 		inline clip_topology_t::~clip_topology_t()
 		{
 			if (allocator == nullptr)
