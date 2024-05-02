@@ -51,6 +51,16 @@
 
 //#define ACL_IMPL_ENABLE_CONSTANT_ERROR_CORRECTION
 
+// Original algorithm used by ACL 2.1
+#define ACL_IMPL_CONSTANT_FOLDING_ALGO_ORIGINAL	0
+
+// Enables a more precise version of constant sub-track folding that evaluates the error
+// at each leaf and the dominant transform in object space
+#define ACL_IMPL_CONSTANT_FOLDING_ALGO_PRECISE	1
+
+// The currently used algorithm for constant folding
+#define ACL_IMPL_CONSTANT_FOLDING_ALGO			ACL_IMPL_CONSTANT_FOLDING_ALGO_ORIGINAL
+
 #ifdef ACL_IMPL_ENABLE_CONSTANT_ERROR_CORRECTION
 #include "acl/compression/impl/normalize.transform.h"
 #endif
@@ -63,6 +73,9 @@ namespace acl
 
 	namespace acl_impl
 	{
+
+#if ACL_IMPL_CONSTANT_FOLDING_ALGO == ACL_IMPL_CONSTANT_FOLDING_ALGO_ORIGINAL
+
 		// To detect if a sub-track is constant, we grab the first sample as our reference.
 		// We then measure the object space error using the qvv error metric and our
 		// dominant shell distance. If the error remains within our dominant precision
@@ -674,6 +687,614 @@ namespace acl
 			compression_stats.compact_constant_sub_tracks_elapsed_seconds = compact_constant_sub_tracks_time.get_elapsed_seconds();
 #endif
 		}
+
+#elif ACL_IMPL_CONSTANT_FOLDING_ALGO == ACL_IMPL_CONSTANT_FOLDING_ALGO_PRECISE
+
+		// Idea is to break a chain of object space transforms:
+		//     (c2 * c1) * t * (p2 * p1)
+		// Where c1, c2 are children and c2 is a leaf and p1, p2 are parents and p1 is the root
+		// This maintains the same multiplication order and reduces the memory footprint since we only need to retain 1x transform for
+		// (p2 * p1) and 1x transform per leaf for (c2 * c1)
+		// We can't cache these and lazily populate them since at this point in time, we have a single segment for the whole clip and it
+		// could be quite large. Caching would require duplicating the entire clip which we'd like to avoid at the cost of redoing work.
+		//
+		// Once we have our root_to_parent and child_to_leaf transforms, we can begin testing if the current transform sub-tracks can
+		// be constant or default. Each time we tweak the sub-track, we can recompute the current local space transform ('t' above)
+		// and re-compute the object space transform of each leaf cheaply. We then test each leaf's precision.
+		//
+		// We must also test the dominant transform, not just leaves.
+		//
+		// We have a list of permutation that we'd like to try for every transform and we try them for every sample.
+		// We keep track of which permutations are ruled out as we go along and once all permutations have been tested
+		// over every sample, we pick the one with the lowest cost.
+		//
+		// Despite our transform caching, this algorithm is much slower than the original. This is because while the original works
+		// in local space (and is thus O(num_transforms * num_samples)), this new one works in object space which makes it:
+		// O(num_transforms * num_transforms * num_samples). Perhaps we can improve on this by using the cummulative transform
+		// distance and the cummulative error to cheaply test an approximate solution in local space.
+		//
+
+		enum class constant_rotation_value8 : uint8_t
+		{
+			animated_quatf_full,
+			constant_quatf_drop_w_full,
+			default_quatf_full,
+		};
+
+		static constexpr uint8_t k_constant_rotation_cost[] = { 100, 10, 1 };
+		static constexpr size_t k_num_constant_rotation_values = 3;
+
+		enum class constant_translation_value8 : uint8_t
+		{
+			animated_vector3f_full,
+			constant_vector3f_full,
+			default_vector3f,
+		};
+
+		static constexpr uint8_t k_constant_translation_cost[] = { 100, 10, 1 };
+		static constexpr size_t k_num_constant_translation_values = 3;
+
+		enum class constant_scale_value8 : uint8_t
+		{
+			animated_vector3f_full,
+			constant_vector3f_full,
+			default_vector3f,
+		};
+
+		static constexpr uint8_t k_constant_scale_cost[] = { 100, 10, 1 };
+		static constexpr size_t k_num_constant_scale_values = 3;
+
+		struct constant_permutation_t
+		{
+			constant_rotation_value8 rotation;
+			constant_translation_value8 translation;
+			constant_scale_value8 scale;
+
+			constexpr uint32_t get_cost() const { return k_constant_rotation_cost[static_cast<uint32_t>(rotation)] + k_constant_translation_cost[static_cast<uint32_t>(translation)] + k_constant_scale_cost[static_cast<uint32_t>(scale)]; }
+		};
+
+		static constexpr constant_permutation_t k_constant_permutations[] =
+		{
+			// We don't include the full animated value since it'll be there by default if all other permutations fail
+			//{ constant_rotation_value8::animated_quatf_full, constant_translation_value8::animated_vector3f_full, constant_scale_value8::animated_vector3f_full },
+			{ constant_rotation_value8::animated_quatf_full, constant_translation_value8::animated_vector3f_full, constant_scale_value8::constant_vector3f_full },
+			{ constant_rotation_value8::animated_quatf_full, constant_translation_value8::animated_vector3f_full, constant_scale_value8::default_vector3f },
+
+			{ constant_rotation_value8::animated_quatf_full, constant_translation_value8::constant_vector3f_full, constant_scale_value8::animated_vector3f_full },
+			{ constant_rotation_value8::animated_quatf_full, constant_translation_value8::constant_vector3f_full, constant_scale_value8::constant_vector3f_full },
+			{ constant_rotation_value8::animated_quatf_full, constant_translation_value8::constant_vector3f_full, constant_scale_value8::default_vector3f },
+
+			{ constant_rotation_value8::animated_quatf_full, constant_translation_value8::default_vector3f, constant_scale_value8::animated_vector3f_full },
+			{ constant_rotation_value8::animated_quatf_full, constant_translation_value8::default_vector3f, constant_scale_value8::constant_vector3f_full },
+			{ constant_rotation_value8::animated_quatf_full, constant_translation_value8::default_vector3f, constant_scale_value8::default_vector3f },
+
+			{ constant_rotation_value8::constant_quatf_drop_w_full, constant_translation_value8::animated_vector3f_full, constant_scale_value8::animated_vector3f_full },
+			{ constant_rotation_value8::constant_quatf_drop_w_full, constant_translation_value8::animated_vector3f_full, constant_scale_value8::constant_vector3f_full },
+			{ constant_rotation_value8::constant_quatf_drop_w_full, constant_translation_value8::animated_vector3f_full, constant_scale_value8::default_vector3f },
+
+			{ constant_rotation_value8::constant_quatf_drop_w_full, constant_translation_value8::constant_vector3f_full, constant_scale_value8::animated_vector3f_full },
+			{ constant_rotation_value8::constant_quatf_drop_w_full, constant_translation_value8::constant_vector3f_full, constant_scale_value8::constant_vector3f_full },
+			{ constant_rotation_value8::constant_quatf_drop_w_full, constant_translation_value8::constant_vector3f_full, constant_scale_value8::default_vector3f },
+
+			{ constant_rotation_value8::constant_quatf_drop_w_full, constant_translation_value8::default_vector3f, constant_scale_value8::animated_vector3f_full },
+			{ constant_rotation_value8::constant_quatf_drop_w_full, constant_translation_value8::default_vector3f, constant_scale_value8::constant_vector3f_full },
+			{ constant_rotation_value8::constant_quatf_drop_w_full, constant_translation_value8::default_vector3f, constant_scale_value8::default_vector3f },
+
+			{ constant_rotation_value8::default_quatf_full, constant_translation_value8::animated_vector3f_full, constant_scale_value8::animated_vector3f_full },
+			{ constant_rotation_value8::default_quatf_full, constant_translation_value8::animated_vector3f_full, constant_scale_value8::constant_vector3f_full },
+			{ constant_rotation_value8::default_quatf_full, constant_translation_value8::animated_vector3f_full, constant_scale_value8::default_vector3f },
+
+			{ constant_rotation_value8::default_quatf_full, constant_translation_value8::constant_vector3f_full, constant_scale_value8::animated_vector3f_full },
+			{ constant_rotation_value8::default_quatf_full, constant_translation_value8::constant_vector3f_full, constant_scale_value8::constant_vector3f_full },
+			{ constant_rotation_value8::default_quatf_full, constant_translation_value8::constant_vector3f_full, constant_scale_value8::default_vector3f },
+
+			{ constant_rotation_value8::default_quatf_full, constant_translation_value8::default_vector3f, constant_scale_value8::animated_vector3f_full },
+			{ constant_rotation_value8::default_quatf_full, constant_translation_value8::default_vector3f, constant_scale_value8::constant_vector3f_full },
+			{ constant_rotation_value8::default_quatf_full, constant_translation_value8::default_vector3f, constant_scale_value8::default_vector3f },
+		};
+
+		static constexpr size_t k_num_constant_permutations = acl::get_array_size(k_constant_permutations);
+
+		inline void compact_constant_streams(
+			iallocator& allocator,
+			clip_context& lossy_clip_context,
+			const clip_context& additive_base_clip_context,
+			const track_array_qvvf& track_list,
+			const compression_settings& settings,
+			compression_stats_t& compression_stats)
+		{
+			(void)compression_stats;
+
+			const uint32_t num_transforms = lossy_clip_context.num_bones;
+			if (num_transforms == 0)
+				return;
+
+			const uint32_t num_samples = lossy_clip_context.num_samples;
+
+#if defined(ACL_USE_SJSON)
+			scope_profiler compact_constant_sub_tracks_time;
+#endif
+
+			ACL_ASSERT(lossy_clip_context.num_segments == 1, "context must contain a single segment!");
+
+			segment_context& segment = lossy_clip_context.segments[0];
+			const clip_topology_t* topology = lossy_clip_context.topology;
+
+			const itransform_error_metric& error_metric = *settings.error_metric;
+			if (error_metric.needs_conversion(true))	// We haven't stripped scale yet
+				return;	// Not supported
+
+			itransform_error_metric::calculate_error_args calculate_error_args;
+
+			const bool has_additive_base = lossy_clip_context.has_additive_base;
+			const float sample_rate = lossy_clip_context.sample_rate;
+			const float duration = lossy_clip_context.duration;
+			const additive_clip_format8 additive_format = lossy_clip_context.additive_format;
+
+			rtm::quatf rotation_values[k_num_constant_rotation_values];
+			rtm::vector4f translation_values[k_num_constant_translation_values];
+			rtm::vector4f scale_values[k_num_constant_scale_values];
+
+			bool* needed_transforms = allocate_type_array<bool>(allocator, num_transforms);
+			rtm::qvvf* sample_transforms = allocate_type_array<rtm::qvvf>(allocator, num_transforms);
+			rtm::qvvf* child_to_leaf_transforms = allocate_type_array<rtm::qvvf>(allocator, topology->num_max_leaves_per_transform);
+			rtm::qvvf child_to_dominant_transform = rtm::qvv_identity();
+			rtm::qvvf root_to_parent_transform;
+
+			uint32_t num_default_bone_scales = 0;
+
+			// Start compacting at the leaves and work towards the root
+			for (uint32_t transform_index_to_test : topology->leaves_first_iterator())
+			{
+				const track_desc_transformf& transform_desc_to_test = track_list[transform_index_to_test].get_description();
+
+				transform_streams& bone_stream_to_test = segment.bone_streams[transform_index_to_test];
+				transform_range& bone_range_to_test = lossy_clip_context.ranges[transform_index_to_test];
+
+				ACL_ASSERT(bone_stream_to_test.rotations.get_num_samples() == num_samples, "Rotation sample mismatch!");
+				ACL_ASSERT(bone_stream_to_test.translations.get_num_samples() == num_samples, "Translation sample mismatch!");
+				ACL_ASSERT(bone_stream_to_test.scales.get_num_samples() == num_samples, "Scale sample mismatch!");
+
+				// We expect all our samples to have the same width of sizeof(rtm::vector4f)
+				ACL_ASSERT(bone_stream_to_test.rotations.get_sample_size() == sizeof(rtm::vector4f), "Unexpected rotation sample size. %u != %zu", bone_stream_to_test.rotations.get_sample_size(), sizeof(rtm::vector4f));
+				ACL_ASSERT(bone_stream_to_test.translations.get_sample_size() == sizeof(rtm::vector4f), "Unexpected translation sample size. %u != %zu", bone_stream_to_test.translations.get_sample_size(), sizeof(rtm::vector4f));
+				ACL_ASSERT(bone_stream_to_test.scales.get_sample_size() == sizeof(rtm::vector4f), "Unexpected scale sample size. %u != %zu", bone_stream_to_test.scales.get_sample_size(), sizeof(rtm::vector4f));
+
+				// If we have no samples, we consider everything to be default sub-tracks
+				if (num_samples == 0)
+				{
+					bone_stream_to_test.is_rotation_constant = true;
+					bone_stream_to_test.is_rotation_default = true;
+					bone_stream_to_test.is_translation_constant = true;
+					bone_stream_to_test.is_translation_default = true;
+					bone_stream_to_test.is_scale_constant = true;
+					bone_stream_to_test.is_scale_default = true;
+					num_default_bone_scales++;
+					continue;
+				}
+
+				// Every permutation starts out as valid, we'll rule them out one by one
+				bool is_candidate_permutation_valid[k_num_constant_permutations];
+				uint32_t num_candidate_permutations = k_num_constant_permutations;
+				std::fill_n(is_candidate_permutation_valid, k_num_constant_permutations, true);
+
+				// When we are using full precision, we are only constant if range.min == range.max, meaning
+				// we have a single unique and repeating sample
+				// When we are using full precision, we are only default if (sample 0 == default value), meaning
+				// we have a single unique and repeating default sample
+				// We want to test if we are binary exact
+				// This is used by raw clips, we must preserve the original values
+				{
+					if (settings.rotation_format == rotation_format8::quatf_full)
+					{
+						if (bone_range_to_test.rotation.is_constant(0.0F))
+						{
+							const rtm::quatf rotation = bone_stream_to_test.rotations.get_raw_sample<rtm::quatf>(0);
+							const rtm::quatf default_bind_rotation = transform_desc_to_test.default_value.rotation;
+							if (!rtm::quat_are_equal(rotation, default_bind_rotation))
+							{
+								// We are not default but we are constant, prune out all default permutations
+								for (size_t permutation_index = 0; permutation_index < k_num_constant_permutations; ++permutation_index)
+								{
+									if (k_constant_permutations[permutation_index].rotation == constant_rotation_value8::default_quatf_full)
+									{
+										is_candidate_permutation_valid[permutation_index] = false;
+										num_candidate_permutations--;
+									}
+								}
+							}
+						}
+						else
+						{
+							// We are not constant, prune out all constant/default permutations
+							for (size_t permutation_index = 0; permutation_index < k_num_constant_permutations; ++permutation_index)
+							{
+								if (k_constant_permutations[permutation_index].rotation != constant_rotation_value8::animated_quatf_full)
+								{
+									is_candidate_permutation_valid[permutation_index] = false;
+									num_candidate_permutations--;
+								}
+							}
+						}
+					}
+
+					if (settings.translation_format == vector_format8::vector3f_full)
+					{
+						if (bone_range_to_test.translation.is_constant(0.0F))
+						{
+							const rtm::vector4f translation = bone_stream_to_test.translations.get_raw_sample<rtm::vector4f>(0);
+							const rtm::vector4f default_bind_translation = transform_desc_to_test.default_value.translation;
+							if (!rtm::vector_all_equal3(translation, default_bind_translation))
+							{
+								// We are not default but we are constant, prune out all default permutations
+								for (size_t permutation_index = 0; permutation_index < k_num_constant_permutations; ++permutation_index)
+								{
+									if (k_constant_permutations[permutation_index].translation == constant_translation_value8::default_vector3f)
+									{
+										is_candidate_permutation_valid[permutation_index] = false;
+										num_candidate_permutations--;
+									}
+								}
+							}
+						}
+						else
+						{
+							// We are not constant, prune out all constant/default permutations
+							for (size_t permutation_index = 0; permutation_index < k_num_constant_permutations; ++permutation_index)
+							{
+								if (k_constant_permutations[permutation_index].translation != constant_translation_value8::animated_vector3f_full)
+								{
+									is_candidate_permutation_valid[permutation_index] = false;
+									num_candidate_permutations--;
+								}
+							}
+						}
+					}
+
+					if (settings.scale_format == vector_format8::vector3f_full)
+					{
+						if (bone_range_to_test.scale.is_constant(0.0F))
+						{
+							const rtm::vector4f scale = bone_stream_to_test.scales.get_raw_sample<rtm::vector4f>(0);
+							const rtm::vector4f default_bind_scale = transform_desc_to_test.default_value.scale;
+							if (!rtm::vector_all_equal3(scale, default_bind_scale))
+							{
+								// We are not default but we are constant, prune out all default permutations
+								for (size_t permutation_index = 0; permutation_index < k_num_constant_permutations; ++permutation_index)
+								{
+									if (k_constant_permutations[permutation_index].scale == constant_scale_value8::default_vector3f)
+									{
+										is_candidate_permutation_valid[permutation_index] = false;
+										num_candidate_permutations--;
+									}
+								}
+							}
+						}
+						else
+						{
+							// We are not constant, prune out all constant/default permutations
+							for (size_t permutation_index = 0; permutation_index < k_num_constant_permutations; ++permutation_index)
+							{
+								if (k_constant_permutations[permutation_index].scale != constant_scale_value8::animated_vector3f_full)
+								{
+									is_candidate_permutation_valid[permutation_index] = false;
+									num_candidate_permutations--;
+								}
+							}
+						}
+					}
+				}
+
+				rotation_values[static_cast<uint32_t>(constant_rotation_value8::constant_quatf_drop_w_full)] = bone_stream_to_test.rotations.get_raw_sample<rtm::quatf>(0);
+				rotation_values[static_cast<uint32_t>(constant_rotation_value8::default_quatf_full)] = transform_desc_to_test.default_value.rotation;
+
+				translation_values[static_cast<uint32_t>(constant_translation_value8::constant_vector3f_full)] = bone_stream_to_test.translations.get_raw_sample<rtm::vector4f>(0);
+				translation_values[static_cast<uint32_t>(constant_translation_value8::default_vector3f)] = transform_desc_to_test.default_value.translation;
+
+				scale_values[static_cast<uint32_t>(constant_scale_value8::constant_vector3f_full)] = bone_stream_to_test.scales.get_raw_sample<rtm::vector4f>(0);
+				scale_values[static_cast<uint32_t>(constant_scale_value8::default_vector3f)] = transform_desc_to_test.default_value.scale;
+
+				// Our dominant transform may or may not be a leaf (we are a leaf if we have no children/leaves)
+				const uint32_t dominant_transform_index = lossy_clip_context.clip_shell_metadata[transform_index_to_test].dominant_transform_index;
+				bool is_dominant_transform_a_leaf = topology->transforms[transform_index_to_test].num_leaves == 0;
+
+				// Compute which transforms we need to sample (leaves and their parents)
+				std::fill_n(needed_transforms, num_transforms, false);
+
+				// We need the transform to test and its parents all the way to the root
+				{
+					uint32_t parent_transform_index = transform_index_to_test;
+					while (parent_transform_index != k_invalid_track_index)
+					{
+						needed_transforms[parent_transform_index] = true;
+						parent_transform_index = topology->transforms[parent_transform_index].parent_index;
+					}
+				}
+
+				// We need all intermediary transforms between the transform to test and its leaves
+				for (uint32_t leaf_transform_index : topology->transforms[transform_index_to_test].leaves_iterator())
+				{
+					uint32_t parent_transform_index = leaf_transform_index;
+					while (parent_transform_index != transform_index_to_test)
+					{
+						needed_transforms[parent_transform_index] = true;
+						parent_transform_index = topology->transforms[parent_transform_index].parent_index;
+					}
+
+					if (leaf_transform_index == dominant_transform_index)
+						is_dominant_transform_a_leaf = true;
+				}
+
+				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+				{
+					for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
+					{
+						if (!needed_transforms[transform_index])
+							continue;	// We don't need this transform
+
+						const transform_streams& transform_stream = segment.bone_streams[transform_index];
+
+						const rtm::quatf rotation = transform_stream.rotations.get_sample_clamped(sample_index);
+						const rtm::vector4f translation = transform_stream.translations.get_sample_clamped(sample_index);
+						const rtm::vector4f scale = transform_stream.scales.get_sample_clamped(sample_index);
+
+						sample_transforms[transform_index] = rtm::qvv_set(rotation, translation, scale);
+					}
+
+					if (has_additive_base)
+					{
+						const segment_context& base_segment = additive_base_clip_context.segments[0];
+
+						const uint32_t base_num_samples = additive_base_clip_context.num_samples;
+						const float base_duration = additive_base_clip_context.duration;
+
+						// The sample time is calculated from the full clip duration to be consistent with decompression
+						const float sample_time = rtm::scalar_min(float(sample_index) / sample_rate, duration);
+
+						const float normalized_sample_time = base_num_samples > 1 ? (sample_time / duration) : 0.0F;
+						const float additive_sample_time = base_num_samples > 1 ? (normalized_sample_time * base_duration) : 0.0F;
+
+						// With uniform sample distributions, we do not interpolate.
+						const uint32_t base_sample_index = get_uniform_sample_key(base_segment, additive_sample_time);
+
+						for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
+						{
+							if (!needed_transforms[transform_index])
+								continue;	// We don't need this transform
+
+							const transform_streams& base_transform_stream = base_segment.bone_streams[transform_index];
+
+							const rtm::quatf base_rotation = base_transform_stream.rotations.get_sample_clamped(base_sample_index);
+							const rtm::vector4f base_translation = base_transform_stream.translations.get_sample_clamped(base_sample_index);
+							const rtm::vector4f base_scale = base_transform_stream.scales.get_sample_clamped(base_sample_index);
+							const rtm::qvvf base_transform = rtm::qvv_set(base_rotation, base_translation, base_scale);
+
+							sample_transforms[transform_index] = acl::apply_additive_to_base(additive_format, base_transform, sample_transforms[transform_index]);
+						}
+					}
+
+					// Compute our root-to-parent transform
+					{
+						uint32_t parent_transform_index = topology->transforms[transform_index_to_test].parent_index;
+						root_to_parent_transform = rtm::qvv_identity();
+						while (parent_transform_index != k_invalid_track_index)
+						{
+							root_to_parent_transform = rtm::qvv_normalize(rtm::qvv_mul(root_to_parent_transform, sample_transforms[parent_transform_index]));
+							parent_transform_index = topology->transforms[parent_transform_index].parent_index;
+						}
+					}
+
+					// Compute our child-to-leaf transforms
+					for (uint32_t leaf_index = 0; leaf_index < topology->transforms[transform_index_to_test].num_leaves; ++leaf_index)
+					{
+						const uint32_t leaf_transform_index = topology->transforms[transform_index_to_test].leaves[leaf_index];
+
+						uint32_t parent_transform_index = topology->transforms[leaf_transform_index].parent_index;
+						rtm::qvvf child_to_leaf_transform = sample_transforms[leaf_transform_index];
+						while (parent_transform_index != transform_index_to_test)
+						{
+							child_to_leaf_transform = rtm::qvv_normalize(rtm::qvv_mul(child_to_leaf_transform, sample_transforms[parent_transform_index]));
+							parent_transform_index = topology->transforms[parent_transform_index].parent_index;
+						}
+
+						child_to_leaf_transforms[leaf_index] = child_to_leaf_transform;
+					}
+
+					// If our dominant transform isn't a leaf, we have to consider it as well
+					if (!is_dominant_transform_a_leaf)
+					{
+						uint32_t parent_transform_index = dominant_transform_index;
+						child_to_dominant_transform = rtm::qvv_identity();
+						while (parent_transform_index != transform_index_to_test)
+						{
+							child_to_dominant_transform = rtm::qvv_normalize(rtm::qvv_mul(child_to_dominant_transform, sample_transforms[parent_transform_index]));
+							parent_transform_index = topology->transforms[parent_transform_index].parent_index;
+						}
+					}
+
+					const rtm::quatf raw_rotation = bone_stream_to_test.rotations.get_sample_clamped(sample_index);
+					const rtm::vector4f raw_translation = bone_stream_to_test.translations.get_sample_clamped(sample_index);
+					const rtm::vector4f raw_scale = bone_stream_to_test.scales.get_sample_clamped(sample_index);
+					const rtm::qvvf raw_transform = rtm::qvv_set(raw_rotation, raw_translation, raw_scale);
+
+					const rtm::qvvf root_to_transform_raw = rtm::qvv_normalize(rtm::qvv_mul(root_to_parent_transform, raw_transform));
+
+					rotation_values[static_cast<uint32_t>(constant_rotation_value8::animated_quatf_full)] = raw_rotation;
+					translation_values[static_cast<uint32_t>(constant_translation_value8::animated_vector3f_full)] = raw_translation;
+					scale_values[static_cast<uint32_t>(constant_scale_value8::animated_vector3f_full)] = raw_scale;
+
+					// Iterate over our remaining candidate permutations
+					for (size_t permutation_index = 0; permutation_index < k_num_constant_permutations; ++permutation_index)
+					{
+						if (!is_candidate_permutation_valid[permutation_index])
+							continue;	// We've already ruled this permutation out, skip it
+
+						const constant_permutation_t& permutation = k_constant_permutations[permutation_index];
+
+						const rtm::quatf& permutation_rotation = rotation_values[static_cast<uint32_t>(permutation.rotation)];
+						const rtm::vector4f& permutation_translation = translation_values[static_cast<uint32_t>(permutation.translation)];
+						const rtm::vector4f& permutation_scale = scale_values[static_cast<uint32_t>(permutation.scale)];
+						const rtm::qvvf lossy_transform = rtm::qvv_set(permutation_rotation, permutation_translation, permutation_scale);
+
+						const rtm::qvvf root_to_transform_lossy = rtm::qvv_normalize(rtm::qvv_mul(root_to_parent_transform, lossy_transform));
+
+						bool is_permutation_valid = true;
+
+						// First, test our transform in object space, if we fail, none of our leaves can succeed (and we might not have any)
+						{
+							const transform_metadata& transform_to_test_metadata = lossy_clip_context.metadata[transform_index_to_test];
+
+							calculate_error_args.construct_sphere_shell(transform_to_test_metadata.shell_distance);
+							calculate_error_args.transform0 = &root_to_transform_raw;
+							calculate_error_args.transform1 = &root_to_transform_lossy;
+
+							const rtm::scalarf precision = rtm::scalar_set(transform_to_test_metadata.precision);
+							const rtm::scalarf vtx_error = error_metric.calculate_error(calculate_error_args);
+
+							// If our error exceeds the desired precision, this permutation isn't valid
+							is_permutation_valid = !rtm::scalar_greater_than(vtx_error, precision);
+						}
+
+						// If our dominant transform isn't a leaf, we have to consider it as well
+						if (is_permutation_valid && !is_dominant_transform_a_leaf)
+						{
+							const transform_metadata& dominant_metadata = lossy_clip_context.metadata[dominant_transform_index];
+
+							const rtm::qvvf root_to_dominant_raw = rtm::qvv_normalize(rtm::qvv_mul(root_to_transform_raw, child_to_dominant_transform));
+							const rtm::qvvf root_to_dominant_lossy = rtm::qvv_normalize(rtm::qvv_mul(root_to_transform_lossy, child_to_dominant_transform));
+
+							calculate_error_args.construct_sphere_shell(dominant_metadata.shell_distance);
+							calculate_error_args.transform0 = &root_to_dominant_raw;
+							calculate_error_args.transform1 = &root_to_dominant_lossy;
+
+							const rtm::scalarf precision = rtm::scalar_set(dominant_metadata.precision);
+							const rtm::scalarf vtx_error = error_metric.calculate_error(calculate_error_args);
+
+							// If our error exceeds the desired precision, this permutation isn't valid
+							is_permutation_valid = !rtm::scalar_greater_than(vtx_error, precision);
+						}
+
+						// Next, test each leaf in object space if we are valid so far
+						if (is_permutation_valid)
+						{
+							// TODO: we can build the object space transforms lazily on the first permutation that passes
+							for (uint32_t leaf_index = 0; leaf_index < topology->transforms[transform_index_to_test].num_leaves; ++leaf_index)
+							{
+								const uint32_t leaf_transform_index = topology->transforms[transform_index_to_test].leaves[leaf_index];
+								const transform_metadata& leaf_metadata = lossy_clip_context.metadata[leaf_transform_index];
+
+								const rtm::qvvf root_to_leaf_raw = rtm::qvv_normalize(rtm::qvv_mul(root_to_transform_raw, child_to_leaf_transforms[leaf_index]));
+								const rtm::qvvf root_to_leaf_lossy = rtm::qvv_normalize(rtm::qvv_mul(root_to_transform_lossy, child_to_leaf_transforms[leaf_index]));
+
+								calculate_error_args.construct_sphere_shell(leaf_metadata.shell_distance);
+								calculate_error_args.transform0 = &root_to_leaf_raw;
+								calculate_error_args.transform1 = &root_to_leaf_lossy;
+
+								const rtm::scalarf precision = rtm::scalar_set(leaf_metadata.precision);
+								const rtm::scalarf vtx_error = error_metric.calculate_error(calculate_error_args);
+
+								// If our error exceeds the desired precision, this permutation isn't valid
+								if (rtm::scalar_greater_than(vtx_error, precision))
+								{
+									is_permutation_valid = false;
+									break;
+								}
+							}
+						}
+
+						if (!is_permutation_valid)
+						{
+							is_candidate_permutation_valid[permutation_index] = false;
+							num_candidate_permutations--;
+						}
+					}
+
+					if (num_candidate_permutations == 0)
+						break;	// No more valid candidates, we are done
+				}
+
+				if (num_candidate_permutations != 0)
+				{
+					// Scan our valid candidate permutations and pick the one with the lowest cost
+					size_t best_permutation_index = k_num_constant_permutations;
+					uint32_t best_permutation_cost = ~0U;
+
+					for (size_t permutation_index = 0; permutation_index < k_num_constant_permutations; ++permutation_index)
+					{
+						if (!is_candidate_permutation_valid[permutation_index])
+							continue;	// We've ruled this permutation out, skip it
+
+						const uint32_t permutation_cost = k_constant_permutations[permutation_index].get_cost();
+						if (permutation_cost < best_permutation_cost)
+						{
+							best_permutation_cost = permutation_cost;
+							best_permutation_index = permutation_index;
+						}
+					}
+
+					const constant_permutation_t& best_permutation = k_constant_permutations[best_permutation_index];
+
+					if (best_permutation.rotation != constant_rotation_value8::animated_quatf_full)
+					{
+						const rtm::quatf& rotation = rotation_values[static_cast<uint32_t>(best_permutation.rotation)];
+
+						rotation_track_stream constant_stream(allocator, 1, bone_stream_to_test.rotations.get_sample_size(), bone_stream_to_test.rotations.get_sample_rate(), bone_stream_to_test.rotations.get_rotation_format());
+						constant_stream.set_raw_sample(0, rotation);
+						bone_stream_to_test.rotations = std::move(constant_stream);
+
+						bone_stream_to_test.is_rotation_constant = true;
+						bone_stream_to_test.is_rotation_default = best_permutation.rotation == constant_rotation_value8::default_quatf_full;
+
+						bone_range_to_test.rotation = track_stream_range::from_min_extent(rotation, rtm::vector_zero());
+					}
+
+					if (best_permutation.translation != constant_translation_value8::animated_vector3f_full)
+					{
+						const rtm::vector4f& translation = translation_values[static_cast<uint32_t>(best_permutation.translation)];
+
+						translation_track_stream constant_stream(allocator, 1, bone_stream_to_test.translations.get_sample_size(), bone_stream_to_test.translations.get_sample_rate(), bone_stream_to_test.translations.get_vector_format());
+						constant_stream.set_raw_sample(0, translation);
+						bone_stream_to_test.translations = std::move(constant_stream);
+
+						bone_stream_to_test.is_translation_constant = true;
+						bone_stream_to_test.is_translation_default = best_permutation.translation == constant_translation_value8::default_vector3f;
+
+						// Zero out W, could be garbage
+						bone_range_to_test.translation = track_stream_range::from_min_extent(rtm::vector_set_w(translation, 0.0F), rtm::vector_zero());
+					}
+
+					if (best_permutation.scale != constant_scale_value8::animated_vector3f_full)
+					{
+						const rtm::vector4f& scale = scale_values[static_cast<uint32_t>(best_permutation.scale)];
+
+						scale_track_stream constant_stream(allocator, 1, bone_stream_to_test.scales.get_sample_size(), bone_stream_to_test.scales.get_sample_rate(), bone_stream_to_test.scales.get_vector_format());
+						constant_stream.set_raw_sample(0, scale);
+						bone_stream_to_test.scales = std::move(constant_stream);
+
+						bone_stream_to_test.is_scale_constant = true;
+						bone_stream_to_test.is_scale_default = best_permutation.scale == constant_scale_value8::default_vector3f;
+
+						// Zero out W, could be garbage
+						bone_range_to_test.scale = track_stream_range::from_min_extent(rtm::vector_set_w(scale, 0.0F), rtm::vector_zero());
+
+						num_default_bone_scales += best_permutation.scale == constant_scale_value8::default_vector3f ? 1 : 0;
+					}
+				}
+			}
+
+			lossy_clip_context.has_scale = num_default_bone_scales != num_transforms;
+
+			deallocate_type_array(allocator, needed_transforms, num_transforms);
+			deallocate_type_array(allocator, sample_transforms, num_transforms);
+			deallocate_type_array(allocator, child_to_leaf_transforms, topology->num_max_leaves_per_transform);
+
+#if defined(ACL_USE_SJSON)
+			compression_stats.compact_constant_sub_tracks_elapsed_seconds = compact_constant_sub_tracks_time.get_elapsed_seconds();
+#endif
+		}
+
+#endif
+
 	}
 
 	ACL_IMPL_VERSION_NAMESPACE_END
