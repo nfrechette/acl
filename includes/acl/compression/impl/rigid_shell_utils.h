@@ -78,6 +78,7 @@ namespace acl
 				transform_shell_metadata.local_shell_distance = raw_clip.get_transform_shell_distance(transform_index);
 				transform_shell_metadata.precision = raw_clip.get_transform_precision(transform_index);
 				transform_shell_metadata.parent_shell_distance = 0.0F;
+				transform_shell_metadata.dominant_transform_index = transform_index;
 			}
 
 			// Iterate from leaf transforms towards their root, we want to bubble up our shell distance
@@ -164,6 +165,7 @@ namespace acl
 						// We are the new dominant transform, use our shell distance and precision
 						parent_shell.local_shell_distance = shell.parent_shell_distance;
 						parent_shell.precision = shell.precision;
+						parent_shell.dominant_transform_index = shell.dominant_transform_index;
 					}
 				}
 			}
@@ -196,6 +198,7 @@ namespace acl
 				shell_metadata.local_shell_distance = metadata.shell_distance;
 				shell_metadata.precision = metadata.precision;
 				shell_metadata.parent_shell_distance = 0.0F;
+				shell_metadata.dominant_transform_index = transform_index;
 			}
 
 			// Iterate from leaf transforms towards their root, we want to bubble up our shell distance
@@ -282,6 +285,7 @@ namespace acl
 						// We are the new dominant transform, use our shell distance and precision
 						parent_shell.local_shell_distance = shell.parent_shell_distance;
 						parent_shell.precision = shell.precision;
+						parent_shell.dominant_transform_index = shell.dominant_transform_index;
 					}
 				}
 			}

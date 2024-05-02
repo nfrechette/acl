@@ -155,6 +155,9 @@ namespace acl
 
 			// Precision required on the surface of the rigid shell
 			float precision;
+
+			// The index of the dominant transform (current transform index for leaf transforms)
+			uint32_t dominant_transform_index;
 		};
 
 		// Represents the working space for a clip (raw or lossy)
