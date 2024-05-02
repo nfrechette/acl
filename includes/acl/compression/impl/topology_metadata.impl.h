@@ -39,6 +39,16 @@ namespace acl
 
 	namespace acl_impl
 	{
+		inline const_array_iterator<uint32_t> transform_topology_t::children_iterator() const
+		{
+			return make_iterator(children, num_children);
+		}
+
+		inline const_array_iterator<uint32_t> transform_topology_t::leaves_iterator() const
+		{
+			return make_iterator(leaves, num_leaves);
+		}
+
 		inline const_array_iterator<uint32_t> clip_topology_t::roots_first_iterator() const
 		{
 			return make_iterator(static_cast<const uint32_t*>(transform_indices_sorted_parent_first), num_transforms);

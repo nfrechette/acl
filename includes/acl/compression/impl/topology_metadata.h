@@ -63,6 +63,12 @@ namespace acl
 
 			// Whether or not this transform is a root
 			bool is_root() const { return parent_index == k_invalid_track_index; }
+
+			// Returns an iterator that returns the transform indices of the children
+			const_array_iterator<uint32_t> children_iterator() const;
+
+			// Returns an iterator that returns the transform indices of the leaves
+			const_array_iterator<uint32_t> leaves_iterator() const;
 		};
 
 		// Topology metadata for a clip
