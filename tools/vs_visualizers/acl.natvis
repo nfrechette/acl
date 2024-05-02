@@ -248,4 +248,14 @@
     </Expand>
   </Type>
 
+  <Type Name="acl::acl_impl::constant_permutation_t">
+    <DisplayString>rotation={rotation,en}, translation={translation,en}, scale={scale,en}</DisplayString>
+    <Expand HideRawView="true">
+      <Item Name="rotation">rotation,en</Item>
+      <Item Name="translation">translation,en</Item>
+      <Item Name="scale">scale,en</Item>
+      <Item Name="cost">acl::acl_impl::k_constant_rotation_cost[(uint32_t)rotation] + acl::acl_impl::k_constant_translation_cost[(uint32_t)translation] + acl::acl_impl::k_constant_scale_cost[(uint32_t)scale]</Item>
+    </Expand>
+  </Type>
+
 </AutoVisualizer>
