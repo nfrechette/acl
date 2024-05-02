@@ -95,6 +95,9 @@ namespace acl
 			// Number of leaf transforms
 			uint32_t num_leaf_transforms				= 0;
 
+			// Highest number of leaves that a transform can have
+			uint32_t num_max_leaves_per_transform		= 0;
+
 			// Global list of children indices
 			// Each transform contains a pointer into this list
 			uint32_t* aggregate_children_indices		= nullptr;

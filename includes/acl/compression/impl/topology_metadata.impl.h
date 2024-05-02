@@ -221,12 +221,19 @@ namespace acl
 				std::sort(transform_indices_sorted_parent_first, transform_indices_sorted_parent_first + num_transforms, sort_predicate);
 			}
 
+			uint32_t num_max_leaves_per_transform = 0;
+			for (uint32_t root_index = 0; root_index < num_root_transforms; ++root_index)
+			{
+				num_max_leaves_per_transform = std::max<uint32_t>(num_max_leaves_per_transform, topology_per_transform[transform_indices_sorted_parent_first[root_index]].num_leaves);
+			}
+
 			out_topology.transforms = topology_per_transform;
 			out_topology.transform_indices_sorted_parent_first = transform_indices_sorted_parent_first;
 			out_topology.root_transform_indices = transform_indices_sorted_parent_first;
 			out_topology.num_root_transforms = num_root_transforms;
 			out_topology.leaf_transform_indices = transform_indices_sorted_parent_first + (num_transforms - num_leaf_transforms);
 			out_topology.num_leaf_transforms = num_leaf_transforms;
+			out_topology.num_max_leaves_per_transform = num_max_leaves_per_transform;
 			out_topology.num_transforms = num_transforms;
 			out_topology.aggregate_children_indices = clip_children_indices;
 			out_topology.num_aggregate_children_indices = num_children_transforms;
