@@ -73,9 +73,11 @@ namespace acl
 			// Initialize everything
 			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 			{
-				shell_metadata[transform_index].local_shell_distance = raw_clip.get_transform_shell_distance(transform_index);
-				shell_metadata[transform_index].precision = raw_clip.get_transform_precision(transform_index);
-				shell_metadata[transform_index].parent_shell_distance = 0.0F;
+				rigid_shell_metadata_t& transform_shell_metadata = shell_metadata[transform_index];
+
+				transform_shell_metadata.local_shell_distance = raw_clip.get_transform_shell_distance(transform_index);
+				transform_shell_metadata.precision = raw_clip.get_transform_precision(transform_index);
+				transform_shell_metadata.parent_shell_distance = 0.0F;
 			}
 
 			// Iterate from leaf transforms towards their root, we want to bubble up our shell distance
@@ -189,10 +191,11 @@ namespace acl
 			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 			{
 				const transform_metadata& metadata = owner_clip_context.metadata[transform_index];
+				rigid_shell_metadata_t& shell_metadata = out_shell_metadata[transform_index];
 
-				out_shell_metadata[transform_index].local_shell_distance = metadata.shell_distance;
-				out_shell_metadata[transform_index].precision = metadata.precision;
-				out_shell_metadata[transform_index].parent_shell_distance = 0.0F;
+				shell_metadata.local_shell_distance = metadata.shell_distance;
+				shell_metadata.precision = metadata.precision;
+				shell_metadata.parent_shell_distance = 0.0F;
 			}
 
 			// Iterate from leaf transforms towards their root, we want to bubble up our shell distance
