@@ -85,6 +85,7 @@ namespace acl
 						&track_array_cast<track_array_qvvf>(track_list),
 						settings.additive_format);
 					clip_adapter.sorted_transforms_parent_first = get_sorted_transforms_parent_first();
+					clip_adapter.topology = get_topology();
 
 					shell_metadata = compute_clip_shell_distances(
 						allocator,
