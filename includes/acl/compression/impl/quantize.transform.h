@@ -685,6 +685,9 @@ namespace acl
 			const float sample_rate = context.sample_rate;
 			const float clip_duration = context.clip_duration;
 
+			const rigid_shell_metadata_t& transform_shell = context.shell_metadata_per_transform[target_bone_index];
+			const rtm::scalarf error_threshold = rtm::scalar_set(transform_shell.precision);
+
 			const auto convert_transforms_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::convert_transforms : &itransform_error_metric::convert_transforms_no_scale);
 			const auto apply_additive_to_base_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
 			const auto calculate_error_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::calculate_error : &itransform_error_metric::calculate_error_no_scale);
@@ -708,9 +711,7 @@ namespace acl
 			itransform_error_metric::calculate_error_args calculate_error_args;
 			calculate_error_args.transform0 = nullptr;
 			calculate_error_args.transform1 = needs_conversion ? (const void*)(context.local_transforms_converted + (context.metric_transform_size * target_bone_index)) : (const void*)(context.lossy_local_pose + target_bone_index);
-
-			const rigid_shell_metadata_t& transform_shell = context.shell_metadata_per_transform[target_bone_index];
-			const rtm::scalarf error_threshold = rtm::scalar_set(transform_shell.precision);
+			calculate_error_args.construct_sphere_shell(transform_shell.local_shell_distance);
 
 			const uint8_t* raw_transform = context.raw_local_transforms + (target_bone_index * context.metric_transform_size);
 			const uint8_t* base_transforms = context.base_local_transforms;
@@ -745,7 +746,6 @@ namespace acl
 					apply_additive_to_base_impl(error_metric, apply_additive_to_base_args_lossy, context.lossy_local_pose);
 				}
 
-				calculate_error_args.construct_sphere_shell(transform_shell.local_shell_distance);
 				calculate_error_args.transform0 = raw_transform;
 				raw_transform += sample_transform_size;
 
@@ -776,6 +776,9 @@ namespace acl
 			const size_t sample_transform_size = context.metric_transform_size * context.num_bones;
 			const float sample_rate = context.sample_rate;
 			const float clip_duration = context.clip_duration;
+
+			const rigid_shell_metadata_t& transform_shell = context.shell_metadata_per_transform[target_bone_index];
+			const rtm::scalarf error_threshold = rtm::scalar_set(transform_shell.precision);
 
 			const auto convert_transforms_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::convert_transforms : &itransform_error_metric::convert_transforms_no_scale);
 			const auto apply_additive_to_base_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
@@ -808,9 +811,7 @@ namespace acl
 			itransform_error_metric::calculate_error_args calculate_error_args;
 			calculate_error_args.transform0 = nullptr;
 			calculate_error_args.transform1 = context.lossy_object_pose + (target_bone_index * context.metric_transform_size);
-
-			const rigid_shell_metadata_t& transform_shell = context.shell_metadata_per_transform[target_bone_index];
-			const rtm::scalarf error_threshold = rtm::scalar_set(transform_shell.precision);
+			calculate_error_args.construct_sphere_shell(transform_shell.local_shell_distance);
 
 			const uint8_t* raw_transform = context.raw_object_transforms + (target_bone_index * context.metric_transform_size);
 			const uint8_t* base_transforms = context.base_local_transforms;
@@ -847,7 +848,6 @@ namespace acl
 
 				local_to_object_space_impl(error_metric, local_to_object_space_args_lossy, context.lossy_object_pose);
 
-				calculate_error_args.construct_sphere_shell(transform_shell.local_shell_distance);
 				calculate_error_args.transform0 = raw_transform;
 				raw_transform += sample_transform_size;
 
