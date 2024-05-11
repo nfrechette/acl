@@ -585,6 +585,27 @@ namespace acl
 				const int32_t unknown_overhead_size = static_cast<int32_t>(compressed_size) - static_cast<int32_t>(known_data_size);
 				ACL_ASSERT(unknown_overhead_size >= 0, "Overhead size should be positive");
 				writer["unknown_overhead_size"] = unknown_overhead_size;
+
+				// Critical transforms are those where the error is evaluated on: non-leaf dominant transforms and leaves
+				bool* is_critical_transform = allocate_type_array<bool>(allocator, clip.num_bones);
+				std::fill_n(is_critical_transform, clip.num_bones, false);
+
+				for (uint32_t leaf_transform_index : clip.topology->leaves_iterator())
+					is_critical_transform[leaf_transform_index] = true;
+
+				for (uint32_t transform_index = 0; transform_index < clip.num_bones; ++transform_index)
+					is_critical_transform[clip.clip_shell_metadata[transform_index].dominant_transform_index] = true;
+
+				writer["critical_transforms"] = [&](sjson::ArrayWriter& critical_transform_writer)
+					{
+						for (uint32_t transform_index = 0; transform_index < clip.num_bones; ++transform_index)
+						{
+							if (is_critical_transform[transform_index])
+								critical_transform_writer.push(transform_index);
+						}
+					};
+
+				deallocate_type_array(allocator, is_critical_transform, clip.num_bones);
 			}
 
 			writer["segmenting"] = [&](sjson::ObjectWriter& segmenting_writer)
