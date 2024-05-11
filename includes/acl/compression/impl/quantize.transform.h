@@ -767,7 +767,7 @@ namespace acl
 			return rtm::scalar_cast(max_error);
 		}
 
-		inline float calculate_max_error_at_bit_rate_object(quantization_context& context, uint32_t target_bone_index, error_scan_stop_condition stop_condition)
+		inline float calculate_max_error_at_bit_rate_object(quantization_context& context, uint32_t target_bone_index, error_scan_stop_condition stop_condition, bool use_dominance = true)
 		{
 			const itransform_error_metric* error_metric = context.error_metric;
 			const bool needs_conversion = context.needs_conversion;
@@ -777,8 +777,20 @@ namespace acl
 			const float sample_rate = context.sample_rate;
 			const float clip_duration = context.clip_duration;
 
-			const rigid_shell_metadata_t& transform_shell = context.shell_metadata_per_transform[target_bone_index];
-			const rtm::scalarf error_threshold = rtm::scalar_set(transform_shell.precision);
+			rtm::scalarf error_threshold;
+			float shell_distance;
+			if (use_dominance)
+			{
+				const rigid_shell_metadata_t& transform_shell = context.shell_metadata_per_transform[target_bone_index];
+
+				shell_distance = transform_shell.local_shell_distance;
+				error_threshold = rtm::scalar_set(transform_shell.precision);
+			}
+			else
+			{
+				shell_distance = context.metadata[target_bone_index].shell_distance;
+				error_threshold = rtm::scalar_set(context.metadata[target_bone_index].precision);
+			}
 
 			const auto convert_transforms_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::convert_transforms : &itransform_error_metric::convert_transforms_no_scale);
 			const auto apply_additive_to_base_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
@@ -811,7 +823,7 @@ namespace acl
 			itransform_error_metric::calculate_error_args calculate_error_args;
 			calculate_error_args.transform0 = nullptr;
 			calculate_error_args.transform1 = context.lossy_object_pose + (target_bone_index * context.metric_transform_size);
-			calculate_error_args.construct_sphere_shell(transform_shell.local_shell_distance);
+			calculate_error_args.construct_sphere_shell(shell_distance);
 
 			const uint8_t* raw_transform = context.raw_object_transforms + (target_bone_index * context.metric_transform_size);
 			const uint8_t* base_transforms = context.base_local_transforms;
@@ -1561,7 +1573,7 @@ namespace acl
 				const uint32_t num_bones_in_chain = calculate_bone_chain_indices(context.clip, bone_index, context.chain_bone_indices);
 				context.num_bones_in_chain = num_bones_in_chain;
 
-				float error = calculate_max_error_at_bit_rate_object(context, bone_index, error_scan_stop_condition::until_end_of_segment);
+				float error = calculate_max_error_at_bit_rate_object(context, bone_index, error_scan_stop_condition::until_end_of_segment, false);
 				const transform_bit_rates& bone_bit_rate = context.bit_rate_per_bone[bone_index];
 				printf("%8u: [%3u, %3u, %3u](%3u) @ %.4f%s\n", bone_index,
 					bone_bit_rate.rotation, bone_bit_rate.translation, bone_bit_rate.scale, bone_bit_rate.get_num_bits(),
