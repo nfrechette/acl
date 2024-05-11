@@ -903,7 +903,7 @@ namespace acl
 				if (bone_bit_rates.rotation == k_invalid_bit_rate && bone_bit_rates.translation == k_invalid_bit_rate && bone_bit_rates.scale == k_invalid_bit_rate)
 				{
 #if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_BASIC_INFO
-					printf("%8u: Best bit rates: [%3u, %3u, %3u] (all constant)\n", bone_index, bone_bit_rates.rotation, bone_bit_rates.translation, bone_bit_rates.scale);
+					printf("%8u: Best bit rates: [%3u, %3u, %3u](  0) (all constant)\n", bone_index, bone_bit_rates.rotation, bone_bit_rates.translation, bone_bit_rates.scale);
 #endif
 					continue;	// Every track bit rate is constant/default, nothing else to do
 				}
@@ -984,7 +984,9 @@ namespace acl
 				}
 
 #if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_BASIC_INFO
-				printf("%8u: Best bit rates: [%3u, %3u, %3u] @ %.4f%s (local)\n", bone_index, best_bit_rates.rotation, best_bit_rates.translation, best_bit_rates.scale, best_error, is_error_good_enough ? "" : " (too high)");
+				printf("%8u: Best bit rates: [%3u, %3u, %3u](%3u) @ %.4f%s (local)\n",
+					bone_index, best_bit_rates.rotation, best_bit_rates.translation, best_bit_rates.scale,
+					best_bit_rates.get_num_bits(), best_error, is_error_good_enough ? "" : " (too high)");
 #endif
 
 				context.bit_rate_per_bone[bone_index] = best_bit_rates;
@@ -1547,7 +1549,10 @@ namespace acl
 			}
 
 #if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_SUMMARY_ONLY
-			printf("Variable quantization optimization results:\n");
+			uint32_t total_num_bits = 0;
+			for (uint32_t transform_index = 0; transform_index < num_bones; ++transform_index)
+				total_num_bits += context.bit_rate_per_bone[transform_index].get_num_bits();
+			printf("Variable quantization optimization results (total size %u bits):\n", total_num_bits);
 			for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 			{
 				// Update our context with the new bone data
@@ -1558,7 +1563,9 @@ namespace acl
 
 				float error = calculate_max_error_at_bit_rate_object(context, bone_index, error_scan_stop_condition::until_end_of_segment);
 				const transform_bit_rates& bone_bit_rate = context.bit_rate_per_bone[bone_index];
-				printf("%8u: [%3u, %3u, %3u] @ %.4f%s\n", bone_index, bone_bit_rate.rotation, bone_bit_rate.translation, bone_bit_rate.scale, error, error < error_threshold ? "" : " (too high)");
+				printf("%8u: [%3u, %3u, %3u](%3u) @ %.4f%s\n", bone_index,
+					bone_bit_rate.rotation, bone_bit_rate.translation, bone_bit_rate.scale, bone_bit_rate.get_num_bits(),
+					error, error < error_threshold ? "" : " (too high)");
 			}
 #endif
 
