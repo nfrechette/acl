@@ -46,6 +46,9 @@ namespace acl
 			// Transform index of our parent
 			uint32_t parent_index = 0;
 
+			// Number of transforms between this one and its chain root (root is 0)
+			uint32_t depth_from_root = 0;
+
 			// A list of child transform indices beneath this transform (points into FOOBAR in owner clip_topology_t)
 			const uint32_t* children = nullptr;
 
@@ -97,6 +100,9 @@ namespace acl
 
 			// Highest number of leaves that a transform can have
 			uint32_t num_max_leaves_per_transform		= 0;
+
+			// Highest depth that a leaf lives at (number of transforms in the longest chain)
+			uint32_t max_leaf_depth						= 0;
 
 			// Global list of children indices
 			// Each transform contains a pointer into this list

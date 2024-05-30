@@ -227,6 +227,18 @@ namespace acl
 				num_max_leaves_per_transform = std::max<uint32_t>(num_max_leaves_per_transform, topology_per_transform[transform_indices_sorted_parent_first[root_index]].num_leaves);
 			}
 
+			uint32_t max_leaf_depth = 0;
+			for (uint32_t transform_index : make_iterator(transform_indices_sorted_parent_first, num_transforms))
+			{
+				const uint32_t parent_index = topology_per_transform[transform_index].parent_index;
+				if (parent_index != k_invalid_track_index)
+				{
+					topology_per_transform[transform_index].depth_from_root = topology_per_transform[parent_index].depth_from_root + 1;
+
+					max_leaf_depth = std::max<uint32_t>(max_leaf_depth, topology_per_transform[transform_index].depth_from_root);
+				}
+			}
+
 			out_topology.transforms = topology_per_transform;
 			out_topology.transform_indices_sorted_parent_first = transform_indices_sorted_parent_first;
 			out_topology.root_transform_indices = transform_indices_sorted_parent_first;
@@ -234,6 +246,7 @@ namespace acl
 			out_topology.leaf_transform_indices = transform_indices_sorted_parent_first + (num_transforms - num_leaf_transforms);
 			out_topology.num_leaf_transforms = num_leaf_transforms;
 			out_topology.num_max_leaves_per_transform = num_max_leaves_per_transform;
+			out_topology.max_leaf_depth = max_leaf_depth;
 			out_topology.num_transforms = num_transforms;
 			out_topology.aggregate_children_indices = clip_children_indices;
 			out_topology.num_aggregate_children_indices = num_children_transforms;
