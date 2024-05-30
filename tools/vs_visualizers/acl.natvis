@@ -184,9 +184,10 @@
     <DisplayString>parent={parent_index}, num_children={num_children}</DisplayString>
     <Expand>
       <Item Name="parent_index">parent_index</Item>
+      <Item Name="depth_from_root">depth_from_root</Item>
       <Item Name="is_root">parent_index == k_invalid_track_index</Item>
       <Item Name="is_leaf">num_children == 0</Item>
-      <Synthetic Name="Children">
+      <Synthetic Name="children">
         <DisplayString>count={num_children}</DisplayString>
         <Expand>
           <ArrayItems>
@@ -195,7 +196,7 @@
           </ArrayItems>
         </Expand>
       </Synthetic>
-      <Synthetic Name="Leaves">
+      <Synthetic Name="leaves">
         <DisplayString>count={num_leaves}</DisplayString>
         <Expand>
           <ArrayItems>
@@ -208,8 +209,9 @@
   </Type>
 
   <Type Name="acl::acl_impl::clip_topology_t">
+    <DisplayString>num_transforms={num_transforms}, num_roots={num_root_transforms}, num_leaves={num_leaf_transforms}</DisplayString>
     <Expand>
-      <Synthetic Name="Transforms">
+      <Synthetic Name="transforms">
         <DisplayString>count={num_transforms}</DisplayString>
         <Expand>
           <ArrayItems>
@@ -218,7 +220,7 @@
           </ArrayItems>
         </Expand>
       </Synthetic>
-      <Synthetic Name="TransformIndicesRootFirst">
+      <Synthetic Name="transform_indices_root_first">
         <DisplayString>count={num_transforms}</DisplayString>
         <Expand>
           <ArrayItems>
@@ -227,7 +229,7 @@
           </ArrayItems>
         </Expand>
       </Synthetic>
-      <Synthetic Name="Roots">
+      <Synthetic Name="roots">
         <DisplayString>count={num_root_transforms}</DisplayString>
         <Expand>
           <ArrayItems>
@@ -236,7 +238,7 @@
           </ArrayItems>
         </Expand>
       </Synthetic>
-      <Synthetic Name="Leaves">
+      <Synthetic Name="leaves">
         <DisplayString>count={num_leaf_transforms}</DisplayString>
         <Expand>
           <ArrayItems>
@@ -245,6 +247,8 @@
           </ArrayItems>
         </Expand>
       </Synthetic>
+      <Item Name="num_max_leaves_per_transform">num_max_leaves_per_transform</Item>
+      <Item Name="max_leaf_depth">max_leaf_depth</Item>
     </Expand>
   </Type>
 
