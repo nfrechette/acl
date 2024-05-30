@@ -190,6 +190,8 @@ namespace acl
 			void set_segment(const transform_streams* bone_streams, uint32_t num_transforms, uint32_t num_samples_per_track);
 
 			void sample(const single_track_query& query, float sample_time, rtm::qvvf* out_transforms, uint32_t num_transforms);
+			rtm::qvvf sample(const single_track_query& query, float sample_time);
+
 			void sample(const hierarchical_track_query& query, float sample_time, rtm::qvvf* out_transforms, uint32_t num_transforms);
 			void sample(const every_track_query& query, float sample_time, rtm::qvvf* out_transforms, uint32_t num_transforms);
 
@@ -873,6 +875,27 @@ namespace acl
 			const rtm::vector4f scale = sample_scale(context, query.m_scale_cache_index);
 
 			out_local_pose[query.m_track_index] = rtm::qvv_set(rotation, translation, scale);
+		}
+
+		inline rtm::qvvf track_bit_rate_database::sample(const single_track_query& query, float sample_time)
+		{
+			ACL_ASSERT(query.m_database == this, "Query has not been built for this database");
+
+			const segment_context* segment_context = m_mutable_bone_streams->segment;
+
+			const uint32_t sample_key = get_uniform_sample_key(*segment_context, sample_time);
+
+			sample_context context;
+			context.track_index = query.m_track_index;
+			context.sample_key = sample_key;
+			context.sample_time = sample_time;
+			context.bit_rates = query.m_bit_rates;
+
+			const rtm::quatf rotation = sample_rotation(context, query.m_rotation_cache_index);
+			const rtm::vector4f translation = sample_translation(context, query.m_translation_cache_index);
+			const rtm::vector4f scale = sample_scale(context, query.m_scale_cache_index);
+
+			return rtm::qvv_set(rotation, translation, scale);
 		}
 
 		inline void track_bit_rate_database::sample(const hierarchical_track_query& query, float sample_time, rtm::qvvf* out_local_pose, uint32_t num_transforms)
