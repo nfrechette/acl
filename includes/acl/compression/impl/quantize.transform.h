@@ -1403,6 +1403,13 @@ namespace acl
 			transform_bit_rates* best_bit_rates = allocate_type_array<transform_bit_rates>(context.allocator, context.num_bones);
 			std::memcpy(best_bit_rates, context.bit_rate_per_bone, sizeof(transform_bit_rates) * context.num_bones);
 
+			// The algorithm complexity is thus as follows: O(T*N!*S)
+			// Where:
+			//     T: number of transforms
+			//     S: number of samples in segment
+			//     N: number of transforms in chain length
+			// The compression level controls how much of N! to search.
+
 			// Iterate from the root transforms first
 			// I attempted to iterate from leaves first and the memory footprint was severely worse
 			const uint32_t num_bones = context.num_bones;
@@ -1771,6 +1778,14 @@ namespace acl
 				get_array_size(acl_impl::k_local_bit_rate_permutations_2_dof),
 				get_array_size(acl_impl::k_local_bit_rate_permutations_3_dof),
 			};
+
+			// The algorithm complexity is thus as follows: O(T*P*C*S*N)
+			// Where:
+			//     T: number of transforms
+			//     P: number of permutations to try
+			//     C: number of critical transforms
+			//     S: number of samples in segment
+			//     N: number of transforms in critical transform chain length
 
 			for (const uint32_t transform_index : context.topology->leaves_first_iterator())
 			{
