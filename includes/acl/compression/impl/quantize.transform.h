@@ -2080,7 +2080,8 @@ namespace acl
 			if (context.lossy_transforms_start == nullptr)
 			{
 				// This is the first time we call this, initialize what we'll need and re-use
-				context.all_local_query.bind(context.bit_rate_database);
+				if (!context.all_local_query.is_bound())
+					context.all_local_query.bind(context.bit_rate_database);
 
 				context.lossy_transforms_start = allocate_type_array<rtm::qvvf>(context.allocator, num_bones);
 				context.lossy_transforms_end = allocate_type_array<rtm::qvvf>(context.allocator, num_bones);

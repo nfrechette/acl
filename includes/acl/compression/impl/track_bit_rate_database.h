@@ -141,6 +141,8 @@ namespace acl
 				deallocate_type_array(m_allocator, m_indices, m_num_transforms);
 			}
 
+			bool is_bound() const { return m_database != nullptr; }
+
 			void bind(track_bit_rate_database& database);
 			void build(const transform_bit_rates* bit_rates);
 
