@@ -593,15 +593,26 @@ namespace acl
 				for (uint32_t leaf_transform_index : clip.topology->leaves_iterator())
 					is_critical_transform[leaf_transform_index] = true;
 
-				for (uint32_t transform_index = 0; transform_index < clip.num_bones; ++transform_index)
-					is_critical_transform[clip.clip_shell_metadata[transform_index].dominant_transform_index] = true;
+				if (clip.num_samples != 0)
+				{
+					for (uint32_t transform_index = 0; transform_index < clip.num_bones; ++transform_index)
+						is_critical_transform[clip.clip_shell_metadata[transform_index].dominant_transform_index] = true;
+				}
 
+				uint32_t num_critical_transforms = 0;
+				for (uint32_t transform_index = 0; transform_index < clip.num_bones; ++transform_index)
+					num_critical_transforms += is_critical_transform[transform_index] ? 1 : 0;
+
+				writer["num_critical_transforms"] = num_critical_transforms;
 				writer["critical_transforms"] = [&](sjson::ArrayWriter& critical_transform_writer)
 					{
-						for (uint32_t transform_index = 0; transform_index < clip.num_bones; ++transform_index)
+						if (clip.num_samples != 0)
 						{
-							if (is_critical_transform[transform_index])
-								critical_transform_writer.push(transform_index);
+							for (uint32_t transform_index = 0; transform_index < clip.num_bones; ++transform_index)
+							{
+								if (is_critical_transform[transform_index])
+									critical_transform_writer.push(transform_index);
+							}
 						}
 					};
 
