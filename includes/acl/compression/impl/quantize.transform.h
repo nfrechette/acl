@@ -73,16 +73,6 @@
 // 0 = no profiling, 1 = we perform quantization 10 times in a row for every segment
 #define ACL_IMPL_PROFILE_MATH						0
 
-// Original algorithm used by ACL 2.1
-#define ACL_IMPL_VARIABLE_QUANTIZATION_ALGO_ORIGINAL	0
-
-// Enables a more precise version of bit rate optimization that evaluates the error
-// at each leaf and the dominant transform in object space in a single pass
-#define ACL_IMPL_VARIABLE_QUANTIZATION_ALGO_PRECISE_V2	2
-
-// The currently used algorithm for variable bit rate optimization
-#define ACL_IMPL_VARIABLE_QUANTIZATION_ALGO				ACL_IMPL_VARIABLE_QUANTIZATION_ALGO_ORIGINAL
-
 #if ACL_IMPL_PROFILE_MATH && defined(__ANDROID__)
 #include <android/log.h>
 #endif
@@ -892,8 +882,7 @@ namespace acl
 			return rtm::scalar_cast(max_error);
 		}
 
-#if ACL_IMPL_VARIABLE_QUANTIZATION_ALGO == ACL_IMPL_VARIABLE_QUANTIZATION_ALGO_PRECISE_V2
-
+		// For algorithm from ACL 2.2 and later
 		inline float calculate_max_error_at_bit_rate_object(
 			quantization_context& context, uint32_t transform_index_to_measure,
 			const uint32_t* chain_transform_indices, uint32_t num_transforms_in_chain)
@@ -995,11 +984,8 @@ namespace acl
 			return rtm::scalar_cast(max_error);
 		}
 
-#endif
-
-#if ACL_IMPL_VARIABLE_QUANTIZATION_ALGO == ACL_IMPL_VARIABLE_QUANTIZATION_ALGO_PRECISE_V2
-
-		// Used when no non-uniform 3D scale is present
+		// For algorithm from ACL 2.2 and later
+		// Used when no 3D scale is present
 		inline float calculate_max_error_at_bit_rate_object_cached(
 			quantization_context& context,
 			uint32_t transform_index_being_optimized, uint32_t transform_index_to_measure,
@@ -1083,8 +1069,9 @@ namespace acl
 			return rtm::scalar_cast(max_error);
 		}
 
-		// Used when we have non-uniform 3D scale present
-		inline float calculate_max_error_at_bit_rate_object_cached_with_non_uniform_scale(
+		// For algorithm from ACL 2.2 and later
+		// Used when we have 3D scale present
+		inline float calculate_max_error_at_bit_rate_object_cached_with_scale(
 			quantization_context& context,
 			uint32_t transform_index_being_optimized, uint32_t transform_index_to_measure,
 			const uint32_t* transform_chain_indices, uint32_t transform_chain_length,
@@ -1175,7 +1162,8 @@ namespace acl
 			return rtm::scalar_cast(max_error);
 		}
 
-		// Used when no non-uniform 3D scale is present
+		// For algorithm from ACL 2.2 and later
+		// Used when no 3D scale is present
 		inline void update_cached_transforms(
 			quantization_context& context,
 			uint32_t transform_index_being_optimized, uint32_t transform_index_to_measure,
@@ -1218,8 +1206,9 @@ namespace acl
 			}
 		}
 
-		// Used when we have non-uniform 3D scale present
-		inline void update_cached_transforms_with_non_uniform_scale(
+		// For algorithm from ACL 2.2 and later
+		// Used when we have 3D scale present
+		inline void update_cached_transforms_with_scale(
 			quantization_context& context,
 			uint32_t transform_index_being_optimized,
 			const rtm::qvvf* additive_base_local_transforms,
@@ -1253,8 +1242,6 @@ namespace acl
 				sample_indexf += 1.0F;
 			}
 		}
-
-#endif
 
 		inline void calculate_local_space_bit_rates(quantization_context& context)
 		{
@@ -1500,8 +1487,7 @@ namespace acl
 			return num_bones_in_chain;
 		}
 
-#if ACL_IMPL_VARIABLE_QUANTIZATION_ALGO == ACL_IMPL_VARIABLE_QUANTIZATION_ALGO_ORIGINAL
-
+		// For algorithm from ACL 2.1 and earlier
 		inline void initialize_bone_bit_rates(const segment_context& segment, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, transform_bit_rates* out_bit_rate_per_bone)
 		{
 			const bool is_rotation_variable = is_rotation_format_variable(rotation_format);
@@ -1538,9 +1524,8 @@ namespace acl
 			}
 		}
 
-#elif ACL_IMPL_VARIABLE_QUANTIZATION_ALGO == ACL_IMPL_VARIABLE_QUANTIZATION_ALGO_PRECISE_V2
-
-		inline void initialize_bone_bit_rates(const segment_context& segment, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, transform_bit_rates* out_bit_rate_per_bone)
+		// For algorithm from ACL 2.2 and later
+		inline void initialize_bone_bit_rates_v2(const segment_context& segment, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, transform_bit_rates* out_bit_rate_per_bone)
 		{
 			const bool is_rotation_variable = is_rotation_format_variable(rotation_format);
 			const bool is_translation_variable = is_vector_format_variable(translation_format);
@@ -1567,8 +1552,6 @@ namespace acl
 					bone_bit_rate.scale = k_invalid_bit_rate;
 			}
 		}
-
-#endif
 
 		inline void quantize_all_streams(quantization_context& context)
 		{
@@ -1602,8 +1585,7 @@ namespace acl
 			}
 		}
 
-#if ACL_IMPL_VARIABLE_QUANTIZATION_ALGO == ACL_IMPL_VARIABLE_QUANTIZATION_ALGO_ORIGINAL
-
+		// For algorithm from ACL 2.1 and earlier
 		inline void find_optimal_bit_rates(quantization_context& context)
 		{
 			ACL_ASSERT(context.is_valid(), "quantization_context isn't valid");
@@ -2005,8 +1987,6 @@ namespace acl
 			deallocate_type_array(context.allocator, best_bit_rates, num_bones);
 		}
 
-#elif ACL_IMPL_VARIABLE_QUANTIZATION_ALGO == ACL_IMPL_VARIABLE_QUANTIZATION_ALGO_PRECISE_V2
-
 		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE rtm::mask4f RTM_SIMD_CALL mask_not(rtm::mask4f_arg0 input) RTM_NO_EXCEPT
 		{
 		#if defined(RTM_SSE2_INTRINSICS)
@@ -2115,11 +2095,12 @@ namespace acl
 		// that does not leverage associativity. Instead, the cached transforms will contain local space values once they
 		// have been optimized. We then multiply them one by one using transform chains as needed.
 		//////////////////////////////////////////////////////////////////////////
-		inline void find_optimal_bit_rates(quantization_context& context)
+		inline void find_optimal_bit_rates_v2(quantization_context& context)
 		{
+			// For algorithm from ACL 2.2 and later
 			ACL_ASSERT(context.is_valid(), "quantization_context isn't valid");
 
-			initialize_bone_bit_rates(*context.segment, context.rotation_format, context.translation_format, context.scale_format, context.bit_rate_per_bone);
+			initialize_bone_bit_rates_v2(*context.segment, context.rotation_format, context.translation_format, context.scale_format, context.bit_rate_per_bone);
 
 			const uint32_t num_transforms = context.num_bones;
 			const uint32_t num_samples = context.num_samples;
@@ -2289,7 +2270,7 @@ namespace acl
 					for (const uint32_t critical_transform_index : make_iterator(critical_transform_indices, num_critical_transforms))
 					{
 						if (has_scale)
-							update_cached_transforms_with_non_uniform_scale(context, transform_index, additive_base_local_transforms, cached_transforms_lossy);
+							update_cached_transforms_with_scale(context, transform_index, additive_base_local_transforms, cached_transforms_lossy);
 						else
 							update_cached_transforms(context, transform_index, critical_transform_index, additive_base_local_transforms, cached_transforms_lossy);
 					}
@@ -2404,7 +2385,7 @@ namespace acl
 
 						float critical_transform_error;
 						if (has_scale)
-							critical_transform_error = calculate_max_error_at_bit_rate_object_cached_with_non_uniform_scale(
+							critical_transform_error = calculate_max_error_at_bit_rate_object_cached_with_scale(
 								context,
 								transform_index, critical_transform_index,
 								transform_chains[critical_chain_index], transform_chain_counts[critical_chain_index],
@@ -2540,7 +2521,7 @@ namespace acl
 				for (const uint32_t critical_transform_index : make_iterator(critical_transform_indices, num_critical_transforms))
 				{
 					if (has_scale)
-						update_cached_transforms_with_non_uniform_scale(context, transform_index, additive_base_local_transforms, cached_transforms_lossy);
+						update_cached_transforms_with_scale(context, transform_index, additive_base_local_transforms, cached_transforms_lossy);
 					else
 						update_cached_transforms(context, transform_index, critical_transform_index, additive_base_local_transforms, cached_transforms_lossy);
 				}
@@ -2574,7 +2555,17 @@ namespace acl
 			deallocate_type_array(context.allocator, transform_chain_counts, max_num_transform_chains);
 		}
 
-#endif
+		inline void find_optimal_bit_rates_dispatch(quantization_context& context)
+		{
+			// For the time being, we still support the legacy algorithm for error metrics that don't support it
+			// ACL 2.2 will deprecate the error metric in the compression settings in favor of an enum to hide
+			// it as an implementation detail
+			// ACL 2.3 will remove the old stuff entirely
+			if (context.error_metric->supports_bit_rate_algorithm_v2())
+				find_optimal_bit_rates_v2(context);
+			else
+				find_optimal_bit_rates(context);
+		}
 
 		// Partitioning will be done as follow in two phases: calculating the error contribution for every frame and a global optimization pass.
 		//
@@ -2901,7 +2892,7 @@ namespace acl
 						context.set_segment(segment);
 
 						if (is_any_variable)
-							find_optimal_bit_rates(context);
+							find_optimal_bit_rates_dispatch(context);
 					}
 
 					timer.stop();
@@ -2918,7 +2909,7 @@ namespace acl
 
 				// If we use a variable bit rate, run our optimization algorithm to find the optimal bit rates
 				if (is_any_variable)
-					find_optimal_bit_rates(context);
+					find_optimal_bit_rates_dispatch(context);
 
 				// If we need the contributing error of each frame, find it now before we quantize
 				if (settings.metadata.include_contributing_error)
