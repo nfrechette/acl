@@ -48,6 +48,7 @@
 
 #include <rtm/quatf.h>
 #include <rtm/vector4f.h>
+#include <rtm/mask4f.h>
 
 #if defined(ACL_USE_SJSON)
 #include <sjson/writer.h>
@@ -79,6 +80,7 @@
 // at each leaf and the dominant transform in object space in a single pass
 #define ACL_IMPL_VARIABLE_QUANTIZATION_ALGO_PRECISE		1
 
+// Same as ACL_IMPL_VARIABLE_QUANTIZATION_ALGO_PRECISE but slightly improved
 #define ACL_IMPL_VARIABLE_QUANTIZATION_ALGO_PRECISE_V2	2
 
 // The currently used algorithm for variable bit rate optimization
@@ -2242,6 +2244,30 @@ namespace acl
 
 #elif ACL_IMPL_VARIABLE_QUANTIZATION_ALGO == ACL_IMPL_VARIABLE_QUANTIZATION_ALGO_PRECISE_V2
 
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE rtm::mask4f RTM_SIMD_CALL mask_not(rtm::mask4f_arg0 input) RTM_NO_EXCEPT
+		{
+		#if defined(RTM_SSE2_INTRINSICS)
+			return _mm_andnot_ps(input, _mm_castsi128_ps(_mm_set_epi32(0xFFFFFFFFU, 0xFFFFFFFFU, 0xFFFFFFFFU, 0xFFFFFFFFU)));
+		#elif defined(RTM_NEON_INTRINSICS)
+			return vmvnq_u32(input);
+		#else
+			const uint32_t* input_ = rtm_impl::bit_cast<const uint32_t*>(&input);
+
+			union
+			{
+				mask4f vector;
+				uint32_t scalar[4];
+			} result;
+
+			result.scalar[0] = ~input[0];
+			result.scalar[1] = ~input[1];
+			result.scalar[2] = ~input[2];
+			result.scalar[3] = ~input[3];
+
+			return result.vector;
+		#endif
+		}
+
 		//////////////////////////////////////////////////////////////////////////
 		// [Bit Rate Optimization Algorithm]
 		//
@@ -2353,6 +2379,9 @@ namespace acl
 				context.all_local_query.bind(context.bit_rate_database);
 			context.all_local_query.build(context.bit_rate_per_bone);
 
+			const rtm::vector4f default_scale = rtm::vector_set(1.0F);
+			rtm::mask4f has_default_scale = rtm::mask_set(true, true, true, true);
+
 			// Build our cached transforms by sampling everything and converting our segment to object space
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
@@ -2385,6 +2414,9 @@ namespace acl
 				// Convert our poses to object space
 				for (uint32_t transform_index : context.topology->roots_first_iterator())
 				{
+					// Test if we have scale after applying our base pose since it might introduce scale
+					has_default_scale = rtm::mask_and(rtm::vector_equal(default_scale, object_pose_raw[transform_index].scale), has_default_scale);
+
 					const uint32_t parent_transform_index = context.topology->transforms[transform_index].parent_index;
 					if (parent_transform_index != k_invalid_track_index)
 					{
@@ -2395,7 +2427,7 @@ namespace acl
 			}
 
 			// If we have non-uniform 3D scale, we cannot rely on associativity, fall back to the transform chain
-			const bool has_scale = context.has_scale;
+			const bool has_scale = rtm::mask_any_true3(mask_not(has_default_scale));
 
 			const uint32_t max_num_transform_chains = context.topology->num_max_leaves_per_transform + 1;	// +1 since we have a dominant transform as well
 			const uint32_t max_chain_length = context.topology->max_leaf_depth + 1;							// +1 since depth is 0-based
