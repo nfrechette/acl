@@ -78,9 +78,6 @@
 
 // Enables a more precise version of bit rate optimization that evaluates the error
 // at each leaf and the dominant transform in object space in a single pass
-#define ACL_IMPL_VARIABLE_QUANTIZATION_ALGO_PRECISE		1
-
-// Same as ACL_IMPL_VARIABLE_QUANTIZATION_ALGO_PRECISE but slightly improved
 #define ACL_IMPL_VARIABLE_QUANTIZATION_ALGO_PRECISE_V2	2
 
 // The currently used algorithm for variable bit rate optimization
@@ -895,7 +892,7 @@ namespace acl
 			return rtm::scalar_cast(max_error);
 		}
 
-#if ACL_IMPL_VARIABLE_QUANTIZATION_ALGO == ACL_IMPL_VARIABLE_QUANTIZATION_ALGO_PRECISE || ACL_IMPL_VARIABLE_QUANTIZATION_ALGO == ACL_IMPL_VARIABLE_QUANTIZATION_ALGO_PRECISE_V2
+#if ACL_IMPL_VARIABLE_QUANTIZATION_ALGO == ACL_IMPL_VARIABLE_QUANTIZATION_ALGO_PRECISE_V2
 
 		inline float calculate_max_error_at_bit_rate_object(
 			quantization_context& context, uint32_t transform_index_to_measure,
@@ -1541,7 +1538,7 @@ namespace acl
 			}
 		}
 
-#elif ACL_IMPL_VARIABLE_QUANTIZATION_ALGO == ACL_IMPL_VARIABLE_QUANTIZATION_ALGO_PRECISE || ACL_IMPL_VARIABLE_QUANTIZATION_ALGO == ACL_IMPL_VARIABLE_QUANTIZATION_ALGO_PRECISE_V2
+#elif ACL_IMPL_VARIABLE_QUANTIZATION_ALGO == ACL_IMPL_VARIABLE_QUANTIZATION_ALGO_PRECISE_V2
 
 		inline void initialize_bone_bit_rates(const segment_context& segment, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, transform_bit_rates* out_bit_rate_per_bone)
 		{
@@ -2006,240 +2003,6 @@ namespace acl
 			deallocate_type_array(context.allocator, permutation_bit_rates, num_bones);
 			deallocate_type_array(context.allocator, best_permutation_bit_rates, num_bones);
 			deallocate_type_array(context.allocator, best_bit_rates, num_bones);
-		}
-
-#elif ACL_IMPL_VARIABLE_QUANTIZATION_ALGO == ACL_IMPL_VARIABLE_QUANTIZATION_ALGO_PRECISE
-
-		inline void find_optimal_bit_rates(quantization_context& context)
-		{
-			ACL_ASSERT(context.is_valid(), "quantization_context isn't valid");
-
-			initialize_bone_bit_rates(*context.segment, context.rotation_format, context.translation_format, context.scale_format, context.bit_rate_per_bone);
-
-			const uint32_t num_transforms = context.num_bones;
-
-			const bool rotation_supports_constant_tracks = context.segment->are_rotations_normalized;
-			const bool translation_supports_constant_tracks = context.segment->are_translations_normalized;
-			const bool scale_supports_constant_tracks = context.segment->are_scales_normalized;
-
-			uint32_t* dominant_by_length_chain_transform_indices = allocate_type_array<uint32_t>(context.allocator, num_transforms);
-			uint32_t num_dominant_by_length_chain_transform_indices = 0;
-
-			uint32_t* leaf_chain_transform_indices = allocate_type_array<uint32_t>(context.allocator, num_transforms);
-			uint32_t num_leaf_chain_transform_indices = 0;
-
-			// We try permutations from the lowest memory footprint to the highest.
-			const uint8_t* const bit_rate_permutations_per_dofs[] =
-			{
-				&acl_impl::k_local_bit_rate_permutations_1_dof[0][0],
-				&acl_impl::k_local_bit_rate_permutations_2_dof[0][0],
-				&acl_impl::k_local_bit_rate_permutations_3_dof[0][0],
-			};
-			const size_t num_bit_rate_permutations_per_dofs[] =
-			{
-				get_array_size(acl_impl::k_local_bit_rate_permutations_1_dof),
-				get_array_size(acl_impl::k_local_bit_rate_permutations_2_dof),
-				get_array_size(acl_impl::k_local_bit_rate_permutations_3_dof),
-			};
-
-			// The algorithm complexity is thus as follows: O(T*P*C*S*N)
-			// Where:
-			//     T: number of transforms
-			//     P: number of permutations to try
-			//     C: number of critical transforms
-			//     S: number of samples in segment
-			//     N: number of transforms in critical transform chain length
-
-			for (const uint32_t transform_index : context.topology->leaves_first_iterator())
-			{
-				// Our target precision
-				const float transform_precision = context.shell_metadata_per_transform[transform_index].precision;
-
-#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_BASIC_INFO && 0
-				printf("%8u: Shell distance: %.4f, precision: %.4f, parent: %3u, dominant: %3u\n",
-					transform_index, context.shell_metadata_per_transform[transform_index].local_shell_distance,
-					transform_precision, context.parent_transform_indices[transform_index],
-					context.shell_metadata_per_transform[transform_index].dominant_transform_index);
-#endif
-
-				// Bit rates at this point are one of three value:
-				// 0: if the segment track is normalized, it can be constant within the segment
-				// 1: if the segment track isn't normalized, it starts at the lowest bit rate
-				// 255: if the track is constant/default for the whole clip
-				const transform_bit_rates bone_bit_rates = context.bit_rate_per_bone[transform_index];
-
-				if (bone_bit_rates.rotation == k_invalid_bit_rate && bone_bit_rates.translation == k_invalid_bit_rate && bone_bit_rates.scale == k_invalid_bit_rate)
-				{
-#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_BASIC_INFO
-					const float error = calculate_max_error_at_bit_rate_local(context, transform_index, error_scan_stop_condition::until_end_of_segment);
-					printf("%8u: Best bit rates: [%3u, %3u, %3u](  0) @ %.4f%s (all constant)\n",
-						transform_index, bone_bit_rates.rotation, bone_bit_rates.translation, bone_bit_rates.scale,
-						error, error < transform_precision ? "" : " (too high)");
-#endif
-
-					continue;	// Every track bit rate is constant/default, nothing else to do
-				}
-
-				// Calculate the chain transform indices for our dominant transforms
-				const uint32_t dominant_transform_index = context.shell_metadata_per_transform[transform_index].dominant_transform_index;
-				num_dominant_by_length_chain_transform_indices = calculate_bone_chain_indices(context.clip, dominant_transform_index, dominant_by_length_chain_transform_indices);
-
-				const transform_topology_t& transform_topology = context.topology->transforms[transform_index];
-
-				transform_bit_rates best_bit_rates = bone_bit_rates;
-				float best_error = 1.0E10F;
-				uint32_t prev_transform_size = ~0U;
-				float best_transform_error = 1.0E10F;
-				size_t best_transform_permutation = 0;
-				transform_bit_rates best_transform_bit_rates = bone_bit_rates;
-				bool is_error_good_enough = false;
-
-#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_BASIC_INFO
-				size_t best_permutation_index = 0;
-#endif
-
-				// Determine how many degrees of freedom we have to optimize our bit rates
-				uint32_t num_dof = 0;
-				num_dof += bone_bit_rates.rotation != k_invalid_bit_rate ? 1 : 0;
-				num_dof += bone_bit_rates.translation != k_invalid_bit_rate ? 1 : 0;
-				num_dof += bone_bit_rates.scale != k_invalid_bit_rate ? 1 : 0;
-
-				const uint8_t* bit_rate_permutations_per_dof = bit_rate_permutations_per_dofs[num_dof - 1];
-				const size_t num_bit_rate_permutations = num_bit_rate_permutations_per_dofs[num_dof - 1];
-
-				// Our desired bit rates start with the initial value
-				transform_bit_rates desired_bit_rates = bone_bit_rates;
-
-				size_t permutation_offset = 0;
-				for (size_t permutation_index = 0; permutation_index < num_bit_rate_permutations; ++permutation_index)
-				{
-					// If a bit rate is variable, grab a permutation for it
-					// We'll only consume as many bit rates as we have degrees of freedom
-
-					uint32_t transform_size = 0;	// In bits
-
-					if (desired_bit_rates.rotation != k_invalid_bit_rate)
-					{
-						desired_bit_rates.rotation = bit_rate_permutations_per_dof[permutation_offset++];
-						transform_size += get_num_bits_at_bit_rate(desired_bit_rates.rotation);
-					}
-
-					if (desired_bit_rates.translation != k_invalid_bit_rate)
-					{
-						desired_bit_rates.translation = bit_rate_permutations_per_dof[permutation_offset++];
-						transform_size += get_num_bits_at_bit_rate(desired_bit_rates.translation);
-					}
-
-					if (desired_bit_rates.scale != k_invalid_bit_rate)
-					{
-						desired_bit_rates.scale = bit_rate_permutations_per_dof[permutation_offset++];
-						transform_size += get_num_bits_at_bit_rate(desired_bit_rates.scale);
-					}
-
-					// If our inputs aren't normalized per segment, we can't store them on 0 bits because we'll have no
-					// segment range information. This occurs when we have a single segment. Skip those permutations.
-					if (!rotation_supports_constant_tracks && desired_bit_rates.rotation == 0)
-						continue;
-					else if (!translation_supports_constant_tracks && desired_bit_rates.translation == 0)
-						continue;
-					else if (!scale_supports_constant_tracks && desired_bit_rates.scale == 0)
-						continue;
-
-					if (transform_size > prev_transform_size)
-					{
-#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_VERBOSE_INFO
-						printf("%8u: %3u | %3u | %3u best @ %3u = %.4f\n", transform_index, best_transform_bit_rates.rotation, best_transform_bit_rates.translation, best_transform_bit_rates.scale, prev_transform_size, best_transform_error);
-#endif
-
-						// Reset
-						best_transform_error = 1.0E10F;
-					}
-
-					// If we already found a permutation that is good enough, we test all the others
-					// that have the same size. Once the size changes, we stop.
-					if (is_error_good_enough && transform_size != prev_transform_size)
-						break;
-
-					prev_transform_size = transform_size;
-
-					context.bit_rate_per_bone[transform_index] = desired_bit_rates;
-
-					float error = calculate_max_error_at_bit_rate_object(context, dominant_transform_index, dominant_by_length_chain_transform_indices, num_dominant_by_length_chain_transform_indices);
-
-					for (const uint32_t leaf_transform_index : make_iterator(transform_topology.leaves, transform_topology.num_leaves))
-					{
-						// If our dominant transform is a leaf, ignore it, we processed it above
-						if (leaf_transform_index == dominant_transform_index)
-							continue;
-
-						num_leaf_chain_transform_indices = calculate_bone_chain_indices(context.clip, leaf_transform_index, leaf_chain_transform_indices);
-
-						const float leaf_error = calculate_max_error_at_bit_rate_object(context, leaf_transform_index, leaf_chain_transform_indices, num_leaf_chain_transform_indices);
-
-						error = rtm::scalar_max(leaf_error, error);
-					}
-
-#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_VERBOSE_INFO
-					printf("%8u: %3u | %3u | %3u (%3u) = %.4f\n", transform_index, desired_bit_rates.rotation, desired_bit_rates.translation, desired_bit_rates.scale, transform_size, error);
-#endif
-
-					if (error < best_transform_error)
-					{
-						best_transform_error = error;
-						best_transform_permutation = permutation_index;
-						best_transform_bit_rates = desired_bit_rates;
-					}
-
-					if (error < best_error)
-					{
-						best_error = error;
-						best_bit_rates = desired_bit_rates;
-						is_error_good_enough = error < transform_precision;
-
-#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_BASIC_INFO
-						best_permutation_index = permutation_index;
-#endif
-					}
-
-					if (permutation_index + 1 == num_bit_rate_permutations)
-					{
-						// Last entry before we exit the loop
-#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_VERBOSE_INFO
-						printf("%8u: %3u | %3u | %3u best @ %3u = %.4f\n", transform_index, best_transform_bit_rates.rotation, best_transform_bit_rates.translation, best_transform_bit_rates.scale, prev_transform_size, best_transform_error);
-#endif
-					}
-				}
-
-#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_BASIC_INFO
-				printf("%8u: Best bit rates: [%3u, %3u, %3u](%3u) #[%5u] @ %.4f%s (object)\n",
-					transform_index, best_bit_rates.rotation, best_bit_rates.translation, best_bit_rates.scale,
-					best_bit_rates.get_num_bits(), uint32_t(best_permutation_index), best_error, is_error_good_enough ? "" : " (too high)");
-#endif
-
-				context.bit_rate_per_bone[transform_index] = best_bit_rates;
-			}
-
-#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_SUMMARY_ONLY
-			uint32_t total_num_bits = 0;
-			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
-				total_num_bits += context.bit_rate_per_bone[transform_index].get_num_bits();
-			printf("Variable quantization optimization results (total size %u bits):\n", total_num_bits);
-			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
-			{
-				const float transform_precision = context.shell_metadata_per_transform[transform_index].precision;
-				const transform_bit_rates& bone_bit_rate = context.bit_rate_per_bone[transform_index];
-
-				const uint32_t num_bones_in_chain = calculate_bone_chain_indices(context.clip, transform_index, context.chain_bone_indices);
-				const float error = calculate_max_error_at_bit_rate_object(context, transform_index, context.chain_bone_indices, num_bones_in_chain);
-
-				printf("%8u: [%3u, %3u, %3u][%3u] @ %.4f%s\n", transform_index,
-					bone_bit_rate.rotation, bone_bit_rate.translation, bone_bit_rate.scale,
-					bone_bit_rate.get_num_bits(), error, error < transform_precision ? "" : " (too high)");
-			}
-#endif
-
-			deallocate_type_array(context.allocator, dominant_by_length_chain_transform_indices, num_transforms);
-			deallocate_type_array(context.allocator, leaf_chain_transform_indices, num_transforms);
 		}
 
 #elif ACL_IMPL_VARIABLE_QUANTIZATION_ALGO == ACL_IMPL_VARIABLE_QUANTIZATION_ALGO_PRECISE_V2
