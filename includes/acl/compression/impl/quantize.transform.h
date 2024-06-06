@@ -895,7 +895,6 @@ namespace acl
 			const float sample_rate = context.sample_rate;
 			const float clip_duration = context.clip_duration;
 
-			const rtm::scalarf error_threshold = rtm::scalar_set(context.metadata[transform_index_to_measure].precision);
 			const float shell_distance = context.metadata[transform_index_to_measure].shell_distance;
 
 			const auto convert_transforms_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::convert_transforms : &itransform_error_metric::convert_transforms_no_scale);
@@ -1006,7 +1005,6 @@ namespace acl
 
 			const uint32_t parent_transform_index = context.topology->transforms[transform_index_being_optimized].parent_index;
 
-			const rtm::scalarf error_threshold = rtm::scalar_set(context.metadata[transform_index_to_measure].precision);
 			const float shell_distance = context.metadata[transform_index_to_measure].shell_distance;
 
 			itransform_error_metric::calculate_error_args calculate_error_args;
@@ -1092,7 +1090,6 @@ namespace acl
 
 			const uint32_t parent_transform_index = context.topology->transforms[transform_index_being_optimized].parent_index;
 
-			const rtm::scalarf error_threshold = rtm::scalar_set(context.metadata[transform_index_to_measure].precision);
 			const float shell_distance = context.metadata[transform_index_to_measure].shell_distance;
 
 			itransform_error_metric::calculate_error_args calculate_error_args;
