@@ -1000,11 +1000,7 @@ namespace acl
 			const uint32_t num_transforms = context.num_bones;
 			const uint32_t num_samples = context.num_samples;
 			const additive_clip_format8 additive_format = context.clip.additive_format;
-
-			const auto calculate_error_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::calculate_error : &itransform_error_metric::calculate_error_no_scale);
-
 			const uint32_t parent_transform_index = context.topology->transforms[transform_index_being_optimized].parent_index;
-
 			const float shell_distance = context.metadata[transform_index_to_measure].shell_distance;
 
 			itransform_error_metric::calculate_error_args calculate_error_args;
@@ -1036,26 +1032,20 @@ namespace acl
 				if (parent_transform_index != k_invalid_track_index)
 					parent_transform_to_root_lossy = cached_transforms_lossy[(sample_index * num_transforms) + parent_transform_index];
 
-				const rtm::qvvf transform_to_root_lossy = rtm::qvv_normalize(rtm::qvv_mul(local_transform_lossy, parent_transform_to_root_lossy));
+				const rtm::qvvf transform_to_root_lossy = rtm::qvv_normalize(rtm::qvv_mul_no_scale(local_transform_lossy, parent_transform_to_root_lossy));
 
 				rtm::qvvf measured_to_transform_lossy = rtm::qvv_identity();
 				if (transform_index_being_optimized != transform_index_to_measure)
 					measured_to_transform_lossy = cached_transforms_lossy[(sample_index * num_transforms) + transform_index_to_measure];
 
-				const rtm::qvvf measured_to_root_lossy = rtm::qvv_normalize(rtm::qvv_mul(measured_to_transform_lossy, transform_to_root_lossy));
+				const rtm::qvvf measured_to_root_lossy = rtm::qvv_normalize(rtm::qvv_mul_no_scale(measured_to_transform_lossy, transform_to_root_lossy));
 				const rtm::qvvf& measured_to_root_raw = object_transforms_raw[(sample_index * num_transforms) + transform_index_to_measure];
 
 				// Measure the error
 				calculate_error_args.transform0 = &measured_to_root_raw;
 				calculate_error_args.transform1 = &measured_to_root_lossy;
 
-#if defined(RTM_COMPILER_MSVC) && defined(RTM_ARCH_X86) && RTM_COMPILER_MSVC == RTM_COMPILER_MSVC_2015
-				// VS2015 fails to generate the right x86 assembly, branch instead
-				(void)calculate_error_impl;
-				const rtm::scalarf error = context.has_scale ? error_metric->calculate_error(calculate_error_args) : error_metric->calculate_error_no_scale(calculate_error_args);
-#else
-				const rtm::scalarf error = calculate_error_impl(error_metric, calculate_error_args);
-#endif
+				const rtm::scalarf error = error_metric->calculate_error_no_scale(calculate_error_args);
 
 				max_error = rtm::scalar_max(max_error, error);
 				sample_indexf += 1.0F;
@@ -1085,11 +1075,7 @@ namespace acl
 			const uint32_t num_transforms = context.num_bones;
 			const uint32_t num_samples = context.num_samples;
 			const additive_clip_format8 additive_format = context.clip.additive_format;
-
-			const auto calculate_error_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::calculate_error : &itransform_error_metric::calculate_error_no_scale);
-
 			const uint32_t parent_transform_index = context.topology->transforms[transform_index_being_optimized].parent_index;
-
 			const float shell_distance = context.metadata[transform_index_to_measure].shell_distance;
 
 			itransform_error_metric::calculate_error_args calculate_error_args;
@@ -1141,13 +1127,7 @@ namespace acl
 				calculate_error_args.transform0 = &measured_to_root_raw;
 				calculate_error_args.transform1 = &measured_to_root_lossy;
 
-#if defined(RTM_COMPILER_MSVC) && defined(RTM_ARCH_X86) && RTM_COMPILER_MSVC == RTM_COMPILER_MSVC_2015
-				// VS2015 fails to generate the right x86 assembly, branch instead
-				(void)calculate_error_impl;
-				const rtm::scalarf error = context.has_scale ? error_metric->calculate_error(calculate_error_args) : error_metric->calculate_error_no_scale(calculate_error_args);
-#else
-				const rtm::scalarf error = calculate_error_impl(error_metric, calculate_error_args);
-#endif
+				const rtm::scalarf error = error_metric->calculate_error(calculate_error_args);
 
 				max_error = rtm::scalar_max(max_error, error);
 				sample_indexf += 1.0F;
@@ -1195,7 +1175,7 @@ namespace acl
 				if (transform_index_being_optimized != transform_index_to_measure)
 					measured_to_transform_lossy = cached_transforms_lossy[(sample_index * num_transforms) + transform_index_to_measure];
 
-				measured_to_transform_lossy = rtm::qvv_normalize(rtm::qvv_mul(measured_to_transform_lossy, local_transform_lossy));
+				measured_to_transform_lossy = rtm::qvv_normalize(rtm::qvv_mul_no_scale(measured_to_transform_lossy, local_transform_lossy));
 
 				cached_transforms_lossy[(sample_index * num_transforms) + transform_index_to_measure] = measured_to_transform_lossy;
 
