@@ -1971,18 +1971,18 @@ namespace acl
 		#elif defined(RTM_NEON_INTRINSICS)
 			return vmvnq_u32(input);
 		#else
-			const uint32_t* input_ = rtm_impl::bit_cast<const uint32_t*>(&input);
+			const uint32_t* input_ = rtm::rtm_impl::bit_cast<const uint32_t*>(&input);
 
 			union
 			{
-				mask4f vector;
+				rtm::mask4f vector;
 				uint32_t scalar[4];
 			} result;
 
-			result.scalar[0] = ~input[0];
-			result.scalar[1] = ~input[1];
-			result.scalar[2] = ~input[2];
-			result.scalar[3] = ~input[3];
+			result.scalar[0] = ~input_[0];
+			result.scalar[1] = ~input_[1];
+			result.scalar[2] = ~input_[2];
+			result.scalar[3] = ~input_[3];
 
 			return result.vector;
 		#endif
