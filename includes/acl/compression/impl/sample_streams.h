@@ -545,10 +545,10 @@ namespace acl
 
 		struct sample_context
 		{
-			uint32_t track_index;
+			uint32_t track_index = k_invalid_track_index;
 
-			uint32_t sample_key;
-			float sample_time;
+			uint32_t sample_key = 0;
+			float sample_time = 0.0F;
 
 			transform_bit_rates bit_rates;
 		};
