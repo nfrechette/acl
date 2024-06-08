@@ -2071,6 +2071,14 @@ namespace acl
 		// This is quite a bit slower, but thankfully, non-uniform 3D scale is uncommon. When it is, we take a slower path
 		// that does not leverage associativity. Instead, the cached transforms will contain local space values once they
 		// have been optimized. We then multiply them one by one using transform chains as needed.
+		//
+		// POTENTIAL IMPROVEMENTS:
+		//
+		// The dominant transform is especially important when zero/small scale is present as it will collapse a sub-section.
+		// This can bring the leaves beneath under a parent transform which would then become dominant for all others above it.
+		// Because things are animated, in practice the dominant transforms can change over time. We would thus need to compute
+		// the dominance for each keyframe, not just each transform. We would then test each non-leaf dominant transform at
+		// each keyframe instead of including it with the leaves.
 		//////////////////////////////////////////////////////////////////////////
 		inline void find_optimal_bit_rates_v2(quantization_context& context)
 		{
