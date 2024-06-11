@@ -2272,7 +2272,7 @@ namespace acl
 
 #if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_BASIC_INFO
 				printf("%8u: parent: %3u, dominant: %3u\n",
-					transform_index, context.parent_transform_indices[transform_index],
+					transform_index, transform_topology.parent_index,
 					context.shell_metadata_per_transform[transform_index].dominant_transform_index);
 #endif
 
