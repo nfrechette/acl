@@ -1465,7 +1465,7 @@ namespace acl
 		}
 
 		// For algorithm from ACL 2.1 and earlier
-		inline void initialize_bone_bit_rates(const segment_context& segment, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, transform_bit_rates* out_bit_rate_per_bone)
+		inline void initialize_bone_bit_rates_v1(const segment_context& segment, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, transform_bit_rates* out_bit_rate_per_bone)
 		{
 			const bool is_rotation_variable = is_rotation_format_variable(rotation_format);
 			const bool is_translation_variable = is_vector_format_variable(translation_format);
@@ -1563,11 +1563,11 @@ namespace acl
 		}
 
 		// For algorithm from ACL 2.1 and earlier
-		inline void find_optimal_bit_rates(quantization_context& context)
+		inline void find_optimal_bit_rates_v1(quantization_context& context)
 		{
 			ACL_ASSERT(context.is_valid(), "quantization_context isn't valid");
 
-			initialize_bone_bit_rates(*context.segment, context.rotation_format, context.translation_format, context.scale_format, context.bit_rate_per_bone);
+			initialize_bone_bit_rates_v1(*context.segment, context.rotation_format, context.translation_format, context.scale_format, context.bit_rate_per_bone);
 
 			// First iterate over all bones and find the optimal bit rate for each track using the local space error.
 			// We use the local space error to prime the algorithm. If each parent bone has infinite precision,
@@ -2555,7 +2555,7 @@ namespace acl
 			if (context.error_metric->supports_bit_rate_algorithm_v2())
 				find_optimal_bit_rates_v2(context);
 			else
-				find_optimal_bit_rates(context);
+				find_optimal_bit_rates_v1(context);
 		}
 
 		// Partitioning will be done as follow in two phases: calculating the error contribution for every frame and a global optimization pass.
