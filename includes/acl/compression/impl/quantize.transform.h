@@ -201,26 +201,10 @@ namespace acl
 				metric_transform_size = metric_transform_size_;
 
 				shell_metadata_per_transform = allocate_type_array<rigid_shell_metadata_t>(allocator, num_bones);
-				additive_local_pose = clip_.has_additive_base ? allocate_type_array<rtm::qvvf>(allocator, num_bones) : nullptr;
-				raw_local_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
-				lossy_local_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
-				raw_local_transforms = allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size_ * num_bones * clip_.segments->num_samples, 64);
-				base_local_transforms = clip_.has_additive_base ? allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size_ * num_bones * clip_.segments->num_samples, 64) : nullptr;
-				raw_object_transforms = allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size_ * num_bones * clip_.segments->num_samples, 64);
-				base_object_transforms = clip_.has_additive_base ? allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size_ * num_bones * clip_.segments->num_samples, 64) : nullptr;
-				local_transforms_converted = needs_conversion ? allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size_ * num_bones, 64) : nullptr;
-				lossy_object_pose = allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size_ * num_bones, 64);
-				bit_rate_per_bone = allocate_type_array<transform_bit_rates>(allocator, num_bones);
-				parent_transform_indices = allocate_type_array<uint32_t>(allocator, num_bones);
-				self_transform_indices = allocate_type_array<uint32_t>(allocator, num_bones);
-				chain_bone_indices = allocate_type_array<uint32_t>(allocator, num_bones);
 
-				for (uint32_t transform_index = 0; transform_index < num_bones; ++transform_index)
-				{
-					const transform_metadata& metadata_ = clip_.metadata[transform_index];
-					parent_transform_indices[transform_index] = metadata_.parent_index;
-					self_transform_indices[transform_index] = transform_index;
-				}
+				base_object_transforms = clip_.has_additive_base ? allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size_ * num_bones * clip_.segments->num_samples, 64) : nullptr;
+				bit_rate_per_bone = allocate_type_array<transform_bit_rates>(allocator, num_bones);
+				chain_bone_indices = allocate_type_array<uint32_t>(allocator, num_bones);
 			}
 
 			~quantization_context()
@@ -263,6 +247,30 @@ namespace acl
 
 				// Update our shell distances
 				compute_segment_shell_distances(segment_, additive_base_clip, shell_metadata_per_transform);
+			}
+
+			void initialize_v1()
+			{
+				if (raw_local_pose != nullptr)
+					return;	// Already initialized
+
+				additive_local_pose = clip.has_additive_base ? allocate_type_array<rtm::qvvf>(allocator, num_bones) : nullptr;
+				raw_local_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
+				lossy_local_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
+				raw_local_transforms = allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size * num_bones * clip.segments->num_samples, 64);
+				base_local_transforms = clip.has_additive_base ? allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size * num_bones * clip.segments->num_samples, 64) : nullptr;
+				raw_object_transforms = allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size * num_bones * clip.segments->num_samples, 64);
+				local_transforms_converted = needs_conversion ? allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size * num_bones, 64) : nullptr;
+				lossy_object_pose = allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size * num_bones, 64);
+				parent_transform_indices = allocate_type_array<uint32_t>(allocator, num_bones);
+				self_transform_indices = allocate_type_array<uint32_t>(allocator, num_bones);
+
+				for (uint32_t transform_index = 0; transform_index < num_bones; ++transform_index)
+				{
+					const transform_metadata& metadata_ = clip.metadata[transform_index];
+					parent_transform_indices[transform_index] = metadata_.parent_index;
+					self_transform_indices[transform_index] = transform_index;
+				}
 			}
 
 			void initialize_v2()
@@ -1635,6 +1643,8 @@ namespace acl
 		{
 			ACL_ASSERT(context.is_valid(), "quantization_context isn't valid");
 
+			context.initialize_v1();
+
 			// Cache every raw local/object transforms and the base local transforms since they never change
 			cache_raw_transforms_v1(context);
 
@@ -2654,6 +2664,8 @@ namespace acl
 		inline void find_contributing_error(quantization_context& context)
 		{
 			ACL_ASSERT(context.num_samples <= 32, "Expected no more than 32 samples per track");
+
+			context.initialize_v1();
 
 			// Still using old v1 code/data
 			cache_raw_transforms_v1(context);
