@@ -91,12 +91,12 @@ namespace acl
 			clip_context& clip;
 			const clip_context& raw_clip;
 			const clip_context& additive_base_clip;
-			segment_context* segment;
-			transform_streams* bone_streams;
-			const transform_metadata* metadata;
-			uint32_t num_bones;
-			const itransform_error_metric* error_metric;
-			const clip_topology_t* topology;
+			segment_context* segment = nullptr;
+			transform_streams* bone_streams = nullptr;
+			const transform_metadata* metadata = nullptr;
+			uint32_t num_bones = 0;
+			const itransform_error_metric* error_metric = nullptr;
+			const clip_topology_t* topology = nullptr;
 
 			const compression_settings& settings;
 			const compression_segmenting_settings& segmenting_settings;
@@ -106,20 +106,20 @@ namespace acl
 			every_track_query all_local_query;
 			hierarchical_track_query object_query;
 
-			uint32_t num_samples;					// Num samples within our segment
-			uint32_t segment_sample_start_index;
-			float sample_rate;
-			float clip_duration;
-			bool has_scale;
-			bool has_additive_base;
-			bool needs_conversion;
+			uint32_t num_samples = 0;					// Num samples within our segment
+			uint32_t segment_sample_start_index = 0;
+			float sample_rate = 0.0F;
+			float clip_duration = 0.0F;
+			bool has_scale = false;
+			bool has_additive_base = false;
+			bool needs_conversion = false;
 
 			rotation_format8 rotation_format;
 			vector_format8 translation_format;
 			vector_format8 scale_format;
 			compression_level8 compression_level;
 
-			const transform_streams* raw_bone_streams;
+			const transform_streams* raw_bone_streams = nullptr;
 
 			// v2
 			rtm::qvvf* additive_base_local_transforms = nullptr;	// 1 per transform, per sample, in segment (only when additive)
@@ -135,31 +135,31 @@ namespace acl
 			uint32_t max_chain_length = 0;
 
 			// v1
-			rigid_shell_metadata_t* shell_metadata_per_transform;	// 1 per transform
+			rigid_shell_metadata_t* shell_metadata_per_transform = nullptr;	// 1 per transform
 
-			rtm::qvvf* additive_local_pose;			// 1 per transform
-			rtm::qvvf* raw_local_pose;				// 1 per transform
-			rtm::qvvf* lossy_local_pose;			// 1 per transform
+			rtm::qvvf* additive_local_pose = nullptr;			// 1 per transform
+			rtm::qvvf* raw_local_pose = nullptr;				// 1 per transform
+			rtm::qvvf* lossy_local_pose = nullptr;				// 1 per transform
 
-			rtm::qvvf* lossy_transforms_start;		// 1 per transform, for calculating the contributing error
-			rtm::qvvf* lossy_transforms_end;		// 1 per transform, for calculating the contributing error
+			rtm::qvvf* lossy_transforms_start = nullptr;		// 1 per transform, for calculating the contributing error
+			rtm::qvvf* lossy_transforms_end = nullptr;			// 1 per transform, for calculating the contributing error
 
-			uint8_t* raw_local_transforms;			// 1 per transform per sample in segment
-			uint8_t* base_local_transforms;			// 1 per transform per sample in segment
-			uint8_t* raw_object_transforms;			// 1 per transform per sample in segment
-			uint8_t* base_object_transforms;		// 1 per transform per sample in segment
+			uint8_t* raw_local_transforms = nullptr;			// 1 per transform per sample in segment
+			uint8_t* base_local_transforms = nullptr;			// 1 per transform per sample in segment
+			uint8_t* raw_object_transforms = nullptr;			// 1 per transform per sample in segment
+			uint8_t* base_object_transforms = nullptr;			// 1 per transform per sample in segment
 
-			uint8_t* local_transforms_converted;	// 1 per transform
-			uint8_t* lossy_object_pose;				// 1 per transform
-			size_t metric_transform_size;
+			uint8_t* local_transforms_converted = nullptr;		// 1 per transform
+			uint8_t* lossy_object_pose = nullptr;				// 1 per transform
+			size_t metric_transform_size = 0;
 
-			transform_bit_rates* bit_rate_per_bone;	// 1 per transform
-			uint32_t* parent_transform_indices;		// 1 per transform
-			uint32_t* self_transform_indices;		// 1 per transform
+			transform_bit_rates* bit_rate_per_bone = nullptr;	// 1 per transform
+			uint32_t* parent_transform_indices = nullptr;		// 1 per transform
+			uint32_t* self_transform_indices = nullptr;			// 1 per transform
 
-			uint32_t* chain_bone_indices;			// 1 per transform
-			uint32_t num_bones_in_chain;
-			uint32_t padding1 = 0;					// unused
+			uint32_t* chain_bone_indices = nullptr;				// 1 per transform
+			uint32_t num_bones_in_chain = 0;
+			uint32_t padding1 = 0;								// unused
 
 			quantization_context(iallocator& allocator_, clip_context& clip_, const clip_context& raw_clip_, const clip_context& additive_base_clip_, const compression_settings& settings_, const compression_segmenting_settings& segmenting_settings_)
 				: allocator(allocator_)
