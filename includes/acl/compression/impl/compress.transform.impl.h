@@ -275,7 +275,7 @@ namespace acl
 			}
 
 			// Find how many bits we need per sub-track and quantize everything
-			quantize_streams(allocator, lossy_clip_context, settings, raw_clip_context, additive_base_clip_context, out_stats, compression_stats);
+			quantize_streams(allocator, lossy_clip_context, settings, segmenting_settings, raw_clip_context, additive_base_clip_context, out_stats, compression_stats);
 
 			uint32_t num_output_bones = 0;
 			uint32_t* output_bone_mapping = create_output_track_mapping(allocator, track_list, num_output_bones);

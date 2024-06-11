@@ -98,6 +98,9 @@ namespace acl
 			const itransform_error_metric* error_metric;
 			const clip_topology_t* topology;
 
+			const compression_settings& settings;
+			const compression_segmenting_settings& segmenting_settings;
+
 			track_bit_rate_database bit_rate_database;
 			single_track_query local_query;
 			every_track_query all_local_query;
@@ -144,7 +147,7 @@ namespace acl
 			uint32_t num_bones_in_chain;
 			uint32_t padding1 = 0;					// unused
 
-			quantization_context(iallocator& allocator_, clip_context& clip_, const clip_context& raw_clip_, const clip_context& additive_base_clip_, const compression_settings& settings_)
+			quantization_context(iallocator& allocator_, clip_context& clip_, const clip_context& raw_clip_, const clip_context& additive_base_clip_, const compression_settings& settings_, const compression_segmenting_settings& segmenting_settings_)
 				: allocator(allocator_)
 				, clip(clip_)
 				, raw_clip(raw_clip_)
@@ -155,6 +158,8 @@ namespace acl
 				, num_bones(clip_.num_bones)
 				, error_metric(settings_.error_metric)
 				, topology(clip_.topology)
+				, settings(settings_)
+				, segmenting_settings(segmenting_settings_)
 				, bit_rate_database(allocator_, settings_.rotation_format, settings_.translation_format, settings_.scale_format, clip_.segments->bone_streams, raw_clip_.segments->bone_streams, clip_.num_bones, clip_.segments->num_samples)
 				, local_query()
 				, all_local_query(allocator_)
@@ -2852,6 +2857,7 @@ namespace acl
 			iallocator& allocator,
 			clip_context& clip,
 			const compression_settings& settings,
+			const compression_segmenting_settings& segmenting_settings,
 			const clip_context& raw_clip_context,
 			const clip_context& additive_base_clip_context,
 			const output_stats& out_stats,
@@ -2872,7 +2878,7 @@ namespace acl
 			const bool is_scale_variable = is_vector_format_variable(settings.scale_format);
 			const bool is_any_variable = is_rotation_variable || is_translation_variable || is_scale_variable;
 
-			quantization_context context(allocator, clip, raw_clip_context, additive_base_clip_context, settings);
+			quantization_context context(allocator, clip, raw_clip_context, additive_base_clip_context, settings, segmenting_settings);
 
 			for (segment_context& segment : clip.segment_iterator())
 			{
