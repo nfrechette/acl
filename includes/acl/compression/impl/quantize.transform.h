@@ -263,87 +263,6 @@ namespace acl
 
 				// Update our shell distances
 				compute_segment_shell_distances(segment_, additive_base_clip, shell_metadata_per_transform);
-
-				// Cache every raw local/object transforms and the base local transforms since they never change
-				const itransform_error_metric* error_metric_ = error_metric;
-				const size_t sample_transform_size = metric_transform_size * num_bones;
-
-				const auto convert_transforms_impl = std::mem_fn(has_scale ? &itransform_error_metric::convert_transforms : &itransform_error_metric::convert_transforms_no_scale);
-				const auto apply_additive_to_base_impl = std::mem_fn(has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
-				const auto local_to_object_space_impl = std::mem_fn(has_scale ? &itransform_error_metric::local_to_object_space : &itransform_error_metric::local_to_object_space_no_scale);
-
-				itransform_error_metric::convert_transforms_args convert_transforms_args_raw;
-				convert_transforms_args_raw.dirty_transform_indices = self_transform_indices;
-				convert_transforms_args_raw.num_dirty_transforms = num_bones;
-				convert_transforms_args_raw.transforms = raw_local_pose;
-				convert_transforms_args_raw.num_transforms = num_bones;
-				convert_transforms_args_raw.sample_index = 0;
-				convert_transforms_args_raw.is_lossy = false;
-				convert_transforms_args_raw.is_additive_base = false;
-
-				itransform_error_metric::convert_transforms_args convert_transforms_args_base = convert_transforms_args_raw;
-				convert_transforms_args_base.transforms = additive_local_pose;
-				convert_transforms_args_base.is_additive_base = true;
-
-				itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args_raw;
-				apply_additive_to_base_args_raw.dirty_transform_indices = self_transform_indices;
-				apply_additive_to_base_args_raw.num_dirty_transforms = num_bones;
-				apply_additive_to_base_args_raw.local_transforms = nullptr;
-				apply_additive_to_base_args_raw.base_transforms = nullptr;
-				apply_additive_to_base_args_raw.num_transforms = num_bones;
-
-				itransform_error_metric::local_to_object_space_args local_to_object_space_args_raw;
-				local_to_object_space_args_raw.dirty_transform_indices = self_transform_indices;
-				local_to_object_space_args_raw.num_dirty_transforms = num_bones;
-				local_to_object_space_args_raw.parent_transform_indices = parent_transform_indices;
-				local_to_object_space_args_raw.local_transforms = nullptr;
-				local_to_object_space_args_raw.num_transforms = num_bones;
-
-				for (uint32_t sample_index = 0; sample_index < segment_.num_samples; ++sample_index)
-				{
-					// Sample our streams and calculate the error
-					// The sample time is calculated from the full clip duration to be consistent with decompression
-					const float sample_time = rtm::scalar_min(float(segment_.clip_sample_offset + sample_index) / sample_rate, clip_duration);
-
-					sample_streams(raw_bone_streams, num_bones, sample_time, raw_local_pose);
-
-					uint8_t* sample_raw_local_transforms = raw_local_transforms + (sample_index * sample_transform_size);
-
-					if (needs_conversion)
-					{
-						convert_transforms_args_raw.sample_index = sample_index;
-						convert_transforms_impl(error_metric_, convert_transforms_args_raw, sample_raw_local_transforms);
-					}
-					else
-						std::memcpy(sample_raw_local_transforms, raw_local_pose, sample_transform_size);
-
-					if (has_additive_base)
-					{
-						const float normalized_sample_time = additive_base_clip.num_samples > 1 ? (sample_time / clip_duration) : 0.0F;
-						const float additive_sample_time = additive_base_clip.num_samples > 1 ? (normalized_sample_time * additive_base_clip.duration) : 0.0F;
-						sample_streams(additive_base_clip.segments[0].bone_streams, num_bones, additive_sample_time, additive_local_pose);
-
-						uint8_t* sample_base_local_transforms = base_local_transforms + (sample_index * sample_transform_size);
-
-						if (needs_conversion)
-						{
-							const uint32_t nearest_base_sample_index = static_cast<uint32_t>(rtm::scalar_round_bankers(normalized_sample_time * float(additive_base_clip.num_samples)));
-							convert_transforms_args_base.sample_index = nearest_base_sample_index;
-							convert_transforms_impl(error_metric_, convert_transforms_args_base, sample_base_local_transforms);
-						}
-						else
-							std::memcpy(sample_base_local_transforms, additive_local_pose, sample_transform_size);
-
-						apply_additive_to_base_args_raw.local_transforms = sample_raw_local_transforms;
-						apply_additive_to_base_args_raw.base_transforms = sample_base_local_transforms;
-						apply_additive_to_base_impl(error_metric_, apply_additive_to_base_args_raw, sample_raw_local_transforms);
-					}
-
-					local_to_object_space_args_raw.local_transforms = sample_raw_local_transforms;
-
-					uint8_t* sample_raw_object_transforms = raw_object_transforms + (sample_index * sample_transform_size);
-					local_to_object_space_impl(error_metric_, local_to_object_space_args_raw, sample_raw_object_transforms);
-				}
 			}
 
 			void initialize_v2()
@@ -1521,6 +1440,98 @@ namespace acl
 			return num_bones_in_chain;
 		}
 
+		inline void cache_raw_transforms_v1(quantization_context& context)
+		{
+			const itransform_error_metric* error_metric_ = context.error_metric;
+			const size_t sample_transform_size = context.metric_transform_size * context.num_bones;
+
+			const uint32_t num_bones = context.num_bones;
+			const uint32_t num_samples = context.num_samples;
+			const float sample_rate = context.sample_rate;
+			const float clip_duration = context.clip_duration;
+			const uint32_t segment_sample_start_index = context.segment_sample_start_index;
+			const bool has_scale = context.has_scale;
+			const bool needs_conversion = context.needs_conversion;
+			const bool has_additive_base = context.has_additive_base;
+
+			const auto convert_transforms_impl = std::mem_fn(has_scale ? &itransform_error_metric::convert_transforms : &itransform_error_metric::convert_transforms_no_scale);
+			const auto apply_additive_to_base_impl = std::mem_fn(has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
+			const auto local_to_object_space_impl = std::mem_fn(has_scale ? &itransform_error_metric::local_to_object_space : &itransform_error_metric::local_to_object_space_no_scale);
+
+			itransform_error_metric::convert_transforms_args convert_transforms_args_raw;
+			convert_transforms_args_raw.dirty_transform_indices = context.self_transform_indices;
+			convert_transforms_args_raw.num_dirty_transforms = num_bones;
+			convert_transforms_args_raw.transforms = context.raw_local_pose;
+			convert_transforms_args_raw.num_transforms = num_bones;
+			convert_transforms_args_raw.sample_index = 0;
+			convert_transforms_args_raw.is_lossy = false;
+			convert_transforms_args_raw.is_additive_base = false;
+
+			itransform_error_metric::convert_transforms_args convert_transforms_args_base = convert_transforms_args_raw;
+			convert_transforms_args_base.transforms = context.additive_local_pose;
+			convert_transforms_args_base.is_additive_base = true;
+
+			itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args_raw;
+			apply_additive_to_base_args_raw.dirty_transform_indices = context.self_transform_indices;
+			apply_additive_to_base_args_raw.num_dirty_transforms = num_bones;
+			apply_additive_to_base_args_raw.local_transforms = nullptr;
+			apply_additive_to_base_args_raw.base_transforms = nullptr;
+			apply_additive_to_base_args_raw.num_transforms = num_bones;
+
+			itransform_error_metric::local_to_object_space_args local_to_object_space_args_raw;
+			local_to_object_space_args_raw.dirty_transform_indices = context.self_transform_indices;
+			local_to_object_space_args_raw.num_dirty_transforms = num_bones;
+			local_to_object_space_args_raw.parent_transform_indices = context.parent_transform_indices;
+			local_to_object_space_args_raw.local_transforms = nullptr;
+			local_to_object_space_args_raw.num_transforms = num_bones;
+
+			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+			{
+				// Sample our streams and calculate the error
+				// The sample time is calculated from the full clip duration to be consistent with decompression
+				const float sample_time = rtm::scalar_min(float(segment_sample_start_index + sample_index) / sample_rate, clip_duration);
+
+				sample_streams(context.raw_bone_streams, num_bones, sample_time, context.raw_local_pose);
+
+				uint8_t* sample_raw_local_transforms = context.raw_local_transforms + (sample_index * sample_transform_size);
+
+				if (needs_conversion)
+				{
+					convert_transforms_args_raw.sample_index = sample_index;
+					convert_transforms_impl(error_metric_, convert_transforms_args_raw, sample_raw_local_transforms);
+				}
+				else
+					std::memcpy(sample_raw_local_transforms, context.raw_local_pose, sample_transform_size);
+
+				if (has_additive_base)
+				{
+					const float normalized_sample_time = context.additive_base_clip.num_samples > 1 ? (sample_time / clip_duration) : 0.0F;
+					const float additive_sample_time = context.additive_base_clip.num_samples > 1 ? (normalized_sample_time * context.additive_base_clip.duration) : 0.0F;
+					sample_streams(context.additive_base_clip.segments[0].bone_streams, num_bones, additive_sample_time, context.additive_local_pose);
+
+					uint8_t* sample_base_local_transforms = context.base_local_transforms + (sample_index * sample_transform_size);
+
+					if (needs_conversion)
+					{
+						const uint32_t nearest_base_sample_index = static_cast<uint32_t>(rtm::scalar_round_bankers(normalized_sample_time * float(context.additive_base_clip.num_samples)));
+						convert_transforms_args_base.sample_index = nearest_base_sample_index;
+						convert_transforms_impl(error_metric_, convert_transforms_args_base, sample_base_local_transforms);
+					}
+					else
+						std::memcpy(sample_base_local_transforms, context.additive_local_pose, sample_transform_size);
+
+					apply_additive_to_base_args_raw.local_transforms = sample_raw_local_transforms;
+					apply_additive_to_base_args_raw.base_transforms = sample_base_local_transforms;
+					apply_additive_to_base_impl(error_metric_, apply_additive_to_base_args_raw, sample_raw_local_transforms);
+				}
+
+				local_to_object_space_args_raw.local_transforms = sample_raw_local_transforms;
+
+				uint8_t* sample_raw_object_transforms = context.raw_object_transforms + (sample_index * sample_transform_size);
+				local_to_object_space_impl(error_metric_, local_to_object_space_args_raw, sample_raw_object_transforms);
+			}
+		}
+
 		// For algorithm from ACL 2.1 and earlier
 		inline void initialize_bone_bit_rates_v1(const segment_context& segment, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, transform_bit_rates* out_bit_rate_per_bone)
 		{
@@ -1623,6 +1634,9 @@ namespace acl
 		inline void find_optimal_bit_rates_v1(quantization_context& context)
 		{
 			ACL_ASSERT(context.is_valid(), "quantization_context isn't valid");
+
+			// Cache every raw local/object transforms and the base local transforms since they never change
+			cache_raw_transforms_v1(context);
 
 			initialize_bone_bit_rates_v1(*context.segment, context.rotation_format, context.translation_format, context.scale_format, context.bit_rate_per_bone);
 
@@ -2640,6 +2654,9 @@ namespace acl
 		inline void find_contributing_error(quantization_context& context)
 		{
 			ACL_ASSERT(context.num_samples <= 32, "Expected no more than 32 samples per track");
+
+			// Still using old v1 code/data
+			cache_raw_transforms_v1(context);
 
 			if (context.segment->contributing_error == nullptr)
 				context.segment->contributing_error = allocate_type_array<keyframe_stripping_metadata_t>(context.allocator, 32);	// Always no more than 32 frames per segment
