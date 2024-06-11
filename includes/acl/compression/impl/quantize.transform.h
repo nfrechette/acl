@@ -2079,6 +2079,12 @@ namespace acl
 		// Because things are animated, in practice the dominant transforms can change over time. We would thus need to compute
 		// the dominance for each keyframe, not just each transform. We would then test each non-leaf dominant transform at
 		// each keyframe instead of including it with the leaves.
+		//
+		// Track max error per critical transform. We stop iterating once we find a valid permutation that meets our precision
+		// thresholds but if we fail to find one, we use the best permutation. To find the best permutation, we should use
+		// the remaining optimization room instead of the best/lowest error. The optimization room is: precision - error
+		// Ideally, we want our permutation error to be as close as possible to the allowed precision without exceeding it.
+		// If we exceed it, we want to minimize the amount of room left.
 		//////////////////////////////////////////////////////////////////////////
 		inline void find_optimal_bit_rates_v2(quantization_context& context)
 		{
