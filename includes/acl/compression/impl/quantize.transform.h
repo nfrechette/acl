@@ -2214,6 +2214,12 @@ namespace acl
 				if (!std::any_of(critical_transform_indices, critical_transform_indices + num_critical_transforms, [dominant_transform_index](uint32_t value) { return value == dominant_transform_index; }))
 					critical_transform_indices[num_critical_transforms++] = dominant_transform_index;
 
+				// Because we approximate the dominant transforms using the first keyframe, we have to at least include
+				// our own transform. Otherwise, on some keyframe, our critical transforms could be collapsed onto us
+				// using translation or small/zero scale.
+				if (transform_index != dominant_transform_index)
+					critical_transform_indices[num_critical_transforms++] = transform_index;
+
 				// Non-uniform 3D scale requires slower full chain processing because we can't leverage associativity
 				if (has_scale)
 				{
