@@ -309,6 +309,76 @@ namespace acl
 
 			deallocate_type_array(allocator, object_transforms, num_transforms);
 		}
+
+		// We use the provided object space transforms to compute the rigid shell
+		// For each transform, its rigid shell is formed by the dominant joint (itself or a child)
+		// We compute the largest value over the whole segment per transform
+		inline void compute_segment_shell_distances(const segment_context& segment, const rtm::qvvf* object_transforms, rigid_shell_metadata_t* out_shell_metadata)
+		{
+			const uint32_t num_transforms = segment.num_bones;
+			if (num_transforms == 0)
+				return;	// No transforms present, no shell distances
+
+			if (segment.num_samples == 0)
+				return;	// No samples present, no shell distances
+
+			const clip_context& owner_clip_context = *segment.clip;
+			const clip_topology_t* topology = owner_clip_context.topology;
+
+			// Initialize our output shell metadata
+			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
+			{
+				const transform_metadata& metadata = owner_clip_context.metadata[transform_index];
+				rigid_shell_metadata_t& shell_metadata = out_shell_metadata[transform_index];
+
+				shell_metadata.local_shell_distance = metadata.shell_distance;
+				shell_metadata.precision = metadata.precision;
+				shell_metadata.parent_shell_distance = 0.0F;
+				shell_metadata.dominant_transform_index = transform_index;
+			}
+
+			// Now that we computed the object space transforms for this sample,
+			// we identity which transforms are dominant
+			for (const uint32_t transform_index : topology->leaves_first_iterator())
+			{
+				const uint32_t parent_index = topology->transforms[transform_index].parent_index;
+				if (parent_index != k_invalid_track_index)
+				{
+					// We have a parent, propagate our shell distance if we are a dominant transform
+					// We are a dominant transform if our shell distance in parent space is larger
+					// than our parent's shell distance in local space. Otherwise, if we are smaller
+					// or equal, it means that the full range of motion of our transform fits within
+					// the parent's shell distance.
+
+					const rigid_shell_metadata_t& transform_shell = out_shell_metadata[transform_index];
+
+					// Compute our transform length in object space
+					const rtm::qvvf& object_transform = object_transforms[transform_index];
+					rtm::vector4f object_parent_position = rtm::vector_zero();
+					if (parent_index != k_invalid_track_index)
+						object_parent_position = object_transforms[parent_index].translation;
+
+					const rtm::scalarf local_shell_distance = rtm::scalar_set(transform_shell.local_shell_distance);
+
+					const rtm::vector4f abs_scale = rtm::vector_abs(object_transform.scale);
+					const rtm::scalarf largest_scale = rtm::scalar_max(rtm::scalar_max(rtm::vector_get_x_as_scalar(abs_scale), rtm::vector_get_y_as_scalar(abs_scale)), rtm::vector_get_z_as_scalar(abs_scale));
+					const rtm::scalarf furthest_shell_point = rtm::scalar_mul(largest_scale, local_shell_distance);
+
+					const rtm::scalarf shell_distance = rtm::scalar_add(furthest_shell_point, rtm::vector_distance3_as_scalar(object_transform.translation, object_parent_position));
+					const float shell_distance_f = rtm::scalar_cast(shell_distance);
+
+					rigid_shell_metadata_t& parent_shell = out_shell_metadata[parent_index];
+
+					if (shell_distance_f > parent_shell.local_shell_distance)
+					{
+						// We are the new dominant transform, use our shell distance and precision
+						parent_shell.local_shell_distance = shell_distance_f;
+						parent_shell.precision = transform_shell.precision;
+						parent_shell.dominant_transform_index = transform_shell.dominant_transform_index;
+					}
+				}
+			}
+		}
 	}
 
 	ACL_IMPL_VERSION_NAMESPACE_END

@@ -240,9 +240,6 @@ namespace acl
 				num_samples = segment_.num_samples;
 				segment_sample_start_index = segment_.clip_sample_offset;
 				bit_rate_database.set_segment(segment_.bone_streams, segment_.num_bones, segment_.num_samples);
-
-				// Update our shell distances
-				compute_segment_shell_distances(segment_, additive_base_clip, shell_metadata_per_transform);
 			}
 
 			void initialize_v1()
@@ -1644,6 +1641,9 @@ namespace acl
 			// Cache every raw local/object transforms and the base local transforms since they never change
 			cache_raw_transforms_v1(context);
 
+			// Update our shell distances
+			compute_segment_shell_distances(*context.segment, context.additive_base_clip, context.shell_metadata_per_transform);
+
 			initialize_bone_bit_rates_v1(*context.segment, context.rotation_format, context.translation_format, context.scale_format, context.bit_rate_per_bone);
 
 			// First iterate over all bones and find the optimal bit rate for each track using the local space error.
@@ -2247,6 +2247,9 @@ namespace acl
 
 			uint32_t** transform_chains = context.transform_chains;
 			uint32_t* transform_chain_counts = context.transform_chain_counts;
+
+			// Compute our dominant transforms
+			compute_segment_shell_distances(*context.segment, cached_transforms_lossy, context.shell_metadata_per_transform);
 
 			// We try permutations from the lowest memory footprint to the highest.
 			const uint8_t* const bit_rate_permutations_per_dofs[] =
