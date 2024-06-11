@@ -121,6 +121,20 @@ namespace acl
 
 			const transform_streams* raw_bone_streams;
 
+			// v2
+			rtm::qvvf* additive_base_local_transforms = nullptr;	// 1 per transform, per sample, in segment (only when additive)
+			rtm::qvvf* object_transforms_raw = nullptr;				// 1 per transform, per sample, in segment
+			rtm::qvvf* cached_transforms_lossy = nullptr;			// 1 per transform, per sample, in segment
+			uint32_t* critical_transform_indices = nullptr;			// 1 per transform
+
+			uint32_t* transform_chain_indices = nullptr;			// max_num_transform_chains * max_chain_length
+			uint32_t** transform_chains = nullptr;					// max_num_transform_chains
+			uint32_t* transform_chain_counts = nullptr;				// max_num_transform_chains
+
+			uint32_t max_num_transform_chains = 0;
+			uint32_t max_chain_length = 0;
+
+			// v1
 			rigid_shell_metadata_t* shell_metadata_per_transform;	// 1 per transform
 
 			rtm::qvvf* additive_local_pose;			// 1 per transform
@@ -211,6 +225,16 @@ namespace acl
 
 			~quantization_context()
 			{
+				// v2
+				deallocate_type_array(allocator, additive_base_local_transforms, num_bones);
+				deallocate_type_array(allocator, object_transforms_raw, num_bones * segmenting_settings.max_num_samples);
+				deallocate_type_array(allocator, cached_transforms_lossy, num_bones * segmenting_settings.max_num_samples);
+				deallocate_type_array(allocator, critical_transform_indices, num_bones);
+				deallocate_type_array(allocator, transform_chain_indices, max_num_transform_chains * max_chain_length);
+				deallocate_type_array(allocator, transform_chains, max_num_transform_chains);
+				deallocate_type_array(allocator, transform_chain_counts, max_num_transform_chains);
+
+				// v1
 				deallocate_type_array(allocator, shell_metadata_per_transform, num_bones);
 				deallocate_type_array(allocator, additive_local_pose, num_bones);
 				deallocate_type_array(allocator, raw_local_pose, num_bones);
@@ -320,6 +344,34 @@ namespace acl
 					uint8_t* sample_raw_object_transforms = raw_object_transforms + (sample_index * sample_transform_size);
 					local_to_object_space_impl(error_metric_, local_to_object_space_args_raw, sample_raw_object_transforms);
 				}
+			}
+
+			void initialize_v2()
+			{
+				if (object_transforms_raw != nullptr)
+					return;	// Already initialized
+
+				additive_base_local_transforms = has_additive_base ? allocate_type_array<rtm::qvvf>(allocator, num_bones * segmenting_settings.max_num_samples) : nullptr;
+				object_transforms_raw = allocate_type_array<rtm::qvvf>(allocator, num_bones * segmenting_settings.max_num_samples);
+				cached_transforms_lossy = allocate_type_array<rtm::qvvf>(allocator, num_bones * segmenting_settings.max_num_samples);
+
+				critical_transform_indices = allocate_type_array<uint32_t>(allocator, num_bones);
+			}
+
+			void initialize_v2_scale()
+			{
+				if (transform_chain_indices != nullptr)
+					return;	// Already initialized
+
+				max_num_transform_chains = topology->num_max_leaves_per_transform + 2;	// +2 since we have a dominant transform and ourself as well
+				max_chain_length = topology->max_leaf_depth + 1;						// +1 since depth is 0-based
+
+				transform_chain_indices = allocate_type_array<uint32_t>(allocator, max_num_transform_chains * max_chain_length);
+				transform_chains = allocate_type_array<uint32_t*>(allocator, max_num_transform_chains);
+				transform_chain_counts = allocate_type_array<uint32_t>(allocator, max_num_transform_chains);
+
+				for (uint32_t chain_index = 0; chain_index < max_num_transform_chains; ++chain_index)
+					transform_chains[chain_index] = (chain_index * max_chain_length) + transform_chain_indices;
 			}
 
 			bool is_valid() const { return segment != nullptr; }
@@ -2096,6 +2148,8 @@ namespace acl
 			// For algorithm from ACL 2.2 and later
 			ACL_ASSERT(context.is_valid(), "quantization_context isn't valid");
 
+			context.initialize_v2();
+
 			initialize_bone_bit_rates_v2(*context.segment, context.rotation_format, context.translation_format, context.scale_format, context.bit_rate_per_bone);
 
 			const uint32_t num_transforms = context.num_bones;
@@ -2109,11 +2163,10 @@ namespace acl
 			const bool translation_supports_constant_tracks = context.segment->are_translations_normalized;
 			const bool scale_supports_constant_tracks = context.segment->are_scales_normalized;
 
-			rtm::qvvf* additive_base_local_transforms = has_additive_base ? allocate_type_array<rtm::qvvf>(context.allocator, num_transforms * num_samples) : nullptr;
-			rtm::qvvf* object_transforms_raw = allocate_type_array<rtm::qvvf>(context.allocator, num_transforms * num_samples);
-			rtm::qvvf* cached_transforms_lossy = allocate_type_array<rtm::qvvf>(context.allocator, num_transforms * num_samples);
-
-			uint32_t* critical_transform_indices = allocate_type_array<uint32_t>(context.allocator, num_transforms);
+			rtm::qvvf* additive_base_local_transforms = context.additive_base_local_transforms;
+			rtm::qvvf* object_transforms_raw = context.object_transforms_raw;
+			rtm::qvvf* cached_transforms_lossy = context.cached_transforms_lossy;
+			uint32_t* critical_transform_indices = context.critical_transform_indices;
 
 			if (!context.all_local_query.is_bound())
 				context.all_local_query.bind(context.bit_rate_database);
@@ -2169,22 +2222,11 @@ namespace acl
 			// If we have non-uniform 3D scale, we cannot rely on associativity, fall back to the transform chain
 			const bool has_scale = rtm::mask_any_true3(mask_not(has_default_scale));
 
-			const uint32_t max_num_transform_chains = context.topology->num_max_leaves_per_transform + 1;	// +1 since we have a dominant transform as well
-			const uint32_t max_chain_length = context.topology->max_leaf_depth + 1;							// +1 since depth is 0-based
-
-			uint32_t* transform_chain_indices = nullptr;
-			uint32_t** transform_chains = nullptr;
-			uint32_t* transform_chain_counts = nullptr;
-
 			if (has_scale)
-			{
-				transform_chain_indices = allocate_type_array<uint32_t>(context.allocator, max_num_transform_chains * max_chain_length);
-				transform_chains = allocate_type_array<uint32_t*>(context.allocator, max_num_transform_chains);
-				transform_chain_counts = allocate_type_array<uint32_t>(context.allocator, max_num_transform_chains);
+				context.initialize_v2_scale();
 
-				for (uint32_t chain_index = 0; chain_index < max_num_transform_chains; ++chain_index)
-					transform_chains[chain_index] = (chain_index * max_chain_length) + transform_chain_indices;
-			}
+			uint32_t** transform_chains = context.transform_chains;
+			uint32_t* transform_chain_counts = context.transform_chain_counts;
 
 			// We try permutations from the lowest memory footprint to the highest.
 			const uint8_t* const bit_rate_permutations_per_dofs[] =
@@ -2547,14 +2589,6 @@ namespace acl
 					bone_bit_rate.get_num_bits(), error, error < transform_precision ? "" : " (too high)");
 			}
 #endif
-
-			deallocate_type_array(context.allocator, additive_base_local_transforms, num_transforms);
-			deallocate_type_array(context.allocator, object_transforms_raw, num_transforms * num_samples);
-			deallocate_type_array(context.allocator, cached_transforms_lossy, num_transforms * num_samples);
-			deallocate_type_array(context.allocator, critical_transform_indices, num_transforms);
-			deallocate_type_array(context.allocator, transform_chain_indices, max_num_transform_chains * max_chain_length);
-			deallocate_type_array(context.allocator, transform_chains, max_num_transform_chains);
-			deallocate_type_array(context.allocator, transform_chain_counts, max_num_transform_chains);
 		}
 
 		inline void find_optimal_bit_rates_dispatch(quantization_context& context)
