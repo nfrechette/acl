@@ -147,7 +147,6 @@ namespace acl
 			uint8_t* raw_local_transforms = nullptr;			// 1 per transform per sample in segment
 			uint8_t* base_local_transforms = nullptr;			// 1 per transform per sample in segment
 			uint8_t* raw_object_transforms = nullptr;			// 1 per transform per sample in segment
-			uint8_t* base_object_transforms = nullptr;			// 1 per transform per sample in segment
 
 			uint8_t* local_transforms_converted = nullptr;		// 1 per transform
 			uint8_t* lossy_object_pose = nullptr;				// 1 per transform
@@ -201,8 +200,6 @@ namespace acl
 				metric_transform_size = metric_transform_size_;
 
 				shell_metadata_per_transform = allocate_type_array<rigid_shell_metadata_t>(allocator, num_bones);
-
-				base_object_transforms = clip_.has_additive_base ? allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size_ * num_bones * clip_.segments->num_samples, 64) : nullptr;
 				bit_rate_per_bone = allocate_type_array<transform_bit_rates>(allocator, num_bones);
 				chain_bone_indices = allocate_type_array<uint32_t>(allocator, num_bones);
 			}
@@ -228,7 +225,6 @@ namespace acl
 				deallocate_type_array(allocator, raw_local_transforms, metric_transform_size * num_bones * clip.segments->num_samples);
 				deallocate_type_array(allocator, base_local_transforms, metric_transform_size * num_bones * clip.segments->num_samples);
 				deallocate_type_array(allocator, raw_object_transforms, metric_transform_size * num_bones * clip.segments->num_samples);
-				deallocate_type_array(allocator, base_object_transforms, metric_transform_size * num_bones * clip.segments->num_samples);
 				deallocate_type_array(allocator, local_transforms_converted, metric_transform_size * num_bones);
 				deallocate_type_array(allocator, lossy_object_pose, metric_transform_size * num_bones);
 				deallocate_type_array(allocator, bit_rate_per_bone, num_bones);
