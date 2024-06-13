@@ -2825,8 +2825,8 @@ namespace acl
 							calculate_error_args.transform0 = raw_frame_transform + (bone_index * context.metric_transform_size);
 							calculate_error_args.transform1 = context.lossy_object_pose + (bone_index * context.metric_transform_size);
 
-							const rigid_shell_metadata_t& transform_shell = context.shell_metadata_per_transform[bone_index];
-							calculate_error_args.construct_sphere_shell(transform_shell.local_shell_distance);
+							const transform_metadata& transform_data = context.metadata[bone_index];
+							calculate_error_args.construct_sphere_shell(transform_data.shell_distance);
 
 #if defined(RTM_COMPILER_MSVC) && defined(RTM_ARCH_X86) && RTM_COMPILER_MSVC == RTM_COMPILER_MSVC_2015
 							// VS2015 fails to generate the right x86 assembly, branch instead
@@ -2837,7 +2837,7 @@ namespace acl
 #endif
 
 							max_contributing_error = rtm::scalar_max(max_contributing_error, error);
-							is_keyframe_trivial &= rtm::scalar_cast(error) <= transform_shell.precision;
+							is_keyframe_trivial &= rtm::scalar_cast(error) <= transform_data.precision;
 						}
 					}
 
