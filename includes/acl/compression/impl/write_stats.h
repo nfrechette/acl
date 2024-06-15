@@ -55,6 +55,13 @@ namespace acl
 		{
 			writer["segment_index"] = segment.segment_index;
 			writer["num_samples"] = segment.num_samples;
+			writer["first_sample_index"] = segment.clip_sample_offset;
+
+			const float sample_rate = segment.clip->sample_rate;
+			const float clip_duration = calculate_finite_duration(segment.clip->num_samples, sample_rate);
+			const float segment_start_time = rtm::scalar_min(float(segment.clip_sample_offset) / sample_rate, clip_duration);
+
+			writer["segment_start_time"] = segment_start_time;
 
 			const uint32_t format_per_track_data_size = get_format_per_track_data_size(*segment.clip, rotation_format, translation_format, scale_format);
 
