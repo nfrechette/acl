@@ -183,6 +183,8 @@ namespace acl
 
 			track_error worst_bone_error;
 
+			// We measure the error for every transform at every keyframe
+			// Note that this ignores keyframe stripping which can introduce some amount of error
 			writer["error_per_frame_and_bone"] = [&](sjson::ArrayWriter& frames_writer)
 			{
 				for (uint32_t sample_index = 0; sample_index < segment.num_samples; ++sample_index)
