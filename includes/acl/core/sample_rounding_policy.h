@@ -84,11 +84,12 @@ namespace acl
 		// disable it.
 		// 
 		// WARNING: Using per track rounding may not behave as intended if a partially streamed
-		// database is used. For performance reasons, unlike the modes above, only a single value
-		// will be interpolated: the one at the specified sample time. This means that if we have
-		// 3 samples A, B, C and you sample between B and C with 'floor', if B has been moved to
-		// a database and is missing, B (interpolated) is not returned. Normally, A and C would be
-		// used to interpolate at the sample time specified as such we do not calculate where B lies.
+		// database is used or if keyframes have been stripped. For performance reasons, unlike the
+		// modes above, only a single value will be interpolated: the one at the specified sample
+		// time. This means that if we have 3 samples A, B, C and you sample between B and C with
+		// 'floor', if B has been moved to a database and is missing, B (interpolated) is not returned.
+		// Normally, A and C would be used to interpolate at the sample time specified as such we do
+		// not calculate where B lies.
 		// As a result of this, A would be returned unlike the behavior of 'floor' when used to sample
 		// all tracks. This is the behavior chosen by design. During decompression, samples are
 		// unpacked and interpolated before we know which track they belong to. As such, when the
