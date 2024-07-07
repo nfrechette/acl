@@ -265,7 +265,7 @@ namespace acl
 			// ((1.0 - alpha) * start) + (alpha * (end * bias)) == (start - alpha * start) + (alpha * (end * bias))
 			rtm::vector4f interpolated_rotation = rtm::vector_mul_add(rtm::vector_mul(end_v, bias), alpha, rtm::vector_neg_mul_sub(start_v, alpha, start_v));
 
-			return quat_normalize_stable(interpolated_rotation);
+			return quat_normalize_stable(rtm::vector_to_quat(interpolated_rotation));
 		}
 	}
 
