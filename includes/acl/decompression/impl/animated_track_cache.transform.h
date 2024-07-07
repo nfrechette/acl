@@ -1723,8 +1723,8 @@ namespace acl
 				const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(decomp_context.rotation_format);
 				if (rotation_format != rotation_format8::quatf_full || !decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full))
 				{
-					sample0 = rtm::quat_from_positive_w(sample_as_vec0);
-					sample1 = rtm::quat_from_positive_w(sample_as_vec1);
+					sample0 = quat_from_positive_w_stable(sample_as_vec0);
+					sample1 = quat_from_positive_w_stable(sample_as_vec1);
 				}
 				else
 				{
@@ -1740,7 +1740,7 @@ namespace acl
 					// Due to the interpolation, the result might not be anywhere near normalized!
 					// Make sure to normalize afterwards before using
 					if (decompression_settings_type::get_rotation_normalization_policy() >= rotation_normalization_policy_t::lerp_only)
-						result = rtm::quat_lerp(sample0, sample1, interpolation_alpha);
+						result = quat_lerp_stable(sample0, sample1, interpolation_alpha);
 					else
 						result = quat_lerp_no_normalization(sample0, sample1, interpolation_alpha);
 				}
@@ -1756,7 +1756,7 @@ namespace acl
 						{
 							// quat_from_positive_w might not yield an accurate quaternion because the square-root instruction
 							// isn't very accurate on small inputs, we need to normalize
-							result = rtm::quat_normalize(result);
+							result = quat_normalize_stable(result);
 						}
 					}
 				}
