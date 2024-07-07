@@ -1996,16 +1996,6 @@ namespace acl
 
 			// Finally reached our desired track, unpack it
 
-			float interpolation_alpha = context.interpolation_alpha;
-			if (decompression_settings_type::is_per_track_rounding_supported())
-			{
-				const sample_rounding_policy rounding_policy = context.get_rounding_policy();
-				const sample_rounding_policy rounding_policy_ = writer.get_rounding_policy(rounding_policy, track_index);
-				ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
-
-				interpolation_alpha = apply_rounding_policy(interpolation_alpha, rounding_policy_);
-			}
-
 			if (rotation_sub_track_type == 0)
 			{
 				if (default_rotation_mode != default_sub_track_mode::skipped)
@@ -2022,7 +2012,7 @@ namespace acl
 				if (rotation_sub_track_type & 1)
 					rotation = constant_track_cache.unpack_rotation_within_group<decompression_settings_type>(context, rotation_group_sample_index);
 				else
-					rotation = animated_track_cache.unpack_rotation_within_group<decompression_settings_type>(context, rotation_group_sample_index, interpolation_alpha);
+					rotation = animated_track_cache.unpack_rotation_within_group<decompression_settings_type>(context, rotation_group_sample_index);
 
 				writer.write_rotation(track_index, rotation);
 			}
@@ -2043,7 +2033,7 @@ namespace acl
 				if (translation_sub_track_type & 1)
 					translation = constant_track_cache.unpack_translation_within_group(translation_group_sample_index);
 				else
-					translation = animated_track_cache.unpack_translation_within_group<translation_adapter>(context, translation_group_sample_index, interpolation_alpha);
+					translation = animated_track_cache.unpack_translation_within_group<translation_adapter>(context, translation_group_sample_index);
 
 				writer.write_translation(track_index, translation);
 			}
@@ -2064,7 +2054,7 @@ namespace acl
 				if (scale_sub_track_type & 1)
 					scale = constant_track_cache.unpack_scale_within_group(scale_group_sample_index);
 				else
-					scale = animated_track_cache.unpack_scale_within_group<scale_adapter>(context, scale_group_sample_index, interpolation_alpha);
+					scale = animated_track_cache.unpack_scale_within_group<scale_adapter>(context, scale_group_sample_index);
 
 				writer.write_scale(track_index, scale);
 			}
