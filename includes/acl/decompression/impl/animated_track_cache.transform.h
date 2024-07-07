@@ -1716,15 +1716,31 @@ namespace acl
 				const rtm::vector4f sample_as_vec0 = unpack_single_animated_quat<decompression_settings_type>(decomp_context, unpack_index, group_size, clip_sampling_context_rotations, segment_sampling_context_rotations[0]);
 				const rtm::vector4f sample_as_vec1 = unpack_single_animated_quat<decompression_settings_type>(decomp_context, unpack_index, group_size, clip_sampling_context_rotations, segment_sampling_context_rotations[1]);
 
+				const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(decomp_context.rotation_format);
+				const float interpolation_alpha = decomp_context.interpolation_alpha;
+				const bool should_interpolate = should_interpolate_samples<decompression_settings_type>(rotation_format, interpolation_alpha);
+
 				rtm::quatf sample0;
 				rtm::quatf sample1;
 
 				// Reconstruct our quaternion W component
-				const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(decomp_context.rotation_format);
 				if (rotation_format != rotation_format8::quatf_full || !decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full))
 				{
 					sample0 = quat_from_positive_w_stable(sample_as_vec0);
 					sample1 = quat_from_positive_w_stable(sample_as_vec1);
+
+					if (decompression_settings_type::get_rotation_normalization_policy() == rotation_normalization_policy_t::always)
+					{
+						// quat_from_positive_w might not yield an accurate quaternion because the square-root instruction
+						// isn't very accurate on small inputs, we need to normalize
+						// If we support per track rounding, we need to normalize as we might not interpolate
+						// Otherwise, if we don't interpolate we also need to normalize
+						if (decompression_settings_type::is_per_track_rounding_supported() || !should_interpolate)
+						{
+							sample0 = quat_normalize_stable(sample0);
+							sample1 = quat_normalize_stable(sample1);
+						}
+					}
 				}
 				else
 				{
@@ -1734,8 +1750,6 @@ namespace acl
 
 				rtm::quatf result;
 
-				const float interpolation_alpha = decomp_context.interpolation_alpha;
-				const bool should_interpolate = should_interpolate_samples<decompression_settings_type>(rotation_format, interpolation_alpha);
 				if (should_interpolate)
 				{
 					// Due to the interpolation, the result might not be anywhere near normalized!
