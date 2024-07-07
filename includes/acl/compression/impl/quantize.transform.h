@@ -2699,7 +2699,6 @@ namespace acl
 			const auto convert_transforms_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::convert_transforms : &itransform_error_metric::convert_transforms_no_scale);
 			const auto apply_additive_to_base_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
 			const auto local_to_object_space_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::local_to_object_space : &itransform_error_metric::local_to_object_space_no_scale);
-			const auto calculate_error_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::calculate_error : &itransform_error_metric::calculate_error_no_scale);
 
 			itransform_error_metric::convert_transforms_args convert_transforms_args_lossy;
 			convert_transforms_args_lossy.dirty_transform_indices = context.self_transform_indices;
@@ -2827,13 +2826,9 @@ namespace acl
 							const transform_metadata& transform_data = context.metadata[bone_index];
 							calculate_error_args.construct_sphere_shell(transform_data.shell_distance);
 
-#if defined(RTM_COMPILER_MSVC) && defined(RTM_ARCH_X86) && RTM_COMPILER_MSVC == RTM_COMPILER_MSVC_2015
-							// VS2015 fails to generate the right x86 assembly, branch instead
-							(void)calculate_error_impl;
-							const rtm::scalarf error = context.has_scale ? error_metric->calculate_error(calculate_error_args) : error_metric->calculate_error_no_scale(calculate_error_args);
-#else
-							const rtm::scalarf error = calculate_error_impl(error_metric, calculate_error_args);
-#endif
+							// We always include the scale to ensure that when we strip keyframes based on the measured error
+							// the resulting clip error remains consistent
+							const rtm::scalarf error = error_metric->calculate_error(calculate_error_args);
 
 							max_contributing_error = rtm::scalar_max(max_contributing_error, error);
 							is_keyframe_trivial &= rtm::scalar_cast(error) <= transform_data.precision;
