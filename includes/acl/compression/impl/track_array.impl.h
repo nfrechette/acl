@@ -32,6 +32,7 @@
 #include "acl/core/interpolation_utils.h"
 #include "acl/core/track_types.h"
 #include "acl/core/track_writer.h"
+#include "acl/math/quatf.h"
 
 #include <rtm/quatf.h>
 #include <rtm/scalarf.h>
@@ -240,6 +241,9 @@ namespace acl
 			no_rounding_alpha,	// per_track
 		};
 
+		// True if interpolation alpha is 0.0, false otherwise
+		const rtm::mask4f no_rounding_mask = rtm::vector_equal(rtm::vector_set(interpolation_alpha), rtm::vector_zero());
+
 		switch (track_type)
 		{
 		case track_type8::float1f:
@@ -328,9 +332,29 @@ namespace acl
 
 				const rtm::qvvf& value0 = track__[key_frame0];
 				const rtm::qvvf& value1 = track__[key_frame1];
-				const rtm::quatf rotation = rtm::quat_lerp(value0.rotation, value1.rotation, alpha);
-				const rtm::vector4f translation = rtm::vector_lerp(value0.translation, value1.translation, alpha);
-				const rtm::vector4f scale = rtm::vector_lerp(value0.scale, value1.scale, alpha);
+
+				// We normalize rotations for safety, just like we do during compression when building the raw context
+				const rtm::quatf rotation0 = acl_impl::quat_normalize_stable(value0.rotation);
+				const rtm::quatf rotation1 = acl_impl::quat_normalize_stable(value1.rotation);
+
+				rtm::quatf rotation;
+				rtm::vector4f translation;
+				rtm::vector4f scale;
+
+				// Quat lerp isn't truly stable since we normalize, ensure we return a stable value explicitly
+				if (rounding_policy_ != sample_rounding_policy::none)
+				{
+					rotation = rtm::vector_to_quat(rtm::vector_select(no_rounding_mask, rtm::quat_to_vector(rotation0), rtm::quat_to_vector(rotation1)));
+					translation = rtm::vector_select(no_rounding_mask, value0.translation, value1.translation);
+					scale = rtm::vector_select(no_rounding_mask, value0.scale, value1.scale);
+				}
+				else
+				{
+					rotation = acl_impl::quat_lerp_stable(rotation0, rotation1, alpha);
+					translation = rtm::vector_lerp(value0.translation, value1.translation, alpha);
+					scale = rtm::vector_lerp(value0.scale, value1.scale, alpha);
+				}
+				
 				writer.write_rotation(track_index, rotation);
 				writer.write_translation(track_index, translation);
 				writer.write_scale(track_index, scale);
@@ -364,6 +388,9 @@ namespace acl
 		uint32_t key_frame1;
 		float interpolation_alpha;
 		find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, sample_time, rounding_policy_, m_looping_policy, key_frame0, key_frame1, interpolation_alpha);
+
+		// True if interpolation alpha is 0.0, false otherwise
+		const rtm::mask4f no_rounding_mask = rtm::vector_equal(rtm::vector_set(interpolation_alpha), rtm::vector_zero());
 
 		switch (track_.get_type())
 		{
@@ -423,9 +450,29 @@ namespace acl
 
 			const rtm::qvvf& value0 = track__[key_frame0];
 			const rtm::qvvf& value1 = track__[key_frame1];
-			const rtm::quatf rotation = rtm::quat_lerp(value0.rotation, value1.rotation, interpolation_alpha);
-			const rtm::vector4f translation = rtm::vector_lerp(value0.translation, value1.translation, interpolation_alpha);
-			const rtm::vector4f scale = rtm::vector_lerp(value0.scale, value1.scale, interpolation_alpha);
+
+			// We normalize rotations for safety, just like we do during compression when building the raw context
+			const rtm::quatf rotation0 = acl_impl::quat_normalize_stable(value0.rotation);
+			const rtm::quatf rotation1 = acl_impl::quat_normalize_stable(value1.rotation);
+
+			rtm::quatf rotation;
+			rtm::vector4f translation;
+			rtm::vector4f scale;
+
+			// Quat lerp isn't truly stable since we normalize, ensure we return a stable value explicitly
+			if (rounding_policy_ != sample_rounding_policy::none)
+			{
+				rotation = rtm::vector_to_quat(rtm::vector_select(no_rounding_mask, rtm::quat_to_vector(rotation0), rtm::quat_to_vector(rotation1)));
+				translation = rtm::vector_select(no_rounding_mask, value0.translation, value1.translation);
+				scale = rtm::vector_select(no_rounding_mask, value0.scale, value1.scale);
+			}
+			else
+			{
+				rotation = acl_impl::quat_lerp_stable(rotation0, rotation1, interpolation_alpha);
+				translation = rtm::vector_lerp(value0.translation, value1.translation, interpolation_alpha);
+				scale = rtm::vector_lerp(value0.scale, value1.scale, interpolation_alpha);
+			}
+
 			writer.write_rotation(track_index, rotation);
 			writer.write_translation(track_index, translation);
 			writer.write_scale(track_index, scale);
