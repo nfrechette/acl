@@ -656,11 +656,9 @@ namespace acl
 				{
 					// Not cached
 					if (m_is_rotation_variable)
-						rotation = get_rotation_sample(m_raw_bone_streams[track_index], 0);
+						rotation = get_rotation_sample(bone_stream, 0);
 					else
-						rotation = get_rotation_sample(m_raw_bone_streams[track_index], 0, m_rotation_format);
-
-					rotation = rtm::quat_normalize(rotation);
+						rotation = get_rotation_sample(bone_stream, 0, m_rotation_format);
 
 					cached_samples[0] = rotation;
 					bitset_set(validity_bitset, m_bitref_constant, true);
@@ -694,8 +692,6 @@ namespace acl
 						rotation = get_rotation_sample(bone_stream, raw_bone_stream, context.sample_key, context.bit_rates.rotation);
 					else
 						rotation = get_rotation_sample(bone_stream, context.sample_key, m_rotation_format);
-
-					rotation = rtm::quat_normalize(rotation);
 
 					cached_samples[context.sample_key] = rotation;
 					bitset_set(validity_bitset, bitref0, true);

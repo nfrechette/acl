@@ -616,12 +616,9 @@ namespace acl
 			if (bone_stream.is_rotation_default)
 				rotation = bone_stream.default_value.rotation;
 			else if (bone_stream.is_rotation_constant)
-				rotation = rtm::quat_normalize(get_rotation_sample(bone_stream, 0));
+				rotation = get_rotation_sample(bone_stream, 0);
 			else
-			{
 				rotation = get_rotation_sample(bone_stream, context.sample_key);
-				rotation = rtm::quat_normalize(rotation);
-			}
 
 			return rotation;
 		}
