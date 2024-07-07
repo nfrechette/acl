@@ -240,6 +240,8 @@ namespace acl
 			uint32_t clip_key_frame1;
 			find_linear_interpolation_samples_with_sample_rate(header.num_samples, header.sample_rate, sample_time, rounding_policy, looping_policy_, clip_key_frame0, clip_key_frame1, context.interpolation_alpha);
 
+			// When per-track support is disabled in the decompression settings, the effective rounding policy
+			// is ignored as we always interpolate using the alpha from the rounding policy
 			context.requested_rounding_policy = requested_rounding_policy;
 			context.effective_rounding_policy = requested_rounding_policy;
 
