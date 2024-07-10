@@ -217,7 +217,7 @@ namespace acl
 			wwww = rtm::vector_mul(wwww, inv_len4);
 		}
 
-		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE float RTM_SIMD_CALL vector_dot_stable(rtm::vector4f_arg0 input0, rtm::vector4f_arg1 input1) RTM_NO_EXCEPT
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE rtm::scalarf RTM_SIMD_CALL vector_dot_stable(rtm::vector4f_arg0 input0, rtm::vector4f_arg1 input1) RTM_NO_EXCEPT
 		{
 			// SIMD NEON uses fused multiply-accumulate, we need to make sure to use it with the scalar version as well
 #if defined(RTM_NEON_INTRINSICS)
@@ -231,15 +231,14 @@ namespace acl
 			const rtm::scalarf z1 = rtm::vector_get_z_as_scalar(input1);
 			const rtm::scalarf w1 = rtm::vector_get_w_as_scalar(input1);
 
-			const rtm::scalarf dot_s = rtm::scalar_mul_add(w0, w1, rtm::scalar_mul_add(z0, z1, rtm::scalar_mul_add(y0, y1, rtm::scalar_mul(x0, x1))));
-			const float dot = rtm::scalar_cast(dot_s);
+			const rtm::scalarf dot = rtm::scalar_mul_add(w0, w1, rtm::scalar_mul_add(z0, z1, rtm::scalar_mul_add(y0, y1, rtm::scalar_mul(x0, x1))));
 #else
 			const rtm::vector4f input0_mul_input1 = rtm::vector_mul(input0, input1);
 
-			float dot = rtm::vector_get_x(input0_mul_input1);
-			dot = dot + rtm::vector_get_y(input0_mul_input1);
-			dot = dot + rtm::vector_get_z(input0_mul_input1);
-			dot = dot + rtm::vector_get_w(input0_mul_input1);
+			rtm::scalarf dot = rtm::vector_get_x_as_scalar(input0_mul_input1);
+			dot = rtm::scalar_add(dot, rtm::vector_get_y_as_scalar(input0_mul_input1));
+			dot = rtm::scalar_add(dot, rtm::vector_get_z_as_scalar(input0_mul_input1));
+			dot = rtm::scalar_add(dot, rtm::vector_get_w_as_scalar(input0_mul_input1));
 #endif
 
 			return dot;
@@ -247,8 +246,6 @@ namespace acl
 
 		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE rtm::quatf RTM_SIMD_CALL quat_from_positive_w_stable(rtm::vector4f_arg0 input) RTM_NO_EXCEPT
 		{
-			// SIMD NEON uses fused multiply-accumulate, we need to make sure to use it with the scalar version as well
-#if defined(RTM_NEON_INTRINSICS)
 			const rtm::scalarf x = rtm::vector_get_x_as_scalar(input);
 			const rtm::scalarf y = rtm::vector_get_y_as_scalar(input);
 			const rtm::scalarf z = rtm::vector_get_z_as_scalar(input);
@@ -258,22 +255,11 @@ namespace acl
 			// result - (y * y)
 			result = rtm::scalar_neg_mul_sub(y, y, result);
 			// result - (z * z)
-			const rtm::scalarf w_squared_s = rtm::scalar_neg_mul_sub(z, z, result);
-			const float w_squared = rtm::scalar_cast(w_squared_s);
-#else
-			const rtm::vector4f input_sq = rtm::vector_mul(input, input);
-
-			// 1.0 - (x * x)
-			float result = 1.0F - rtm::vector_get_x(input_sq);
-			// result - (y * y)
-			result = result - rtm::vector_get_y(input_sq);
-			// result - (z * z)
-			const float w_squared = result - rtm::vector_get_z(input_sq);
-#endif
+			const rtm::scalarf w_squared = rtm::scalar_neg_mul_sub(z, z, result);
 
 			// w_squared can be negative either due to rounding or due to quantization imprecision, we take the absolute value
 			// to ensure the resulting quaternion is always normalized with a positive W component
-			const float w = rtm::scalar_sqrt(rtm::scalar_abs(w_squared));
+			const rtm::scalarf w = rtm::scalar_sqrt(rtm::scalar_abs(w_squared));
 			return rtm::quat_set_w(rtm::vector_to_quat(input), w);
 		}
 
@@ -281,9 +267,9 @@ namespace acl
 		{
 			rtm::vector4f input_v = rtm::quat_to_vector(input);
 
-			float dot = vector_dot_stable(input_v, input_v);
+			rtm::scalarf dot = vector_dot_stable(input_v, input_v);
 
-			float inv_len = 1.0F / rtm::scalar_sqrt(dot);
+			rtm::scalarf inv_len = rtm::scalar_div(rtm::scalar_set(1.0F),  rtm::scalar_sqrt(dot));
 			return rtm::vector_to_quat(rtm::vector_mul(input_v, inv_len));
 		}
 
@@ -292,9 +278,9 @@ namespace acl
 			rtm::vector4f start_v = rtm::quat_to_vector(start);
 			rtm::vector4f end_v = rtm::quat_to_vector(end);
 
-			float dot = vector_dot_stable(start_v, end_v);
+			rtm::scalarf dot = vector_dot_stable(start_v, end_v);
 
-			float bias = dot >= 0.0F ? 1.0F : -1.0F;
+			rtm::scalarf bias = rtm::scalar_set(rtm::scalar_cast(dot) >= 0.0F ? 1.0F : -1.0F);
 
 			// ((1.0 - alpha) * start) + (alpha * (end * bias)) == (start - alpha * start) + (alpha * (end * bias))
 			rtm::vector4f interpolated_rotation = rtm::vector_mul_add(rtm::vector_mul(end_v, bias), alpha, rtm::vector_neg_mul_sub(start_v, alpha, start_v));
