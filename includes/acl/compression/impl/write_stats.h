@@ -213,8 +213,7 @@ namespace acl
 						{
 							for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 							{
-								const track_qvvf& track = track_list[bone_index];
-								const track_desc_transformf& desc = track.get_description();
+								const track_desc_transformf& desc = track_list[bone_index].get_description();
 
 								itransform_error_metric::calculate_error_args calculate_error_args;
 								calculate_error_args.transform0 = raw_object_pose + bone_index;
