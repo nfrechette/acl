@@ -182,6 +182,7 @@ namespace acl
 			local_to_object_space_args_lossy.local_transforms = lossy_local_pose;
 
 			track_error worst_bone_error;
+			worst_bone_error.error = -1.0F;		// Can never have a negative error, use -1 so the first sample is used
 
 			// We measure the error for every transform at every keyframe
 			// Note that this ignores keyframe stripping which can introduce some amount of error
