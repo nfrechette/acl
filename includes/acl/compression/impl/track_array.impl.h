@@ -241,9 +241,6 @@ namespace acl
 			no_rounding_alpha,	// per_track
 		};
 
-		// True if interpolation alpha is 0.0, false otherwise
-		const rtm::mask4f no_rounding_mask = rtm::vector_equal(rtm::vector_set(interpolation_alpha), rtm::vector_zero());
-
 		switch (track_type)
 		{
 		case track_type8::float1f:
@@ -329,6 +326,9 @@ namespace acl
 				const sample_rounding_policy rounding_policy_ = writer.get_rounding_policy(rounding_policy, track_index);
 				ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
 				const float alpha = interpolation_alpha_per_policy[static_cast<int>(rounding_policy_)];
+
+				// True if interpolation alpha is 0.0, false otherwise
+				const rtm::mask4f no_rounding_mask = rtm::vector_equal(rtm::vector_set(alpha), rtm::vector_zero());
 
 				const rtm::qvvf& value0 = track__[key_frame0];
 				const rtm::qvvf& value1 = track__[key_frame1];
