@@ -2595,6 +2595,10 @@ namespace acl
 			}
 
 #if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_SUMMARY_ONLY
+			// Still using old v1 code/data
+			context.initialize_v1();
+			cache_raw_transforms_v1(context);
+
 			uint32_t total_num_bits = 0;
 			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 				total_num_bits += context.bit_rate_per_bone[transform_index].get_num_bits();
