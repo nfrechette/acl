@@ -2172,6 +2172,12 @@ namespace acl
 
 			context.initialize_v2();
 
+#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_SUMMARY_ONLY
+			// Still using old v1 code/data
+			context.initialize_v1();
+			cache_raw_transforms_v1(context);
+#endif
+
 			initialize_bone_bit_rates_v2(*context.segment, context.rotation_format, context.translation_format, context.scale_format, context.bit_rate_per_bone);
 
 			const uint32_t num_transforms = context.num_bones;
@@ -2597,10 +2603,6 @@ namespace acl
 			}
 
 #if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_SUMMARY_ONLY
-			// Still using old v1 code/data
-			context.initialize_v1();
-			cache_raw_transforms_v1(context);
-
 			uint32_t total_num_bits = 0;
 			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 				total_num_bits += context.bit_rate_per_bone[transform_index].get_num_bits();
