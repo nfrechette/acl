@@ -110,6 +110,7 @@ namespace acl
 			switch (format)
 			{
 			case rotation_format8::quatf_full:
+				// Also used to sample raw clip
 				return rtm::vector_to_quat(rotation);
 			case rotation_format8::quatf_drop_w_full:
 			case rotation_format8::quatf_drop_w_variable:

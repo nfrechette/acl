@@ -1582,6 +1582,8 @@ namespace acl
 			{
 				transform_bit_rates& bone_bit_rate = out_bit_rate_per_bone[bone_index];
 
+				// We initialize animated bit rates to the highest value possible (3x float32)
+
 				if (is_rotation_variable && !segment.bone_streams[bone_index].is_rotation_constant)
 					bone_bit_rate.rotation = k_highest_bit_rate;
 				else
