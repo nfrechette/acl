@@ -731,7 +731,7 @@ namespace acl
 				else
 				{
 					// Not cached
-					translation = get_translation_sample(m_raw_bone_streams[track_index], 0, vector_format8::vector3f_full);
+					translation = get_translation_sample(bone_stream, 0, vector_format8::vector3f_full);
 
 					cached_samples[0] = translation;
 					bitset_set(validity_bitset, m_bitref_constant, true);
@@ -804,7 +804,7 @@ namespace acl
 				else
 				{
 					// Not cached
-					scale = get_scale_sample(m_raw_bone_streams[track_index], 0, vector_format8::vector3f_full);
+					scale = get_scale_sample(bone_stream, 0, vector_format8::vector3f_full);
 
 					cached_samples[0] = scale;
 					bitset_set(validity_bitset, m_bitref_constant, true);
