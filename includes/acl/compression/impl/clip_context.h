@@ -148,7 +148,7 @@ namespace acl
 		struct rigid_shell_metadata_t
 		{
 			// Dominant local space shell distance (from transform tip)
-			float local_shell_distance;
+			float local_shell_distance;	// TODO: rename this, remove 'local' from name, it is implied
 
 			// Precision required on the surface of the rigid shell
 			float precision;
