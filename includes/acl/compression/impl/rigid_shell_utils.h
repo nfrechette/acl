@@ -84,7 +84,6 @@ namespace acl
 
 				transform_shell_metadata.local_shell_distance = raw_clip.get_transform_shell_distance(transform_index);
 				transform_shell_metadata.precision = raw_clip.get_transform_precision(transform_index);
-				transform_shell_metadata.parent_shell_distance = 0.0F;
 				transform_shell_metadata.dominant_transform_index = transform_index;
 			}
 
@@ -222,7 +221,6 @@ namespace acl
 
 				shell_metadata.local_shell_distance = metadata.shell_distance;
 				shell_metadata.precision = metadata.precision;
-				shell_metadata.parent_shell_distance = 0.0F;
 				shell_metadata.dominant_transform_index = transform_index;
 			}
 
@@ -333,7 +331,6 @@ namespace acl
 
 				shell_metadata.local_shell_distance = metadata.shell_distance;
 				shell_metadata.precision = metadata.precision;
-				shell_metadata.parent_shell_distance = 0.0F;
 				shell_metadata.dominant_transform_index = transform_index;
 			}
 
