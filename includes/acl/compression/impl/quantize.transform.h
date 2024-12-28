@@ -2850,7 +2850,10 @@ namespace acl
 #endif
 
 					// If our current frame's contributing error is lowest, it is the best candidate for removal
-					if (max_contributing_errorf < best_error.stripping_error)
+					// If our best error is infinite, we assign it anyway in case we cannot remove any more keyframes
+					// A later keyframe may end up replacing us but if it isn't the case, the keyframe will be retained
+					// as is the case for those with infinite error (such as the first/last of a segment) are never removed
+					if (max_contributing_errorf < best_error.stripping_error || best_error.keyframe_index == ~0U)
 						best_error = keyframe_stripping_metadata_t(frame_index, segment_index, iteration_count - 1, max_contributing_errorf, is_keyframe_trivial);
 				}
 
