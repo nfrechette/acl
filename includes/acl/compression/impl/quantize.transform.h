@@ -2522,7 +2522,7 @@ namespace acl
 							break;	// The error of this transform is too high, this permutation will not be selected
 					}
 
-					
+
 
 #if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_BASIC_INFO && 0
 					// Now that we found the least precise critical transform, we can use it to find the best permutation
