@@ -1091,11 +1091,21 @@ static int safe_main_impl(int argc, char* argv[])
 #endif
 	{
 		// Override whatever the ACL SJSON file might have contained
-		settings = compression_settings();
+		settings = get_default_compression_settings();
 		database_settings = compression_database_settings();
 
 		if (!read_config(allocator, options, settings, database_settings, regression_error_threshold))
 			return -1;
+
+		// If we enable database support, make sure we don't use keyframe stripping
+		if (settings.enable_database_support)
+			settings.keyframe_stripping = compression_keyframe_stripping_settings();
+
+		// If we aren't using the variable packing formats, disable keyframe stripping
+		if (!is_rotation_format_variable(settings.rotation_format) &&
+			!is_vector_format_variable(settings.translation_format) &&
+			!is_vector_format_variable(settings.scale_format))
+			settings.keyframe_stripping = compression_keyframe_stripping_settings();
 
 		use_external_config = true;
 	}
