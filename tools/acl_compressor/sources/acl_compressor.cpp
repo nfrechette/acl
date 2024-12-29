@@ -403,7 +403,6 @@ static bool parse_options(int argc, char** argv, Options& options)
 		}
 
 		printf("Unrecognized option %s\n", argument);
-		return false;
 	}
 
 #if defined(__ANDROID__)
