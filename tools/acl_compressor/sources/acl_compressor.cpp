@@ -1109,6 +1109,7 @@ static int safe_main_impl(int argc, char* argv[])
 		use_external_config = true;
 	}
 
+	itransform_error_metric* error_metric = nullptr;
 	if (sjson_type == sjson_file_type::raw_clip)
 	{
 		if (base_clip.is_empty())
@@ -1118,16 +1119,36 @@ static int safe_main_impl(int argc, char* argv[])
 		}
 
 		// First try to create an additive error metric
-		settings.error_metric = create_additive_error_metric(allocator, additive_format);
+		error_metric = create_additive_error_metric(allocator, additive_format);
 
-		if (settings.error_metric == nullptr)
+		if (error_metric == nullptr)
 		{
 			if (options.use_matrix_error_metric)
-				settings.error_metric = allocate_type<qvvf_matrix3x4f_transform_error_metric>(allocator);
+				error_metric = allocate_type<qvvf_matrix3x4f_transform_error_metric>(allocator);
 			else
-				settings.error_metric = allocate_type<qvvf_transform_error_metric>(allocator);
+				error_metric = allocate_type<qvvf_transform_error_metric>(allocator);
 		}
 	}
+
+	// Fix-up our compression settings
+	if (!use_external_config)
+	{
+		// Use default settings and command line arguments if we aren't using external config
+		settings = get_default_compression_settings();
+
+		settings.enable_database_support = options.split_into_database;
+
+		settings.keyframe_stripping.proportion = options.strip_keyframe_proportion;
+		settings.keyframe_stripping.threshold = options.strip_keyframe_threshold;
+
+		database_settings = compression_database_settings();
+	}
+
+	// Allow command line argument to override compression level
+	if (options.compression_level_specified)
+		settings.level = options.compression_level;
+
+	settings.error_metric = error_metric;
 
 	// Pre-process
 	{
@@ -1164,36 +1185,9 @@ static int safe_main_impl(int argc, char* argv[])
 			logging |= stat_logging::exhaustive;
 
 		if (sjson_type == sjson_file_type::raw_clip)
-		{
-			if (use_external_config)
-			{
-				if (options.compression_level_specified)
-					settings.level = options.compression_level;
-
-				try_algorithm(options, allocator, transform_tracks, base_clip, additive_format, settings, database_settings, logging, runs_writer, regression_error_threshold);
-			}
-			else
-			{
-				compression_settings default_settings = get_default_compression_settings();
-				default_settings.error_metric = settings.error_metric;
-
-				if (options.compression_level_specified)
-					default_settings.level = options.compression_level;
-
-				default_settings.enable_database_support = options.split_into_database;
-
-				default_settings.keyframe_stripping.proportion = options.strip_keyframe_proportion;
-				default_settings.keyframe_stripping.threshold = options.strip_keyframe_threshold;
-
-				compression_database_settings default_database_settings;
-
-				try_algorithm(options, allocator, transform_tracks, base_clip, additive_format, default_settings, default_database_settings, logging, runs_writer, regression_error_threshold);
-			}
-		}
+			try_algorithm(options, allocator, transform_tracks, base_clip, additive_format, settings, database_settings, logging, runs_writer, regression_error_threshold);
 		else if (sjson_type == sjson_file_type::raw_track_list)
-		{
 			try_algorithm(options, allocator, scalar_tracks, logging, runs_writer, regression_error_threshold);
-		}
 	};
 
 #if defined(ACL_USE_SJSON)
@@ -1208,7 +1202,7 @@ static int safe_main_impl(int argc, char* argv[])
 #endif
 		exec_algos(nullptr);
 
-	deallocate_type(allocator, settings.error_metric);
+	deallocate_type(allocator, error_metric);
 #endif	// defined(ACL_USE_SJSON)
 
 	return 0;
