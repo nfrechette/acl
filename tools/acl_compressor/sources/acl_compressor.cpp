@@ -961,15 +961,6 @@ static void create_additive_base_clip(const Options& options, track_array_qvvf& 
 		out_base_clip[bone_index] = track_qvvf::make_copy(bind_desc, allocator, &bind_transform, 1, 30.0F);
 	}
 }
-
-static compression_settings make_settings(rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format)
-{
-	compression_settings settings;
-	settings.rotation_format = rotation_format;
-	settings.translation_format = translation_format;
-	settings.scale_format = scale_format;
-	return settings;
-}
 #endif	// defined(ACL_USE_SJSON)
 
 // Disable warning for implicit constructor using deprecated members in sjson_raw_clip and sjson_raw_track_list
