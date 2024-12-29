@@ -154,7 +154,6 @@ struct Options
 	bool			compression_level_specified		= false;
 
 	bool			regression_testing				= false;
-	bool			exhaustive_compression			= false;
 
 	bool			use_matrix_error_metric			= false;
 
@@ -208,7 +207,6 @@ static constexpr const char* k_stats_output_option = "-stats";
 static constexpr const char* k_bin_output_option = "-out=";
 static constexpr const char* k_compression_level_option = "-level=";
 static constexpr const char* k_regression_test_option = "-test";
-static constexpr const char* k_exhaustive_compression_option = "-exhaustive";
 static constexpr const char* k_bind_pose_relative_option = "-bind_rel";
 static constexpr const char* k_bind_pose_additive0_option = "-bind_add0";
 static constexpr const char* k_bind_pose_additive1_option = "-bind_add1";
@@ -326,13 +324,6 @@ static bool parse_options(int argc, char** argv, Options& options)
 		if (std::strncmp(argument, k_regression_test_option, option_length) == 0)
 		{
 			options.regression_testing = true;
-			continue;
-		}
-
-		option_length = std::strlen(k_exhaustive_compression_option);
-		if (std::strncmp(argument, k_exhaustive_compression_option, option_length) == 0)
-		{
-			options.exhaustive_compression = true;
 			continue;
 		}
 
@@ -1180,47 +1171,6 @@ static int safe_main_impl(int argc, char* argv[])
 					settings.level = options.compression_level;
 
 				try_algorithm(options, allocator, transform_tracks, base_clip, additive_format, settings, database_settings, logging, runs_writer, regression_error_threshold);
-			}
-			else if (options.exhaustive_compression)
-			{
-				{
-					compression_settings uniform_tests[] =
-					{
-						make_settings(rotation_format8::quatf_full, vector_format8::vector3f_full, vector_format8::vector3f_full),
-						make_settings(rotation_format8::quatf_drop_w_full, vector_format8::vector3f_full, vector_format8::vector3f_full),
-
-						make_settings(rotation_format8::quatf_drop_w_variable, vector_format8::vector3f_variable, vector_format8::vector3f_full),
-						make_settings(rotation_format8::quatf_drop_w_variable, vector_format8::vector3f_variable, vector_format8::vector3f_variable),
-					};
-
-					for (compression_settings test_settings : uniform_tests)
-					{
-						test_settings.error_metric = settings.error_metric;
-
-						try_algorithm(options, allocator, transform_tracks, base_clip, additive_format, test_settings, database_settings, logging, runs_writer, regression_error_threshold);
-					}
-				}
-
-				{
-					compression_settings uniform_tests[] =
-					{
-						make_settings(rotation_format8::quatf_full, vector_format8::vector3f_full, vector_format8::vector3f_full),
-						make_settings(rotation_format8::quatf_drop_w_full, vector_format8::vector3f_full, vector_format8::vector3f_full),
-
-						make_settings(rotation_format8::quatf_drop_w_variable, vector_format8::vector3f_variable, vector_format8::vector3f_full),
-						make_settings(rotation_format8::quatf_drop_w_variable, vector_format8::vector3f_variable, vector_format8::vector3f_variable),
-					};
-
-					for (compression_settings test_settings : uniform_tests)
-					{
-						test_settings.error_metric = settings.error_metric;
-
-						if (options.compression_level_specified)
-							test_settings.level = options.compression_level;
-
-						try_algorithm(options, allocator, transform_tracks, base_clip, additive_format, test_settings, database_settings, logging, runs_writer, regression_error_threshold);
-					}
-				}
 			}
 			else
 			{
