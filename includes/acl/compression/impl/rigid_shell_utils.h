@@ -76,6 +76,9 @@ namespace acl
 			// retain the largest value. We then use this maximum value to compute our dominance.
 
 			rtm::qvvf* object_transforms = allocate_type_array<rtm::qvvf>(allocator, num_transforms);
+			float* max_distance_to_parents = allocate_type_array<float>(allocator, num_transforms);
+
+			std::memset(max_distance_to_parents, 0, sizeof(float) * num_transforms);
 
 			// Our output buffer we'll return
 			rigid_shell_metadata_t* shell_metadata = allocate_type_array<rigid_shell_metadata_t>(allocator, num_transforms);
@@ -155,10 +158,11 @@ namespace acl
 						object_parent_position = object_transforms[parent_index].translation;
 
 					const float distance_to_parent = rtm::vector_distance3(object_transform.translation, object_parent_position);
-					const float shell_distance = distance_to_parent + object_shell_distance;
 
 					rigid_shell_metadata_t& transform_shell_metadata = shell_metadata[transform_index];
-					transform_shell_metadata.local_shell_distance = rtm::scalar_max(shell_distance, transform_shell_metadata.local_shell_distance);
+					transform_shell_metadata.local_shell_distance = rtm::scalar_max(object_shell_distance, transform_shell_metadata.local_shell_distance);
+
+					max_distance_to_parents[transform_index] = rtm::scalar_max(distance_to_parent, max_distance_to_parents[transform_index]);
 				}
 			}
 
@@ -179,10 +183,12 @@ namespace acl
 
 					rigid_shell_metadata_t& parent_shell = shell_metadata[parent_index];
 
-					if (shell_distance > parent_shell.local_shell_distance)
+					const float distance_to_parent = max_distance_to_parents[transform_index];
+					const float new_parent_shell_distance = shell_distance + distance_to_parent;
+					if (new_parent_shell_distance > parent_shell.local_shell_distance)
 					{
 						// We are the new dominant transform, use our shell distance and precision
-						parent_shell.local_shell_distance += shell_distance;
+						parent_shell.local_shell_distance = new_parent_shell_distance;
 						parent_shell.precision = transform_shell.precision;
 						parent_shell.dominant_transform_index = transform_shell.dominant_transform_index;
 					}
@@ -190,6 +196,7 @@ namespace acl
 			}
 
 			deallocate_type_array(allocator, object_transforms, num_transforms);
+			deallocate_type_array(allocator, max_distance_to_parents, num_transforms);
 
 			return shell_metadata;
 		}
@@ -223,6 +230,9 @@ namespace acl
 			// retain the largest value. We then use this maximum value to compute our dominance.
 
 			rtm::qvvf* object_transforms = allocate_type_array<rtm::qvvf>(allocator, num_transforms);
+			float* max_distance_to_parents = allocate_type_array<float>(allocator, num_transforms);
+
+			std::memset(max_distance_to_parents, 0, sizeof(float) * num_transforms);
 
 			// Initialize our output shell metadata
 			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
@@ -312,10 +322,11 @@ namespace acl
 						object_parent_position = object_transforms[parent_index].translation;
 
 					const float distance_to_parent = rtm::vector_distance3(object_transform.translation, object_parent_position);
-					const float shell_distance = distance_to_parent + object_shell_distance;
 
 					rigid_shell_metadata_t& transform_shell_metadata = out_shell_metadata[transform_index];
-					transform_shell_metadata.local_shell_distance = rtm::scalar_max(shell_distance, transform_shell_metadata.local_shell_distance);
+					transform_shell_metadata.local_shell_distance = rtm::scalar_max(object_shell_distance, transform_shell_metadata.local_shell_distance);
+
+					max_distance_to_parents[transform_index] = rtm::scalar_max(distance_to_parent, max_distance_to_parents[transform_index]);
 				}
 			}
 
@@ -336,10 +347,12 @@ namespace acl
 
 					rigid_shell_metadata_t& parent_shell = out_shell_metadata[parent_index];
 
-					if (shell_distance > parent_shell.local_shell_distance)
+					const float distance_to_parent = max_distance_to_parents[transform_index];
+					const float new_parent_shell_distance = shell_distance + distance_to_parent;
+					if (new_parent_shell_distance > parent_shell.local_shell_distance)
 					{
 						// We are the new dominant transform, use our shell distance and precision
-						parent_shell.local_shell_distance += shell_distance;
+						parent_shell.local_shell_distance = new_parent_shell_distance;
 						parent_shell.precision = transform_shell.precision;
 						parent_shell.dominant_transform_index = transform_shell.dominant_transform_index;
 					}
@@ -347,6 +360,7 @@ namespace acl
 			}
 
 			deallocate_type_array(allocator, object_transforms, num_transforms);
+			deallocate_type_array(allocator, max_distance_to_parents, num_transforms);
 		}
 
 		// We use the provided object space transforms to compute the rigid shell
@@ -364,6 +378,9 @@ namespace acl
 
 			const clip_context& owner_clip_context = *segment.clip;
 			const clip_topology_t* topology = owner_clip_context.topology;
+
+			float* max_distance_to_parents = allocate_type_array<float>(*segment.clip->allocator, num_transforms);
+			std::memset(max_distance_to_parents, 0, sizeof(float) * num_transforms);
 
 			// Initialize our output shell metadata
 			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
@@ -399,10 +416,11 @@ namespace acl
 						object_parent_position = object_pose_transforms[parent_index].translation;
 
 					const float distance_to_parent = rtm::vector_distance3(object_transform.translation, object_parent_position);
-					const float shell_distance = distance_to_parent + object_shell_distance;
 
 					rigid_shell_metadata_t& transform_shell_metadata = out_shell_metadata[transform_index];
-					transform_shell_metadata.local_shell_distance = rtm::scalar_max(shell_distance, transform_shell_metadata.local_shell_distance);
+					transform_shell_metadata.local_shell_distance = rtm::scalar_max(object_shell_distance, transform_shell_metadata.local_shell_distance);
+
+					max_distance_to_parents[transform_index] = rtm::scalar_max(distance_to_parent, max_distance_to_parents[transform_index]);
 				}
 			}
 
@@ -423,15 +441,19 @@ namespace acl
 
 					rigid_shell_metadata_t& parent_shell = out_shell_metadata[parent_index];
 
-					if (shell_distance > parent_shell.local_shell_distance)
+					const float distance_to_parent = max_distance_to_parents[transform_index];
+					const float new_parent_shell_distance = shell_distance + distance_to_parent;
+					if (new_parent_shell_distance > parent_shell.local_shell_distance)
 					{
 						// We are the new dominant transform, use our shell distance and precision
-						parent_shell.local_shell_distance += shell_distance;
+						parent_shell.local_shell_distance = new_parent_shell_distance;
 						parent_shell.precision = transform_shell.precision;
 						parent_shell.dominant_transform_index = transform_shell.dominant_transform_index;
 					}
 				}
 			}
+
+			deallocate_type_array(*segment.clip->allocator, max_distance_to_parents, num_transforms);
 		}
 	}
 
