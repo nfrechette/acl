@@ -49,6 +49,11 @@ namespace acl
 			return make_iterator(leaves, num_leaves);
 		}
 
+		inline const_array_iterator<uint32_t> transform_topology_t::descendants_iterator() const
+		{
+			return make_iterator(descendants, num_descendants);
+		}
+
 		inline const_array_iterator<uint32_t> clip_topology_t::roots_first_iterator() const
 		{
 			return make_iterator(static_cast<const uint32_t*>(transform_indices_sorted_parent_first), num_transforms);
@@ -73,6 +78,7 @@ namespace acl
 			deallocate_type_array(*allocator, transform_indices_sorted_parent_first, num_transforms);
 			deallocate_type_array(*allocator, aggregate_children_indices, num_aggregate_children_indices);
 			deallocate_type_array(*allocator, aggregate_leaf_indices, num_aggregate_leaf_indices);
+			deallocate_type_array(*allocator, aggregate_descendant_indices, num_aggregate_descendant_indices);
 		}
 
 		inline void build_clip_topology(iallocator& allocator, const track_array_qvvf& track_list, clip_topology_t& out_topology)
@@ -221,6 +227,52 @@ namespace acl
 				std::sort(transform_indices_sorted_parent_first, transform_indices_sorted_parent_first + num_transforms, sort_predicate);
 			}
 
+			uint32_t num_aggregate_descendant_indices = 0;
+			uint32_t* aggregate_descendant_indices = nullptr;
+			{
+				// Find our descendants
+				for (uint32_t transform_index : make_iterator(transform_indices_sorted_parent_first, num_transforms))
+				{
+					uint32_t cursor_index = topology_per_transform[transform_index].parent_index;
+					while (cursor_index != k_invalid_track_index)
+					{
+						topology_per_transform[cursor_index].num_descendants++;
+						num_aggregate_descendant_indices++;
+
+						cursor_index = topology_per_transform[cursor_index].parent_index;
+					}
+				}
+
+				// Allocate the list of descendant indices and partition it among the transforms
+				aggregate_descendant_indices = allocate_type_array<uint32_t>(allocator, num_aggregate_descendant_indices);
+				uint32_t num_assigned_descendant_indices = 0;
+
+				for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
+				{
+					topology_per_transform[transform_index].descendants = aggregate_descendant_indices + num_assigned_descendant_indices;
+					num_assigned_descendant_indices += topology_per_transform[transform_index].num_descendants;
+
+					// Reset the descendant count, we'll use it to write our indices below and repopulate it
+					topology_per_transform[transform_index].num_descendants = 0;
+				}
+
+				// Populate the list of descendants
+				for (uint32_t transform_index : make_iterator(transform_indices_sorted_parent_first, num_transforms))
+				{
+					uint32_t cursor_index = topology_per_transform[transform_index].parent_index;
+					while (cursor_index != k_invalid_track_index)
+					{
+						const ptrdiff_t indices_offset = topology_per_transform[cursor_index].descendants - aggregate_descendant_indices;
+						uint32_t* cursor_descendants = aggregate_descendant_indices + indices_offset;
+
+						cursor_descendants[topology_per_transform[cursor_index].num_descendants] = transform_index;
+						topology_per_transform[cursor_index].num_descendants++;
+
+						cursor_index = topology_per_transform[cursor_index].parent_index;
+					}
+				}
+			}
+
 			uint32_t num_max_leaves_per_transform = 0;
 			for (uint32_t root_index = 0; root_index < num_root_transforms; ++root_index)
 			{
@@ -252,6 +304,8 @@ namespace acl
 			out_topology.num_aggregate_children_indices = num_children_transforms;
 			out_topology.aggregate_leaf_indices = clip_leaf_indices;
 			out_topology.num_aggregate_leaf_indices = num_leaf_transform_indices;
+			out_topology.aggregate_descendant_indices = aggregate_descendant_indices;
+			out_topology.num_aggregate_descendant_indices = num_aggregate_descendant_indices;
 			out_topology.allocator = &allocator;
 		}
 	}

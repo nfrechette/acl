@@ -61,6 +61,13 @@ namespace acl
 			// Number of leaves beneath this transform (and present in the list above)
 			uint32_t num_leaves = 0;
 
+			// A list of descendant transform indices beneath this transform (points into 'aggregate_descendant_indices' in owner clip_topology_t)
+			// Descendants are sorted parent first
+			const uint32_t* descendants = nullptr;
+
+			// Number of descendants beneath this transform (and present in the list above)
+			uint32_t num_descendants = 0;
+
 			// Whether or not this transform is a leaf
 			bool is_leaf() const { return num_children == 0; }
 
@@ -72,6 +79,9 @@ namespace acl
 
 			// Returns a transform index iterator over the list of leaves
 			const_array_iterator<uint32_t> leaves_iterator() const;
+
+			// Returns a transform index iterator over the list of descendants
+			const_array_iterator<uint32_t> descendants_iterator() const;
 		};
 
 		// Topology metadata for a clip
@@ -117,6 +127,13 @@ namespace acl
 
 			// Size of global list of leaf indices
 			uint32_t num_aggregate_leaf_indices			= 0;
+
+			// Global list of descendant indices
+			// Each transform contains a pointer into this list
+			uint32_t* aggregate_descendant_indices		= nullptr;
+
+			// Size of global list of descendant indices
+			uint32_t num_aggregate_descendant_indices	= 0;
 
 			// The allocator used for the topology metadata, never null if initialized
 			iallocator* allocator						= nullptr;

@@ -180,8 +180,10 @@
   </Type>
 
   <Type Name="acl::acl_impl::transform_topology_t">
-    <DisplayString Condition="num_children == 0">parent={parent_index}, num_children={num_children} (leaf)</DisplayString>
-    <DisplayString>parent={parent_index}, num_children={num_children}</DisplayString>
+    <DisplayString Condition="num_children == 0 &amp;&amp; parent_index == k_invalid_track_index">(root + leaf)</DisplayString>
+    <DisplayString Condition="num_children == 0">parent={parent_index} (leaf)</DisplayString>
+    <DisplayString Condition="parent_index == k_invalid_track_index">num_children={num_children}, num_descendants={num_descendants} (root)</DisplayString>
+    <DisplayString>parent={parent_index}, num_children={num_children}, num_descendants={num_descendants}</DisplayString>
     <Expand>
       <Item Name="parent_index">parent_index</Item>
       <Item Name="depth_from_root">depth_from_root</Item>
@@ -202,6 +204,15 @@
           <ArrayItems>
             <Size>num_leaves</Size>
             <ValuePointer>leaves</ValuePointer>
+          </ArrayItems>
+        </Expand>
+      </Synthetic>
+      <Synthetic Name="descendants">
+        <DisplayString>count={num_descendants}</DisplayString>
+        <Expand>
+          <ArrayItems>
+            <Size>num_descendants</Size>
+            <ValuePointer>descendants</ValuePointer>
           </ArrayItems>
         </Expand>
       </Synthetic>
