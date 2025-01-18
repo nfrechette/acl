@@ -49,13 +49,13 @@ namespace acl
 			// Number of transforms between this one and its chain root (root is 0)
 			uint32_t depth_from_root = 0;
 
-			// A list of child transform indices beneath this transform (points into FOOBAR in owner clip_topology_t)
+			// A list of child transform indices beneath this transform (points into 'aggregate_children_indices' in owner clip_topology_t)
 			const uint32_t* children = nullptr;
 
 			// Number of children beneath this transform (and present in the list above)
 			uint32_t num_children = 0;
 
-			// A list of leaf transform indices beneath this transform (points into FOOBAR in owner clip_topology_t)
+			// A list of leaf transform indices beneath this transform (points into 'aggregate_leaf_indices' in owner clip_topology_t)
 			const uint32_t* leaves = nullptr;
 
 			// Number of leaves beneath this transform (and present in the list above)
@@ -67,10 +67,10 @@ namespace acl
 			// Whether or not this transform is a root
 			bool is_root() const { return parent_index == k_invalid_track_index; }
 
-			// Returns an iterator that returns the transform indices of the children
+			// Returns a transform index iterator over the list of children
 			const_array_iterator<uint32_t> children_iterator() const;
 
-			// Returns an iterator that returns the transform indices of the leaves
+			// Returns a transform index iterator over the list of leaves
 			const_array_iterator<uint32_t> leaves_iterator() const;
 		};
 
@@ -86,13 +86,13 @@ namespace acl
 			// Number of transforms
 			uint32_t num_transforms						= 0;
 
-			// List of root transform indices (points into transform_indices_sorted_parent_first)
+			// List of root transform indices (points into 'transform_indices_sorted_parent_first')
 			const uint32_t* root_transform_indices		= nullptr;
 
 			// Number of root transforms
 			uint32_t num_root_transforms				= 0;
 
-			// List of leaf transform indices (points into transform_indices_sorted_parent_first)
+			// List of leaf transform indices (points into 'transform_indices_sorted_parent_first')
 			const uint32_t* leaf_transform_indices		= nullptr;
 
 			// Number of leaf transforms
@@ -121,13 +121,13 @@ namespace acl
 			// The allocator used for the topology metadata, never null if initialized
 			iallocator* allocator						= nullptr;
 
-			// Returns an iterator that returns transform indices roots first (root to leaf)
+			// Returns a transform index iterator over the list of transforms, roots first (root to leaf)
 			const_array_iterator<uint32_t> roots_first_iterator() const;
 
-			// Returns an iterator that returns transform indices leaves first (leaf to root)
+			// Returns a transform index iterator over the list of transforms, leaves first (leaf to root)
 			const_array_reverse_iterator<uint32_t> leaves_first_iterator() const;
 
-			// Returns an iterator that returns the transform indices of the leaves
+			// Returns a transform index iterator over the list of leaf transforms
 			const_array_iterator<uint32_t> leaves_iterator() const;
 
 			~clip_topology_t();
