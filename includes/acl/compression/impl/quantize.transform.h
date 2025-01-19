@@ -2582,13 +2582,13 @@ namespace acl
 #endif
 					}
 
+#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_VERBOSE_INFO
 					if (permutation_index + 1 == num_bit_rate_permutations)
 					{
 						// Last entry before we exit the loop
-#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_VERBOSE_INFO
 						printf("%8u: [%3u | %3u | %3u] best with %2u bits @ %.4f\n", transform_index, best_transform_bit_rates.rotation, best_transform_bit_rates.translation, best_transform_bit_rates.scale, prev_transform_size, best_transform_error);
-#endif
 					}
+#endif
 				}
 
 #if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_BASIC_INFO
