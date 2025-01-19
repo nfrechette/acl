@@ -466,6 +466,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 			stats_writer->insert("max_error", error.error);
 			stats_writer->insert("worst_track", error.index);
 			stats_writer->insert("worst_time", error.sample_time);
+			stats_writer->insert("worst_keyframe", error.keyframe_index);
 		}
 #endif
 
@@ -582,6 +583,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 			stats_writer->insert("max_error", error.error);
 			stats_writer->insert("worst_track", error.index);
 			stats_writer->insert("worst_time", error.sample_time);
+			stats_writer->insert("worst_keyframe", error.keyframe_index);
 		}
 #endif
 

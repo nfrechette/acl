@@ -55,6 +55,9 @@ namespace acl
 
 		// The sample time that has the worst error.
 		float sample_time = 0.0F;
+
+		// The keyframe index that has the worst error.
+		uint32_t keyframe_index = 0;
 	};
 
 	//////////////////////////////////////////////////////////////////////////

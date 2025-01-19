@@ -229,6 +229,7 @@ namespace acl
 									worst_bone_error.error = error;
 									worst_bone_error.index = bone_index;
 									worst_bone_error.sample_time = sample_time;
+									worst_bone_error.keyframe_index = sample_index;
 								}
 							}
 						});
@@ -238,6 +239,7 @@ namespace acl
 			writer["max_error"] = worst_bone_error.error;
 			writer["worst_bone"] = worst_bone_error.index;
 			writer["worst_time"] = worst_bone_error.sample_time;
+			writer["worst_keyframe"] = worst_bone_error.keyframe_index;
 
 			deallocate_type_array(allocator, raw_local_pose, num_bones);
 			deallocate_type_array(allocator, base_local_pose, num_bones);

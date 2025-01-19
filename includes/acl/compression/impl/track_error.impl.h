@@ -209,6 +209,7 @@ namespace acl
 						result.error = max_error;
 						result.index = track_index;
 						result.sample_time = sample_time;
+						result.keyframe_index = sample_index;
 					}
 				}
 			}
@@ -371,6 +372,7 @@ namespace acl
 						result.error = error;
 						result.index = bone_index;
 						result.sample_time = sample_time;
+						result.keyframe_index = sample_index;
 					}
 				}
 			}
@@ -392,6 +394,7 @@ namespace acl
 			result.index = ~0U;
 			result.error = -1.0F;
 			result.sample_time = -1.0F;
+			result.keyframe_index = ~0U;
 			return result;
 		}
 	}
