@@ -859,7 +859,8 @@ namespace acl
 			return rtm::scalar_cast(max_error);
 		}
 
-		// For algorithm from ACL 2.2 and later
+#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_SUMMARY_ONLY
+		// For algorithm from ACL 2.2 and later (for debugging only)
 		inline float calculate_max_error_at_bit_rate_object(
 			quantization_context& context, uint32_t transform_index_to_measure,
 			const uint32_t* chain_transform_indices, uint32_t num_transforms_in_chain)
@@ -874,10 +875,15 @@ namespace acl
 
 			const float shell_distance = context.metadata[transform_index_to_measure].shell_distance;
 
-			const auto convert_transforms_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::convert_transforms : &itransform_error_metric::convert_transforms_no_scale);
-			const auto apply_additive_to_base_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
-			const auto local_to_object_space_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::local_to_object_space : &itransform_error_metric::local_to_object_space_no_scale);
-			const auto calculate_error_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::calculate_error : &itransform_error_metric::calculate_error_no_scale);
+			// Because we are measuring for debugging purposes, we assume we have scale
+			// This ensures we are consistent in our reporting with the final error measured post-compression
+			// which always accounts for scale
+			const bool has_scale = true;	// context.has_scale;
+
+			const auto convert_transforms_impl = std::mem_fn(has_scale ? &itransform_error_metric::convert_transforms : &itransform_error_metric::convert_transforms_no_scale);
+			const auto apply_additive_to_base_impl = std::mem_fn(has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
+			const auto local_to_object_space_impl = std::mem_fn(has_scale ? &itransform_error_metric::local_to_object_space : &itransform_error_metric::local_to_object_space_no_scale);
+			const auto calculate_error_impl = std::mem_fn(has_scale ? &itransform_error_metric::calculate_error : &itransform_error_metric::calculate_error_no_scale);
 
 			itransform_error_metric::convert_transforms_args convert_transforms_args_lossy;
 			convert_transforms_args_lossy.dirty_transform_indices = chain_transform_indices;
@@ -948,7 +954,7 @@ namespace acl
 #if defined(RTM_COMPILER_MSVC) && defined(RTM_ARCH_X86) && RTM_COMPILER_MSVC == RTM_COMPILER_MSVC_2015
 				// VS2015 fails to generate the right x86 assembly, branch instead
 				(void)calculate_error_impl;
-				const rtm::scalarf error = context.has_scale ? error_metric->calculate_error(calculate_error_args) : error_metric->calculate_error_no_scale(calculate_error_args);
+				const rtm::scalarf error = has_scale ? error_metric->calculate_error(calculate_error_args) : error_metric->calculate_error_no_scale(calculate_error_args);
 #else
 				const rtm::scalarf error = calculate_error_impl(error_metric, calculate_error_args);
 #endif
@@ -959,6 +965,7 @@ namespace acl
 
 			return rtm::scalar_cast(max_error);
 		}
+#endif
 
 		// For algorithm from ACL 2.2 and later
 		// Used when no 3D scale is present
