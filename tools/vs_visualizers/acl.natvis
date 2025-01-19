@@ -216,6 +216,18 @@
           </ArrayItems>
         </Expand>
       </Synthetic>
+      <!--
+      TODO: See ACL_IMPL_DEBUG_ENABLE_DOMINANT_DESCENDANTS for details
+      <Synthetic Name="dominant_descendants">
+        <DisplayString>count={num_dominant_descendents}</DisplayString>
+        <Expand>
+          <ArrayItems>
+            <Size>num_dominant_descendents</Size>
+            <ValuePointer>dominant_descendants</ValuePointer>
+          </ArrayItems>
+        </Expand>
+      </Synthetic>
+      -->
     </Expand>
   </Type>
 

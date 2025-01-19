@@ -201,6 +201,355 @@ namespace acl
 			return shell_metadata;
 		}
 
+#if defined(ACL_IMPL_DEBUG_ENABLE_DOMINANT_DESCENDANTS)
+		RTM_DISABLE_SECURITY_COOKIE_CHECK inline rtm::quatf RTM_SIMD_CALL quat_add(rtm::quatf_arg0 lhs, rtm::quatf_arg1 rhs) RTM_NO_EXCEPT
+		{
+#if defined(RTM_SSE2_INTRINSICS)
+			return _mm_add_ps(lhs, rhs);
+#elif defined(RTM_NEON_INTRINSICS)
+			return vaddq_f32(lhs, rhs);
+#else
+			return rtm::quat_set(rtm::quat_get_x(lhs) + rtm::quat_get_x(rhs), rtm::quat_get_y(lhs) + rtm::quat_get_y(rhs), rtm::quat_get_z(lhs) + rtm::quat_get_z(rhs), rtm::quat_get_w(lhs) + rtm::quat_get_w(rhs));
+#endif
+		}
+
+		static constexpr rtm::float4f k_dominance_transform_offsets[46][2] =
+		{
+			// Rotation offset                  , Scale offset
+
+			// Positive x Positive (16)
+			{{  0.000F,  0.000F,  0.000F, 0.0F }, {  0.00F,  0.00F,  0.00F, 0.0F }},
+			{{  0.001F,  0.000F,  0.000F, 0.0F }, {  0.00F,  0.00F,  0.00F, 0.0F }},
+			{{  0.000F,  0.001F,  0.000F, 0.0F }, {  0.00F,  0.00F,  0.00F, 0.0F }},
+			{{  0.000F,  0.000F,  0.001F, 0.0F }, {  0.00F,  0.00F,  0.00F, 0.0F }},
+
+			{{  0.000F,  0.000F,  0.000F, 0.0F }, {  0.01F,  0.00F,  0.00F, 0.0F }},
+			{{  0.001F,  0.000F,  0.000F, 0.0F }, {  0.01F,  0.00F,  0.00F, 0.0F }},
+			{{  0.000F,  0.001F,  0.000F, 0.0F }, {  0.01F,  0.00F,  0.00F, 0.0F }},
+			{{  0.000F,  0.000F,  0.001F, 0.0F }, {  0.01F,  0.00F,  0.00F, 0.0F }},
+
+			{{  0.000F,  0.000F,  0.000F, 0.0F }, {  0.00F,  0.01F,  0.00F, 0.0F }},
+			{{  0.001F,  0.000F,  0.000F, 0.0F }, {  0.00F,  0.01F,  0.00F, 0.0F }},
+			{{  0.000F,  0.001F,  0.000F, 0.0F }, {  0.00F,  0.01F,  0.00F, 0.0F }},
+			{{  0.000F,  0.000F,  0.001F, 0.0F }, {  0.00F,  0.01F,  0.00F, 0.0F }},
+
+			{{  0.000F,  0.000F,  0.000F, 0.0F }, {  0.00F,  0.00F,  0.01F, 0.0F }},
+			{{  0.001F,  0.000F,  0.000F, 0.0F }, {  0.00F,  0.00F,  0.01F, 0.0F }},
+			{{  0.000F,  0.001F,  0.000F, 0.0F }, {  0.00F,  0.00F,  0.01F, 0.0F }},
+			{{  0.000F,  0.000F,  0.001F, 0.0F }, {  0.00F,  0.00F,  0.01F, 0.0F }},
+
+			// Positive x Negative (9)
+			{{  0.001F,  0.000F,  0.000F, 0.0F }, { -0.01F,  0.00F,  0.00F, 0.0F }},
+			{{  0.000F,  0.001F,  0.000F, 0.0F }, { -0.01F,  0.00F,  0.00F, 0.0F }},
+			{{  0.000F,  0.000F,  0.001F, 0.0F }, { -0.01F,  0.00F,  0.00F, 0.0F }},
+
+			{{  0.001F,  0.000F,  0.000F, 0.0F }, {  0.00F, -0.01F,  0.00F, 0.0F }},
+			{{  0.000F,  0.001F,  0.000F, 0.0F }, {  0.00F, -0.01F,  0.00F, 0.0F }},
+			{{  0.000F,  0.000F,  0.001F, 0.0F }, {  0.00F, -0.01F,  0.00F, 0.0F }},
+
+			{{  0.001F,  0.000F,  0.000F, 0.0F }, {  0.00F,  0.00F, -0.01F, 0.0F }},
+			{{  0.000F,  0.001F,  0.000F, 0.0F }, {  0.00F,  0.00F, -0.01F, 0.0F }},
+			{{  0.000F,  0.000F,  0.001F, 0.0F }, {  0.00F,  0.00F, -0.01F, 0.0F }},
+
+			// Negative x Positive (12)
+			{{ -0.001F,  0.000F,  0.000F, 0.0F }, {  0.00F,  0.00F,  0.00F, 0.0F }},
+			{{  0.000F, -0.001F,  0.000F, 0.0F }, {  0.00F,  0.00F,  0.00F, 0.0F }},
+			{{  0.000F,  0.000F, -0.001F, 0.0F }, {  0.00F,  0.00F,  0.00F, 0.0F }},
+
+			{{ -0.001F,  0.000F,  0.000F, 0.0F }, {  0.01F,  0.00F,  0.00F, 0.0F }},
+			{{  0.000F, -0.001F,  0.000F, 0.0F }, {  0.01F,  0.00F,  0.00F, 0.0F }},
+			{{  0.000F,  0.000F, -0.001F, 0.0F }, {  0.01F,  0.00F,  0.00F, 0.0F }},
+
+			{{ -0.001F,  0.000F,  0.000F, 0.0F }, {  0.00F,  0.01F,  0.00F, 0.0F }},
+			{{  0.000F, -0.001F,  0.000F, 0.0F }, {  0.00F,  0.01F,  0.00F, 0.0F }},
+			{{  0.000F,  0.000F, -0.001F, 0.0F }, {  0.00F,  0.01F,  0.00F, 0.0F }},
+
+			{{ -0.001F,  0.000F,  0.000F, 0.0F }, {  0.00F,  0.00F,  0.01F, 0.0F }},
+			{{  0.000F, -0.001F,  0.000F, 0.0F }, {  0.00F,  0.00F,  0.01F, 0.0F }},
+			{{  0.000F,  0.000F, -0.001F, 0.0F }, {  0.00F,  0.00F,  0.01F, 0.0F }},
+
+			// Negative x Negative (9)
+			{{ -0.001F,  0.000F,  0.000F, 0.0F }, { -0.01F,  0.00F,  0.00F, 0.0F }},
+			{{  0.000F, -0.001F,  0.000F, 0.0F }, { -0.01F,  0.00F,  0.00F, 0.0F }},
+			{{  0.000F,  0.000F, -0.001F, 0.0F }, { -0.01F,  0.00F,  0.00F, 0.0F }},
+
+			{{ -0.001F,  0.000F,  0.000F, 0.0F }, {  0.00F, -0.01F,  0.00F, 0.0F }},
+			{{  0.000F, -0.001F,  0.000F, 0.0F }, {  0.00F, -0.01F,  0.00F, 0.0F }},
+			{{  0.000F,  0.000F, -0.001F, 0.0F }, {  0.00F, -0.01F,  0.00F, 0.0F }},
+
+			{{ -0.001F,  0.000F,  0.000F, 0.0F }, {  0.00F,  0.00F, -0.01F, 0.0F }},
+			{{  0.000F, -0.001F,  0.000F, 0.0F }, {  0.00F,  0.00F, -0.01F, 0.0F }},
+			{{  0.000F,  0.000F, -0.001F, 0.0F }, {  0.00F,  0.00F, -0.01F, 0.0F }},
+		};
+
+		static constexpr rtm::float4f k_dominance_transform_offsets_no_scale[7][2] =
+		{
+			// Rotation offset                  , Scale offset
+
+			// Positive (4)
+			{{  0.000F,  0.000F,  0.000F, 0.0F }, {  0.0F,  0.0F,  0.0F, 0.0F }},
+			{{  0.001F,  0.000F,  0.000F, 0.0F }, {  0.0F,  0.0F,  0.0F, 0.0F }},
+			{{  0.000F,  0.001F,  0.000F, 0.0F }, {  0.0F,  0.0F,  0.0F, 0.0F }},
+			{{  0.000F,  0.000F,  0.001F, 0.0F }, {  0.0F,  0.0F,  0.0F, 0.0F }},
+
+			// Negative (3)
+			{{ -0.001F,  0.000F,  0.000F, 0.0F }, {  0.0F,  0.0F,  0.0F, 0.0F }},
+			{{  0.000F, -0.001F,  0.000F, 0.0F }, {  0.0F,  0.0F,  0.0F, 0.0F }},
+			{{  0.000F,  0.000F, -0.001F, 0.0F }, {  0.0F,  0.0F,  0.0F, 0.0F }},
+		};
+
+		template<class clip_adapter_t>
+		inline void compute_dominance_map(
+			iallocator& allocator,
+			const clip_adapter_t& raw_clip,
+			const clip_adapter_t& additive_base_clip,
+			const itransform_error_metric& error_metric,
+			clip_topology_t& clip_topology)
+		{
+			static_assert(std::is_base_of<transform_clip_adapter_t, clip_adapter_t>::value, "Clip adapter must derive from transform_clip_adapter_t");
+
+			const uint32_t num_transforms = raw_clip.get_num_transforms();
+			if (num_transforms == 0)
+				return;	// No transforms present, no shell distances
+
+			const uint32_t num_samples = raw_clip.get_num_samples();
+			if (num_samples == 0)
+				return;	// No samples present, no shell distances
+
+			const bool has_scale = raw_clip.has_scale();
+			if (error_metric.needs_conversion(has_scale))
+				return;	// We don't support error metrics that require conversion
+
+			const float sample_rate = raw_clip.get_sample_rate();
+			const float duration = raw_clip.get_duration();
+			const bool has_additive_base = raw_clip.has_additive_base();
+			const additive_clip_format8 additive_format = raw_clip.get_additive_format();
+			const uint32_t base_num_samples = has_additive_base ? additive_base_clip.get_num_samples() : 0;
+			const float base_duration = has_additive_base ? additive_base_clip.get_duration() : 0.0F;
+
+			const rtm::float4f* const dominance_transform_offsets = has_scale ? &k_dominance_transform_offsets[0][0] : &k_dominance_transform_offsets_no_scale[0][0];
+			const size_t num_dominance_transform_offsets = has_scale ? get_array_size(k_dominance_transform_offsets) : get_array_size(k_dominance_transform_offsets_no_scale);
+
+			// In order to build the list of dominant descendants for each transform, we first build the inversed map
+			// of which transforms we are dominant over. This allows us to reserve a sensible amount of storage.
+			// We'll then allocate the real size needed afterwards and reverse the map to store it in the topology metadata.
+			const uint32_t num_map_entries_per_transform = clip_topology.max_leaf_depth + 1;	// Add 1 for the count (first entry)
+			uint32_t* dominance_reverse_map = allocate_type_array<uint32_t>(allocator, size_t(num_transforms) * num_map_entries_per_transform);
+			uint32_t num_aggregate_dominant_descendant_indices = 0;
+
+			std::fill_n(dominance_reverse_map, size_t(num_transforms) * num_map_entries_per_transform, 0);
+
+			rtm::qvvf* local_transforms = allocate_type_array<rtm::qvvf>(allocator, size_t(num_transforms) * 2);
+			rtm::qvvf* object_transforms = local_transforms + num_transforms;
+
+			itransform_error_metric::calculate_error_args calculate_error_args;
+
+			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+			{
+				uint32_t base_sample_index = 0;
+				if (has_additive_base)
+				{
+					// The sample time is calculated from the full clip duration to be consistent with decompression
+					const float sample_time = rtm::scalar_min(float(sample_index) / sample_rate, duration);
+
+					const float normalized_sample_time = base_num_samples > 1 ? (sample_time / duration) : 0.0F;
+					const float additive_sample_time = base_num_samples > 1 ? (normalized_sample_time * base_duration) : 0.0F;
+
+					// With uniform sample distributions, we do not interpolate.
+					base_sample_index = get_uniform_sample_key(additive_base_clip, transform_segment_adapter_t(), additive_sample_time);
+				}
+
+				// Retrieve the local/object space transforms for this sample
+				for (const uint32_t transform_index : clip_topology.roots_first_iterator())
+				{
+					const uint32_t parent_index = clip_topology.transforms[transform_index].parent_index;
+
+					// Sample our local transform
+					const rtm::quatf rotation = raw_clip.get_transform_rotation(transform_index, sample_index);
+					const rtm::vector4f translation = raw_clip.get_transform_translation(transform_index, sample_index);
+					const rtm::vector4f scale = raw_clip.get_transform_scale(transform_index, sample_index);
+					rtm::qvvf local_transform = rtm::qvv_set(rotation, translation, scale);
+
+					if (has_additive_base)
+					{
+						const rtm::quatf base_rotation = additive_base_clip.get_transform_rotation(transform_index, base_sample_index);
+						const rtm::vector4f base_translation = additive_base_clip.get_transform_translation(transform_index, base_sample_index);
+						const rtm::vector4f base_scale = additive_base_clip.get_transform_scale(transform_index, base_sample_index);
+						const rtm::qvvf base_transform = rtm::qvv_set(base_rotation, base_translation, base_scale);
+
+						local_transform = rtm::qvv_normalize(acl::apply_additive_to_base(additive_format, base_transform, local_transform));
+					}
+
+					local_transforms[transform_index] = local_transform;
+
+					rtm::qvvf object_transform;
+					if (parent_index != k_invalid_track_index)
+						object_transform = rtm::qvv_normalize(rtm::qvv_mul(local_transform, object_transforms[parent_index]));
+					else
+						object_transform = local_transform;
+
+					object_transforms[transform_index] = object_transform;
+				}
+
+				// For each transform:
+				//   Apply a small delta
+				//   Measure the resulting error on each descendant
+				//   Retain the descendant with the largest error and compute its distance
+				for (const uint32_t transform_index : clip_topology.roots_first_iterator())
+				{
+					const transform_topology_t& transform_topology = clip_topology.transforms[transform_index];
+					if (transform_topology.is_leaf())
+					{
+						continue;	// Skip leaf transforms as they have no descendants and thus no dominant descendants
+					}
+
+					const uint32_t parent_index = transform_topology.parent_index;
+
+					const rtm::float4f* current_dominance_transform_offsets = dominance_transform_offsets;
+					for (size_t dominance_transform_offset_index = 0; dominance_transform_offset_index < num_dominance_transform_offsets; ++dominance_transform_offset_index)
+					{
+						const rtm::quatf rotation_offset = rtm::quat_load(current_dominance_transform_offsets++);
+						const rtm::vector4f scale_offset = rtm::vector_load(current_dominance_transform_offsets++);
+
+						rtm::qvvf local_transform = local_transforms[transform_index];
+
+						// Apply our delta offset
+						local_transform.rotation = rtm::quat_normalize(quat_add(local_transform.rotation, rotation_offset));
+						local_transform.scale = rtm::vector_add(local_transform.scale, scale_offset);
+
+						rtm::scalarf worst_error = rtm::scalar_set(-1.0E10F);
+						uint32_t worst_descendant_transform_index = k_invalid_track_index;
+
+						for (const uint32_t descendant_transform_index : transform_topology.descendants_iterator())
+						{
+							// Compute our descendant transform in object space taking into account our local change
+							rtm::qvvf descendant_object_transform = local_transforms[descendant_transform_index];
+
+							// Accumulate transforms up to our current test transform
+							uint32_t cursor_index = clip_topology.transforms[descendant_transform_index].parent_index;
+							while (cursor_index != transform_index)
+							{
+								descendant_object_transform = rtm::qvv_normalize(rtm::qvv_mul(descendant_object_transform, local_transforms[cursor_index]));
+
+								cursor_index = clip_topology.transforms[cursor_index].parent_index;
+							}
+
+							// Accumulate the test transform
+							descendant_object_transform = rtm::qvv_normalize(rtm::qvv_mul(descendant_object_transform, local_transform));
+
+							// Accumulate the rest of the chain up to the root
+							if (parent_index != k_invalid_track_index)
+								descendant_object_transform = rtm::qvv_normalize(rtm::qvv_mul(descendant_object_transform, object_transforms[parent_index]));
+
+							// The original descendant object transform
+							const rtm::qvvf& reference_descendant_object_transform = object_transforms[descendant_transform_index];
+
+							// Measure the error
+							const float shell_distance = raw_clip.get_transform_shell_distance(descendant_transform_index);
+
+							calculate_error_args.construct_sphere_shell(shell_distance);
+							calculate_error_args.transform0 = &reference_descendant_object_transform;
+							calculate_error_args.transform1 = &descendant_object_transform;
+
+							const rtm::scalarf error = error_metric.calculate_error(calculate_error_args);
+							if (rtm::scalar_greater_than(error, worst_error))
+							{
+								worst_error = error;
+								worst_descendant_transform_index = descendant_transform_index;
+							}
+						}
+
+						ACL_ASSERT(worst_descendant_transform_index != k_invalid_track_index, "Failed to find a dominant descendant transform");
+
+						uint32_t* num_descendant_dominant_transforms = dominance_reverse_map + (worst_descendant_transform_index * num_map_entries_per_transform);
+						uint32_t* descendant_dominant_transforms = num_descendant_dominant_transforms + 1;
+
+						// We've found the descendant most impacted by the transform delta, as such, it is dominant
+						// Dominance is transitive, make sure each parent along the chain also sees us as dominant
+						uint32_t cursor_index = transform_index;
+						while (cursor_index != k_invalid_track_index)
+						{
+							// If we've seen this dominant transform before, then every parent also contains it, we can stop iterating
+							if (std::any_of(
+								descendant_dominant_transforms,
+								descendant_dominant_transforms + *num_descendant_dominant_transforms,
+								[cursor_index](uint32_t value) { return value == cursor_index; }))
+								break;
+
+							// We are unique, append it
+							descendant_dominant_transforms[*num_descendant_dominant_transforms] = cursor_index;
+							*num_descendant_dominant_transforms += 1;
+							num_aggregate_dominant_descendant_indices++;
+
+							cursor_index = clip_topology.transforms[cursor_index].parent_index;
+						}
+					}
+				}
+			}
+
+			// Now that we've found the dominant descendants, build our final mapping
+			// Allocate the list of dominant descendant indices and partition it among the transforms
+			uint32_t* aggregate_dominant_descendant_indices = allocate_type_array<uint32_t>(allocator, num_aggregate_dominant_descendant_indices);
+			uint32_t num_assigned_dominant_descendant_indices = 0;
+
+			// We iterate leaves first to propagate our count from the reverse map
+			for (const uint32_t transform_index : clip_topology.leaves_first_iterator())
+			{
+				const uint32_t* num_descendant_dominant_transforms = dominance_reverse_map + (transform_index * num_map_entries_per_transform);
+				const uint32_t* descendant_dominant_transforms = num_descendant_dominant_transforms + 1;
+
+				// Propagate our count so we can properly partition the aggregate indices map
+				for (uint32_t cursor_index = 0; cursor_index < *num_descendant_dominant_transforms; ++cursor_index)
+				{
+					const uint32_t parent_dominant_index = descendant_dominant_transforms[cursor_index];
+
+					transform_topology_t& parent_dominant_topology = clip_topology.transforms[parent_dominant_index];
+					parent_dominant_topology.num_dominant_descendents++;
+				}
+
+				// Assign our indices
+				transform_topology_t& transform_topology = clip_topology.transforms[transform_index];
+				transform_topology.dominant_descendants = aggregate_dominant_descendant_indices + num_assigned_dominant_descendant_indices;
+				num_assigned_dominant_descendant_indices += transform_topology.num_dominant_descendents;
+			}
+
+			// Propagate and reverse our dominance map
+			for (const uint32_t transform_index : clip_topology.roots_first_iterator())
+			{
+				transform_topology_t& transform_topology = clip_topology.transforms[transform_index];
+
+				// Reset our count so we can properly append them when visiting our descendants
+				transform_topology.num_dominant_descendents = 0;
+
+				const uint32_t* num_descendant_dominant_transforms = dominance_reverse_map + (transform_index * num_map_entries_per_transform);
+				const uint32_t* descendant_dominant_transforms = num_descendant_dominant_transforms + 1;
+
+				// Number of indices to propagate
+				const uint32_t num_dominant_descendents = *num_descendant_dominant_transforms;
+
+				// Propagate ourself as dominant
+				for (uint32_t cursor_index = 0; cursor_index < num_dominant_descendents; ++cursor_index)
+				{
+					const uint32_t parent_dominant_index = descendant_dominant_transforms[cursor_index];
+
+					transform_topology_t& parent_dominant_topology = clip_topology.transforms[parent_dominant_index];
+
+					const ptrdiff_t indices_offset = parent_dominant_topology.dominant_descendants - aggregate_dominant_descendant_indices;
+					uint32_t* cursor_dominant_descendants = aggregate_dominant_descendant_indices + indices_offset;
+
+					cursor_dominant_descendants[parent_dominant_topology.num_dominant_descendents] = transform_index;
+					parent_dominant_topology.num_dominant_descendents++;
+				}
+			}
+
+			clip_topology.aggregate_dominant_descendant_indices = aggregate_dominant_descendant_indices;
+			clip_topology.num_aggregate_dominant_descendant_indices = num_aggregate_dominant_descendant_indices;
+
+			deallocate_type_array(allocator, local_transforms, size_t(num_transforms) * 2);
+			deallocate_type_array(allocator, dominance_reverse_map, size_t(num_transforms) * num_map_entries_per_transform);
+		}
+#endif
+
 		// We use the raw data to compute the rigid shell
 		// For each transform, its rigid shell is formed by the dominant joint (itself or a child)
 		// We compute the largest value over the whole segment per transform

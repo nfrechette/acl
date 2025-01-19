@@ -32,6 +32,12 @@
 
 #include <cstdint>
 
+// TODO: Can we use dominance to trim down on the number of descendants we measure?
+// Doesn't quite work at the moment as when bit rates change, it impacts dominance
+// and we can't account for it easily if we calculate dominance up-front
+// We'd have to update the dominance map as bit rates change
+//#define ACL_IMPL_DEBUG_ENABLE_DOMINANT_DESCENDANTS
+
 ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
@@ -68,6 +74,18 @@ namespace acl
 			// Number of descendants beneath this transform (and present in the list above)
 			uint32_t num_descendants = 0;
 
+#if defined(ACL_IMPL_DEBUG_ENABLE_DOMINANT_DESCENDANTS)
+			// A list of dominant descendant transform indices (points into 'aggregate_dominant_descendant_indices' in owner clip_topology_t)
+			// Dominant descendants are those that move the most under rigid deformations (can include leaves)
+			const uint32_t* dominant_descendants = nullptr;
+
+			// A list of object space distances from this transform to the corresponding dominant descendant (points into 'foobar' in owner clip_topology_t)
+			const float* dominant_distances = nullptr;
+
+			// Number of dominant descendants (and present in the lists above)
+			uint32_t num_dominant_descendents = 0;
+#endif
+
 			// Whether or not this transform is a leaf
 			bool is_leaf() const { return num_children == 0; }
 
@@ -82,6 +100,11 @@ namespace acl
 
 			// Returns a transform index iterator over the list of descendants
 			const_array_iterator<uint32_t> descendants_iterator() const;
+
+#if defined(ACL_IMPL_DEBUG_ENABLE_DOMINANT_DESCENDANTS)
+			// Returns a transform index iterator over the list of dominant descendants
+			const_array_iterator<uint32_t> dominant_descendants_iterator() const;
+#endif
 		};
 
 		// Topology metadata for a clip
@@ -134,6 +157,15 @@ namespace acl
 
 			// Size of global list of descendant indices
 			uint32_t num_aggregate_descendant_indices	= 0;
+
+#if defined(ACL_IMPL_DEBUG_ENABLE_DOMINANT_DESCENDANTS)
+			// Global list of dominant descendant indices
+			// Each transform contains a pointer into this list
+			uint32_t* aggregate_dominant_descendant_indices = nullptr;
+
+			// Size of global list of dominant descendant indices
+			uint32_t num_aggregate_dominant_descendant_indices = 0;
+#endif
 
 			// The allocator used for the topology metadata, never null if initialized
 			iallocator* allocator						= nullptr;

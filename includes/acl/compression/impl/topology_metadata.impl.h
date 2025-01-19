@@ -54,6 +54,13 @@ namespace acl
 			return make_iterator(descendants, num_descendants);
 		}
 
+#if defined(ACL_IMPL_DEBUG_ENABLE_DOMINANT_DESCENDANTS)
+		inline const_array_iterator<uint32_t> transform_topology_t::dominant_descendants_iterator() const
+		{
+			return make_iterator(dominant_descendants, num_dominant_descendents);
+		}
+#endif
+
 		inline const_array_iterator<uint32_t> clip_topology_t::roots_first_iterator() const
 		{
 			return make_iterator(static_cast<const uint32_t*>(transform_indices_sorted_parent_first), num_transforms);
@@ -79,6 +86,10 @@ namespace acl
 			deallocate_type_array(*allocator, aggregate_children_indices, num_aggregate_children_indices);
 			deallocate_type_array(*allocator, aggregate_leaf_indices, num_aggregate_leaf_indices);
 			deallocate_type_array(*allocator, aggregate_descendant_indices, num_aggregate_descendant_indices);
+
+#if defined(ACL_IMPL_DEBUG_ENABLE_DOMINANT_DESCENDANTS)
+			deallocate_type_array(*allocator, aggregate_dominant_descendant_indices, num_aggregate_dominant_descendant_indices);
+#endif
 		}
 
 		inline void build_clip_topology(iallocator& allocator, const track_array_qvvf& track_list, clip_topology_t& out_topology)

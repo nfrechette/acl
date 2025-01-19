@@ -233,6 +233,15 @@ namespace acl
 				transform_clip_context_adapter_t(raw_clip_context),
 				transform_clip_context_adapter_t(additive_base_clip_context));
 
+#if defined(ACL_IMPL_DEBUG_ENABLE_DOMINANT_DESCENDANTS)
+			compute_dominance_map(
+				allocator,
+				transform_clip_context_adapter_t(raw_clip_context),
+				transform_clip_context_adapter_t(additive_base_clip_context),
+				*settings.error_metric,
+				clip_topology);
+#endif
+
 			raw_clip_context.clip_shell_metadata = clip_shell_metadata;
 			lossy_clip_context.clip_shell_metadata = clip_shell_metadata;
 			if (is_additive)
