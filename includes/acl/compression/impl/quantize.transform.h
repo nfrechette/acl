@@ -283,7 +283,7 @@ namespace acl
 				if (transform_chain_indices != nullptr)
 					return;	// Already initialized
 
-				max_num_transform_chains = topology->num_max_leaves_per_transform + 2;	// +2 since we have a dominant transform and ourself as well
+				max_num_transform_chains = num_bones;
 				max_chain_length = topology->max_leaf_depth + 1;						// +1 since depth is 0-based
 
 				transform_chain_indices = allocate_type_array<uint32_t>(allocator, max_num_transform_chains * max_chain_length);
@@ -2285,25 +2285,39 @@ namespace acl
 				const transform_topology_t& transform_topology = context.topology->transforms[transform_index];
 
 #if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_BASIC_INFO
-				printf("%8u: parent: %3u, dominant: %3u\n",
-					transform_index, transform_topology.parent_index,
-					context.shell_metadata_per_transform[transform_index].dominant_transform_index);
+				printf("%8u: parent: %3u\n", transform_index, transform_topology.parent_index);
 #endif
 
-				// Find our critical transform set: leaves + dominant
+				// Find our critical transform set: ourself + descendants
+				// Critical transforms must be sorted leaf first to ensure we update our cached transforms in the correct order
+				// Another important property is that if a transform has a descendant as its critical transform, then each
+				// parent along the chain must also include the same critical transform: dominance must be transitive (if used).
 				uint32_t num_critical_transforms = 0;
-				for (const uint32_t leaf_transform_index : make_iterator(transform_topology.leaves, transform_topology.num_leaves))
-					critical_transform_indices[num_critical_transforms++] = leaf_transform_index;
 
-				const uint32_t dominant_transform_index = context.shell_metadata_per_transform[transform_index].dominant_transform_index;
-				if (!std::any_of(critical_transform_indices, critical_transform_indices + num_critical_transforms, [dominant_transform_index](uint32_t value) { return value == dominant_transform_index; }))
+				critical_transform_indices[num_critical_transforms++] = transform_index;
+
+				for (const uint32_t descendant_transform_index : transform_topology.descendants_iterator())
+					critical_transform_indices[num_critical_transforms++] = descendant_transform_index;
+
+#if defined(ACL_IMPL_DEBUG_ENABLE_DOMINANT_DESCENDANTS) && 0
+				// TODO: Can we use dominance to trim down on the number of descendants we measure?
+				// Doesn't quite work at the moment as when bit rates change, it impacts dominance
+				// and we can't account for it easily if we calculate dominance up-front
+				// We'd have to update the dominance map as bit rates change
+				for (const uint32_t dominant_transform_index : transform_topology.dominant_descendants_iterator())
+				{
+					if (context.topology->transforms[dominant_transform_index].is_leaf())
+						continue;	// Skip leaf transforms, we'll add them below
+
 					critical_transform_indices[num_critical_transforms++] = dominant_transform_index;
+				}
 
-				// Because we approximate the dominant transforms using the first keyframe, we have to at least include
-				// our own transform. Otherwise, on some keyframe, our critical transforms could be collapsed onto us
-				// using translation or small/zero scale.
-				if (transform_index != dominant_transform_index)
-					critical_transform_indices[num_critical_transforms++] = transform_index;
+				for (const uint32_t leaf_transform_index : transform_topology.leaves_iterator())
+					critical_transform_indices[num_critical_transforms++] = leaf_transform_index;
+#endif
+
+				// Sort leaf first
+				std::reverse(critical_transform_indices, critical_transform_indices + num_critical_transforms);
 
 				// Non-uniform 3D scale requires slower full chain processing because we can't leverage associativity
 				if (has_scale)
