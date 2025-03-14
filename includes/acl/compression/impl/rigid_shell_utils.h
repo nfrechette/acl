@@ -534,7 +534,7 @@ namespace acl
 
 					transform_topology_t& parent_dominant_topology = clip_topology.transforms[parent_dominant_index];
 
-					const ptrdiff_t indices_offset = parent_dominant_topology.dominant_descendants - aggregate_dominant_descendant_indices;
+					const std::ptrdiff_t indices_offset = parent_dominant_topology.dominant_descendants - aggregate_dominant_descendant_indices;
 					uint32_t* cursor_dominant_descendants = aggregate_dominant_descendant_indices + indices_offset;
 
 					cursor_dominant_descendants[parent_dominant_topology.num_dominant_descendents] = transform_index;

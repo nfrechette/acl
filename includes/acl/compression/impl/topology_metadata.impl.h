@@ -143,7 +143,7 @@ namespace acl
 
 					if (parent_index != k_invalid_track_index)
 					{
-						const ptrdiff_t indices_offset = topology_per_transform[parent_index].children - clip_children_indices;
+						const std::ptrdiff_t indices_offset = topology_per_transform[parent_index].children - clip_children_indices;
 						uint32_t* parent_children = clip_children_indices + indices_offset;
 
 						parent_children[topology_per_transform[parent_index].num_children] = transform_index;
@@ -193,7 +193,7 @@ namespace acl
 					uint32_t cursor_index = topology_per_transform[transform_index].parent_index;
 					while (cursor_index != k_invalid_track_index)
 					{
-						const ptrdiff_t indices_offset = topology_per_transform[cursor_index].leaves - clip_leaf_indices;
+						const std::ptrdiff_t indices_offset = topology_per_transform[cursor_index].leaves - clip_leaf_indices;
 						uint32_t* cursor_leaves = clip_leaf_indices + indices_offset;
 
 						cursor_leaves[topology_per_transform[cursor_index].num_leaves] = transform_index;
@@ -273,7 +273,7 @@ namespace acl
 					uint32_t cursor_index = topology_per_transform[transform_index].parent_index;
 					while (cursor_index != k_invalid_track_index)
 					{
-						const ptrdiff_t indices_offset = topology_per_transform[cursor_index].descendants - aggregate_descendant_indices;
+						const std::ptrdiff_t indices_offset = topology_per_transform[cursor_index].descendants - aggregate_descendant_indices;
 						uint32_t* cursor_descendants = aggregate_descendant_indices + indices_offset;
 
 						cursor_descendants[topology_per_transform[cursor_index].num_descendants] = transform_index;
