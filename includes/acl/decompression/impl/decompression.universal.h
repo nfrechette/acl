@@ -146,25 +146,6 @@ namespace acl
 			case track_type8::vector4f:
 				return is_bound_to_v0<decompression_settings_type>(context.scalar, tracks);
 			case track_type8::qvvf:
-				return is_bound_to_v0(context.transform, tracks);
-			default:
-				ACL_ASSERT(false, "Invalid track type");
-				return false;
-			}
-		}
-
-		inline bool is_bound_to(const persistent_universal_decompression_context& context, const compressed_database& database)
-		{
-			const track_type8 track_type = context.scalar.tracks->get_track_type();
-			switch (track_type)
-			{
-			case track_type8::float1f:
-			case track_type8::float2f:
-			case track_type8::float3f:
-			case track_type8::float4f:
-			case track_type8::vector4f:
-				return is_bound_to_v0(context.scalar, database);
-			case track_type8::qvvf:
 				return is_bound_to_v0<decompression_settings_type>(context.transform, tracks);
 			default:
 				ACL_ASSERT(false, "Invalid track type");
