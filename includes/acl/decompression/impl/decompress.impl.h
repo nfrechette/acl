@@ -171,13 +171,13 @@ namespace acl
 	inline bool decompression_context<decompression_settings_type>::is_dirty(const compressed_tracks& tracks) const
 	{
 		// We are dirty if we aren't bound to it
-		return !version_impl_type::template is_bound_to(m_context, tracks);
+		return !version_impl_type::template is_bound_to<decompression_settings_type>(m_context, tracks);
 	}
 
 	template<class decompression_settings_type>
 	inline bool decompression_context<decompression_settings_type>::is_bound_to(const compressed_tracks& tracks) const
 	{
-		return version_impl_type::template is_bound_to(m_context, tracks);
+		return version_impl_type::template is_bound_to<decompression_settings_type>(m_context, tracks);
 	}
 
 	template<class decompression_settings_type>
@@ -186,7 +186,7 @@ namespace acl
 		if (!m_context.is_initialized())
 			return false;	// Not bound to anything when not initialized
 
-		return version_impl_type::template is_bound_to(m_context, database);
+		return version_impl_type::template is_bound_to<decompression_settings_type>(m_context, database);
 	}
 
 	template<class decompression_settings_type>

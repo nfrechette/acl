@@ -140,6 +140,7 @@ namespace acl
 			return true;
 		}
 
+		template<class decompression_settings_type>
 		inline bool is_bound_to_v0(const persistent_scalar_decompression_context_v0& context, const compressed_tracks& tracks)
 		{
 			if (context.tracks != &tracks)
@@ -152,6 +153,7 @@ namespace acl
 			return true;
 		}
 
+		template<class decompression_settings_type>
 		inline bool is_bound_to_v0(const persistent_scalar_decompression_context_v0& context, const compressed_database& database)
 		{
 			// Database decompression is not supported for scalar tracks
