@@ -55,6 +55,13 @@ namespace acl
 		{
 			writer["segment_index"] = segment.segment_index;
 			writer["num_samples"] = segment.num_samples;
+			writer["first_sample_index"] = segment.clip_sample_offset;
+
+			const float sample_rate = segment.clip->sample_rate;
+			const float clip_duration = calculate_finite_duration(segment.clip->num_samples, sample_rate);
+			const float segment_start_time = rtm::scalar_min(float(segment.clip_sample_offset) / sample_rate, clip_duration);
+
+			writer["segment_start_time"] = segment_start_time;
 
 			const uint32_t format_per_track_data_size = get_format_per_track_data_size(*segment.clip, rotation_format, translation_format, scale_format);
 
@@ -175,7 +182,10 @@ namespace acl
 			local_to_object_space_args_lossy.local_transforms = lossy_local_pose;
 
 			track_error worst_bone_error;
+			worst_bone_error.error = -1.0F;		// Can never have a negative error, use -1 so the first sample is used
 
+			// We measure the error for every transform at every keyframe
+			// Note that this ignores keyframe stripping which can introduce some amount of error
 			writer["error_per_frame_and_bone"] = [&](sjson::ArrayWriter& frames_writer)
 			{
 				for (uint32_t sample_index = 0; sample_index < segment.num_samples; ++sample_index)
@@ -203,8 +213,7 @@ namespace acl
 						{
 							for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 							{
-								const track_qvvf& track = track_list[bone_index];
-								const track_desc_transformf& desc = track.get_description();
+								const track_desc_transformf& desc = track_list[bone_index].get_description();
 
 								itransform_error_metric::calculate_error_args calculate_error_args;
 								calculate_error_args.transform0 = raw_object_pose + bone_index;
@@ -220,6 +229,7 @@ namespace acl
 									worst_bone_error.error = error;
 									worst_bone_error.index = bone_index;
 									worst_bone_error.sample_time = sample_time;
+									worst_bone_error.keyframe_index = sample_index;
 								}
 							}
 						});
@@ -229,6 +239,7 @@ namespace acl
 			writer["max_error"] = worst_bone_error.error;
 			writer["worst_bone"] = worst_bone_error.index;
 			writer["worst_time"] = worst_bone_error.sample_time;
+			writer["worst_keyframe"] = worst_bone_error.keyframe_index;
 
 			deallocate_type_array(allocator, raw_local_pose, num_bones);
 			deallocate_type_array(allocator, base_local_pose, num_bones);
@@ -585,6 +596,38 @@ namespace acl
 				const int32_t unknown_overhead_size = static_cast<int32_t>(compressed_size) - static_cast<int32_t>(known_data_size);
 				ACL_ASSERT(unknown_overhead_size >= 0, "Overhead size should be positive");
 				writer["unknown_overhead_size"] = unknown_overhead_size;
+
+				// Critical transforms are those where the error is evaluated on: non-leaf dominant transforms and leaves
+				bool* is_critical_transform = allocate_type_array<bool>(allocator, clip.num_bones);
+				std::fill_n(is_critical_transform, clip.num_bones, false);
+
+				for (uint32_t leaf_transform_index : clip.topology->leaves_iterator())
+					is_critical_transform[leaf_transform_index] = true;
+
+				if (clip.num_samples != 0)
+				{
+					for (uint32_t transform_index = 0; transform_index < clip.num_bones; ++transform_index)
+						is_critical_transform[clip.clip_shell_metadata[transform_index].dominant_transform_index] = true;
+				}
+
+				uint32_t num_critical_transforms = 0;
+				for (uint32_t transform_index = 0; transform_index < clip.num_bones; ++transform_index)
+					num_critical_transforms += is_critical_transform[transform_index] ? 1 : 0;
+
+				writer["num_critical_transforms"] = num_critical_transforms;
+				writer["critical_transforms"] = [&](sjson::ArrayWriter& critical_transform_writer)
+					{
+						if (clip.num_samples != 0)
+						{
+							for (uint32_t transform_index = 0; transform_index < clip.num_bones; ++transform_index)
+							{
+								if (is_critical_transform[transform_index])
+									critical_transform_writer.push(transform_index);
+							}
+						}
+					};
+
+				deallocate_type_array(allocator, is_critical_transform, clip.num_bones);
 			}
 
 			writer["segmenting"] = [&](sjson::ObjectWriter& segmenting_writer)

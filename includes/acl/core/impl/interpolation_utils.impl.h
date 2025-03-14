@@ -164,9 +164,9 @@ namespace acl
 
 		const uint32_t last_sample_index = num_samples - 1;
 
-		float sample_index = sample_time * sample_rate;
+		rtm::scalarf sample_index = rtm::scalar_mul(rtm::scalar_set(sample_time), rtm::scalar_set(sample_rate));
 
-		uint32_t sample_index0 = static_cast<uint32_t>(sample_index);
+		uint32_t sample_index0 = static_cast<uint32_t>(rtm::scalar_cast(sample_index));
 		const uint32_t next_sample_index = sample_index0 + 1;
 
 		uint32_t sample_index1;
@@ -181,7 +181,7 @@ namespace acl
 			{
 				// We are sampling our repeating first sample with full weight
 				ACL_ASSERT(rtm::scalar_near_equal(sample_time, calculate_finite_duration(num_samples + 1, sample_rate), 0.00001F), "Sampling our repeating first sample with full weight");
-				sample_index = 0.0F;
+				sample_index = rtm::scalar_set(0.0F);
 				sample_index0 = 0;
 				sample_index1 = 0;
 			}
@@ -192,7 +192,7 @@ namespace acl
 			}
 		}
 
-		const float interpolation_alpha = sample_index - float(sample_index0);
+		const float interpolation_alpha = rtm::scalar_cast(rtm::scalar_sub(sample_index, rtm::scalar_set(float(sample_index0))));
 		ACL_ASSERT(interpolation_alpha >= 0.0F && interpolation_alpha <= 1.0F, "Invalid interpolation alpha: 0.0 <= %f <= 1.0", interpolation_alpha);
 
 		out_sample_index0 = sample_index0;

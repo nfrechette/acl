@@ -66,11 +66,11 @@ namespace acl
 			template<class decompression_settings_type, class context_type, class database_settings_type>
 			RTM_FORCE_INLINE static bool relocated(context_type& context, const compressed_tracks& tracks, const database_context<database_settings_type>* database) { return acl_impl::relocated_v0<decompression_settings_type>(context, tracks, database); }
 
-			template<class context_type>
-			RTM_FORCE_INLINE static bool is_bound_to(const context_type& context, const compressed_tracks& tracks) { return acl_impl::is_bound_to_v0(context, tracks); }
+			template<class decompression_settings_type, class context_type>
+			RTM_FORCE_INLINE static bool is_bound_to(const context_type& context, const compressed_tracks& tracks) { return acl_impl::is_bound_to_v0<decompression_settings_type>(context, tracks); }
 
-			template<class context_type>
-			RTM_FORCE_INLINE static bool is_bound_to(const context_type& context, const compressed_database& database) { return acl_impl::is_bound_to_v0(context, database); }
+			template<class decompression_settings_type, class context_type>
+			RTM_FORCE_INLINE static bool is_bound_to(const context_type& context, const compressed_database& database) { return acl_impl::is_bound_to_v0<decompression_settings_type>(context, database); }
 
 			template<class decompression_settings_type, class context_type>
 			RTM_FORCE_INLINE static void set_looping_policy(context_type& context, sample_looping_policy policy) { acl_impl::set_looping_policy_v0<decompression_settings_type>(context, policy); }
@@ -158,7 +158,7 @@ namespace acl
 				}
 			}
 
-			template<class context_type>
+			template<class decompression_settings_type, class context_type>
 			static bool is_bound_to(const context_type& context, const compressed_tracks& tracks)
 			{
 				const compressed_tracks_version16 version = tracks.get_version();
@@ -168,7 +168,7 @@ namespace acl
 				case compressed_tracks_version16::v02_01_99:
 				case compressed_tracks_version16::v02_01_99_1:
 				case compressed_tracks_version16::v02_01_00:
-					return acl_impl::is_bound_to_v0(context, tracks);
+					return acl_impl::is_bound_to_v0<decompression_settings_type>(context, tracks);
 				case compressed_tracks_version16::none:
 				case compressed_tracks_version16::any:
 				default:
@@ -177,7 +177,7 @@ namespace acl
 				}
 			}
 
-			template<class context_type>
+			template<class decompression_settings_type, class context_type>
 			static bool is_bound_to(const context_type& context, const compressed_database& database)
 			{
 				const compressed_tracks_version16 version = context.get_version();
@@ -187,7 +187,7 @@ namespace acl
 				case compressed_tracks_version16::v02_01_99:
 				case compressed_tracks_version16::v02_01_99_1:
 				case compressed_tracks_version16::v02_01_00:
-					return acl_impl::is_bound_to_v0(context, database);
+					return acl_impl::is_bound_to_v0<decompression_settings_type>(context, database);
 				case compressed_tracks_version16::none:
 				case compressed_tracks_version16::any:
 				default:

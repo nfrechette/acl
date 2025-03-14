@@ -209,6 +209,7 @@ namespace acl
 						result.error = max_error;
 						result.index = track_index;
 						result.sample_time = sample_time;
+						result.keyframe_index = sample_index;
 					}
 				}
 			}
@@ -371,6 +372,7 @@ namespace acl
 						result.error = error;
 						result.index = bone_index;
 						result.sample_time = sample_time;
+						result.keyframe_index = sample_index;
 					}
 				}
 			}
@@ -392,6 +394,7 @@ namespace acl
 			result.index = ~0U;
 			result.error = -1.0F;
 			result.sample_time = -1.0F;
+			result.keyframe_index = ~0U;
 			return result;
 		}
 	}
@@ -449,14 +452,8 @@ namespace acl
 		args.sample_rate = raw_tracks.get_sample_rate();
 		args.track_type = raw_tracks.get_track_type();
 
-		// We use the nearest sample to accurately measure the loss that happened, if any but only if all data is loaded
-		// If we have a database with some data missing, we can't use the nearest samples, we have to interpolate
-		// TODO: Check if all the data is loaded, always interpolate for now
-		const compressed_tracks& tracks = *context.get_compressed_tracks();
-		if (tracks.has_database() || tracks.has_stripped_keyframes())
-			args.rounding_policy = sample_rounding_policy::none;
-		else
-			args.rounding_policy = sample_rounding_policy::nearest;
+		// We use the nearest sample to accurately measure the loss that happened, if any
+		args.rounding_policy = sample_rounding_policy::nearest;
 
 		return calculate_scalar_track_error(allocator, args);
 	}
@@ -552,14 +549,8 @@ namespace acl
 		args.sample_rate = raw_tracks.get_sample_rate();
 		args.track_type = raw_tracks.get_track_type();
 
-		// We use the nearest sample to accurately measure the loss that happened, if any but only if all data is loaded
-		// If we have a database with some data missing, we can't use the nearest samples, we have to interpolate
-		// TODO: Check if all the data is loaded, always interpolate for now
-		const compressed_tracks& tracks = *context.get_compressed_tracks();
-		if (tracks.has_database() || tracks.has_stripped_keyframes())
-			args.rounding_policy = sample_rounding_policy::none;
-		else
-			args.rounding_policy = sample_rounding_policy::nearest;
+		// We use the nearest sample to accurately measure the loss that happened, if any
+		args.rounding_policy = sample_rounding_policy::nearest;
 
 		if (raw_tracks.get_track_type() != track_type8::qvvf)
 			return calculate_scalar_track_error(allocator, args);
@@ -668,14 +659,8 @@ namespace acl
 		args.sample_rate = raw_tracks.get_sample_rate();
 		args.track_type = raw_tracks.get_track_type();
 
-		// We use the nearest sample to accurately measure the loss that happened, if any but only if all data is loaded
-		// If we have a database with some data missing, we can't use the nearest samples, we have to interpolate
-		// TODO: Check if all the data is loaded, always interpolate for now
-		const compressed_tracks& tracks = *context.get_compressed_tracks();
-		if (tracks.has_database() || tracks.has_stripped_keyframes())
-			args.rounding_policy = sample_rounding_policy::none;
-		else
-			args.rounding_policy = sample_rounding_policy::nearest;
+		// We use the nearest sample to accurately measure the loss that happened, if any
+		args.rounding_policy = sample_rounding_policy::nearest;
 
 		args.error_metric = &error_metric;
 
@@ -738,14 +723,8 @@ namespace acl
 		args.sample_rate = tracks0->get_sample_rate();
 		args.track_type = tracks0->get_track_type();
 
-		// We use the nearest sample to accurately measure the loss that happened, if any but only if all data is loaded
-		// If we have a database with some data missing, we can't use the nearest samples, we have to interpolate
-		// TODO: Check if all the data is loaded, always interpolate for now
-		const compressed_tracks* tracks1 = context1.get_compressed_tracks();
-		if (tracks0->has_database() || tracks1->has_database() || tracks0->has_stripped_keyframes() || tracks1->has_stripped_keyframes())
-			args.rounding_policy = sample_rounding_policy::none;
-		else
-			args.rounding_policy = sample_rounding_policy::nearest;
+		// We use the nearest sample to accurately measure the loss that happened, if any
+		args.rounding_policy = sample_rounding_policy::nearest;
 
 		return calculate_scalar_track_error(allocator, args);
 	}

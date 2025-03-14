@@ -28,6 +28,7 @@
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/compression/impl/clip_context.h"
 #include "acl/compression/impl/rigid_shell_utils.h"
+#include "acl/compression/impl/topology_metadata.h"
 #include "acl/compression/impl/transform_clip_adapters.h"
 
 #include <cstdint>
@@ -50,6 +51,7 @@ namespace acl
 		private:
 			rigid_shell_metadata_t* shell_metadata = nullptr;
 			uint32_t* sorted_transforms_parent_first = nullptr;
+			clip_topology_t* topology = nullptr;
 
 			//////////////////////////////////////////////////////////////////////////
 
@@ -72,6 +74,7 @@ namespace acl
 			{
 				deallocate_type_array(allocator, shell_metadata, track_list.get_num_tracks());
 				deallocate_type_array(allocator, sorted_transforms_parent_first, track_list.get_num_tracks());
+				deallocate_type(allocator, topology);
 			}
 
 			const rigid_shell_metadata_t* get_shell_metadata()
@@ -82,6 +85,7 @@ namespace acl
 						&track_array_cast<track_array_qvvf>(track_list),
 						settings.additive_format);
 					clip_adapter.sorted_transforms_parent_first = get_sorted_transforms_parent_first();
+					clip_adapter.topology = get_topology();
 
 					shell_metadata = compute_clip_shell_distances(
 						allocator,
@@ -110,6 +114,18 @@ namespace acl
 				}
 
 				return sorted_transforms_parent_first;
+			}
+
+			const clip_topology_t* get_topology()
+			{
+				if (topology == nullptr)
+				{
+					topology = allocate_type<clip_topology_t>(allocator);
+
+					build_clip_topology(allocator, track_array_cast<track_array_qvvf>(track_list), *topology);
+				}
+
+				return topology;
 			}
 		};
 	}

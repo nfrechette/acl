@@ -31,6 +31,7 @@
 #include "acl/core/time_utils.h"
 #include "acl/core/track_formats.h"
 #include "acl/core/impl/variable_bit_rates.h"
+#include "acl/math/quatf.h"
 #include "acl/math/quat_packing.h"
 #include "acl/math/vector4_packing.h"
 #include "acl/compression/impl/track_stream.h"
@@ -103,17 +104,19 @@ namespace acl
 			}
 		}
 
+		// Returns a normalized rotation quaternion
 		inline rtm::quatf RTM_SIMD_CALL rotation_to_quat_32(rtm::vector4f_arg0 rotation, rotation_format8 format)
 		{
 			switch (format)
 			{
 			case rotation_format8::quatf_full:
+				// Also used to sample raw clip
 				return rtm::vector_to_quat(rotation);
 			case rotation_format8::quatf_drop_w_full:
 			case rotation_format8::quatf_drop_w_variable:
 				// quat_from_positive_w might not yield an accurate quaternion because the square-root instruction
 				// isn't very accurate on small inputs, we need to normalize
-				return rtm::quat_normalize(rtm::quat_from_positive_w(rotation));
+				return quat_normalize_stable(quat_from_positive_w_stable(rotation));
 			default:
 				ACL_ASSERT(false, "Invalid or unsupported rotation format: " ACL_ASSERT_STRING_FORMAT_SPECIFIER, get_rotation_format_name(format));
 				return rtm::quat_identity();
@@ -545,10 +548,10 @@ namespace acl
 
 		struct sample_context
 		{
-			uint32_t track_index;
+			uint32_t track_index = k_invalid_track_index;
 
-			uint32_t sample_key;
-			float sample_time;
+			uint32_t sample_key = 0;
+			float sample_time = 0.0F;
 
 			transform_bit_rates bit_rates;
 		};
@@ -614,12 +617,9 @@ namespace acl
 			if (bone_stream.is_rotation_default)
 				rotation = bone_stream.default_value.rotation;
 			else if (bone_stream.is_rotation_constant)
-				rotation = rtm::quat_normalize(get_rotation_sample(bone_stream, 0));
+				rotation = get_rotation_sample(bone_stream, 0);
 			else
-			{
 				rotation = get_rotation_sample(bone_stream, context.sample_key);
-				rotation = rtm::quat_normalize(rotation);
-			}
 
 			return rotation;
 		}

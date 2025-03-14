@@ -183,6 +183,11 @@ namespace acl
 		// If the error introduced by removing a keyframe is below the precision
 		// threshold for every transform, it is trivial. It means that if we reconstruct
 		// the stripped keyframe, the error introduced is below our precision threshold.
+		//
+		// Note that if you intend to use per-track rounding during decompression, you
+		// should keep this feature disabled. See sample_rounding_policy::per_track for
+		// details.
+		//
 		// Defaults to 'false' (no stripping)
 		bool strip_trivial = false;
 

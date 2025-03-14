@@ -156,6 +156,7 @@ namespace acl
 			return true;
 		}
 
+		template<class decompression_settings_type>
 		inline bool is_bound_to_v0(const persistent_transform_decompression_context_v0& context, const compressed_tracks& tracks)
 		{
 			if (context.tracks != &tracks)
@@ -168,6 +169,7 @@ namespace acl
 			return true;
 		}
 
+		template<class decompression_settings_type>
 		inline bool is_bound_to_v0(const persistent_transform_decompression_context_v0& context, const compressed_database& database)
 		{
 			if (context.db == nullptr)
@@ -215,7 +217,8 @@ namespace acl
 			if (decompression_settings_type::clamp_sample_time())
 				sample_time = rtm::scalar_clamp(sample_time, 0.0F, context.clip_duration);
 
-			if (context.sample_time == sample_time && context.get_rounding_policy() == rounding_policy)
+			const uint8_t requested_rounding_policy = static_cast<uint8_t>(rounding_policy);
+			if (context.sample_time == sample_time && context.requested_rounding_policy == requested_rounding_policy)
 				return;
 
 			const transform_tracks_header& transform_header = get_transform_tracks_header(*tracks);
@@ -235,11 +238,14 @@ namespace acl
 			// If the wrap looping policy isn't supported, use our statically known value
 			const sample_looping_policy looping_policy_ = decompression_settings_type::is_wrapping_supported() ? static_cast<sample_looping_policy>(context.looping_policy) : sample_looping_policy::clamp;
 
-			uint32_t key_frame0;
-			uint32_t key_frame1;
-			find_linear_interpolation_samples_with_sample_rate(header.num_samples, header.sample_rate, sample_time, rounding_policy, looping_policy_, key_frame0, key_frame1, context.interpolation_alpha);
+			uint32_t clip_key_frame0;
+			uint32_t clip_key_frame1;
+			find_linear_interpolation_samples_with_sample_rate(header.num_samples, header.sample_rate, sample_time, rounding_policy, looping_policy_, clip_key_frame0, clip_key_frame1, context.interpolation_alpha);
 
-			context.rounding_policy = static_cast<uint8_t>(rounding_policy);
+			// When per-track support is disabled in the decompression settings, the effective rounding policy
+			// is ignored as we always interpolate using the alpha from the rounding policy
+			context.requested_rounding_policy = requested_rounding_policy;
+			context.effective_rounding_policy = requested_rounding_policy;
 
 			uint32_t segment_key_frame0;
 			uint32_t segment_key_frame1;
@@ -277,7 +283,7 @@ namespace acl
 					uint32_t sample_indices0 = segment_tier0_header0->sample_indices;
 
 					// Calculate our clip relative sample index, we'll remap it later relative to the samples we'll use
-					const float sample_index = context.interpolation_alpha + float(key_frame0);
+					const float sample_index = context.interpolation_alpha + float(clip_key_frame0);
 
 					// When we load our sample indices and offsets from the database, there can be another thread writing
 					// to those memory locations at the same time (e.g. streaming in/out).
@@ -305,17 +311,27 @@ namespace acl
 
 					// Find the closest loaded samples
 					// Mask all trailing samples to find the first sample by counting trailing zeros
-					const uint32_t candidate_indices0 = sample_indices0 & (0xFFFFFFFFU << (31 - key_frame0));
-					key_frame0 = 31 - count_trailing_zeros(candidate_indices0);
+					const uint32_t candidate_indices0 = sample_indices0 & (0xFFFFFFFFU << (31 - clip_key_frame0));
+					clip_key_frame0 = 31 - count_trailing_zeros(candidate_indices0);
 
 					// Mask all leading samples to find the second sample by counting leading zeros
-					const uint32_t candidate_indices1 = sample_indices0 & (0xFFFFFFFFU >> key_frame1);
-					key_frame1 = count_leading_zeros(candidate_indices1);
+					const uint32_t candidate_indices1 = sample_indices0 & (0xFFFFFFFFU >> clip_key_frame1);
+					clip_key_frame1 = count_leading_zeros(candidate_indices1);
 
 					// Calculate our new interpolation alpha
 					// We used the rounding policy above to snap to the correct key frame earlier but we might need to interpolate now
 					// if key frames have been removed
-					context.interpolation_alpha = find_linear_interpolation_alpha(sample_index, key_frame0, key_frame1, sample_rounding_policy::none, looping_policy_);
+					context.interpolation_alpha = find_linear_interpolation_alpha(sample_index, clip_key_frame0, clip_key_frame1, sample_rounding_policy::none, looping_policy_);
+
+					// If we use floor/ceil/nearest then perhaps the keyframe we need has been stripped and isn't present
+					// When this happens, we need to reconstruct it through interpolation which requires us to update
+					// the effective rounding policy
+					// If we use none, then we were already interpolating
+					// If we use per-track rounding, then we assume that the caller knows what they are doing,
+					// see sample_rounding_policy::per_track for details
+					// We floor the interpolation alpha and compare it against itself to detect if it is different from 0.0 and 1.0
+					if (rounding_policy != sample_rounding_policy::per_track && rtm::scalar_floor(context.interpolation_alpha) != context.interpolation_alpha)
+						context.effective_rounding_policy = static_cast<uint8_t>(sample_rounding_policy::none);
 
 					// Find where our data lives (clip or database tier X)
 					sample_indices0 = segment_tier0_header0->sample_indices;
@@ -323,8 +339,8 @@ namespace acl
 
 					if (is_database_supported && db != nullptr)
 					{
-						const uint64_t sample_index0 = uint64_t(1) << (31 - key_frame0);
-						const uint64_t sample_index1 = uint64_t(1) << (31 - key_frame1);
+						const uint64_t sample_index0 = uint64_t(1) << (31 - clip_key_frame0);
+						const uint64_t sample_index1 = uint64_t(1) << (31 - clip_key_frame1);
 
 						const uint8_t* bulk_data_medium = db->bulk_data[0];		// Might be nullptr if we haven't streamed in yet
 						const uint8_t* bulk_data_low = db->bulk_data[1];		// Might be nullptr if we haven't streamed in yet
@@ -353,8 +369,8 @@ namespace acl
 					}
 
 					// Remap our sample indices within the ones actually stored (e.g. index 3 might be the second frame stored)
-					segment_key_frame0 = count_set_bits(and_not(0xFFFFFFFFU >> key_frame0, sample_indices0));
-					segment_key_frame1 = count_set_bits(and_not(0xFFFFFFFFU >> key_frame1, sample_indices1));
+					segment_key_frame0 = count_set_bits(and_not(0xFFFFFFFFU >> clip_key_frame0, sample_indices0));
+					segment_key_frame1 = count_set_bits(and_not(0xFFFFFFFFU >> clip_key_frame1, sample_indices1));
 
 					// Nasty but safe since they have the same layout
 					segment_header0 = static_cast<const segment_header*>(segment_tier0_header0);
@@ -365,8 +381,8 @@ namespace acl
 					segment_header0 = segment_headers;
 					segment_header1 = segment_headers;
 
-					segment_key_frame0 = key_frame0;
-					segment_key_frame1 = key_frame1;
+					segment_key_frame0 = clip_key_frame0;
+					segment_key_frame1 = clip_key_frame1;
 				}
 			}
 			else
@@ -375,7 +391,7 @@ namespace acl
 
 				// See segment_streams(..) for implementation details. This implementation is directly tied to it.
 				const uint32_t approx_num_samples_per_segment = header.num_samples / num_segments;	// TODO: Store in header?
-				const uint32_t approx_segment_index = key_frame0 / approx_num_samples_per_segment;
+				const uint32_t approx_segment_index = clip_key_frame0 / approx_num_samples_per_segment;
 
 				uint32_t segment_index0 = 0;
 				uint32_t segment_index1 = 0;
@@ -389,24 +405,24 @@ namespace acl
 
 				for (uint32_t segment_index = start_segment_index; segment_index < end_segment_index; ++segment_index)
 				{
-					if (key_frame0 < segment_start_indices[segment_index])
+					if (clip_key_frame0 < segment_start_indices[segment_index])
 					{
 						// We went too far, use previous segment
 						ACL_ASSERT(segment_index > 0, "Invalid segment index: %u", segment_index);
 						segment_index0 = segment_index - 1;
 
 						// If wrapping is enabled and we wrapped, use the first segment
-						if (decompression_settings_type::is_wrapping_supported() && key_frame1 == 0)
+						if (decompression_settings_type::is_wrapping_supported() && clip_key_frame1 == 0)
 							segment_index1 = 0;
 						else
-							segment_index1 = key_frame1 < segment_start_indices[segment_index] ? segment_index0 : segment_index;
+							segment_index1 = clip_key_frame1 < segment_start_indices[segment_index] ? segment_index0 : segment_index;
 
 						break;
 					}
 				}
 
-				segment_key_frame0 = key_frame0 - segment_start_indices[segment_index0];
-				segment_key_frame1 = key_frame1 - segment_start_indices[segment_index1];
+				segment_key_frame0 = clip_key_frame0 - segment_start_indices[segment_index0];
+				segment_key_frame1 = clip_key_frame1 - segment_start_indices[segment_index1];
 
 				if (has_stripped_keyframes)
 				{
@@ -418,7 +434,7 @@ namespace acl
 					uint32_t sample_indices1 = segment_tier0_header1->sample_indices;
 
 					// Calculate our clip relative sample index, we'll remap it later relative to the samples we'll use
-					const float sample_index = context.interpolation_alpha + float(key_frame0);
+					const float sample_index = context.interpolation_alpha + float(clip_key_frame0);
 
 					// When we load our sample indices and offsets from the database, there can be another thread writing
 					// to those memory locations at the same time (e.g. streaming in/out).
@@ -463,13 +479,23 @@ namespace acl
 					segment_key_frame1 = count_leading_zeros(candidate_indices1);
 
 					// Calculate our clip relative sample indices
-					const uint32_t clip_key_frame0 = segment_start_indices[segment_index0] + segment_key_frame0;
-					const uint32_t clip_key_frame1 = segment_start_indices[segment_index1] + segment_key_frame1;
+					clip_key_frame0 = segment_start_indices[segment_index0] + segment_key_frame0;
+					clip_key_frame1 = segment_start_indices[segment_index1] + segment_key_frame1;
 
 					// Calculate our new interpolation alpha
 					// We used the rounding policy above to snap to the correct key frame earlier but we might need to interpolate now
 					// if key frames have been removed
 					context.interpolation_alpha = find_linear_interpolation_alpha(sample_index, clip_key_frame0, clip_key_frame1, sample_rounding_policy::none, looping_policy_);
+
+					// If we use floor/ceil/nearest then perhaps the keyframe we need has been stripped and isn't present
+					// When this happens, we need to reconstruct it through interpolation which requires us to update
+					// the effective rounding policy
+					// If we use none, then we were already interpolating
+					// If we use per-track rounding, then we assume that the caller knows what they are doing,
+					// see sample_rounding_policy::per_track for details
+					// We floor the interpolation alpha and compare it against itself to detect if it is different from 0.0 and 1.0
+					if (rounding_policy != sample_rounding_policy::per_track && rtm::scalar_floor(context.interpolation_alpha) != context.interpolation_alpha)
+						context.effective_rounding_policy = static_cast<uint8_t>(sample_rounding_policy::none);
 
 					// Find where our data lives (clip or database tier X)
 					sample_indices0 = segment_tier0_header0->sample_indices;
@@ -1972,16 +1998,6 @@ namespace acl
 
 			// Finally reached our desired track, unpack it
 
-			float interpolation_alpha = context.interpolation_alpha;
-			if (decompression_settings_type::is_per_track_rounding_supported())
-			{
-				const sample_rounding_policy rounding_policy = context.get_rounding_policy();
-				const sample_rounding_policy rounding_policy_ = writer.get_rounding_policy(rounding_policy, track_index);
-				ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
-
-				interpolation_alpha = apply_rounding_policy(interpolation_alpha, rounding_policy_);
-			}
-
 			if (rotation_sub_track_type == 0)
 			{
 				if (default_rotation_mode != default_sub_track_mode::skipped)
@@ -1998,7 +2014,7 @@ namespace acl
 				if (rotation_sub_track_type & 1)
 					rotation = constant_track_cache.unpack_rotation_within_group<decompression_settings_type>(context, rotation_group_sample_index);
 				else
-					rotation = animated_track_cache.unpack_rotation_within_group<decompression_settings_type>(context, rotation_group_sample_index, interpolation_alpha);
+					rotation = animated_track_cache.unpack_rotation_within_group<decompression_settings_type>(context, rotation_group_sample_index);
 
 				writer.write_rotation(track_index, rotation);
 			}
@@ -2019,7 +2035,7 @@ namespace acl
 				if (translation_sub_track_type & 1)
 					translation = constant_track_cache.unpack_translation_within_group(translation_group_sample_index);
 				else
-					translation = animated_track_cache.unpack_translation_within_group<translation_adapter>(context, translation_group_sample_index, interpolation_alpha);
+					translation = animated_track_cache.unpack_translation_within_group<translation_adapter>(context, translation_group_sample_index);
 
 				writer.write_translation(track_index, translation);
 			}
@@ -2040,7 +2056,7 @@ namespace acl
 				if (scale_sub_track_type & 1)
 					scale = constant_track_cache.unpack_scale_within_group(scale_group_sample_index);
 				else
-					scale = animated_track_cache.unpack_scale_within_group<scale_adapter>(context, scale_group_sample_index, interpolation_alpha);
+					scale = animated_track_cache.unpack_scale_within_group<scale_adapter>(context, scale_group_sample_index);
 
 				writer.write_scale(track_index, scale);
 			}

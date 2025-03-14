@@ -162,9 +162,9 @@ namespace acl
 				const rtm::vector4f padded_range_extent0 = rtm::vector_mul(quantized_extent0, inv_max_range_value);
 				const rtm::vector4f padded_range_extent1 = rtm::vector_mul(quantized_extent1, inv_max_range_value);
 
-				// Check if extent0 is above or equal to our original range maximum value, if it is, it is good
+				// Check if extent0 is above or equal to our unpadded range extent value, if it is, it is good
 				// enough to use otherwise extent1 is guaranteed to be higher.
-				const rtm::mask4f is_extent0_higher_mask = rtm::vector_greater_equal(padded_range_extent0, range_max);
+				const rtm::mask4f is_extent0_higher_mask = rtm::vector_greater_equal(padded_range_extent0, range_extent);
 				const rtm::vector4f padded_range_extent = rtm::vector_select(is_extent0_higher_mask, padded_range_extent0, padded_range_extent1);
 
 				return track_stream_range::from_min_extent(padded_range_min, padded_range_extent);

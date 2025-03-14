@@ -37,6 +37,7 @@
 #include "acl/compression/track_array.h"
 #include "acl/compression/impl/segment_context.h"
 #include "acl/compression/impl/transform_clip_adapters.h"
+#include "acl/math/quatf.h"
 
 #include <rtm/quatf.h>
 #include <rtm/vector4f.h>
@@ -93,6 +94,7 @@ namespace acl
 			out_clip_context.leaf_transform_chains = nullptr;
 			out_clip_context.sorted_transforms_parent_first = allocate_type_array<uint32_t>(allocator, num_transforms);
 			out_clip_context.clip_shell_metadata = nullptr;
+			out_clip_context.topology = nullptr;
 			out_clip_context.contributing_error = nullptr;
 			out_clip_context.num_segments = 1;
 			out_clip_context.num_bones = num_transforms;
@@ -148,7 +150,7 @@ namespace acl
 					// otherwise we normalize for safety
 					rtm::quatf rotation;
 					if (settings.rotation_format != rotation_format8::quatf_full || !rtm::quat_is_normalized(transform.rotation))
-						rotation = rtm::quat_normalize(transform.rotation);
+						rotation = quat_normalize_stable(transform.rotation);
 					else
 						rotation = transform.rotation;
 

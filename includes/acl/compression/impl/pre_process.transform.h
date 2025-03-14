@@ -29,6 +29,7 @@
 #include "acl/compression/impl/optimize_looping.transform.h"
 #include "acl/compression/impl/pre_process.common.h"
 #include "acl/compression/impl/transform_clip_adapters.h"
+#include "acl/math/quatf.h"
 
 #include <rtm/quatf.h>
 #include <rtm/qvvf.h>
@@ -60,7 +61,7 @@ namespace acl
 					rtm::qvvf& sample = track_[sample_index];
 
 					if (!rtm::quat_is_normalized(sample.rotation))
-						sample.rotation = rtm::quat_normalize(sample.rotation);
+						sample.rotation = quat_normalize_stable(sample.rotation);
 				}
 			}
 		}
@@ -85,9 +86,9 @@ namespace acl
 			track_array_qvvf& track_list = track_array_cast<track_array_qvvf>(context.track_list);
 
 			transform_track_array_adapter_t clip_adapter(&track_list, context.settings.additive_format);
-			clip_adapter.rigid_shell_metadata = context.get_shell_metadata();
 
 			const bool is_looping = is_clip_looping(
+				context.allocator,
 				clip_adapter,
 				transform_track_array_adapter_t(context.settings.additive_base, additive_clip_format8::none),
 				*context.settings.error_metric);
@@ -159,7 +160,7 @@ namespace acl
 			apply_additive_to_base_args.local_transforms = needs_conversion ? (const void*)&local_transforms_converted[0] : (const void*)&local_transforms[0];
 			apply_additive_to_base_args.num_transforms = 2;
 
-			qvvf_transform_error_metric::calculate_error_args calculate_error_args;
+			itransform_error_metric::calculate_error_args calculate_error_args;
 			calculate_error_args.construct_sphere_shell(shell.local_shell_distance);
 			calculate_error_args.transform0 = &local_transforms_converted[metric_transform_size * 0];
 			calculate_error_args.transform1 = &local_transforms_converted[metric_transform_size * 1];

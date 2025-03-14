@@ -16,8 +16,8 @@ import urllib.request
 import zipfile
 
 # The current test data version in use
-REGRESSION_TEST_DATA_SOURCE_URL = 'https://github.com/nfrechette/acl-test-data/releases/download/v2.0.0/'
-CURRENT_REGRESSION_TEST_DATA_FILENAME = 'acl_regression_tests_v2.zip'
+REGRESSION_TEST_DATA_SOURCE_URL = 'https://github.com/nfrechette/acl-test-data/releases/download/v3/'
+CURRENT_REGRESSION_TEST_DATA_FILENAME = 'acl_regression_tests_v3.zip'
 
 # The current decompression data version in use
 current_decomp_data = 'decomp_data_v8'

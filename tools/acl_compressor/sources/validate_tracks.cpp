@@ -130,7 +130,7 @@ void validate_accuracy(
 
 	const track_error error = calculate_compression_error(allocator, raw_tracks, context, error_metric, additive_base_tracks);
 	ACL_ASSERT(rtm::scalar_is_finite(error.error), "Returned error is not a finite value"); (void)error;
-	ACL_ASSERT(error.error < regression_error_threshold, "Error too high for bone %u: %f at time %f", error.index, error.error, error.sample_time);
+	ACL_ASSERT(error.error < regression_error_threshold, "Error too high for bone %u: %f at time %f (keyframe %u)", error.index, error.error, error.sample_time, error.keyframe_index);
 
 	const uint32_t num_tracks = compressed_tracks_.get_num_tracks();
 	const float duration = compressed_tracks_.get_finite_duration();

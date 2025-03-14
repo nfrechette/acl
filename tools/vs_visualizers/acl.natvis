@@ -16,14 +16,14 @@
   </Type>
 
   <Type Name="acl::track">
-    <DisplayString Condition="m_name.m_c_str != nullptr">num_samples={m_num_samples}, type={m_type}, name={m_name}</DisplayString>
-    <DisplayString>num_samples={m_num_samples}, type={m_type}</DisplayString>
+    <DisplayString Condition="m_name.m_c_str != nullptr">num_samples={m_num_samples}, type={m_type,en}, name={m_name}</DisplayString>
+    <DisplayString>num_samples={m_num_samples}, type={m_type,en}</DisplayString>
     <Expand>
       <Item Name="name" Condition="m_name.m_c_str != nullptr">m_name</Item>
       <Item Name="num_samples">m_num_samples</Item>
       <Item Name="sample_rate">m_sample_rate</Item>
       <Item Name="stride">m_stride</Item>
-      <Item Name="type">m_type</Item>
+      <Item Name="type">m_type,en</Item>
       <Item Name="precision" Condition="m_category == acl::track_category8::scalarf">m_desc.scalar.precision</Item>
       <Item Name="precision" Condition="m_category == acl::track_category8::transformf">m_desc.transform.precision</Item>
       <Item Name="shell_distance" Condition="m_category == acl::track_category8::transformf">m_desc.transform.shell_distance</Item>
@@ -64,20 +64,20 @@
   </Type>
 
   <Type Name="acl::compressed_tracks">
-    <DisplayString>size={m_buffer_header.size} hash={m_buffer_header.hash}</DisplayString>
+    <DisplayString>size={m_buffer_header.size} hash={m_buffer_header.hash,X}</DisplayString>
     <Expand>
       <!-- Common -->
       <Item Name="num_tracks">((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->num_tracks</Item>
       <Item Name="num_samples">((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->num_samples</Item>
       <Item Name="sample_rate">((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->sample_rate</Item>
-      <Item Name="track_type">((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->track_type</Item>
-      <Item Name="version">((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->version</Item>
+      <Item Name="track_type">((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->track_type,en</Item>
+      <Item Name="version">((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->version,en</Item>
       <!-- Transform tracks -->
       <Item Name="has_scale" Condition="((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->track_type == acl::track_type8::qvvf">(((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->misc_packed &amp; 1) != 0</Item>
       <Item Name="default_scale" Condition="((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->track_type == acl::track_type8::qvvf">(float)((((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->misc_packed &gt;&gt; 1) &amp; 1)</Item>
-      <Item Name="rotation_format" Condition="((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->track_type == acl::track_type8::qvvf">(acl::rotation_format8)((((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->misc_packed &gt;&gt; 4) &amp; 15)</Item>
-      <Item Name="translation_format" Condition="((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->track_type == acl::track_type8::qvvf">(acl::vector_format8)((((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->misc_packed &gt;&gt; 3) &amp; 1)</Item>
-      <Item Name="scale_format" Condition="((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->track_type == acl::track_type8::qvvf">(acl::vector_format8)((((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->misc_packed &gt;&gt; 2) &amp; 1)</Item>
+      <Item Name="rotation_format" Condition="((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->track_type == acl::track_type8::qvvf">(acl::rotation_format8)((((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->misc_packed &gt;&gt; 4) &amp; 15),en</Item>
+      <Item Name="translation_format" Condition="((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->track_type == acl::track_type8::qvvf">(acl::vector_format8)((((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->misc_packed &gt;&gt; 3) &amp; 1),en</Item>
+      <Item Name="scale_format" Condition="((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->track_type == acl::track_type8::qvvf">(acl::vector_format8)((((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->misc_packed &gt;&gt; 2) &amp; 1),en</Item>
       <Item Name="has_database" Condition="((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->track_type == acl::track_type8::qvvf">(((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->misc_packed &amp; (1 &lt;&lt; 8)) != 0</Item>
       <Item Name="has_trivial_default_values" Condition="((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->track_type == acl::track_type8::qvvf">(((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->misc_packed &amp; (1 &lt;&lt; 9)) != 0</Item>
       <Item Name="has_stripped_keyframes" Condition="((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->track_type == acl::track_type8::qvvf">(((const acl::acl_impl::tracks_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->misc_packed &amp; (1 &lt;&lt; 10)) != 0</Item>
@@ -87,14 +87,14 @@
   </Type>
 
   <Type Name="acl::compressed_database">
-    <DisplayString>size={m_buffer_header.size} hash={m_buffer_header.hash}</DisplayString>
+    <DisplayString>size={m_buffer_header.size} hash={m_buffer_header.hash,X}</DisplayString>
     <Expand>
       <Item Name="bulk_data_size">((const acl::acl_impl::database_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->bulk_data_size</Item>
-      <Item Name="bulk_data_hash">((const acl::acl_impl::database_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->bulk_data_hash</Item>
+      <Item Name="bulk_data_hash">((const acl::acl_impl::database_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->bulk_data_hash,X</Item>
       <Item Name="num_chunks">((const acl::acl_impl::database_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->num_chunks</Item>
       <Item Name="num_clips">((const acl::acl_impl::database_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->num_clips</Item>
       <Item Name="num_segments">((const acl::acl_impl::database_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->num_segments</Item>
-      <Item Name="version">((const acl::acl_impl::database_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->version</Item>
+      <Item Name="version">((const acl::acl_impl::database_header*)(((const uint8_t*)this) + sizeof(acl::acl_impl::raw_buffer_header)))->version,en</Item>
     </Expand>
   </Type>
   
@@ -107,7 +107,7 @@
   <Type Name="acl::acl_impl::track_range">
     <DisplayString Condition="category == acl::track_category8::scalarf">{range.scalarf}</DisplayString>
     <Expand>
-      <Item Name="category">category</Item>
+      <Item Name="category">category,en</Item>
       <Item Name="min" Condition="category == acl::track_category8::scalarf">range.scalarf.m_min</Item>
       <Item Name="extent" Condition="category == acl::track_category8::scalarf">range.scalarf.m_extent</Item>
     </Expand>
@@ -162,13 +162,13 @@
   </Type>
 
   <Type Name="acl::acl_impl::track_stream">
-    <DisplayString>num_samples={m_num_samples}, bit_rate={m_bit_rate}, type={m_type}</DisplayString>
+    <DisplayString>num_samples={m_num_samples}, bit_rate={m_bit_rate}, type={m_type,en}</DisplayString>
     <Expand>
       <Item Name="num_samples">m_num_samples</Item>
       <Item Name="sample_rate">m_sample_rate</Item>
-      <Item Name="type">m_type</Item>
+      <Item Name="type">m_type,en</Item>
       <Item Name="bit_rate">m_bit_rate</Item>
-      <Item Name="format">m_format</Item>
+      <Item Name="format">m_format,en</Item>
       <ArrayItems>
         <Size>m_num_samples</Size>
         <!-- TODO: Support stride -->
@@ -177,7 +177,112 @@
         <ValuePointer Condition="m_type == acl::animation_track_type8::scale">(rtm::float4f*)m_samples</ValuePointer>
       </ArrayItems>
     </Expand>
+  </Type>
 
+  <Type Name="acl::acl_impl::transform_topology_t">
+    <DisplayString Condition="num_children == 0 &amp;&amp; parent_index == k_invalid_track_index">(root + leaf)</DisplayString>
+    <DisplayString Condition="num_children == 0">parent={parent_index} (leaf)</DisplayString>
+    <DisplayString Condition="parent_index == k_invalid_track_index">num_children={num_children}, num_descendants={num_descendants} (root)</DisplayString>
+    <DisplayString>parent={parent_index}, num_children={num_children}, num_descendants={num_descendants}</DisplayString>
+    <Expand>
+      <Item Name="parent_index">parent_index</Item>
+      <Item Name="depth_from_root">depth_from_root</Item>
+      <Item Name="is_root">parent_index == k_invalid_track_index</Item>
+      <Item Name="is_leaf">num_children == 0</Item>
+      <Synthetic Name="children">
+        <DisplayString>count={num_children}</DisplayString>
+        <Expand>
+          <ArrayItems>
+            <Size>num_children</Size>
+            <ValuePointer>children</ValuePointer>
+          </ArrayItems>
+        </Expand>
+      </Synthetic>
+      <Synthetic Name="leaves">
+        <DisplayString>count={num_leaves}</DisplayString>
+        <Expand>
+          <ArrayItems>
+            <Size>num_leaves</Size>
+            <ValuePointer>leaves</ValuePointer>
+          </ArrayItems>
+        </Expand>
+      </Synthetic>
+      <Synthetic Name="descendants">
+        <DisplayString>count={num_descendants}</DisplayString>
+        <Expand>
+          <ArrayItems>
+            <Size>num_descendants</Size>
+            <ValuePointer>descendants</ValuePointer>
+          </ArrayItems>
+        </Expand>
+      </Synthetic>
+      <!--
+      TODO: See ACL_IMPL_DEBUG_ENABLE_DOMINANT_DESCENDANTS for details
+      <Synthetic Name="dominant_descendants">
+        <DisplayString>count={num_dominant_descendents}</DisplayString>
+        <Expand>
+          <ArrayItems>
+            <Size>num_dominant_descendents</Size>
+            <ValuePointer>dominant_descendants</ValuePointer>
+          </ArrayItems>
+        </Expand>
+      </Synthetic>
+      -->
+    </Expand>
+  </Type>
+
+  <Type Name="acl::acl_impl::clip_topology_t">
+    <DisplayString>num_transforms={num_transforms}, num_roots={num_root_transforms}, num_leaves={num_leaf_transforms}</DisplayString>
+    <Expand>
+      <Synthetic Name="transforms">
+        <DisplayString>count={num_transforms}</DisplayString>
+        <Expand>
+          <ArrayItems>
+            <Size>num_transforms</Size>
+            <ValuePointer>transforms</ValuePointer>
+          </ArrayItems>
+        </Expand>
+      </Synthetic>
+      <Synthetic Name="transform_indices_root_first">
+        <DisplayString>count={num_transforms}</DisplayString>
+        <Expand>
+          <ArrayItems>
+            <Size>num_transforms</Size>
+            <ValuePointer>transform_indices_sorted_parent_first</ValuePointer>
+          </ArrayItems>
+        </Expand>
+      </Synthetic>
+      <Synthetic Name="roots">
+        <DisplayString>count={num_root_transforms}</DisplayString>
+        <Expand>
+          <ArrayItems>
+            <Size>num_root_transforms</Size>
+            <ValuePointer>root_transform_indices</ValuePointer>
+          </ArrayItems>
+        </Expand>
+      </Synthetic>
+      <Synthetic Name="leaves">
+        <DisplayString>count={num_leaf_transforms}</DisplayString>
+        <Expand>
+          <ArrayItems>
+            <Size>num_leaf_transforms</Size>
+            <ValuePointer>leaf_transform_indices</ValuePointer>
+          </ArrayItems>
+        </Expand>
+      </Synthetic>
+      <Item Name="num_max_leaves_per_transform">num_max_leaves_per_transform</Item>
+      <Item Name="max_leaf_depth">max_leaf_depth</Item>
+    </Expand>
+  </Type>
+
+  <Type Name="acl::acl_impl::constant_permutation_t">
+    <DisplayString>rotation={rotation,en}, translation={translation,en}, scale={scale,en}</DisplayString>
+    <Expand HideRawView="true">
+      <Item Name="rotation">rotation,en</Item>
+      <Item Name="translation">translation,en</Item>
+      <Item Name="scale">scale,en</Item>
+      <Item Name="cost">acl::acl_impl::k_constant_rotation_cost[(uint32_t)rotation] + acl::acl_impl::k_constant_translation_cost[(uint32_t)translation] + acl::acl_impl::k_constant_scale_cost[(uint32_t)scale]</Item>
+    </Expand>
   </Type>
 
 </AutoVisualizer>

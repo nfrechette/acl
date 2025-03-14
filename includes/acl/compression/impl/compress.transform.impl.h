@@ -49,6 +49,7 @@
 #include "acl/compression/impl/optimize_looping.transform.h"
 #include "acl/compression/impl/quantize.transform.h"
 #include "acl/compression/impl/segment.transform.h"
+#include "acl/compression/impl/topology_metadata.h"
 #include "acl/compression/impl/write_segment_data.h"
 #include "acl/compression/impl/write_stats.h"
 #include "acl/compression/impl/write_stream_data.h"
@@ -216,12 +217,30 @@ namespace acl
 			if (settings.level == compression_level8::automatic)
 				settings.level = find_best_compression_level(lossy_clip_context);
 
+			// Clip topology metadata, not specific to clip context
+			clip_topology_t clip_topology;
+			build_clip_topology(allocator, track_list, clip_topology);
+
+			raw_clip_context.topology = &clip_topology;
+			lossy_clip_context.topology = &clip_topology;
+			if (is_additive)
+				additive_base_clip_context.topology = &clip_topology;
+
 			// Topology dependent data, not specific to clip context
 			const uint32_t num_input_transforms = raw_clip_context.num_bones;
 			rigid_shell_metadata_t* clip_shell_metadata = compute_clip_shell_distances(
 				allocator,
 				transform_clip_context_adapter_t(raw_clip_context),
 				transform_clip_context_adapter_t(additive_base_clip_context));
+
+#if defined(ACL_IMPL_DEBUG_ENABLE_DOMINANT_DESCENDANTS)
+			compute_dominance_map(
+				allocator,
+				transform_clip_context_adapter_t(raw_clip_context),
+				transform_clip_context_adapter_t(additive_base_clip_context),
+				*settings.error_metric,
+				clip_topology);
+#endif
 
 			raw_clip_context.clip_shell_metadata = clip_shell_metadata;
 			lossy_clip_context.clip_shell_metadata = clip_shell_metadata;
@@ -265,7 +284,7 @@ namespace acl
 			}
 
 			// Find how many bits we need per sub-track and quantize everything
-			quantize_streams(allocator, lossy_clip_context, settings, raw_clip_context, additive_base_clip_context, out_stats, compression_stats);
+			quantize_streams(allocator, lossy_clip_context, settings, segmenting_settings, raw_clip_context, additive_base_clip_context, out_stats, compression_stats);
 
 			uint32_t num_output_bones = 0;
 			uint32_t* output_bone_mapping = create_output_track_mapping(allocator, track_list, num_output_bones);

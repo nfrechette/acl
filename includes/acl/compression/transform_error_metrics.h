@@ -75,6 +75,11 @@ namespace acl
 		virtual bool needs_conversion(bool has_scale) const { (void)has_scale; return false; }
 
 		//////////////////////////////////////////////////////////////////////////
+		// Whether or not this error metric supports the new bit rate algorithm v2
+		// See: [Bit Rate Optimization Algorithm]
+		virtual bool supports_bit_rate_algorithm_v2() const { return false; }
+
+		//////////////////////////////////////////////////////////////////////////
 		// Input arguments for the 'convert_transforms*' functions.
 		//////////////////////////////////////////////////////////////////////////
 		struct convert_transforms_args
@@ -285,6 +290,7 @@ namespace acl
 
 		virtual size_t get_transform_size(bool has_scale) const override { (void)has_scale; return sizeof(rtm::qvvf); }
 		virtual bool needs_conversion(bool has_scale) const override { (void)has_scale; return false; }
+		virtual bool supports_bit_rate_algorithm_v2() const override { return true; }
 
 		virtual RTM_DISABLE_SECURITY_COOKIE_CHECK void local_to_object_space(const local_to_object_space_args& args, void* out_object_transforms) const override
 		{
@@ -393,6 +399,7 @@ namespace acl
 
 		virtual size_t get_transform_size(bool has_scale) const override { return has_scale ? sizeof(rtm::matrix3x4f) : sizeof(rtm::qvvf); }
 		virtual bool needs_conversion(bool has_scale) const override { return has_scale; }
+		virtual bool supports_bit_rate_algorithm_v2() const override { return false; }
 
 		virtual RTM_DISABLE_SECURITY_COOKIE_CHECK void convert_transforms(const convert_transforms_args& args, void* out_transforms) const override
 		{

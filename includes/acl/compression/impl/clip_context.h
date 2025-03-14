@@ -36,6 +36,7 @@
 #include "acl/compression/compression_settings.h"
 #include "acl/compression/track_array.h"
 #include "acl/compression/impl/segment_context.h"
+#include "acl/compression/impl/topology_metadata.h"
 
 #include <rtm/quatf.h>
 #include <rtm/vector4f.h>
@@ -147,13 +148,13 @@ namespace acl
 		struct rigid_shell_metadata_t
 		{
 			// Dominant local space shell distance (from transform tip)
-			float local_shell_distance;
-
-			// Parent space shell distance (from transform root)
-			float parent_shell_distance;
+			float local_shell_distance;	// TODO: rename this, remove 'local' from name, it is implied
 
 			// Precision required on the surface of the rigid shell
 			float precision;
+
+			// The index of the dominant transform (current transform index for leaf transforms)
+			uint32_t dominant_transform_index;
 		};
 
 		// Represents the working space for a clip (raw or lossy)
@@ -182,6 +183,11 @@ namespace acl
 			// Data is aggregate of whole clip
 			// Shared between all clip contexts, not owned
 			const rigid_shell_metadata_t* clip_shell_metadata	= nullptr;
+
+			// Topology metadata
+			// Data is aggregate of whole clip
+			// Shared between all clip contexts, not owned
+			const clip_topology_t* topology				= nullptr;
 
 			// Optional if we request it in the compression settings
 			// Sorted by stripping order within this clip
