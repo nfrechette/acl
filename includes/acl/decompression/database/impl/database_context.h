@@ -30,6 +30,7 @@
 #include "acl/decompression/database/database_streamer.h"
 #include "acl/core/impl/compiler_utils.h"
 
+#include <cstddef>
 #include <cstdint>
 
 ACL_IMPL_FILE_PRAGMA_PUSH

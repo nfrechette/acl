@@ -33,6 +33,7 @@
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/decompression/database/impl/database_context.h"
 
+#include <cstddef>
 #include <cstdint>
 
 ACL_IMPL_FILE_PRAGMA_PUSH
