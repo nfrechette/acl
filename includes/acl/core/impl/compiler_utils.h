@@ -28,13 +28,8 @@
 
 #include <rtm/impl/compiler_utils.h>
 
+#include <cstdlib>
 #include <type_traits>
-
-#if !defined(__GNUG__) || defined(_LIBCPP_VERSION) || defined(_GLIBCXX_USE_CXX11_ABI)
-	#include <cstdlib>
-#else
-	#include <stdlib.h>
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 // Because this library is made entirely of headers, we have no control over the
@@ -95,27 +90,37 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-	//////////////////////////////////////////////////////////////////////////
-	// The version of the STL shipped with versions of GCC older than 5.1 are missing a number of type traits and functions,
-	// such as std::is_trivially_default_constructible.
-	// In this case, we polyfill the proper standard names using the deprecated std::has_trivial_default_constructor.
-	// This must also be done when the compiler is clang when it makes use of the GCC implementation of the STL,
-	// which is the default behavior on linux. Properly detecting the version of the GCC STL used by clang cannot
-	// be done with the __GNUC__  macro, which are overridden by clang. Instead, we check for the definition
-	// of the macro ``_GLIBCXX_USE_CXX11_ABI`` which is only defined with GCC versions greater than 5.
-	//////////////////////////////////////////////////////////////////////////
 	namespace acl_impl
 	{
-#if !defined(__GNUG__) || defined(_LIBCPP_VERSION) || defined(_GLIBCXX_USE_CXX11_ABI)
-		using std::strtoull;
+		// std::strtoull isn't available in stdlibs that partially support C++11
+		// so we use the old C API
+		using ::strtoull;
 
+		// std::is_trivially_default_constructible is not always available in older stdlibs
+		// around GCC 4.9 and Clang 4. To avoid this, we use their built-in feature testing
+		// and we polyfill it.
+#if ACL_HAS_FEATURE(__is_trivially_constructible) || ACL_HAS_BUILTIN(__is_trivially_constructible)
+		template <class Type>
+		struct is_trivially_default_constructible
+		{
+			static constexpr bool value = __is_trivially_constructible(Type);
+		};
+#elif ACL_HAS_FEATURE(__has_trivial_constructor) || ACL_HAS_BUILTIN(__has_trivial_constructor) || defined(__GNUG__)
+		template <class Type>
+		struct is_trivially_default_constructible
+		{
+			static constexpr bool value = __has_trivial_constructor(Type);
+		};
+#elif RTM_CPP_VERSION >= RTM_CPP_VERSION_11
 		template <class Type>
 		using is_trivially_default_constructible = std::is_trivially_default_constructible<Type>;
 #else
-		using ::strtoull;
-
 		template <class Type>
-		using is_trivially_default_constructible = std::has_trivial_default_constructor<Type>;
+		struct is_trivially_default_constructible
+		{
+			// Unknown or older compiler, assume we aren't trivially constructible
+			static constexpr bool value = false;
+		};
 #endif
 	}
 
