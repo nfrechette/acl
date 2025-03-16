@@ -71,6 +71,26 @@
 	#define ACL_IMPL_FILE_PRAGMA_POP
 #endif
 
+//////////////////////////////////////////////////////////////////////////
+// Wraps the __has_feature pre-processor macro to handle non-clang and early
+// GCC compilers
+//////////////////////////////////////////////////////////////////////////
+#if defined(__has_feature)
+	#define ACL_HAS_FEATURE(x) __has_feature(x)
+#else
+	#define ACL_HAS_FEATURE(x) 0
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+// Wraps the __has_builtin pre-processor macro to handle non-clang and early
+// GCC compilers
+//////////////////////////////////////////////////////////////////////////
+#if defined(__has_builtin)
+	#define ACL_HAS_BUILTIN(x) __has_builtin(x)
+#else
+	#define ACL_HAS_BUILTIN(x) 0
+#endif
+
 namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
@@ -101,6 +121,16 @@ namespace acl
 
 	ACL_IMPL_VERSION_NAMESPACE_END
 }
+
+//////////////////////////////////////////////////////////////////////////
+// Wraps the __has_attribute pre-processor macro to handle non-clang and early
+// GCC compilers
+//////////////////////////////////////////////////////////////////////////
+#if defined(__has_attribute)
+	#define ACL_HAS_ATTRIBUTE(x) __has_attribute(x)
+#else
+	#define ACL_HAS_ATTRIBUTE(x) 0
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 // Silence compiler warnings within switch cases that fall through
