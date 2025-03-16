@@ -136,12 +136,8 @@ namespace acl
 // Silence compiler warnings within switch cases that fall through
 // Note: C++17 has [[fallthrough]];
 //////////////////////////////////////////////////////////////////////////
-#if defined(RTM_COMPILER_GCC) || defined(RTM_COMPILER_CLANG)
-	#if defined(__has_attribute) && __has_attribute(fallthrough)
-		#define ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL __attribute__ ((fallthrough))
-	#else
-		#define ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL (void)0
-	#endif
+#if ACL_HAS_ATTRIBUTE(fallthrough)
+	#define ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL __attribute__ ((fallthrough))
 #else
 	#define ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL (void)0
 #endif
