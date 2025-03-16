@@ -31,8 +31,8 @@ foreach(HEADER_FILE ${ALL_PUBLIC_HEADER_FILES})
 	string(REPLACE "\\" "_" HEADER_SANITIZED_FILENAME ${HEADER_SANITIZED_FILENAME})
 
 	# Skip deprecated headers
-	string(FIND ${HEADER_FILE} "acl_core_utils.h" HEADER_CORE_UTILS)
-	if(${HEADER_CORE_UTILS} EQUAL -1)
+	string(FIND ${HEADER_SANITIZED_FILENAME} "acl_core_utils.h" HEADER_CORE_UTILS)
+	if(NOT ${HEADER_CORE_UTILS} EQUAL -1)
 		continue()
 	endif()
 
@@ -53,3 +53,10 @@ create_source_groups("${ALL_MAIN_SOURCE_FILES}" ${PROJECT_SOURCE_DIR})
 add_library(${PROJECT_NAME} STATIC ${ALL_MAIN_SOURCE_FILES})
 
 setup_default_compiler_flags(${PROJECT_NAME})
+
+if(MSVC)
+	if(CPU_INSTRUCTION_SET MATCHES "arm64")
+		# Exceptions are not enabled by default for ARM targets, enable them
+		target_compile_options(${PROJECT_NAME} PRIVATE /EHsc)
+	endif()
+endif()
