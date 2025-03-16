@@ -50,6 +50,8 @@ file(GLOB_RECURSE ALL_MAIN_SOURCE_FILES LIST_DIRECTORIES false
 
 create_source_groups("${ALL_MAIN_SOURCE_FILES}" ${PROJECT_SOURCE_DIR})
 
+add_library(${PROJECT_NAME} STATIC ${ALL_MAIN_SOURCE_FILES})
+
 setup_default_compiler_flags(${PROJECT_NAME})
 
 if(MSVC)
@@ -58,5 +60,3 @@ if(MSVC)
 		target_compile_options(${PROJECT_NAME} PRIVATE /EHsc)
 	endif()
 endif()
-
-add_library(${PROJECT_NAME} STATIC ${ALL_MAIN_SOURCE_FILES})
