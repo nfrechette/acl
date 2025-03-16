@@ -46,15 +46,15 @@ namespace acl
 	{
 		struct frame_tier_mapping
 		{
-			const uint8_t* animated_data;			// Pointer to the segment's animated data which contains this frame
+			const uint8_t* animated_data = nullptr;	// Pointer to the segment's animated data which contains this frame
 
-			uint32_t tracks_index;
-			uint32_t segment_index;
-			uint32_t clip_frame_index;
-			uint32_t segment_frame_index;
-			uint32_t frame_bit_size;				// Size in bits of this frame
+			uint32_t tracks_index = k_invalid_track_index;
+			uint32_t segment_index = 0;
+			uint32_t clip_frame_index = 0;
+			uint32_t segment_frame_index = 0;
+			uint32_t frame_bit_size = 0;			// Size in bits of this frame
 
-			float contributing_error;
+			float contributing_error = 0.0F;
 		};
 
 		struct database_tier_mapping

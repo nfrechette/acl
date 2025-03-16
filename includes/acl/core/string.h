@@ -48,18 +48,18 @@ namespace acl
 	public:
 		string() noexcept : m_allocator(nullptr), m_c_str(nullptr) {}
 
-		string(iallocator& allocator, const char* c_str, size_t length)
+		string(iallocator& allocator, const char* str, size_t length)
 			: m_allocator(&allocator)
 		{
 			if (length > 0)
 			{
 #if defined(ACL_HAS_ASSERT_CHECKS) && !defined(NDEBUG)
 				for (size_t i = 0; i < length; ++i)
-					ACL_ASSERT(c_str[i] != '\0', "String cannot contain NULL terminators");
+					ACL_ASSERT(str[i] != '\0', "String cannot contain NULL terminators");
 #endif
 
 				m_c_str = allocate_type_array<char>(allocator, length + 1);
-				std::memcpy(m_c_str, c_str, length);
+				std::memcpy(m_c_str, str, length);
 				m_c_str[length] = '\0';
 			}
 			else
@@ -68,8 +68,8 @@ namespace acl
 			}
 		}
 
-		string(iallocator& allocator, const char* c_str)
-			: string(allocator, c_str, c_str != nullptr ? std::strlen(c_str) : 0)
+		string(iallocator& allocator, const char* str)
+			: string(allocator, str, str != nullptr ? std::strlen(str) : 0)
 		{}
 
 		string(iallocator& allocator, const string& str)
@@ -100,20 +100,20 @@ namespace acl
 			return *this;
 		}
 
-		bool operator==(const char* c_str) const noexcept
+		bool operator==(const char* other) const noexcept
 		{
 			const size_t this_length = m_c_str == nullptr ? 0 : std::strlen(m_c_str);
-			const size_t other_length = c_str == nullptr ? 0 : std::strlen(c_str);
+			const size_t other_length = other == nullptr ? 0 : std::strlen(other);
 			if (this_length != other_length)
 				return false;
 
 			if (this_length == 0)
 				return true;
 
-			return std::memcmp(m_c_str, c_str, other_length) == 0;
+			return std::memcmp(m_c_str, other, other_length) == 0;
 		}
 
-		bool operator!=(const char* c_str) const noexcept { return !(*this == c_str); }
+		bool operator!=(const char* other) const noexcept { return !(*this == other); }
 
 		bool operator==(const string& other) const noexcept { return (*this == other.c_str()); }
 		bool operator!=(const string& other) const noexcept { return !(*this == other.c_str()); }
