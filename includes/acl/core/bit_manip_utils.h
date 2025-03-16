@@ -191,11 +191,11 @@ namespace acl
 	{
 #if defined(ACL_BMI_INTRINSICS)
 		// Use BMI
-#if defined(RTM_COMPILER_GCC) && !defined(_andn_u32)
+	#if defined(RTM_COMPILER_GCC) && !defined(_andn_u32)
 		return __andn_u32(not_value, and_value);	// GCC doesn't define the right intrinsic symbol
-#else
+	#else
 		return _andn_u32(not_value, and_value);
-#endif
+	#endif
 #else
 		return ~not_value & and_value;
 #endif
