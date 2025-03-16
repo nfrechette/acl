@@ -18,7 +18,7 @@ jobs:
         id: check-secrets
         run: |
           if [ ! -z "${{ secrets.SONAR_TOKEN }}" ]; then
-            echo "ok::true" >> $GITHUB_OUTPUT
+            echo "ok=true" >> $GITHUB_OUTPUT
           fi
   vs2022:
     needs:
