@@ -18,7 +18,7 @@ jobs:
         id: check-secrets
         run: |
           if [ ! -z "${{ secrets.SONAR_TOKEN }}" ]; then
-            echo "::set-output name=ok::true"
+            echo "ok::true" >> $GITHUB_OUTPUT
           fi
   vs2022:
     needs:
@@ -42,11 +42,11 @@ jobs:
       - name: Upload SARIF to GitHub
         # Can only upload SARIF if we don't come from a fork
         if: ${{ needs.condition-check.outputs.ok == 'true' }}
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: ${{ steps.run-analysis.outputs.sarif }}
       - name: Upload SARIF as an Artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: sarif-file
           path: ${{ steps.run-analysis.outputs.sarif }}
