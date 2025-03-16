@@ -67,6 +67,10 @@
 	#include <immintrin.h>		// Intel documentation says _andn_u32 and others are here
 #endif
 
+#if defined(RTM_COMPILER_MSVC)
+	#include <intrin.h>
+#endif
+
 ACL_IMPL_FILE_PRAGMA_PUSH
 
 #if defined(RTM_COMPILER_MSVC)
