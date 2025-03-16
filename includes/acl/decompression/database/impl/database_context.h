@@ -25,6 +25,9 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/version.h"
+#include "acl/core/compressed_database.h"
+#include "acl/core/iallocator.h"
+#include "acl/decompression/database/database_streamer.h"
 #include "acl/core/impl/compiler_utils.h"
 
 #include <cstdint>
