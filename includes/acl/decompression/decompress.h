@@ -29,7 +29,7 @@
 #include "acl/core/compressed_tracks.h"
 #include "acl/core/compressed_tracks_version.h"
 #include "acl/core/error.h"
-#include "acl/core/floating_point_exceptions.h"
+#include "acl/core/floating_point_control.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/interpolation_utils.h"
 #include "acl/core/track_formats.h"

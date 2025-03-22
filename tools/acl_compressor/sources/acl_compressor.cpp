@@ -110,7 +110,7 @@
 #endif
 
 #include "acl/core/ansi_allocator.h"
-#include "acl/core/floating_point_exceptions.h"
+#include "acl/core/floating_point_control.h"
 #include "acl/core/string.h"
 #include "acl/core/impl/debug_track_writer.h"
 #include "acl/compression/compress.h"

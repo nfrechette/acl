@@ -27,7 +27,7 @@
 // Included only once from pre_process.h
 
 #include "acl/version.h"
-#include "acl/core/floating_point_exceptions.h"
+#include "acl/core/floating_point_control.h"
 #include "acl/compression/impl/pre_process.scalar.h"
 #include "acl/compression/impl/pre_process.transform.h"
 

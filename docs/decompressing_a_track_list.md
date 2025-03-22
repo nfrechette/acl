@@ -31,7 +31,7 @@ The API is the same for scalar and joint transform tracks. For optimal code gene
 
 ## Floating point exceptions
 
-For performance reasons, the decompression code assumes that the caller has already disabled all floating point exceptions. This avoids the need to save/restore them with every call. ACL provides helpers in [acl/core/floating_point_exceptions.h](..\includes\acl\core\floating_point_exceptions.h) to assist and optionally this behavior can be controlled by overriding `decompression_settings::disable_fp_exeptions()`.
+For performance reasons, the decompression code assumes that the caller has already disabled all floating point exceptions. This avoids the need to save/restore them with every call. ACL provides helpers in [acl/core/floating_point_control.h](..\includes\acl\core\floating_point_control.h) to assist and optionally this behavior can be controlled by overriding `decompression_settings::disable_fp_exeptions()`.
 
 ## Backwards compatibility
 

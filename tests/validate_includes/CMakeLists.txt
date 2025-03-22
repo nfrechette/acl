@@ -31,8 +31,12 @@ foreach(HEADER_FILE ${ALL_PUBLIC_HEADER_FILES})
 	string(REPLACE "\\" "_" HEADER_SANITIZED_FILENAME ${HEADER_SANITIZED_FILENAME})
 
 	# Skip deprecated headers
-	string(FIND ${HEADER_SANITIZED_FILENAME} "acl_core_utils.h" HEADER_CORE_UTILS)
-	if(NOT ${HEADER_CORE_UTILS} EQUAL -1)
+	string(FIND ${HEADER_SANITIZED_FILENAME} "acl_core_utils.h" HEADER_IS_DEPRECATED)
+	if(NOT ${HEADER_IS_DEPRECATED} EQUAL -1)
+		continue()
+	endif()
+	string(FIND ${HEADER_SANITIZED_FILENAME} "acl_core_floating_point_exceptions.h" HEADER_IS_DEPRECATED)
+	if(NOT ${HEADER_IS_DEPRECATED} EQUAL -1)
 		continue()
 	endif()
 
