@@ -84,3 +84,13 @@
 // When using the acl::ansi_allocator
 // You can disable all allocator sanitizing by defining ACL_NO_ALLOCATOR_SANITIZING
 //#define ACL_NO_ALLOCATOR_SANITIZING
+
+// Popcount intrinsic support can be enabled by defining ACL_USE_POPCOUNT
+// Note that this is a hardware feature and if the CPU does not support it, the
+// behavior is undefined. Make sure your platform supports it before enabling this.
+//#define ACL_USE_POPCOUNT
+
+// BMI intrinsic support can be enabled by defining ACL_BMI_INTRINSICS
+// Note that this is a hardware feature and if the CPU does not support it, the
+// behavior is undefined. Make sure your platform supports it before enabling this.
+//#define ACL_BMI_INTRINSICS
