@@ -143,21 +143,26 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 //////////////////////////////////////////////////////////////////////////
 
-// Allow deprecation support
-#if defined(__has_cpp_attribute) && RTM_CPP_VERSION >= RTM_CPP_VERSION_14
-	#if __has_cpp_attribute(deprecated)
-		#define ACL_DEPRECATED(msg) [[deprecated(msg)]]
+// Use ACL_NO_DEPRECATION to disable all deprecation warnings
+#if !defined(ACL_NO_DEPRECATION)
+	#if defined(__has_cpp_attribute) && RTM_CPP_VERSION >= RTM_CPP_VERSION_14
+		#if __has_cpp_attribute(deprecated)
+			#define ACL_DEPRECATED(msg) [[deprecated(msg)]]
+		#endif
+	#endif
+
+	#if !defined(ACL_DEPRECATED)
+		#if defined(RTM_COMPILER_GCC) || defined(RTM_COMPILER_CLANG)
+			#define ACL_DEPRECATED(msg) __attribute__((deprecated))
+		#elif defined(RTM_COMPILER_MSVC)
+			#define ACL_DEPRECATED(msg) __declspec(deprecated)
+		#endif
 	#endif
 #endif
 
+// If not defined, suppress all deprecation warnings
 #if !defined(ACL_DEPRECATED)
-	#if defined(RTM_COMPILER_GCC) || defined(RTM_COMPILER_CLANG)
-		#define ACL_DEPRECATED(msg) __attribute__((deprecated))
-	#elif defined(RTM_COMPILER_MSVC)
-		#define ACL_DEPRECATED(msg) __declspec(deprecated)
-	#else
-		#define ACL_DEPRECATED(msg)
-	#endif
+	#define ACL_DEPRECATED(msg)
 #endif
 
 ACL_IMPL_FILE_PRAGMA_POP

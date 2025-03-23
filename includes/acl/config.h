@@ -77,3 +77,6 @@
 #if !defined(ACL_ASSERT_STRING_FORMAT_SPECIFIER)
 	#define ACL_ASSERT_STRING_FORMAT_SPECIFIER "%s"
 #endif
+
+// You can disable deprecation warnings by defining ACL_NO_DEPRECATION
+//#define ACL_NO_DEPRECATION
