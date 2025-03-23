@@ -101,7 +101,7 @@ namespace acl
 	// Enables flushing floating point denormals to zero.
 	inline void enable_flush_to_zero_fp_denormals(fp_environment& out_old_env)
 	{
-#if defined(RTM_SSE2_INTRINSICS)
+#if defined(RTM_SSE3_INTRINSICS)
 		// We only care about SSE and not x87
 		// Cache the flush to zero mask we had so we can restore it later
 		out_old_env.flush_zero_mode = _MM_GET_FLUSH_ZERO_MODE();
@@ -118,7 +118,7 @@ namespace acl
 	// Disables flushing floating point denormals to zero.
 	inline void disable_flush_to_zero_fp_denormals(fp_environment& out_old_env)
 	{
-#if defined(RTM_SSE2_INTRINSICS)
+#if defined(RTM_SSE3_INTRINSICS)
 		// We only care about SSE and not x87
 		// Cache the flush to zero mask we had so we can restore it later
 		out_old_env.flush_zero_mode = _MM_GET_FLUSH_ZERO_MODE();
@@ -135,7 +135,7 @@ namespace acl
 	// Restores a previously set floating point flush-to-zero state.
 	inline void restore_flush_to_zero_fp_denormals(const fp_environment& env)
 	{
-#if defined(RTM_SSE2_INTRINSICS)
+#if defined(RTM_SSE3_INTRINSICS)
 		// We only care about SSE and not x87
 		// Restore our old value
 		_MM_SET_FLUSH_ZERO_MODE(env.flush_zero_mode);
