@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/config.h"
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 
@@ -33,6 +34,8 @@
 // Include atomic header and polyfill what is missing for proper C++11 support
 //////////////////////////////////////////////////////////////////////////
 #include <atomic>
+
+// See config.h for details on how to configure std::memory_order usage for your project
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
@@ -46,7 +49,7 @@ namespace acl
 		// C++20 deprecated and renamed some std::memory_order members
 		//////////////////////////////////////////////////////////////////////////
 
-	#if RTM_CPP_VERSION >= RTM_CPP_VERSION_20
+	#if RTM_CPP_VERSION >= RTM_CPP_VERSION_20 && !defined(ACL_USE_CPP11_STD_MEMORY_ORDER)
 		constexpr std::memory_order k_memory_order_relaxed = std::memory_order::relaxed;
 	#else
 		constexpr std::memory_order k_memory_order_relaxed = std::memory_order::memory_order_relaxed;

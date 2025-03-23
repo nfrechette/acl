@@ -94,3 +94,8 @@
 // Note that this is a hardware feature and if the CPU does not support it, the
 // behavior is undefined. Make sure your platform supports it before enabling this.
 //#define ACL_BMI_INTRINSICS
+
+// If you use C++20 or greater, you can use older C++11 std::memory_order entries by defining ACL_USE_CPP11_STD_MEMORY_ORDER.
+// This is sometimes necessary if you compile with a modern compiler version but use an older stdlib
+// that does not contain the necessary enum entries
+//#define ACL_USE_CPP11_STD_MEMORY_ORDER
