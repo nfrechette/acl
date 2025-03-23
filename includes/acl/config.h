@@ -80,3 +80,7 @@
 
 // You can disable deprecation warnings by defining ACL_NO_DEPRECATION
 //#define ACL_NO_DEPRECATION
+
+// When using the acl::ansi_allocator
+// You can disable all allocator sanitizing by defining ACL_NO_ALLOCATOR_SANITIZING
+//#define ACL_NO_ALLOCATOR_SANITIZING
