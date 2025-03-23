@@ -27,6 +27,8 @@
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 
+#include <rtm/math.h>
+
 //////////////////////////////////////////////////////////////////////////
 // Include atomic header and polyfill what is missing for proper C++11 support
 //////////////////////////////////////////////////////////////////////////
@@ -44,9 +46,7 @@ namespace acl
 		// C++20 deprecated and renamed some std::memory_order members
 		//////////////////////////////////////////////////////////////////////////
 
-	#if defined(__cplusplus) && __cplusplus >= 202002L
-		constexpr std::memory_order k_memory_order_relaxed = std::memory_order::relaxed;
-	#elif defined(_MSVC_LANG) && _MSVC_LANG >= 202002L
+	#if RTM_CPP_VERSION >= RTM_CPP_VERSION_20
 		constexpr std::memory_order k_memory_order_relaxed = std::memory_order::relaxed;
 	#else
 		constexpr std::memory_order k_memory_order_relaxed = std::memory_order::memory_order_relaxed;
