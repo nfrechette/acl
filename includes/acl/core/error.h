@@ -32,51 +32,7 @@
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
-//////////////////////////////////////////////////////////////////////////
-// This library uses a simple system to handle asserts. Asserts are fatal and must terminate
-// otherwise the behavior is undefined if execution continues.
-//
-// A total of 4 behaviors are supported:
-//    - We can print to stderr and abort
-//    - We can throw and exception
-//    - We can call a custom function
-//    - Do nothing and strip the check at compile time (default behavior)
-//
-// Aborting:
-//    In order to enable the aborting behavior, simply define the macro ACL_ON_ASSERT_ABORT:
-//    #define ACL_ON_ASSERT_ABORT
-//
-// Throwing:
-//    In order to enable the throwing behavior, simply define the macro ACL_ON_ASSERT_THROW:
-//    #define ACL_ON_ASSERT_THROW
-//    Note that the type of the exception thrown is acl::runtime_assert.
-//
-// Custom function:
-//    In order to enable the custom function calling behavior, define the macro ACL_ON_ASSERT_CUSTOM
-//    with the name of the function to call:
-//    #define ACL_ON_ASSERT_CUSTOM on_custom_assert_impl
-//    Note that the function signature is as follow:
-//    void on_custom_assert_impl(const char* expression, int line, const char* file, const char* format, ...) {}
-//
-//    You can also define your own assert implementation by defining the ACL_ASSERT macro as well:
-//    #define ACL_ON_ASSERT_CUSTOM
-//    #define ACL_ASSERT(expression, format, ...) checkf(expression, ANSI_TO_TCHAR(format), #__VA_ARGS__)
-//
-//    [Custom String Format Specifier]
-//    Note that if you use a custom function, you may need to override the ACL_ASSERT_STRING_FORMAT_SPECIFIER
-//    to properly handle ANSI/Unicode support. The C++11 standard does not support a way to say that '%s'
-//    always means an ANSI string (with 'const char*' as type). MSVC does support '%hs' but other compilers
-//    do not.
-//
-// No checks:
-//    By default if no macro mentioned above is defined, all asserts will be stripped
-//    at compile time.
-//////////////////////////////////////////////////////////////////////////
-
-// See [Custom String Format Specifier] for details
-#if !defined(ACL_ASSERT_STRING_FORMAT_SPECIFIER)
-	#define ACL_ASSERT_STRING_FORMAT_SPECIFIER "%s"
-#endif
+// See config.h for details on how to configure asserts for your project
 
 #if defined(ACL_ON_ASSERT_ABORT)
 
