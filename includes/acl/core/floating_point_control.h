@@ -35,9 +35,7 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-	//////////////////////////////////////////////////////////////////////////
 	// Stores the floating point environment information.
-	//////////////////////////////////////////////////////////////////////////
 	struct fp_environment
 	{
 #if defined(RTM_SSE2_INTRINSICS)
@@ -55,8 +53,10 @@ namespace acl
 		// We only care about SSE and not x87
 		// Clear any exceptions that might have been raised already
 		_MM_SET_EXCEPTION_STATE(0);
+
 		// Cache the exception mask we had so we can restore it later
 		out_old_env.exception_mask = _MM_GET_EXCEPTION_MASK();
+
 		// Enable our exceptions
 		const unsigned int exception_flags = _MM_MASK_INVALID | _MM_MASK_DIV_ZERO | _MM_MASK_OVERFLOW;
 		_MM_SET_EXCEPTION_MASK(~exception_flags & _MM_MASK_MASK);
@@ -72,6 +72,7 @@ namespace acl
 		// We only care about SSE and not x87
 		// Cache the exception mask we had so we can restore it later
 		out_old_env.exception_mask = _MM_GET_EXCEPTION_MASK();
+
 		// Disable all exceptions
 		_MM_SET_EXCEPTION_MASK(_MM_MASK_MASK);
 #else
@@ -79,13 +80,14 @@ namespace acl
 #endif
 	}
 
-	// Restores a previously set floating point environment.
+	// Restores a previously set floating point exception state.
 	inline void restore_fp_exceptions(const fp_environment& env)
 	{
 #if defined(RTM_SSE2_INTRINSICS)
 		// We only care about SSE and not x87
 		// Clear any exceptions that might have been raised already
 		_MM_SET_EXCEPTION_STATE(0);
+
 		// Restore our old mask value
 		_MM_SET_EXCEPTION_MASK(env.exception_mask);
 #else
