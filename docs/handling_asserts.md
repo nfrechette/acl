@@ -9,7 +9,7 @@ A total of 4 behaviors are supported:
 *  We can call a custom function
 *  Do nothing and strip the check at compile time (**default behavior**)
 
-Everything necessary is implemented in [**acl/core/error.h**](../includes/acl/core/error.h).
+Everything necessary is implemented in [**acl/core/error.h**](../includes/acl/core/error.h). See [**acl/config.h**](../includes/acl/config.h) for details.
 
 *Note: It is **NOT** possible to have different assert behaviors in two or more C++ files. All the C++ files within your static or dynamic library that reference ACL must all use the same assert handling strategy. In other words, you cannot enable the asserts for compression and disable them for decompression if the code lives within the same static or dynamic library.
 

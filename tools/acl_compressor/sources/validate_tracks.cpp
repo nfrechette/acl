@@ -25,7 +25,7 @@
 #include "acl_compressor.h"
 
 #include "acl/core/compressed_tracks.h"
-#include "acl/core/floating_point_exceptions.h"
+#include "acl/core/floating_point_control.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/impl/bit_cast.impl.h"
 #include "acl/compression/compress.h"

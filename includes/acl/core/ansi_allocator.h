@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/config.h"
 #include "acl/version.h"
 #include "acl/core/impl/bit_cast.impl.h"
 #include "acl/core/impl/compiler_utils.h"
@@ -35,6 +36,8 @@
 #elif defined(_WIN32)
 	#include <malloc.h>
 #endif
+
+// See config.h for details on how to configure the ansi_allocator for your project
 
 // This sets a predictable pattern on freshly allocated memory (0xCDCD..) and sets
 // another pattern on freed memory (0xFEFE..).

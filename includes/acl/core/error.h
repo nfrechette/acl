@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/config.h"
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 
@@ -32,51 +33,7 @@
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
-//////////////////////////////////////////////////////////////////////////
-// This library uses a simple system to handle asserts. Asserts are fatal and must terminate
-// otherwise the behavior is undefined if execution continues.
-//
-// A total of 4 behaviors are supported:
-//    - We can print to stderr and abort
-//    - We can throw and exception
-//    - We can call a custom function
-//    - Do nothing and strip the check at compile time (default behavior)
-//
-// Aborting:
-//    In order to enable the aborting behavior, simply define the macro ACL_ON_ASSERT_ABORT:
-//    #define ACL_ON_ASSERT_ABORT
-//
-// Throwing:
-//    In order to enable the throwing behavior, simply define the macro ACL_ON_ASSERT_THROW:
-//    #define ACL_ON_ASSERT_THROW
-//    Note that the type of the exception thrown is acl::runtime_assert.
-//
-// Custom function:
-//    In order to enable the custom function calling behavior, define the macro ACL_ON_ASSERT_CUSTOM
-//    with the name of the function to call:
-//    #define ACL_ON_ASSERT_CUSTOM on_custom_assert_impl
-//    Note that the function signature is as follow:
-//    void on_custom_assert_impl(const char* expression, int line, const char* file, const char* format, ...) {}
-//
-//    You can also define your own assert implementation by defining the ACL_ASSERT macro as well:
-//    #define ACL_ON_ASSERT_CUSTOM
-//    #define ACL_ASSERT(expression, format, ...) checkf(expression, ANSI_TO_TCHAR(format), #__VA_ARGS__)
-//
-//    [Custom String Format Specifier]
-//    Note that if you use a custom function, you may need to override the ACL_ASSERT_STRING_FORMAT_SPECIFIER
-//    to properly handle ANSI/Unicode support. The C++11 standard does not support a way to say that '%s'
-//    always means an ANSI string (with 'const char*' as type). MSVC does support '%hs' but other compilers
-//    do not.
-//
-// No checks:
-//    By default if no macro mentioned above is defined, all asserts will be stripped
-//    at compile time.
-//////////////////////////////////////////////////////////////////////////
-
-// See [Custom String Format Specifier] for details
-#if !defined(ACL_ASSERT_STRING_FORMAT_SPECIFIER)
-	#define ACL_ASSERT_STRING_FORMAT_SPECIFIER "%s"
-#endif
+// See config.h for details on how to configure asserts for your project
 
 #if defined(ACL_ON_ASSERT_ABORT)
 
@@ -187,21 +144,26 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 
 //////////////////////////////////////////////////////////////////////////
 
-// Allow deprecation support
-#if defined(__has_cpp_attribute) && RTM_CPP_VERSION >= RTM_CPP_VERSION_14
-	#if __has_cpp_attribute(deprecated)
-		#define ACL_DEPRECATED(msg) [[deprecated(msg)]]
+// Use ACL_NO_DEPRECATION to disable all deprecation warnings
+#if !defined(ACL_NO_DEPRECATION)
+	#if defined(__has_cpp_attribute) && RTM_CPP_VERSION >= RTM_CPP_VERSION_14
+		#if __has_cpp_attribute(deprecated)
+			#define ACL_DEPRECATED(msg) [[deprecated(msg)]]
+		#endif
+	#endif
+
+	#if !defined(ACL_DEPRECATED)
+		#if defined(RTM_COMPILER_GCC) || defined(RTM_COMPILER_CLANG)
+			#define ACL_DEPRECATED(msg) __attribute__((deprecated))
+		#elif defined(RTM_COMPILER_MSVC)
+			#define ACL_DEPRECATED(msg) __declspec(deprecated)
+		#endif
 	#endif
 #endif
 
+// If not defined, suppress all deprecation warnings
 #if !defined(ACL_DEPRECATED)
-	#if defined(RTM_COMPILER_GCC) || defined(RTM_COMPILER_CLANG)
-		#define ACL_DEPRECATED(msg) __attribute__((deprecated))
-	#elif defined(RTM_COMPILER_MSVC)
-		#define ACL_DEPRECATED(msg) __declspec(deprecated)
-	#else
-		#define ACL_DEPRECATED(msg)
-	#endif
+	#define ACL_DEPRECATED(msg)
 #endif
 
 ACL_IMPL_FILE_PRAGMA_POP

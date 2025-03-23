@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/config.h"
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/error.h"
@@ -32,7 +33,8 @@
 
 #include <cstdint>
 
-// Popcount intrinsic support
+// See config.h for details on how to configure the hardware bitscan features for your project
+
 #if !defined(ACL_USE_POPCOUNT) && !defined(RTM_NO_INTRINSICS)
 	// TODO: Enable this for other publicly available console defines as well
 	#if defined(_DURANGO) || defined(_XBOX_ONE)
@@ -42,6 +44,7 @@
 #endif
 
 #if defined(ACL_USE_POPCOUNT)
+	// The popcount intrinsic is enabled
 	#include <nmmintrin.h>
 #endif
 
@@ -63,6 +66,7 @@
 #endif
 
 #if defined(ACL_BMI_INTRINSICS)
+	// BMI intrinsics are enabled
 	#include <ammintrin.h>		// MSVC uses this header for _andn_u32 BMI intrinsic
 	#include <immintrin.h>		// Intel documentation says _andn_u32 and others are here
 #endif

@@ -32,7 +32,7 @@
 #include "acl/core/compressed_tracks_version.h"
 #include "acl/core/error.h"
 #include "acl/core/error_result.h"
-#include "acl/core/floating_point_exceptions.h"
+#include "acl/core/floating_point_control.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/scope_profiler.h"
 #include "acl/core/impl/bit_cast.impl.h"
