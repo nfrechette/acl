@@ -485,7 +485,7 @@ namespace acl
 			else
 			{
 				// If we have no rotation delta, then the transform error is just the translation error: the delta length
-				max_delta_transform_error_sq = acl_impl::vector_distance_squared3_as_scalar(raw_transform_d.translation, lossy_transform_d.translation);
+				max_delta_transform_error_sq = rtm::scalar_cast(acl_impl::vector_distance_squared3_as_scalar(raw_transform_d.translation, lossy_transform_d.translation));
 			}
 
 			return rtm::scalar_set((float)max_delta_transform_error_sq);
