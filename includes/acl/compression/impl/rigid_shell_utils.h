@@ -417,7 +417,7 @@ namespace acl
 						local_transform.rotation = rtm::quat_normalize(quat_add(local_transform.rotation, rotation_offset));
 						local_transform.scale = rtm::vector_add(local_transform.scale, scale_offset);
 
-						rtm::scalarf worst_error = rtm::scalar_set(-1.0E10F);
+						rtm::scalarf worst_error_sq = rtm::scalar_set(-1.0E10F);
 						uint32_t worst_descendant_transform_index = k_invalid_track_index;
 
 						for (const uint32_t descendant_transform_index : transform_topology.descendants_iterator())
@@ -451,10 +451,10 @@ namespace acl
 							calculate_error_args.transform0 = &reference_descendant_object_transform;
 							calculate_error_args.transform1 = &descendant_object_transform;
 
-							const rtm::scalarf error = error_metric.calculate_error(calculate_error_args);
-							if (rtm::scalar_greater_than(error, worst_error))
+							const rtm::scalarf error_sq = error_metric.calculate_error_squared(calculate_error_args);
+							if (rtm::scalar_greater_than(error_sq, worst_error_sq))
 							{
-								worst_error = error;
+								worst_error_sq = error_sq;
 								worst_descendant_transform_index = descendant_transform_index;
 							}
 						}

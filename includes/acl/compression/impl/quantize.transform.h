@@ -664,11 +664,11 @@ namespace acl
 			const float clip_duration = context.clip_duration;
 
 			const rigid_shell_metadata_t& transform_shell = context.shell_metadata_per_transform[target_bone_index];
-			const rtm::scalarf error_threshold = rtm::scalar_set(transform_shell.precision);
+			const rtm::scalarf error_threshold_sq = rtm::scalar_set(transform_shell.precision * transform_shell.precision);
 
 			const auto convert_transforms_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::convert_transforms : &itransform_error_metric::convert_transforms_no_scale);
 			const auto apply_additive_to_base_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
-			const auto calculate_error_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::calculate_error : &itransform_error_metric::calculate_error_no_scale);
+			const auto calculate_error_squared_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::calculate_error_squared : &itransform_error_metric::calculate_error_squared_no_scale);
 
 			itransform_error_metric::convert_transforms_args convert_transforms_args_lossy;
 			convert_transforms_args_lossy.dirty_transform_indices = &target_bone_index;
@@ -697,7 +697,7 @@ namespace acl
 			context.local_query.build(target_bone_index, context.bit_rate_per_bone[target_bone_index]);
 
 			float sample_indexf = float(context.segment_sample_start_index);
-			rtm::scalarf max_error = rtm::scalar_set(0.0F);
+			rtm::scalarf max_error_sq = rtm::scalar_set(0.0F);
 
 			for (uint32_t sample_index = 0; sample_index < context.num_samples; ++sample_index)
 			{
@@ -729,20 +729,20 @@ namespace acl
 
 #if defined(RTM_COMPILER_MSVC) && defined(RTM_ARCH_X86) && RTM_COMPILER_MSVC == RTM_COMPILER_MSVC_2015
 				// VS2015 fails to generate the right x86 assembly, branch instead
-				(void)calculate_error_impl;
-				const rtm::scalarf error = context.has_scale ? error_metric->calculate_error(calculate_error_args) : error_metric->calculate_error_no_scale(calculate_error_args);
+				(void)calculate_error_squared_impl;
+				const rtm::scalarf error_sq = context.has_scale ? error_metric->calculate_error_squared(calculate_error_args) : error_metric->calculate_error_squared_no_scale(calculate_error_args);
 #else
-				const rtm::scalarf error = calculate_error_impl(error_metric, calculate_error_args);
+				const rtm::scalarf error_sq = calculate_error_squared_impl(error_metric, calculate_error_args);
 #endif
 
-				max_error = rtm::scalar_max(max_error, error);
-				if (stop_condition == error_scan_stop_condition::until_error_too_high && rtm::scalar_greater_equal(error, error_threshold))
+				max_error_sq = rtm::scalar_max(max_error_sq, error_sq);
+				if (stop_condition == error_scan_stop_condition::until_error_too_high && rtm::scalar_greater_equal(error_sq, error_threshold_sq))
 					break;
 
 				sample_indexf += 1.0F;
 			}
 
-			return rtm::scalar_cast(max_error);
+			return rtm::scalar_cast(rtm::scalar_sqrt(max_error_sq));
 		}
 
 		inline float calculate_max_error_at_bit_rate_object(quantization_context& context, uint32_t target_bone_index, error_scan_stop_condition stop_condition, bool use_dominance = true)
@@ -770,10 +770,12 @@ namespace acl
 				error_threshold = rtm::scalar_set(context.metadata[target_bone_index].precision);
 			}
 
+			const rtm::scalarf error_threshold_sq = rtm::scalar_mul(error_threshold, error_threshold);
+
 			const auto convert_transforms_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::convert_transforms : &itransform_error_metric::convert_transforms_no_scale);
 			const auto apply_additive_to_base_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
 			const auto local_to_object_space_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::local_to_object_space : &itransform_error_metric::local_to_object_space_no_scale);
-			const auto calculate_error_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::calculate_error : &itransform_error_metric::calculate_error_no_scale);
+			const auto calculate_error_squared_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::calculate_error_squared : &itransform_error_metric::calculate_error_squared_no_scale);
 
 			itransform_error_metric::convert_transforms_args convert_transforms_args_lossy;
 			convert_transforms_args_lossy.dirty_transform_indices = context.chain_bone_indices;
@@ -809,7 +811,7 @@ namespace acl
 			context.object_query.build(target_bone_index, context.bit_rate_per_bone, context.bone_streams);
 
 			float sample_indexf = float(context.segment_sample_start_index);
-			rtm::scalarf max_error = rtm::scalar_set(0.0F);
+			rtm::scalarf max_error_sq = rtm::scalar_set(0.0F);
 
 			for (uint32_t sample_index = 0; sample_index < context.num_samples; ++sample_index)
 			{
@@ -843,20 +845,20 @@ namespace acl
 
 #if defined(RTM_COMPILER_MSVC) && defined(RTM_ARCH_X86) && RTM_COMPILER_MSVC == RTM_COMPILER_MSVC_2015
 				// VS2015 fails to generate the right x86 assembly, branch instead
-				(void)calculate_error_impl;
-				const rtm::scalarf error = context.has_scale ? error_metric->calculate_error(calculate_error_args) : error_metric->calculate_error_no_scale(calculate_error_args);
+				(void)calculate_error_squared_impl;
+				const rtm::scalarf error_sq = context.has_scale ? error_metric->calculate_error_squared(calculate_error_args) : error_metric->calculate_error_squared_no_scale(calculate_error_args);
 #else
-				const rtm::scalarf error = calculate_error_impl(error_metric, calculate_error_args);
+				const rtm::scalarf error_sq = calculate_error_squared_impl(error_metric, calculate_error_args);
 #endif
 
-				max_error = rtm::scalar_max(max_error, error);
-				if (stop_condition == error_scan_stop_condition::until_error_too_high && rtm::scalar_greater_equal(error, error_threshold))
+				max_error_sq = rtm::scalar_max(max_error_sq, error_sq);
+				if (stop_condition == error_scan_stop_condition::until_error_too_high && rtm::scalar_greater_equal(error_sq, error_threshold_sq))
 					break;
 
 				sample_indexf += 1.0F;
 			}
 
-			return rtm::scalar_cast(max_error);
+			return rtm::scalar_cast(rtm::scalar_sqrt(max_error_sq));
 		}
 
 #if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_SUMMARY_ONLY
@@ -883,7 +885,7 @@ namespace acl
 			const auto convert_transforms_impl = std::mem_fn(has_scale ? &itransform_error_metric::convert_transforms : &itransform_error_metric::convert_transforms_no_scale);
 			const auto apply_additive_to_base_impl = std::mem_fn(has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
 			const auto local_to_object_space_impl = std::mem_fn(has_scale ? &itransform_error_metric::local_to_object_space : &itransform_error_metric::local_to_object_space_no_scale);
-			const auto calculate_error_impl = std::mem_fn(has_scale ? &itransform_error_metric::calculate_error : &itransform_error_metric::calculate_error_no_scale);
+			const auto calculate_error_squared_impl = std::mem_fn(has_scale ? &itransform_error_metric::calculate_error_squared : &itransform_error_metric::calculate_error_squared_no_scale);
 
 			itransform_error_metric::convert_transforms_args convert_transforms_args_lossy;
 			convert_transforms_args_lossy.dirty_transform_indices = chain_transform_indices;
@@ -919,7 +921,7 @@ namespace acl
 			context.object_query.build(transform_index_to_measure, context.bit_rate_per_bone, context.bone_streams);
 
 			float sample_indexf = float(context.segment_sample_start_index);
-			rtm::scalarf max_error = rtm::scalar_set(0.0F);
+			rtm::scalarf max_error_sq = rtm::scalar_set(0.0F);
 
 			for (uint32_t sample_index = 0; sample_index < context.num_samples; ++sample_index)
 			{
@@ -953,17 +955,17 @@ namespace acl
 
 #if defined(RTM_COMPILER_MSVC) && defined(RTM_ARCH_X86) && RTM_COMPILER_MSVC == RTM_COMPILER_MSVC_2015
 				// VS2015 fails to generate the right x86 assembly, branch instead
-				(void)calculate_error_impl;
-				const rtm::scalarf error = has_scale ? error_metric->calculate_error(calculate_error_args) : error_metric->calculate_error_no_scale(calculate_error_args);
+				(void)calculate_error_squared_impl;
+				const rtm::scalarf error_sq = has_scale ? error_metric->calculate_error_squared(calculate_error_args) : error_metric->calculate_error_squared_no_scale(calculate_error_args);
 #else
-				const rtm::scalarf error = calculate_error_impl(error_metric, calculate_error_args);
+				const rtm::scalarf error_sq = calculate_error_squared_impl(error_metric, calculate_error_args);
 #endif
 
-				max_error = rtm::scalar_max(max_error, error);
+				max_error_sq = rtm::scalar_max(max_error_sq, error_sq);
 				sample_indexf += 1.0F;
 			}
 
-			return rtm::scalar_cast(max_error);
+			return rtm::scalar_cast(rtm::scalar_sqrt(max_error_sq));
 		}
 #endif
 
@@ -995,8 +997,8 @@ namespace acl
 			context.local_query.build(transform_index_being_optimized, context.bit_rate_per_bone[transform_index_being_optimized]);
 
 			float sample_indexf = float(context.segment_sample_start_index);
-			rtm::scalarf max_error = rtm::scalar_set(0.0F);
-			const rtm::scalarf max_allowed_error_f = rtm::scalar_set(max_allowed_error);
+			rtm::scalarf max_error_sq = rtm::scalar_set(0.0F);
+			const rtm::scalarf max_allowed_error_sq_f = rtm::scalar_set(max_allowed_error * max_allowed_error);
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
@@ -1029,16 +1031,16 @@ namespace acl
 				calculate_error_args.transform0 = &measured_to_root_raw;
 				calculate_error_args.transform1 = &measured_to_root_lossy;
 
-				const rtm::scalarf error = error_metric->calculate_error_no_scale(calculate_error_args);
+				const rtm::scalarf error_sq = error_metric->calculate_error_squared_no_scale(calculate_error_args);
 
-				max_error = rtm::scalar_max(max_error, error);
+				max_error_sq = rtm::scalar_max(max_error_sq, error_sq);
 				sample_indexf += 1.0F;
 
-				if (rtm::scalar_greater_equal(error, max_allowed_error_f))
+				if (rtm::scalar_greater_equal(error_sq, max_allowed_error_sq_f))
 					break;	// The error is too high, early out
 			}
 
-			return rtm::scalar_cast(max_error);
+			return rtm::scalar_cast(rtm::scalar_sqrt(max_error_sq));
 		}
 
 		// For algorithm from ACL 2.2 and later
@@ -1070,8 +1072,8 @@ namespace acl
 			context.local_query.build(transform_index_being_optimized, context.bit_rate_per_bone[transform_index_being_optimized]);
 
 			float sample_indexf = float(context.segment_sample_start_index);
-			rtm::scalarf max_error = rtm::scalar_set(0.0F);
-			const rtm::scalarf max_allowed_error_f = rtm::scalar_set(max_allowed_error);
+			rtm::scalarf max_error_sq = rtm::scalar_set(0.0F);
+			const rtm::scalarf max_allowed_error_sq_f = rtm::scalar_set(max_allowed_error * max_allowed_error);
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
@@ -1111,16 +1113,16 @@ namespace acl
 				calculate_error_args.transform0 = &measured_to_root_raw;
 				calculate_error_args.transform1 = &measured_to_root_lossy;
 
-				const rtm::scalarf error = error_metric->calculate_error(calculate_error_args);
+				const rtm::scalarf error_sq = error_metric->calculate_error_squared(calculate_error_args);
 
-				max_error = rtm::scalar_max(max_error, error);
+				max_error_sq = rtm::scalar_max(max_error_sq, error_sq);
 				sample_indexf += 1.0F;
 
-				if (rtm::scalar_greater_equal(error, max_allowed_error_f))
+				if (rtm::scalar_greater_equal(error_sq, max_allowed_error_sq_f))
 					break;	// The error is too high, early out
 			}
 
-			return rtm::scalar_cast(max_error);
+			return rtm::scalar_cast(rtm::scalar_sqrt(max_error_sq));
 		}
 
 		// For algorithm from ACL 2.2 and later
@@ -2809,7 +2811,7 @@ namespace acl
 					context.bit_rate_database.sample(context.all_local_query, interp_end_time, lossy_transforms_end, num_bones);
 
 					// We'll retain the worst error as the current frame's contributing error.
-					rtm::scalarf max_contributing_error = rtm::scalar_set(0.0F);
+					rtm::scalarf max_contributing_error_sq = rtm::scalar_set(0.0F);
 					bool is_keyframe_trivial = true;
 
 					for (uint32_t interp_frame_index = interp_start_frame_index + 1; interp_frame_index < interp_end_frame_index; ++interp_frame_index)
@@ -2857,14 +2859,15 @@ namespace acl
 
 							// We always include the scale to ensure that when we strip keyframes based on the measured error
 							// the resulting clip error remains consistent
-							const rtm::scalarf error = error_metric->calculate_error(calculate_error_args);
+							const rtm::scalarf error_sq = error_metric->calculate_error_squared(calculate_error_args);
+							const float precision_sq = transform_data.precision * transform_data.precision;
 
-							max_contributing_error = rtm::scalar_max(max_contributing_error, error);
-							is_keyframe_trivial &= rtm::scalar_cast(error) <= transform_data.precision;
+							max_contributing_error_sq = rtm::scalar_max(max_contributing_error_sq, error_sq);
+							is_keyframe_trivial &= rtm::scalar_cast(error_sq) <= precision_sq;
 						}
 					}
 
-					const float max_contributing_errorf = rtm::scalar_cast(max_contributing_error);
+					const float max_contributing_errorf = rtm::scalar_cast(rtm::scalar_sqrt(max_contributing_error_sq));
 
 #if ACL_IMPL_DEBUG_CONTRIBUTING_ERROR
 					printf("    Error between frame [%u, %u] while testing %u: %f\n", interp_start_frame_index, interp_end_frame_index, frame_index, max_contributing_errorf);

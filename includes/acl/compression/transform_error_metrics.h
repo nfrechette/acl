@@ -41,6 +41,28 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
+	// Temporary put here until they are included in RTM
+	namespace acl_impl
+	{
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the distance between two 3D points.
+		//////////////////////////////////////////////////////////////////////////
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE rtm::scalarf RTM_SIMD_CALL vector_distance_squared3_as_scalar(rtm::vector4f_arg0 lhs, rtm::vector4f_arg1 rhs) RTM_NO_EXCEPT
+		{
+			const rtm::vector4f difference = rtm::vector_sub(lhs, rhs);
+			return rtm::vector_length_squared3_as_scalar(difference);
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the distance between two 3D points.
+		//////////////////////////////////////////////////////////////////////////
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE rtm::scalard RTM_SIMD_CALL vector_distance_squared3_as_scalar(rtm::vector4d_arg0 lhs, rtm::vector4d_arg1 rhs) RTM_NO_EXCEPT
+		{
+			const rtm::vector4d difference = rtm::vector_sub(lhs, rhs);
+			return rtm::vector_length_squared3_as_scalar(difference);
+		}
+	}
+
 	//////////////////////////////////////////////////////////////////////////
 	// Interface for all skeletal error metrics.
 	// An error metric is responsible for a few things:
@@ -273,11 +295,25 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Measures the error between a raw and lossy transform.
-		virtual rtm::scalarf RTM_SIMD_CALL calculate_error(const calculate_error_args& args) const = 0;
+		rtm::scalarf RTM_SIMD_CALL calculate_error(const calculate_error_args& args) const
+		{
+			return rtm::scalar_sqrt(calculate_error_squared(args));
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Measures the squared error between a raw and lossy transform.
+		virtual rtm::scalarf RTM_SIMD_CALL calculate_error_squared(const calculate_error_args& args) const = 0;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Measures the error between a raw and lossy transform.
-		virtual rtm::scalarf RTM_SIMD_CALL calculate_error_no_scale(const calculate_error_args& args) const = 0;
+		rtm::scalarf RTM_SIMD_CALL calculate_error_no_scale(const calculate_error_args& args) const
+		{
+			return rtm::scalar_sqrt(calculate_error_squared_no_scale(args));
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Measures the squared error between a raw and lossy transform.
+		virtual rtm::scalarf RTM_SIMD_CALL calculate_error_squared_no_scale(const calculate_error_args& args) const = 0;
 	};
 
 	//////////////////////////////////////////////////////////////////////////
@@ -339,7 +375,7 @@ namespace acl
 			}
 		}
 
-		virtual RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::scalarf RTM_SIMD_CALL calculate_error(const calculate_error_args& args) const override
+		virtual rtm::scalarf RTM_SIMD_CALL calculate_error_squared(const calculate_error_args& args) const override
 		{
 			const rtm::qvvf& raw_transform_ = *static_cast<const rtm::qvvf*>(args.transform0);
 			const rtm::qvvf& lossy_transform_ = *static_cast<const rtm::qvvf*>(args.transform1);
@@ -357,14 +393,14 @@ namespace acl
 			const rtm::vector4f lossy_vtx1 = rtm::qvv_mul_point3(vtx1, lossy_transform_);
 			const rtm::vector4f lossy_vtx2 = rtm::qvv_mul_point3(vtx2, lossy_transform_);
 
-			const rtm::scalarf vtx0_error = rtm::vector_distance3_as_scalar(raw_vtx0, lossy_vtx0);
-			const rtm::scalarf vtx1_error = rtm::vector_distance3_as_scalar(raw_vtx1, lossy_vtx1);
-			const rtm::scalarf vtx2_error = rtm::vector_distance3_as_scalar(raw_vtx2, lossy_vtx2);
+			const rtm::scalarf vtx0_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx0, lossy_vtx0);
+			const rtm::scalarf vtx1_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx1, lossy_vtx1);
+			const rtm::scalarf vtx2_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx2, lossy_vtx2);
 
 			return rtm::scalar_max(rtm::scalar_max(vtx0_error, vtx1_error), vtx2_error);
 		}
 
-		virtual RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::scalarf RTM_SIMD_CALL calculate_error_no_scale(const calculate_error_args& args) const override
+		virtual rtm::scalarf RTM_SIMD_CALL calculate_error_squared_no_scale(const calculate_error_args& args) const override
 		{
 			const rtm::qvvf& raw_transform_ = *static_cast<const rtm::qvvf*>(args.transform0);
 			const rtm::qvvf& lossy_transform_ = *static_cast<const rtm::qvvf*>(args.transform1);
@@ -378,8 +414,8 @@ namespace acl
 			const rtm::vector4f lossy_vtx0 = rtm::qvv_mul_point3_no_scale(vtx0, lossy_transform_);
 			const rtm::vector4f lossy_vtx1 = rtm::qvv_mul_point3_no_scale(vtx1, lossy_transform_);
 
-			const rtm::scalarf vtx0_error = rtm::vector_distance3_as_scalar(raw_vtx0, lossy_vtx0);
-			const rtm::scalarf vtx1_error = rtm::vector_distance3_as_scalar(raw_vtx1, lossy_vtx1);
+			const rtm::scalarf vtx0_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx0, lossy_vtx0);
+			const rtm::scalarf vtx1_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx1, lossy_vtx1);
 
 			return rtm::scalar_max(vtx0_error, vtx1_error);
 		}
@@ -397,7 +433,7 @@ namespace acl
 	public:
 		virtual const char* get_name() const override { return "qvvf_precise_transform_error_metric"; }
 
-		virtual RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::scalarf RTM_SIMD_CALL calculate_error_no_scale(const calculate_error_args& args) const override
+		virtual rtm::scalarf RTM_SIMD_CALL calculate_error_squared_no_scale(const calculate_error_args& args) const override
 		{
 			const rtm::qvvf& raw_transform_ = *static_cast<const rtm::qvvf*>(args.transform0);
 			const rtm::qvvf& lossy_transform_ = *static_cast<const rtm::qvvf*>(args.transform1);
@@ -408,7 +444,7 @@ namespace acl
 			const rtm::qvvd lossy_transform_d = rtm::qvv_normalize(rtm::qvv_cast(lossy_transform_));
 
 			// Our result
-			double max_delta_transform_error = 0.0;
+			double max_delta_transform_error_sq = 0.0;
 
 			// We use the quaternion dot product to determine the cosine of the half angle between the raw
 			// and lossy rotations. If the angle is very small, the absolute value of the dot product will
@@ -444,15 +480,15 @@ namespace acl
 
 				const double inner_full_side = inner_translation_side + max_delta_rotation_error;
 				const double inner_full_side_sq = inner_full_side * inner_full_side;
-				max_delta_transform_error = rtm::scalar_sqrt(delta_translation_along_rotation_plane_sq + inner_full_side_sq);
+				max_delta_transform_error_sq = delta_translation_along_rotation_plane_sq + inner_full_side_sq;
 			}
 			else
 			{
 				// If we have no rotation delta, then the transform error is just the translation error: the delta length
-				max_delta_transform_error = rtm::vector_distance3(raw_transform_d.translation, lossy_transform_d.translation);
+				max_delta_transform_error_sq = acl_impl::vector_distance_squared3_as_scalar(raw_transform_d.translation, lossy_transform_d.translation);
 			}
 
-			return rtm::scalar_set((float)max_delta_transform_error);
+			return rtm::scalar_set((float)max_delta_transform_error_sq);
 		}
 	};
 
@@ -514,7 +550,7 @@ namespace acl
 			}
 		}
 
-		virtual RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::scalarf RTM_SIMD_CALL calculate_error(const calculate_error_args& args) const override
+		virtual rtm::scalarf RTM_SIMD_CALL calculate_error_squared(const calculate_error_args& args) const override
 		{
 			const rtm::matrix3x4f& raw_transform_ = *static_cast<const rtm::matrix3x4f*>(args.transform0);
 			const rtm::matrix3x4f& lossy_transform_ = *static_cast<const rtm::matrix3x4f*>(args.transform1);
@@ -532,9 +568,9 @@ namespace acl
 			const rtm::vector4f lossy_vtx1 = rtm::matrix_mul_point3(vtx1, lossy_transform_);
 			const rtm::vector4f lossy_vtx2 = rtm::matrix_mul_point3(vtx2, lossy_transform_);
 
-			const rtm::scalarf vtx0_error = rtm::vector_distance3_as_scalar(raw_vtx0, lossy_vtx0);
-			const rtm::scalarf vtx1_error = rtm::vector_distance3_as_scalar(raw_vtx1, lossy_vtx1);
-			const rtm::scalarf vtx2_error = rtm::vector_distance3_as_scalar(raw_vtx2, lossy_vtx2);
+			const rtm::scalarf vtx0_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx0, lossy_vtx0);
+			const rtm::scalarf vtx1_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx1, lossy_vtx1);
+			const rtm::scalarf vtx2_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx2, lossy_vtx2);
 
 			return rtm::scalar_max(rtm::scalar_max(vtx0_error, vtx1_error), vtx2_error);
 		}
