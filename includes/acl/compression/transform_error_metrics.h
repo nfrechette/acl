@@ -45,7 +45,7 @@ namespace acl
 	namespace acl_impl
 	{
 		//////////////////////////////////////////////////////////////////////////
-		// Returns the distance between two 3D points.
+		// Returns the squared distance between two 3D points.
 		//////////////////////////////////////////////////////////////////////////
 		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE rtm::scalarf RTM_SIMD_CALL vector_distance_squared3_as_scalar(rtm::vector4f_arg0 lhs, rtm::vector4f_arg1 rhs) RTM_NO_EXCEPT
 		{
@@ -54,7 +54,7 @@ namespace acl
 		}
 
 		//////////////////////////////////////////////////////////////////////////
-		// Returns the distance between two 3D points.
+		// Returns the squared distance between two 3D points.
 		//////////////////////////////////////////////////////////////////////////
 		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE rtm::scalard RTM_SIMD_CALL vector_distance_squared3_as_scalar(rtm::vector4d_arg0 lhs, rtm::vector4d_arg1 rhs) RTM_NO_EXCEPT
 		{
