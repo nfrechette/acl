@@ -156,6 +156,7 @@ struct Options
 	bool			regression_testing				= false;
 
 	bool			use_matrix_error_metric			= false;
+	bool			use_precise_error_metric		= false;
 
 	bool			is_bind_pose_relative			= false;
 	bool			is_bind_pose_additive0			= false;
@@ -211,6 +212,7 @@ static constexpr const char* k_bind_pose_relative_option = "-bind_rel";
 static constexpr const char* k_bind_pose_additive0_option = "-bind_add0";
 static constexpr const char* k_bind_pose_additive1_option = "-bind_add1";
 static constexpr const char* k_matrix_error_metric_option = "-error_mtx";
+static constexpr const char* k_precise_error_metric_option = "-error_precise";
 static constexpr const char* k_split_into_database_option = "-db";
 static constexpr const char* k_strip_keyframe_proportion_option = "-strip_keyframe_proportion=";
 static constexpr const char* k_strip_keyframe_threshold_option = "-strip_keyframe_threshold=";
@@ -331,6 +333,13 @@ static bool parse_options(int argc, char** argv, Options& options)
 		if (std::strncmp(argument, k_matrix_error_metric_option, option_length) == 0)
 		{
 			options.use_matrix_error_metric = true;
+			continue;
+		}
+
+		option_length = std::strlen(k_precise_error_metric_option);
+		if (std::strncmp(argument, k_precise_error_metric_option, option_length) == 0)
+		{
+			options.use_precise_error_metric = true;
 			continue;
 		}
 
@@ -856,6 +865,10 @@ static bool read_config(iallocator& allocator, Options& options, compression_set
 	if (parser.try_read("use_matrix_error_metric", use_matrix_error_metric, false))
 		options.use_matrix_error_metric = use_matrix_error_metric;
 
+	bool use_precise_error_metric;
+	if (parser.try_read("use_precise_error_metric", use_precise_error_metric, false))
+		options.use_precise_error_metric = use_precise_error_metric;
+
 	bool split_into_database;
 	if (parser.try_read("split_into_database", split_into_database, default_settings.enable_database_support))
 		out_settings.enable_database_support = split_into_database;
@@ -1127,6 +1140,8 @@ static int safe_main_impl(int argc, char* argv[])
 		{
 			if (options.use_matrix_error_metric)
 				error_metric = allocate_type<qvvf_matrix3x4f_transform_error_metric>(allocator);
+			else if (options.use_precise_error_metric)
+				error_metric = allocate_type<qvvf_precise_transform_error_metric>(allocator);
 			else
 				error_metric = allocate_type<qvvf_transform_error_metric>(allocator);
 		}

@@ -31,6 +31,7 @@
 #include "acl/core/track_types.h"
 
 #include <rtm/matrix3x4f.h>
+#include <rtm/qvvd.h>
 #include <rtm/qvvf.h>
 #include <rtm/scalarf.h>
 
@@ -381,6 +382,77 @@ namespace acl
 			const rtm::scalarf vtx1_error = rtm::vector_distance3_as_scalar(raw_vtx1, lossy_vtx1);
 
 			return rtm::scalar_max(vtx0_error, vtx1_error);
+		}
+	};
+
+	//////////////////////////////////////////////////////////////////////////
+	// Uses an analytical computation for the exact error introduced. This is as
+	// precise as it gets when no scale is present. We fallback to the normal
+	// qvvf approximation when scale is present.
+	// This computes the error on the point most impacted by the lossy transform
+	// which guarantees that all other points see the same or a lower error.
+	//////////////////////////////////////////////////////////////////////////
+	class qvvf_precise_transform_error_metric : public qvvf_transform_error_metric
+	{
+	public:
+		virtual const char* get_name() const override { return "qvvf_precise_transform_error_metric"; }
+
+		virtual RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::scalarf RTM_SIMD_CALL calculate_error_no_scale(const calculate_error_args& args) const override
+		{
+			const rtm::qvvf& raw_transform_ = *static_cast<const rtm::qvvf*>(args.transform0);
+			const rtm::qvvf& lossy_transform_ = *static_cast<const rtm::qvvf*>(args.transform1);
+
+			// We use float64 for the added precision otherwise floating point noise in the rotation
+			// can cause instability
+			const rtm::qvvd raw_transform_d = rtm::qvv_normalize(rtm::qvv_cast(raw_transform_));
+			const rtm::qvvd lossy_transform_d = rtm::qvv_normalize(rtm::qvv_cast(lossy_transform_));
+
+			// Our result
+			double max_delta_transform_error = 0.0;
+
+			// We use the quaternion dot product to determine the cosine of the half angle between the raw
+			// and lossy rotations. If the angle is very small, the absolute value of the dot product will
+			// be very close to 1.0
+			// Due to floating point precision, we use a threshold value to determine if we have any delta between the two
+			const double raw_lossy_quat_dot = rtm::quat_dot(raw_transform_d.rotation, lossy_transform_d.rotation);
+			const bool has_rotation_delta = rtm::scalar_abs(raw_lossy_quat_dot) < 0.99999999999999822;	// 0x3feffffffffffff0
+			if (has_rotation_delta)
+			{
+				// We remove the raw transform from the lossy transform to form a delta transform between the two
+				// We remove the raw transform instead of the lossy because this ensures that we always see consistent results
+				// It would also allow us to compute the raw inverse ahead of time if we wanted to
+				const rtm::qvvd delta_transform = rtm::qvv_normalize(rtm::qvv_mul_no_scale(lossy_transform_d, rtm::qvv_inverse_no_scale(raw_transform_d)));
+
+				// We first calculate the contribution from the rotation delta
+				const rtm::vector4d rotation_plane_normal = rtm::vector_normalize3(rtm::quat_to_vector(delta_transform.rotation));
+				ACL_ASSERT(rtm::vector_is_finite3(rotation_plane_normal), "Delta rotation plane must exist");
+
+				// Using the unit circle to compute the sine of our half rotation angle
+				// 1^2 = cos(a)^2 + sin(a)^2
+				const double half_sin_angle = rtm::scalar_sqrt(1.0 - (raw_lossy_quat_dot * raw_lossy_quat_dot));
+
+				// We can then compute the rotation error delta by scaling it with the sphere radius
+				const double sphere_radius = (double)rtm::vector_get_x(args.shell_point_x);
+				const double max_delta_rotation_error = half_sin_angle * sphere_radius * 2.0;
+
+				// We then calculate the full transform error by incorporating the translation contribution
+				const rtm::vector4d delta_translation = delta_transform.translation;
+				const double delta_translation_len_sq = rtm::vector_length_squared3(delta_translation);
+				const double delta_translation_along_rotation_plane = rtm::vector_dot3(delta_translation, rotation_plane_normal);
+				const double delta_translation_along_rotation_plane_sq = delta_translation_along_rotation_plane * delta_translation_along_rotation_plane;
+				const double inner_translation_side = rtm::scalar_sqrt(rtm::scalar_max(delta_translation_len_sq - delta_translation_along_rotation_plane_sq, 0.0));
+
+				const double inner_full_side = inner_translation_side + max_delta_rotation_error;
+				const double inner_full_side_sq = inner_full_side * inner_full_side;
+				max_delta_transform_error = rtm::scalar_sqrt(delta_translation_along_rotation_plane_sq + inner_full_side_sq);
+			}
+			else
+			{
+				// If we have no rotation delta, then the transform error is just the translation error: the delta length
+				max_delta_transform_error = rtm::vector_distance3(raw_transform_d.translation, lossy_transform_d.translation);
+			}
+
+			return rtm::scalar_set((float)max_delta_transform_error);
 		}
 	};
 
