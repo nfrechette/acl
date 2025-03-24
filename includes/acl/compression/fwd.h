@@ -81,6 +81,7 @@ namespace acl
 
 	class itransform_error_metric;
 	class qvvf_transform_error_metric;
+	class qvvf_precise_transform_error_metric;
 	class qvvf_matrix3x4f_transform_error_metric;
 	template<additive_clip_format8 additive_format> class additive_qvvf_transform_error_metric;
 
