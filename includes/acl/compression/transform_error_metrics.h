@@ -35,6 +35,8 @@
 #include <rtm/qvvf.h>
 #include <rtm/scalarf.h>
 
+//#define ACL_IMPL_USE_SOA_ERROR_METRIC
+
 ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
@@ -60,6 +62,157 @@ namespace acl
 		{
 			const rtm::vector4d difference = rtm::vector_sub(lhs, rhs);
 			return rtm::vector_length_squared3_as_scalar(difference);
+		}
+
+		RTM_DISABLE_SECURITY_COOKIE_CHECK inline void RTM_SIMD_CALL quat_mul_soa(
+			rtm::vector4f_arg0 lhs_xxxx, rtm::vector4f_arg1 lhs_yyyy, rtm::vector4f_arg2 lhs_zzzz, rtm::vector4f_arg3 lhs_wwww,
+			rtm::vector4f_arg4 rhs_xxxx, rtm::vector4f_arg5 rhs_yyyy, rtm::vector4f_arg6 rhs_zzzz, rtm::vector4f_arg7 rhs_wwww,
+			rtm::vector4f& out_result_xxxx, rtm::vector4f& out_result_yyyy, rtm::vector4f& out_result_zzzz, rtm::vector4f& out_result_wwww) RTM_NO_EXCEPT
+		{
+			out_result_xxxx = rtm::vector_neg_mul_sub(rhs_zzzz, lhs_yyyy, rtm::vector_mul_add(rhs_yyyy, lhs_zzzz, rtm::vector_mul_add(rhs_xxxx, lhs_wwww, rtm::vector_mul(rhs_wwww, lhs_xxxx))));
+			out_result_yyyy = rtm::vector_mul_add(rhs_zzzz, lhs_xxxx, rtm::vector_mul_add(rhs_yyyy, lhs_wwww, rtm::vector_neg_mul_sub(rhs_xxxx, lhs_zzzz, rtm::vector_mul(rhs_wwww, lhs_yyyy))));
+			out_result_zzzz = rtm::vector_mul_add(rhs_zzzz, lhs_wwww, rtm::vector_neg_mul_sub(rhs_yyyy, lhs_xxxx, rtm::vector_mul_add(rhs_xxxx, lhs_yyyy, rtm::vector_mul(rhs_wwww, lhs_zzzz))));
+			out_result_wwww = rtm::vector_neg_mul_sub(rhs_zzzz, lhs_zzzz, rtm::vector_neg_mul_sub(rhs_yyyy, lhs_yyyy, rtm::vector_neg_mul_sub(rhs_xxxx, lhs_xxxx, rtm::vector_mul(rhs_wwww, lhs_wwww))));
+		}
+
+		RTM_DISABLE_SECURITY_COOKIE_CHECK inline void RTM_SIMD_CALL quat_mul_vector3_soa(
+			rtm::vector4f_arg0 vector_xxxx, rtm::vector4f_arg1 vector_yyyy, rtm::vector4f_arg2 vector_zzzz,
+			rtm::quatf_arg3 rotation,
+			rtm::vector4f& out_result_xxxx, rtm::vector4f& out_result_yyyy, rtm::vector4f& out_result_zzzz) RTM_NO_EXCEPT
+		{
+			//quatf vector_quat = quat_set_w(vector_to_quat(vector), 0.0f);
+			//quatf inv_rotation = quat_conjugate(rotation);
+			//return quat_to_vector(quat_mul(quat_mul(inv_rotation, vector_quat), rotation));
+
+			rtm::quatf inv_rotation = rtm::quat_conjugate(rotation);
+
+			rtm::vector4f inv_rotation_v = rtm::quat_to_vector(inv_rotation);
+			rtm::vector4f inv_rotation_xxxx = rtm::vector_dup_x(inv_rotation_v);
+			rtm::vector4f inv_rotation_yyyy = rtm::vector_dup_y(inv_rotation_v);
+			rtm::vector4f inv_rotation_zzzz = rtm::vector_dup_z(inv_rotation_v);
+			rtm::vector4f inv_rotation_wwww = rtm::vector_dup_w(inv_rotation_v);
+
+			rtm::vector4f tmp_xxxx;
+			rtm::vector4f tmp_yyyy;
+			rtm::vector4f tmp_zzzz;
+			rtm::vector4f tmp_wwww;
+
+			// We know that vector_wwww is zero and so we can cut down a few operations
+			//rtm::vector4f vector_wwww = rtm::vector_zero();
+			//quat_mul_soa(
+			//	inv_rotation_xxxx, inv_rotation_yyyy, inv_rotation_zzzz, inv_rotation_wwww,
+			//	vector_xxxx, vector_yyyy, vector_zzzz, vector_wwww,
+			//	tmp_xxxx, tmp_yyyy, tmp_zzzz, tmp_wwww);
+		#if 1
+			tmp_xxxx = rtm::vector_neg_mul_sub(vector_zzzz, inv_rotation_yyyy, rtm::vector_mul_add(vector_yyyy, inv_rotation_zzzz, rtm::vector_mul(vector_xxxx, inv_rotation_wwww)));
+			tmp_yyyy = rtm::vector_mul_add(vector_zzzz, inv_rotation_xxxx, rtm::vector_mul_add(vector_yyyy, inv_rotation_wwww, rtm::vector_mul(vector_xxxx, inv_rotation_zzzz)));
+			tmp_zzzz = rtm::vector_mul_add(vector_zzzz, inv_rotation_wwww, rtm::vector_neg_mul_sub(vector_yyyy, inv_rotation_xxxx, rtm::vector_mul(vector_xxxx, inv_rotation_yyyy)));
+			tmp_wwww = rtm::vector_neg_mul_sub(vector_zzzz, inv_rotation_zzzz, rtm::vector_neg_mul_sub(vector_yyyy, inv_rotation_yyyy, rtm::vector_mul(vector_xxxx, inv_rotation_xxxx)));
+		#else
+			// Hand optimize because Apple clang and MSVC fail to re-order the instructions
+			// to minimize dependencies
+			tmp_xxxx = rtm::vector_mul(vector_xxxx, inv_rotation_wwww);
+			tmp_yyyy = rtm::vector_mul(vector_xxxx, inv_rotation_zzzz);
+			tmp_zzzz = rtm::vector_mul(vector_xxxx, inv_rotation_yyyy);
+			tmp_wwww = rtm::vector_mul(vector_xxxx, inv_rotation_xxxx);
+
+			tmp_xxxx = rtm::vector_mul_add(vector_yyyy, inv_rotation_zzzz, tmp_xxxx);
+			tmp_yyyy = rtm::vector_mul_add(vector_yyyy, inv_rotation_wwww, tmp_yyyy);
+			tmp_zzzz = rtm::vector_neg_mul_sub(vector_yyyy, inv_rotation_xxxx, tmp_zzzz);
+			tmp_wwww = rtm::vector_neg_mul_sub(vector_yyyy, inv_rotation_yyyy, tmp_wwww);
+
+			tmp_xxxx = rtm::vector_neg_mul_sub(vector_zzzz, inv_rotation_yyyy, tmp_xxxx);
+			tmp_yyyy = rtm::vector_mul_add(vector_zzzz, inv_rotation_xxxx, tmp_yyyy);
+			tmp_zzzz = rtm::vector_mul_add(vector_zzzz, inv_rotation_wwww, tmp_zzzz);
+			tmp_wwww = rtm::vector_neg_mul_sub(vector_zzzz, inv_rotation_zzzz, tmp_wwww);
+		#endif
+
+			rtm::vector4f rotation_v = rtm::quat_to_vector(rotation);
+			rtm::vector4f rotation_xxxx = rtm::vector_dup_x(rotation_v);
+			rtm::vector4f rotation_yyyy = rtm::vector_dup_y(rotation_v);
+			rtm::vector4f rotation_zzzz = rtm::vector_dup_z(rotation_v);
+			rtm::vector4f rotation_wwww = rtm::vector_dup_w(rotation_v);
+
+			// We know that result_wwww is discarded and so we can cut down a few operations
+			//quat_mul_soa(
+			//	tmp_xxxx, tmp_yyyy, tmp_zzzz, tmp_wwww,
+			//	rotation_xxxx, rotation_yyyy, rotation_zzzz, rotation_wwww,
+			//	out_result_xxxx, out_result_yyyy, out_result_zzzz, tmp_wwww);
+		#if 1
+			out_result_xxxx = rtm::vector_neg_mul_sub(rotation_zzzz, tmp_yyyy, rtm::vector_mul_add(rotation_yyyy, tmp_zzzz, rtm::vector_mul_add(rotation_xxxx, tmp_wwww, rtm::vector_mul(rotation_wwww, tmp_xxxx))));
+			out_result_yyyy = rtm::vector_mul_add(rotation_zzzz, tmp_xxxx, rtm::vector_mul_add(rotation_yyyy, tmp_wwww, rtm::vector_neg_mul_sub(rotation_xxxx, tmp_zzzz, rtm::vector_mul(rotation_wwww, tmp_yyyy))));
+			out_result_zzzz = rtm::vector_mul_add(rotation_zzzz, tmp_wwww, rtm::vector_neg_mul_sub(rotation_yyyy, tmp_xxxx, rtm::vector_mul_add(rotation_xxxx, tmp_yyyy, rtm::vector_mul(rotation_wwww, tmp_zzzz))));
+		#else
+			// Hand optimize because Apple clang and MSVC fail to re-order the instructions
+			// to minimize dependencies
+			rtm::vector4f result_xxxx = rtm::vector_mul(rotation_wwww, tmp_xxxx);
+			rtm::vector4f result_yyyy = rtm::vector_mul(rotation_wwww, tmp_yyyy);
+			rtm::vector4f result_zzzz = rtm::vector_mul(rotation_wwww, tmp_zzzz);
+
+			result_xxxx = rtm::vector_mul_add(rotation_xxxx, tmp_wwww, result_xxxx);
+			result_yyyy = rtm::vector_neg_mul_sub(rotation_xxxx, tmp_zzzz, result_yyyy);
+			result_zzzz = rtm::vector_mul_add(rotation_xxxx, tmp_yyyy, result_zzzz);
+
+			result_xxxx = rtm::vector_mul_add(rotation_yyyy, tmp_zzzz, result_xxxx);
+			result_yyyy = rtm::vector_mul_add(rotation_yyyy, tmp_wwww, result_yyyy);
+			result_zzzz = rtm::vector_neg_mul_sub(rotation_yyyy, tmp_xxxx, result_zzzz);
+
+			out_result_xxxx = rtm::vector_neg_mul_sub(rotation_zzzz, tmp_yyyy, result_xxxx);
+			out_result_yyyy = rtm::vector_mul_add(rotation_zzzz, tmp_xxxx, result_yyyy);
+			out_result_zzzz = rtm::vector_mul_add(rotation_zzzz, tmp_wwww, result_zzzz);
+		#endif
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Multiplies a QVV transform and a 3D point.
+		// Multiplication order is as follow: world_position = qvv_mul_point3(local_position, local_to_world)
+		//////////////////////////////////////////////////////////////////////////
+		RTM_DISABLE_SECURITY_COOKIE_CHECK inline void RTM_SIMD_CALL qvv_mul_point3_soa(
+			rtm::vector4f_arg0 point_xxxx, rtm::vector4f_arg1 point_yyyy, rtm::vector4f_arg2 point_zzzz,
+			rtm::qvvf_argn qvv,
+			rtm::vector4f& out_result_xxxx, rtm::vector4f& out_result_yyyy, rtm::vector4f& out_result_zzzz) RTM_NO_EXCEPT
+		{
+			//return rtm::vector_add(rtm::quat_mul_vector3(rtm::vector_mul(qvv.scale, point), qvv.rotation), qvv.translation);
+
+			rtm::vector4f result_xxxx = rtm::vector_mul(point_xxxx, rtm::vector_dup_x(qvv.scale));
+			rtm::vector4f result_yyyy = rtm::vector_mul(point_yyyy, rtm::vector_dup_y(qvv.scale));
+			rtm::vector4f result_zzzz = rtm::vector_mul(point_zzzz, rtm::vector_dup_z(qvv.scale));
+
+			quat_mul_vector3_soa(
+				result_xxxx, result_yyyy, result_zzzz,
+				qvv.rotation,
+				result_xxxx, result_yyyy, result_zzzz);
+
+			out_result_xxxx = rtm::vector_add(result_xxxx, rtm::vector_dup_x(qvv.translation));
+			out_result_yyyy = rtm::vector_add(result_yyyy, rtm::vector_dup_y(qvv.translation));
+			out_result_zzzz = rtm::vector_add(result_zzzz, rtm::vector_dup_z(qvv.translation));
+		}
+
+		RTM_DISABLE_SECURITY_COOKIE_CHECK inline rtm::vector4f RTM_SIMD_CALL vector_dot3_soa(
+			rtm::vector4f_arg0 lhs_xxxx, rtm::vector4f_arg1 lhs_yyyy, rtm::vector4f_arg2 lhs_zzzz,
+			rtm::vector4f_arg3 rhs_xxxx, rtm::vector4f_arg4 rhs_yyyy, rtm::vector4f_arg5 rhs_zzzz) RTM_NO_EXCEPT
+		{
+			rtm::vector4f tmp_xxxx = rtm::vector_mul(lhs_xxxx, rhs_xxxx);
+			rtm::vector4f tmp_yyyy = rtm::vector_mul(lhs_yyyy, rhs_yyyy);
+			rtm::vector4f tmp_zzzz = rtm::vector_mul(lhs_zzzz, rhs_zzzz);
+
+			return rtm::vector_add(rtm::vector_add(tmp_xxxx, tmp_yyyy), tmp_zzzz);
+		}
+
+		RTM_DISABLE_SECURITY_COOKIE_CHECK inline rtm::vector4f RTM_SIMD_CALL vector_distance_squared3_soa(
+			rtm::vector4f_arg0 lhs_xxxx, rtm::vector4f_arg1 lhs_yyyy, rtm::vector4f_arg2 lhs_zzzz,
+			rtm::vector4f_arg3 rhs_xxxx, rtm::vector4f_arg4 rhs_yyyy, rtm::vector4f_arg5 rhs_zzzz) RTM_NO_EXCEPT
+		{
+			//const rtm::vector4f difference = rtm::vector_sub(lhs, rhs);
+			//return rtm::vector_length_squared3_as_scalar(difference);
+
+			rtm::vector4f difference_xxxx = rtm::vector_sub(lhs_xxxx, rhs_xxxx);
+			rtm::vector4f difference_yyyy = rtm::vector_sub(lhs_yyyy, rhs_yyyy);
+			rtm::vector4f difference_zzzz = rtm::vector_sub(lhs_zzzz, rhs_zzzz);
+
+			return vector_dot3_soa(
+				difference_xxxx, difference_yyyy, difference_zzzz,
+				difference_xxxx, difference_yyyy, difference_zzzz);
 		}
 	}
 
@@ -381,6 +534,37 @@ namespace acl
 			const rtm::qvvf& lossy_transform_ = *static_cast<const rtm::qvvf*>(args.transform1);
 
 			// Note that because we have scale, we must measure all three axes
+
+#if defined(ACL_IMPL_USE_SOA_ERROR_METRIC)
+			rtm::vector4f vtx_xxx_;
+			rtm::vector4f vtx_yyy_;
+			rtm::vector4f vtx_zzz_;
+			RTM_MATRIXF_TRANSPOSE_3X3(
+				args.shell_point_x, args.shell_point_y, args.shell_point_z,
+				vtx_xxx_, vtx_yyy_, vtx_zzz_);
+
+			rtm::vector4f raw_vtx_xxx_;
+			rtm::vector4f raw_vtx_yyy_;
+			rtm::vector4f raw_vtx_zzz_;
+			acl_impl::qvv_mul_point3_soa(
+				vtx_xxx_, vtx_yyy_, vtx_zzz_,
+				raw_transform_,
+				raw_vtx_xxx_, raw_vtx_yyy_, raw_vtx_zzz_);
+
+			rtm::vector4f lossy_vtx_xxx_;
+			rtm::vector4f lossy_vtx_yyy_;
+			rtm::vector4f lossy_vtx_zzz_;
+			acl_impl::qvv_mul_point3_soa(
+				vtx_xxx_, vtx_yyy_, vtx_zzz_,
+				lossy_transform_,
+				lossy_vtx_xxx_, lossy_vtx_yyy_, lossy_vtx_zzz_);
+
+			rtm::vector4f vtx_error_sq_xyz_ = acl_impl::vector_distance_squared3_soa(
+				raw_vtx_xxx_, raw_vtx_yyy_, raw_vtx_zzz_,
+				lossy_vtx_xxx_, lossy_vtx_yyy_, lossy_vtx_zzz_);
+
+			return rtm::vector_get_max_component_as_scalar(rtm::vector_set_w(vtx_error_sq_xyz_, 0.0F));
+#else
 			const rtm::vector4f vtx0 = args.shell_point_x;
 			const rtm::vector4f vtx1 = args.shell_point_y;
 			const rtm::vector4f vtx2 = args.shell_point_z;
@@ -398,6 +582,7 @@ namespace acl
 			const rtm::scalarf vtx2_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx2, lossy_vtx2);
 
 			return rtm::scalar_max(rtm::scalar_max(vtx0_error, vtx1_error), vtx2_error);
+#endif
 		}
 
 		virtual rtm::scalarf RTM_SIMD_CALL calculate_error_squared_no_scale(const calculate_error_args& args) const override
@@ -405,6 +590,36 @@ namespace acl
 			const rtm::qvvf& raw_transform_ = *static_cast<const rtm::qvvf*>(args.transform0);
 			const rtm::qvvf& lossy_transform_ = *static_cast<const rtm::qvvf*>(args.transform1);
 
+#if defined(ACL_IMPL_USE_SOA_ERROR_METRIC)
+			rtm::vector4f vtx_xx__;
+			rtm::vector4f vtx_yy__;
+			rtm::vector4f vtx_zz__;
+			RTM_MATRIXF_TRANSPOSE_3X3(
+				args.shell_point_x, args.shell_point_y, args.shell_point_y,	// repeat y, no transpose 2x2
+				vtx_xx__, vtx_yy__, vtx_zz__);
+
+			rtm::vector4f raw_vtx_xxx_;
+			rtm::vector4f raw_vtx_yyy_;
+			rtm::vector4f raw_vtx_zzz_;
+			acl_impl::qvv_mul_point3_soa(
+				vtx_xx__, vtx_yy__, vtx_zz__,
+				raw_transform_,
+				raw_vtx_xxx_, raw_vtx_yyy_, raw_vtx_zzz_);
+
+			rtm::vector4f lossy_vtx_xxx_;
+			rtm::vector4f lossy_vtx_yyy_;
+			rtm::vector4f lossy_vtx_zzz_;
+			acl_impl::qvv_mul_point3_soa(
+				vtx_xx__, vtx_yy__, vtx_zz__,
+				lossy_transform_,
+				lossy_vtx_xxx_, lossy_vtx_yyy_, lossy_vtx_zzz_);
+
+			rtm::vector4f vtx_error_sq_xy__ = acl_impl::vector_distance_squared3_soa(
+				raw_vtx_xxx_, raw_vtx_yyy_, raw_vtx_zzz_,
+				lossy_vtx_xxx_, lossy_vtx_yyy_, lossy_vtx_zzz_);
+
+			return rtm::scalar_max(rtm::vector_get_x_as_scalar(vtx_error_sq_xy__), rtm::vector_get_y_as_scalar(vtx_error_sq_xy__));
+#else
 			const rtm::vector4f vtx0 = args.shell_point_x;
 			const rtm::vector4f vtx1 = args.shell_point_y;
 
@@ -418,6 +633,7 @@ namespace acl
 			const rtm::scalarf vtx1_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx1, lossy_vtx1);
 
 			return rtm::scalar_max(vtx0_error, vtx1_error);
+#endif
 		}
 	};
 
