@@ -188,6 +188,27 @@ namespace acl
 			out_result_zzzz = rtm::vector_add(result_zzzz, rtm::vector_dup_z(qvv.translation));
 		}
 
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE void RTM_SIMD_CALL qvv_mul_point3_no_scale_soa(
+			rtm::vector4f_arg0 point_xxxx, rtm::vector4f_arg1 point_yyyy, rtm::vector4f_arg2 point_zzzz,
+			rtm::qvvf_argn qvv,
+			rtm::vector4f& out_result_xxxx, rtm::vector4f& out_result_yyyy, rtm::vector4f& out_result_zzzz) RTM_NO_EXCEPT
+		{
+			//return rtm::vector_add(rtm::quat_mul_vector3(point, qvv.rotation), qvv.translation);
+
+			rtm::vector4f result_xxxx = point_xxxx;
+			rtm::vector4f result_yyyy = point_yyyy;
+			rtm::vector4f result_zzzz = point_zzzz;
+
+			quat_mul_vector3_soa(
+				result_xxxx, result_yyyy, result_zzzz,
+				qvv.rotation,
+				result_xxxx, result_yyyy, result_zzzz);
+
+			out_result_xxxx = rtm::vector_add(result_xxxx, rtm::vector_dup_x(qvv.translation));
+			out_result_yyyy = rtm::vector_add(result_yyyy, rtm::vector_dup_y(qvv.translation));
+			out_result_zzzz = rtm::vector_add(result_zzzz, rtm::vector_dup_z(qvv.translation));
+		}
+
 		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL vector_dot3_soa(
 			rtm::vector4f_arg0 lhs_xxxx, rtm::vector4f_arg1 lhs_yyyy, rtm::vector4f_arg2 lhs_zzzz,
 			rtm::vector4f_arg3 rhs_xxxx, rtm::vector4f_arg4 rhs_yyyy, rtm::vector4f_arg5 rhs_zzzz) RTM_NO_EXCEPT
@@ -601,7 +622,7 @@ namespace acl
 			rtm::vector4f raw_vtx_xxx_;
 			rtm::vector4f raw_vtx_yyy_;
 			rtm::vector4f raw_vtx_zzz_;
-			acl_impl::qvv_mul_point3_soa(
+			acl_impl::qvv_mul_point3_no_scale_soa(
 				vtx_xx__, vtx_yy__, vtx_zz__,
 				raw_transform_,
 				raw_vtx_xxx_, raw_vtx_yyy_, raw_vtx_zzz_);
@@ -609,7 +630,7 @@ namespace acl
 			rtm::vector4f lossy_vtx_xxx_;
 			rtm::vector4f lossy_vtx_yyy_;
 			rtm::vector4f lossy_vtx_zzz_;
-			acl_impl::qvv_mul_point3_soa(
+			acl_impl::qvv_mul_point3_no_scale_soa(
 				vtx_xx__, vtx_yy__, vtx_zz__,
 				lossy_transform_,
 				lossy_vtx_xxx_, lossy_vtx_yyy_, lossy_vtx_zzz_);
