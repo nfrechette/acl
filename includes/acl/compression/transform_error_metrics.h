@@ -64,7 +64,7 @@ namespace acl
 			return rtm::vector_length_squared3_as_scalar(difference);
 		}
 
-		RTM_DISABLE_SECURITY_COOKIE_CHECK inline void RTM_SIMD_CALL quat_mul_soa(
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE void RTM_SIMD_CALL quat_mul_soa(
 			rtm::vector4f_arg0 lhs_xxxx, rtm::vector4f_arg1 lhs_yyyy, rtm::vector4f_arg2 lhs_zzzz, rtm::vector4f_arg3 lhs_wwww,
 			rtm::vector4f_arg4 rhs_xxxx, rtm::vector4f_arg5 rhs_yyyy, rtm::vector4f_arg6 rhs_zzzz, rtm::vector4f_arg7 rhs_wwww,
 			rtm::vector4f& out_result_xxxx, rtm::vector4f& out_result_yyyy, rtm::vector4f& out_result_zzzz, rtm::vector4f& out_result_wwww) RTM_NO_EXCEPT
@@ -75,7 +75,7 @@ namespace acl
 			out_result_wwww = rtm::vector_neg_mul_sub(rhs_zzzz, lhs_zzzz, rtm::vector_neg_mul_sub(rhs_yyyy, lhs_yyyy, rtm::vector_neg_mul_sub(rhs_xxxx, lhs_xxxx, rtm::vector_mul(rhs_wwww, lhs_wwww))));
 		}
 
-		RTM_DISABLE_SECURITY_COOKIE_CHECK inline void RTM_SIMD_CALL quat_mul_vector3_soa(
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE void RTM_SIMD_CALL quat_mul_vector3_soa(
 			rtm::vector4f_arg0 vector_xxxx, rtm::vector4f_arg1 vector_yyyy, rtm::vector4f_arg2 vector_zzzz,
 			rtm::quatf_arg3 rotation,
 			rtm::vector4f& out_result_xxxx, rtm::vector4f& out_result_yyyy, rtm::vector4f& out_result_zzzz) RTM_NO_EXCEPT
@@ -167,7 +167,7 @@ namespace acl
 		// Multiplies a QVV transform and a 3D point.
 		// Multiplication order is as follow: world_position = qvv_mul_point3(local_position, local_to_world)
 		//////////////////////////////////////////////////////////////////////////
-		RTM_DISABLE_SECURITY_COOKIE_CHECK inline void RTM_SIMD_CALL qvv_mul_point3_soa(
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE void RTM_SIMD_CALL qvv_mul_point3_soa(
 			rtm::vector4f_arg0 point_xxxx, rtm::vector4f_arg1 point_yyyy, rtm::vector4f_arg2 point_zzzz,
 			rtm::qvvf_argn qvv,
 			rtm::vector4f& out_result_xxxx, rtm::vector4f& out_result_yyyy, rtm::vector4f& out_result_zzzz) RTM_NO_EXCEPT
@@ -188,7 +188,7 @@ namespace acl
 			out_result_zzzz = rtm::vector_add(result_zzzz, rtm::vector_dup_z(qvv.translation));
 		}
 
-		RTM_DISABLE_SECURITY_COOKIE_CHECK inline rtm::vector4f RTM_SIMD_CALL vector_dot3_soa(
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL vector_dot3_soa(
 			rtm::vector4f_arg0 lhs_xxxx, rtm::vector4f_arg1 lhs_yyyy, rtm::vector4f_arg2 lhs_zzzz,
 			rtm::vector4f_arg3 rhs_xxxx, rtm::vector4f_arg4 rhs_yyyy, rtm::vector4f_arg5 rhs_zzzz) RTM_NO_EXCEPT
 		{
@@ -199,7 +199,7 @@ namespace acl
 			return rtm::vector_add(rtm::vector_add(tmp_xxxx, tmp_yyyy), tmp_zzzz);
 		}
 
-		RTM_DISABLE_SECURITY_COOKIE_CHECK inline rtm::vector4f RTM_SIMD_CALL vector_distance_squared3_soa(
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL vector_distance_squared3_soa(
 			rtm::vector4f_arg0 lhs_xxxx, rtm::vector4f_arg1 lhs_yyyy, rtm::vector4f_arg2 lhs_zzzz,
 			rtm::vector4f_arg3 rhs_xxxx, rtm::vector4f_arg4 rhs_yyyy, rtm::vector4f_arg5 rhs_zzzz) RTM_NO_EXCEPT
 		{
