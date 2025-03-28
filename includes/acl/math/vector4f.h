@@ -27,6 +27,7 @@
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 
+#include <rtm/vector4d.h>
 #include <rtm/vector4f.h>
 
 #include <cstdint>
@@ -40,6 +41,51 @@ namespace acl
 	// Temporary put here until they are included in RTM
 	namespace acl_impl
 	{
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the squared distance between two 3D points.
+		//////////////////////////////////////////////////////////////////////////
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE rtm::scalarf RTM_SIMD_CALL vector_distance_squared3_as_scalar(rtm::vector4f_arg0 lhs, rtm::vector4f_arg1 rhs) RTM_NO_EXCEPT
+		{
+			const rtm::vector4f difference = rtm::vector_sub(lhs, rhs);
+			return rtm::vector_length_squared3_as_scalar(difference);
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the squared distance between two 3D points.
+		//////////////////////////////////////////////////////////////////////////
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE rtm::scalard RTM_SIMD_CALL vector_distance_squared3_as_scalar(rtm::vector4d_arg0 lhs, rtm::vector4d_arg1 rhs) RTM_NO_EXCEPT
+		{
+			const rtm::vector4d difference = rtm::vector_sub(lhs, rhs);
+			return rtm::vector_length_squared3_as_scalar(difference);
+		}
+
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL vector_dot3_soa(
+			rtm::vector4f_arg0 lhs_xxxx, rtm::vector4f_arg1 lhs_yyyy, rtm::vector4f_arg2 lhs_zzzz,
+			rtm::vector4f_arg3 rhs_xxxx, rtm::vector4f_arg4 rhs_yyyy, rtm::vector4f_arg5 rhs_zzzz) RTM_NO_EXCEPT
+		{
+			rtm::vector4f tmp_xxxx = rtm::vector_mul(lhs_xxxx, rhs_xxxx);
+			rtm::vector4f tmp_yyyy = rtm::vector_mul(lhs_yyyy, rhs_yyyy);
+			rtm::vector4f tmp_zzzz = rtm::vector_mul(lhs_zzzz, rhs_zzzz);
+
+			return rtm::vector_add(rtm::vector_add(tmp_xxxx, tmp_yyyy), tmp_zzzz);
+		}
+
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL vector_distance_squared3_soa(
+			rtm::vector4f_arg0 lhs_xxxx, rtm::vector4f_arg1 lhs_yyyy, rtm::vector4f_arg2 lhs_zzzz,
+			rtm::vector4f_arg3 rhs_xxxx, rtm::vector4f_arg4 rhs_yyyy, rtm::vector4f_arg5 rhs_zzzz) RTM_NO_EXCEPT
+		{
+			// AoS equivalent
+			// const rtm::vector4f difference = rtm::vector_sub(lhs, rhs);
+			// return rtm::vector_length_squared3_as_scalar(difference);
+
+			rtm::vector4f difference_xxxx = rtm::vector_sub(lhs_xxxx, rhs_xxxx);
+			rtm::vector4f difference_yyyy = rtm::vector_sub(lhs_yyyy, rhs_yyyy);
+			rtm::vector4f difference_zzzz = rtm::vector_sub(lhs_zzzz, rhs_zzzz);
+
+			return vector_dot3_soa(
+				difference_xxxx, difference_yyyy, difference_zzzz,
+				difference_xxxx, difference_yyyy, difference_zzzz);
+		}
 	}
 
 	ACL_IMPL_VERSION_NAMESPACE_END
