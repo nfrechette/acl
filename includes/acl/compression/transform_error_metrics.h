@@ -99,19 +99,21 @@ namespace acl
 			rtm::vector4f tmp_wwww;
 
 			// We know that vector_wwww is zero and so we can cut down a few operations
-			//rtm::vector4f vector_wwww = rtm::vector_zero();
-			//quat_mul_soa(
-			//	inv_rotation_xxxx, inv_rotation_yyyy, inv_rotation_zzzz, inv_rotation_wwww,
-			//	vector_xxxx, vector_yyyy, vector_zzzz, vector_wwww,
-			//	tmp_xxxx, tmp_yyyy, tmp_zzzz, tmp_wwww);
-		#if 1
-			tmp_xxxx = rtm::vector_neg_mul_sub(vector_zzzz, inv_rotation_yyyy, rtm::vector_mul_add(vector_yyyy, inv_rotation_zzzz, rtm::vector_mul(vector_xxxx, inv_rotation_wwww)));
-			tmp_yyyy = rtm::vector_mul_add(vector_zzzz, inv_rotation_xxxx, rtm::vector_mul_add(vector_yyyy, inv_rotation_wwww, rtm::vector_mul(vector_xxxx, inv_rotation_zzzz)));
-			tmp_zzzz = rtm::vector_mul_add(vector_zzzz, inv_rotation_wwww, rtm::vector_neg_mul_sub(vector_yyyy, inv_rotation_xxxx, rtm::vector_mul(vector_xxxx, inv_rotation_yyyy)));
-			tmp_wwww = rtm::vector_neg_mul_sub(vector_zzzz, inv_rotation_zzzz, rtm::vector_neg_mul_sub(vector_yyyy, inv_rotation_yyyy, rtm::vector_mul(vector_xxxx, inv_rotation_xxxx)));
-		#else
-			// Hand optimize because Apple clang and MSVC fail to re-order the instructions
-			// to minimize dependencies
+			// rtm::vector4f vector_wwww = rtm::vector_zero();
+			// quat_mul_soa(
+			//	 inv_rotation_xxxx, inv_rotation_yyyy, inv_rotation_zzzz, inv_rotation_wwww,
+			//	 vector_xxxx, vector_yyyy, vector_zzzz, vector_wwww,
+			//	 tmp_xxxx, tmp_yyyy, tmp_zzzz, tmp_wwww);
+			//
+			// Inlined and optimized
+			// tmp_xxxx = rtm::vector_neg_mul_sub(vector_zzzz, inv_rotation_yyyy, rtm::vector_mul_add(vector_yyyy, inv_rotation_zzzz, rtm::vector_mul(vector_xxxx, inv_rotation_wwww)));
+			// tmp_yyyy = rtm::vector_mul_add(vector_zzzz, inv_rotation_xxxx, rtm::vector_mul_add(vector_yyyy, inv_rotation_wwww, rtm::vector_mul(vector_xxxx, inv_rotation_zzzz)));
+			// tmp_zzzz = rtm::vector_mul_add(vector_zzzz, inv_rotation_wwww, rtm::vector_neg_mul_sub(vector_yyyy, inv_rotation_xxxx, rtm::vector_mul(vector_xxxx, inv_rotation_yyyy)));
+			// tmp_wwww = rtm::vector_neg_mul_sub(vector_zzzz, inv_rotation_zzzz, rtm::vector_neg_mul_sub(vector_yyyy, inv_rotation_yyyy, rtm::vector_mul(vector_xxxx, inv_rotation_xxxx)));
+			//
+			// Hand optimize because Apple clang struggles to re-order the instructions
+			// to minimize dependencies. Ideally, we want independent instructions to dispatch
+			// together to facilitate simultaneous execution.
 			tmp_xxxx = rtm::vector_mul(vector_xxxx, inv_rotation_wwww);
 			tmp_yyyy = rtm::vector_mul(vector_xxxx, inv_rotation_zzzz);
 			tmp_zzzz = rtm::vector_mul(vector_xxxx, inv_rotation_yyyy);
@@ -126,7 +128,6 @@ namespace acl
 			tmp_yyyy = rtm::vector_mul_add(vector_zzzz, inv_rotation_xxxx, tmp_yyyy);
 			tmp_zzzz = rtm::vector_mul_add(vector_zzzz, inv_rotation_wwww, tmp_zzzz);
 			tmp_wwww = rtm::vector_neg_mul_sub(vector_zzzz, inv_rotation_zzzz, tmp_wwww);
-		#endif
 
 			rtm::vector4f rotation_v = rtm::quat_to_vector(rotation);
 			rtm::vector4f rotation_xxxx = rtm::vector_dup_x(rotation_v);
@@ -135,17 +136,19 @@ namespace acl
 			rtm::vector4f rotation_wwww = rtm::vector_dup_w(rotation_v);
 
 			// We know that result_wwww is discarded and so we can cut down a few operations
-			//quat_mul_soa(
-			//	tmp_xxxx, tmp_yyyy, tmp_zzzz, tmp_wwww,
-			//	rotation_xxxx, rotation_yyyy, rotation_zzzz, rotation_wwww,
-			//	out_result_xxxx, out_result_yyyy, out_result_zzzz, tmp_wwww);
-		#if 1
-			out_result_xxxx = rtm::vector_neg_mul_sub(rotation_zzzz, tmp_yyyy, rtm::vector_mul_add(rotation_yyyy, tmp_zzzz, rtm::vector_mul_add(rotation_xxxx, tmp_wwww, rtm::vector_mul(rotation_wwww, tmp_xxxx))));
-			out_result_yyyy = rtm::vector_mul_add(rotation_zzzz, tmp_xxxx, rtm::vector_mul_add(rotation_yyyy, tmp_wwww, rtm::vector_neg_mul_sub(rotation_xxxx, tmp_zzzz, rtm::vector_mul(rotation_wwww, tmp_yyyy))));
-			out_result_zzzz = rtm::vector_mul_add(rotation_zzzz, tmp_wwww, rtm::vector_neg_mul_sub(rotation_yyyy, tmp_xxxx, rtm::vector_mul_add(rotation_xxxx, tmp_yyyy, rtm::vector_mul(rotation_wwww, tmp_zzzz))));
-		#else
-			// Hand optimize because Apple clang and MSVC fail to re-order the instructions
-			// to minimize dependencies
+			// quat_mul_soa(
+			//	 tmp_xxxx, tmp_yyyy, tmp_zzzz, tmp_wwww,
+			//	 rotation_xxxx, rotation_yyyy, rotation_zzzz, rotation_wwww,
+			//	 out_result_xxxx, out_result_yyyy, out_result_zzzz, tmp_wwww);
+			//
+			// Inlined and optimized
+			// out_result_xxxx = rtm::vector_neg_mul_sub(rotation_zzzz, tmp_yyyy, rtm::vector_mul_add(rotation_yyyy, tmp_zzzz, rtm::vector_mul_add(rotation_xxxx, tmp_wwww, rtm::vector_mul(rotation_wwww, tmp_xxxx))));
+			// out_result_yyyy = rtm::vector_mul_add(rotation_zzzz, tmp_xxxx, rtm::vector_mul_add(rotation_yyyy, tmp_wwww, rtm::vector_neg_mul_sub(rotation_xxxx, tmp_zzzz, rtm::vector_mul(rotation_wwww, tmp_yyyy))));
+			// out_result_zzzz = rtm::vector_mul_add(rotation_zzzz, tmp_wwww, rtm::vector_neg_mul_sub(rotation_yyyy, tmp_xxxx, rtm::vector_mul_add(rotation_xxxx, tmp_yyyy, rtm::vector_mul(rotation_wwww, tmp_zzzz))));
+			//
+			// Hand optimize because Apple clang struggles to re-order the instructions
+			// to minimize dependencies. Ideally, we want independent instructions to dispatch
+			// together to facilitate simultaneous execution.
 			rtm::vector4f result_xxxx = rtm::vector_mul(rotation_wwww, tmp_xxxx);
 			rtm::vector4f result_yyyy = rtm::vector_mul(rotation_wwww, tmp_yyyy);
 			rtm::vector4f result_zzzz = rtm::vector_mul(rotation_wwww, tmp_zzzz);
@@ -161,7 +164,6 @@ namespace acl
 			out_result_xxxx = rtm::vector_neg_mul_sub(rotation_zzzz, tmp_yyyy, result_xxxx);
 			out_result_yyyy = rtm::vector_mul_add(rotation_zzzz, tmp_xxxx, result_yyyy);
 			out_result_zzzz = rtm::vector_mul_add(rotation_zzzz, tmp_wwww, result_zzzz);
-		#endif
 		}
 
 		//////////////////////////////////////////////////////////////////////////
