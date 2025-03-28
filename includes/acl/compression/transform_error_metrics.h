@@ -431,34 +431,27 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Input arguments for the 'calculate_error*' functions.
-		//////////////////////////////////////////////////////////////////////////
 		struct calculate_error_args
 		{
-			//////////////////////////////////////////////////////////////////////////
 			// A point on our rigid shell along the X axis.
 			rtm::vector4f shell_point_x;
 
-			//////////////////////////////////////////////////////////////////////////
 			// A point on our rigid shell along the Y axis.
 			rtm::vector4f shell_point_y;
 
-			//////////////////////////////////////////////////////////////////////////
 			// A point on our rigid shell along the Z axis.
 			rtm::vector4f shell_point_z;
 
-			//////////////////////////////////////////////////////////////////////////
 			// The first transform used to measure the error.
 			// In the type expected by the error metric.
 			// Could be in local or object space (same space as lossy).
 			const void* transform0;
 
-			//////////////////////////////////////////////////////////////////////////
 			// The second transform used to measure the error.
 			// In the type expected by the error metric.
 			// Could be in local or object space (same space as raw).
 			const void* transform1;
 
-			//////////////////////////////////////////////////////////////////////////
 			// We measure the error on a rigid shell around each transform.
 			// This shell takes the form of a sphere at a certain distance.
 			// When no scale is present, measuring any two points is sufficient
