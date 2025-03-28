@@ -38,7 +38,12 @@
 #include <rtm/qvvf.h>
 #include <rtm/scalarf.h>
 
-//#define ACL_IMPL_USE_SOA_ERROR_METRIC
+// By default, we use an optimize version of error metrics that leverages SIMD by
+// computing the error in Structure Of Array form (xxxx, yyyy, zzzz). This means that we can generally
+// compute the error for 2, 3, or 4 points (identical cost) more cheaply than it is for 2 points
+// in a classic Array of Structure form (xyz, xyz, xyz, xyz). We leave the define here
+// to facilitate debugging as SoA code can be quite opaque.
+#define ACL_IMPL_USE_SOA_ERROR_METRIC
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
@@ -246,6 +251,7 @@ namespace acl
 			// A point on our rigid shell along the Z axis.
 			rtm::vector4f shell_point_z;
 
+#if defined(ACL_IMPL_USE_SOA_ERROR_METRIC)
 			// Points on our rigid shell stored transposed.
 			rtm::vector4f shell_points_xxxx;
 
@@ -254,6 +260,7 @@ namespace acl
 
 			// Points on our rigid shell stored transposed.
 			rtm::vector4f shell_points_zzzz;
+#endif
 
 			// The first transform used to measure the error.
 			// In the type expected by the error metric.
@@ -276,9 +283,11 @@ namespace acl
 				shell_point_y = rtm::vector_set(0.0F, shell_distance, 0.0F, 0.0F);
 				shell_point_z = rtm::vector_set(0.0F, 0.0F, shell_distance, 0.0F);
 
+#if defined(ACL_IMPL_USE_SOA_ERROR_METRIC)
 				RTM_MATRIXF_TRANSPOSE_3X3(
 					shell_point_x, shell_point_y, shell_point_z,
 					shell_points_xxxx, shell_points_yyyy, shell_points_zzzz);
+#endif
 			}
 		};
 
