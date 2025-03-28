@@ -200,12 +200,11 @@ namespace acl
 			// AoS equivalent
 			// return rtm::vector_add(rtm::quat_mul_vector3(point, qvv.rotation), qvv.translation);
 
-			rtm::vector4f result_xxxx = point_xxxx;
-			rtm::vector4f result_yyyy = point_yyyy;
-			rtm::vector4f result_zzzz = point_zzzz;
-
+			rtm::vector4f result_xxxx;
+			rtm::vector4f result_yyyy;
+			rtm::vector4f result_zzzz;
 			quat_mul_vector3_soa(
-				result_xxxx, result_yyyy, result_zzzz,
+				point_xxxx, point_yyyy, point_zzzz,
 				qvv.rotation,
 				result_xxxx, result_yyyy, result_zzzz);
 
