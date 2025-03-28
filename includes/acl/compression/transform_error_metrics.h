@@ -379,7 +379,7 @@ namespace acl
 			rtm::vector4f raw_vtx_xxx_;
 			rtm::vector4f raw_vtx_yyy_;
 			rtm::vector4f raw_vtx_zzz_;
-			acl_impl::qvv_mul_point3_soa(
+			acl_impl::qvv_mul_point3_x4(
 				vtx_xxx_, vtx_yyy_, vtx_zzz_,
 				raw_transform_,
 				raw_vtx_xxx_, raw_vtx_yyy_, raw_vtx_zzz_);
@@ -387,12 +387,12 @@ namespace acl
 			rtm::vector4f lossy_vtx_xxx_;
 			rtm::vector4f lossy_vtx_yyy_;
 			rtm::vector4f lossy_vtx_zzz_;
-			acl_impl::qvv_mul_point3_soa(
+			acl_impl::qvv_mul_point3_x4(
 				vtx_xxx_, vtx_yyy_, vtx_zzz_,
 				lossy_transform_,
 				lossy_vtx_xxx_, lossy_vtx_yyy_, lossy_vtx_zzz_);
 
-			rtm::vector4f vtx_error_sq_xyz_ = acl_impl::vector_distance_squared3_soa(
+			rtm::vector4f vtx_error_sq_xyz_ = acl_impl::vector_distance_squared3_x4(
 				raw_vtx_xxx_, raw_vtx_yyy_, raw_vtx_zzz_,
 				lossy_vtx_xxx_, lossy_vtx_yyy_, lossy_vtx_zzz_);
 
@@ -431,7 +431,7 @@ namespace acl
 			rtm::vector4f raw_vtx_xxx_;
 			rtm::vector4f raw_vtx_yyy_;
 			rtm::vector4f raw_vtx_zzz_;
-			acl_impl::qvv_mul_point3_no_scale_soa(
+			acl_impl::qvv_mul_point3_no_scale_x4(
 				vtx_xx__, vtx_yy__, vtx_zz__,
 				raw_transform_,
 				raw_vtx_xxx_, raw_vtx_yyy_, raw_vtx_zzz_);
@@ -439,12 +439,12 @@ namespace acl
 			rtm::vector4f lossy_vtx_xxx_;
 			rtm::vector4f lossy_vtx_yyy_;
 			rtm::vector4f lossy_vtx_zzz_;
-			acl_impl::qvv_mul_point3_no_scale_soa(
+			acl_impl::qvv_mul_point3_no_scale_x4(
 				vtx_xx__, vtx_yy__, vtx_zz__,
 				lossy_transform_,
 				lossy_vtx_xxx_, lossy_vtx_yyy_, lossy_vtx_zzz_);
 
-			rtm::vector4f vtx_error_sq_xy__ = acl_impl::vector_distance_squared3_soa(
+			rtm::vector4f vtx_error_sq_xy__ = acl_impl::vector_distance_squared3_x4(
 				raw_vtx_xxx_, raw_vtx_yyy_, raw_vtx_zzz_,
 				lossy_vtx_xxx_, lossy_vtx_yyy_, lossy_vtx_zzz_);
 

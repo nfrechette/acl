@@ -139,7 +139,7 @@ namespace acl
 
 		// About 31 cycles with AVX on Skylake
 		// Force inline this function, we only use it to keep the code readable
-		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL quat_from_positive_w4(rtm::vector4f_arg0 xxxx, rtm::vector4f_arg1 yyyy, rtm::vector4f_arg2 zzzz)
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL quat_from_positive_w_x4(rtm::vector4f_arg0 xxxx, rtm::vector4f_arg1 yyyy, rtm::vector4f_arg2 zzzz)
 		{
 			// 1.0 - (x * x)
 			rtm::vector4f result = rtm::vector_neg_mul_sub(xxxx, xxxx, rtm::vector_set(1.0F));
@@ -174,7 +174,7 @@ namespace acl
 
 		// About 28 cycles with AVX on Skylake
 		// Force inline this function, we only use it to keep the code readable
-		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE void RTM_SIMD_CALL quat_lerp_no_normalization4(
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE void RTM_SIMD_CALL quat_lerp_no_normalization_x4(
 			rtm::vector4f_arg0 xxxx0, rtm::vector4f_arg1 yyyy0, rtm::vector4f_arg2 zzzz0, rtm::vector4f_arg3 wwww0,
 			rtm::vector4f_arg4 xxxx1, rtm::vector4f_arg5 yyyy1, rtm::vector4f_arg6 zzzz1, rtm::vector4f_arg7 wwww1,
 			rtm::vector4f_argn interpolation_alpha,
@@ -204,7 +204,7 @@ namespace acl
 
 		// About 9 cycles with AVX on Skylake
 		// Force inline this function, we only use it to keep the code readable
-		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE void RTM_SIMD_CALL quat_normalize4(rtm::vector4f& xxxx, rtm::vector4f& yyyy, rtm::vector4f& zzzz, rtm::vector4f& wwww)
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE void RTM_SIMD_CALL quat_normalize_x4(rtm::vector4f& xxxx, rtm::vector4f& yyyy, rtm::vector4f& zzzz, rtm::vector4f& wwww)
 		{
 			const rtm::vector4f dot4 = rtm::vector_mul_add(wwww, wwww, rtm::vector_mul_add(zzzz, zzzz, rtm::vector_mul_add(yyyy, yyyy, rtm::vector_mul(xxxx, xxxx))));
 
@@ -217,7 +217,7 @@ namespace acl
 			wwww = rtm::vector_mul(wwww, inv_len4);
 		}
 
-		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE void RTM_SIMD_CALL quat_mul_soa(
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE void RTM_SIMD_CALL quat_mul_x4(
 			rtm::vector4f_arg0 lhs_xxxx, rtm::vector4f_arg1 lhs_yyyy, rtm::vector4f_arg2 lhs_zzzz, rtm::vector4f_arg3 lhs_wwww,
 			rtm::vector4f_arg4 rhs_xxxx, rtm::vector4f_arg5 rhs_yyyy, rtm::vector4f_arg6 rhs_zzzz, rtm::vector4f_arg7 rhs_wwww,
 			rtm::vector4f& out_result_xxxx, rtm::vector4f& out_result_yyyy, rtm::vector4f& out_result_zzzz, rtm::vector4f& out_result_wwww) RTM_NO_EXCEPT
@@ -228,7 +228,7 @@ namespace acl
 			out_result_wwww = rtm::vector_neg_mul_sub(rhs_zzzz, lhs_zzzz, rtm::vector_neg_mul_sub(rhs_yyyy, lhs_yyyy, rtm::vector_neg_mul_sub(rhs_xxxx, lhs_xxxx, rtm::vector_mul(rhs_wwww, lhs_wwww))));
 		}
 
-		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE void RTM_SIMD_CALL quat_mul_vector3_soa(
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE void RTM_SIMD_CALL quat_mul_vector3_x4(
 			rtm::vector4f_arg0 vector_xxxx, rtm::vector4f_arg1 vector_yyyy, rtm::vector4f_arg2 vector_zzzz,
 			rtm::quatf_arg3 rotation,
 			rtm::vector4f& out_result_xxxx, rtm::vector4f& out_result_yyyy, rtm::vector4f& out_result_zzzz) RTM_NO_EXCEPT
@@ -253,7 +253,7 @@ namespace acl
 
 			// We know that vector_wwww is zero and so we can cut down a few operations
 			// rtm::vector4f vector_wwww = rtm::vector_zero();
-			// quat_mul_soa(
+			// quat_mul_x4(
 			//	 inv_rotation_xxxx, inv_rotation_yyyy, inv_rotation_zzzz, inv_rotation_wwww,
 			//	 vector_xxxx, vector_yyyy, vector_zzzz, vector_wwww,
 			//	 tmp_xxxx, tmp_yyyy, tmp_zzzz, tmp_wwww);
@@ -289,7 +289,7 @@ namespace acl
 			rtm::vector4f rotation_wwww = rtm::vector_dup_w(rotation_v);
 
 			// We know that result_wwww is discarded and so we can cut down a few operations
-			// quat_mul_soa(
+			// quat_mul_x4(
 			//	 tmp_xxxx, tmp_yyyy, tmp_zzzz, tmp_wwww,
 			//	 rotation_xxxx, rotation_yyyy, rotation_zzzz, rotation_wwww,
 			//	 out_result_xxxx, out_result_yyyy, out_result_zzzz, tmp_wwww);

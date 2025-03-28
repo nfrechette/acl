@@ -167,12 +167,12 @@ namespace acl
 						// Update our read ptr
 						constant_track_data += load_size * 3;
 
-						rtm::vector4f wwww = quat_from_positive_w4(xxxx, yyyy, zzzz);
+						rtm::vector4f wwww = quat_from_positive_w_x4(xxxx, yyyy, zzzz);
 
 						// quat_from_positive_w might not yield an accurate quaternion because the square-root instruction
 						// isn't very accurate on small inputs, we need to normalize
 						if (decompression_settings_type::get_rotation_normalization_policy() == rotation_normalization_policy_t::always)
-							quat_normalize4(xxxx, yyyy, zzzz, wwww);
+							quat_normalize_x4(xxxx, yyyy, zzzz, wwww);
 
 						rtm::vector4f sample0;
 						rtm::vector4f sample1;

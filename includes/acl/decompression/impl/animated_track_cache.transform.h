@@ -1428,14 +1428,14 @@ namespace acl
 					scratch0_wwww = _mm256_extractf128_ps(scratch_wwww0_wwww1, 0);
 					scratch1_wwww = _mm256_extractf128_ps(scratch_wwww0_wwww1, 1);
 #else
-					scratch0_wwww = quat_from_positive_w4(scratch0_xxxx, scratch0_yyyy, scratch0_zzzz);
+					scratch0_wwww = quat_from_positive_w_x4(scratch0_xxxx, scratch0_yyyy, scratch0_zzzz);
 
 #if !defined(ACL_IMPL_PREFETCH_EARLY)
 					if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
 					{
 						// Our segment per track metadata takes 4 bytes per group (4 samples, 1 byte each), each cache line fits 16 groups
 						// Prefetch every other 8th group
-						// We prefetch here because we have a square-root in quat_from_positive_w4(..) that we'll wait after
+						// We prefetch here because we have a square-root in quat_from_positive_w_x4(..) that we'll wait after
 						// This allows us to insert the prefetch basically for free in its shadow
 						// Branching is faster than prefetching every time and alternating between the two
 						if (cache_write_index == 0)
@@ -1445,14 +1445,14 @@ namespace acl
 					}
 #endif
 
-					scratch1_wwww = quat_from_positive_w4(scratch1_xxxx, scratch1_yyyy, scratch1_zzzz);
+					scratch1_wwww = quat_from_positive_w_x4(scratch1_xxxx, scratch1_yyyy, scratch1_zzzz);
 
 #if !defined(ACL_IMPL_PREFETCH_EARLY)
 					if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
 					{
 						// Our clip range data is 24 bytes per sub-track and as such we need to prefetch two cache lines ahead to process 4 sub-tracks
 						// Each group is 96 bytes (4 samples, 24 bytes each), each cache line fits 0.67 groups
-						// We prefetch here because we have a square-root in quat_from_positive_w4(..) that we'll wait after
+						// We prefetch here because we have a square-root in quat_from_positive_w_x4(..) that we'll wait after
 						// This allows us to insert the prefetch basically for free in its shadow
 						ACL_IMPL_ANIMATED_PREFETCH(clip_sampling_context_rotations.clip_range_data + 64);
 						ACL_IMPL_ANIMATED_PREFETCH(clip_sampling_context_rotations.clip_range_data + 128);
@@ -1468,8 +1468,8 @@ namespace acl
 						// Otherwise, if we don't interpolate we also need to normalize
 						if (decompression_settings_type::is_per_track_rounding_supported() || !should_interpolate)
 						{
-							quat_normalize4(scratch0_xxxx, scratch0_yyyy, scratch0_zzzz, scratch0_wwww);
-							quat_normalize4(scratch1_xxxx, scratch1_yyyy, scratch1_zzzz, scratch1_wwww);
+							quat_normalize_x4(scratch0_xxxx, scratch0_yyyy, scratch0_zzzz, scratch0_wwww);
+							quat_normalize_x4(scratch1_xxxx, scratch1_yyyy, scratch1_zzzz, scratch1_wwww);
 						}
 					}
 				}
@@ -1552,7 +1552,7 @@ namespace acl
 							rtm::vector4f interp_wwww;
 
 							// Interpolate our quaternions without normalizing just yet
-							quat_lerp_no_normalization4(scratch0_xxxx, scratch0_yyyy, scratch0_zzzz, scratch0_wwww,
+							quat_lerp_no_normalization_x4(scratch0_xxxx, scratch0_yyyy, scratch0_zzzz, scratch0_wwww,
 								scratch1_xxxx, scratch1_yyyy, scratch1_zzzz, scratch1_wwww,
 								interpolation_alpha_v,
 								interp_xxxx, interp_yyyy, interp_zzzz, interp_wwww);
@@ -1560,7 +1560,7 @@ namespace acl
 							// Due to the interpolation, the result might not be anywhere near normalized!
 							// Make sure to normalize afterwards if we need to
 							if (decompression_settings_type::get_rotation_normalization_policy() >= rotation_normalization_policy_t::lerp_only)
-								quat_normalize4(interp_xxxx, interp_yyyy, interp_zzzz, interp_wwww);
+								quat_normalize_x4(interp_xxxx, interp_yyyy, interp_zzzz, interp_wwww);
 
 #if !defined(ACL_IMPL_PREFETCH_EARLY)
 							{
@@ -1569,7 +1569,7 @@ namespace acl
 								// When we use variable data, the highest bit rate uses 32 bits per component and thus our upper bound is 48 bytes per group (4 bytes per component, 3 components, 4 samples in group), we have 1.33 group per cache line
 								// In practice, the highest bit rate is rare and the second higher uses 19 bits per component which brings us to 28.5 bytes per group, leading to 2.24 group per cache line
 								// We prefetch both key frames every time to help hide TLB miss latency in large clips
-								// We prefetch here because we have a square-root and division in quat_normalize4(..) that we'll wait after
+								// We prefetch here because we have a square-root and division in quat_normalize_x4(..) that we'll wait after
 								// This allows us to insert the prefetch basically for free in their shadow
 								const uint8_t* animated_track_data = segment_sampling_context_rotations[0].animated_track_data + 64;	// One cache line ahead
 								const uint32_t animated_bit_offset0 = segment_sampling_context_rotations[0].animated_track_data_bit_offset;
@@ -1604,7 +1604,7 @@ namespace acl
 						if (should_interpolate)
 						{
 							// Interpolate our quaternions without normalizing just yet
-							quat_lerp_no_normalization4(scratch0_xxxx, scratch0_yyyy, scratch0_zzzz, scratch0_wwww,
+							quat_lerp_no_normalization_x4(scratch0_xxxx, scratch0_yyyy, scratch0_zzzz, scratch0_wwww,
 								scratch1_xxxx, scratch1_yyyy, scratch1_zzzz, scratch1_wwww,
 								interpolation_alpha_v,
 								interp_xxxx, interp_yyyy, interp_zzzz, interp_wwww);
@@ -1612,7 +1612,7 @@ namespace acl
 							// Due to the interpolation, the result might not be anywhere near normalized!
 							// Make sure to normalize afterwards if we need to
 							if (decompression_settings_type::get_rotation_normalization_policy() >= rotation_normalization_policy_t::lerp_only)
-								quat_normalize4(interp_xxxx, interp_yyyy, interp_zzzz, interp_wwww);
+								quat_normalize_x4(interp_xxxx, interp_yyyy, interp_zzzz, interp_wwww);
 						}
 						else
 						{
@@ -1633,7 +1633,7 @@ namespace acl
 							// When we use variable data, the highest bit rate uses 32 bits per component and thus our upper bound is 48 bytes per group (4 bytes per component, 3 components, 4 samples in group), we have 1.33 group per cache line
 							// In practice, the highest bit rate is rare and the second higher uses 19 bits per component which brings us to 28.5 bytes per group, leading to 2.24 group per cache line
 							// We prefetch both key frames every time to help hide TLB miss latency in large clips
-							// We prefetch here because we have a square-root and division in quat_normalize4(..) that we'll wait after
+							// We prefetch here because we have a square-root and division in quat_normalize_x4(..) that we'll wait after
 							// This allows us to insert the prefetch basically for free in their shadow
 							const uint8_t* animated_track_data = segment_sampling_context_rotations[0].animated_track_data + 64;	// One cache line ahead
 							const uint32_t animated_bit_offset0 = segment_sampling_context_rotations[0].animated_track_data_bit_offset;

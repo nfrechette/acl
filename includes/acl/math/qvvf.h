@@ -46,7 +46,7 @@ namespace acl
 		// Multiplies a QVV transform and a 3D point.
 		// Multiplication order is as follow: world_position = qvv_mul_point3(local_position, local_to_world)
 		//////////////////////////////////////////////////////////////////////////
-		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE void RTM_SIMD_CALL qvv_mul_point3_soa(
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE void RTM_SIMD_CALL qvv_mul_point3_x4(
 			rtm::vector4f_arg0 point_xxxx, rtm::vector4f_arg1 point_yyyy, rtm::vector4f_arg2 point_zzzz,
 			rtm::qvvf_argn qvv,
 			rtm::vector4f& out_result_xxxx, rtm::vector4f& out_result_yyyy, rtm::vector4f& out_result_zzzz) RTM_NO_EXCEPT
@@ -58,7 +58,7 @@ namespace acl
 			rtm::vector4f result_yyyy = rtm::vector_mul(point_yyyy, rtm::vector_dup_y(qvv.scale));
 			rtm::vector4f result_zzzz = rtm::vector_mul(point_zzzz, rtm::vector_dup_z(qvv.scale));
 
-			quat_mul_vector3_soa(
+			quat_mul_vector3_x4(
 				result_xxxx, result_yyyy, result_zzzz,
 				qvv.rotation,
 				result_xxxx, result_yyyy, result_zzzz);
@@ -68,7 +68,7 @@ namespace acl
 			out_result_zzzz = rtm::vector_add(result_zzzz, rtm::vector_dup_z(qvv.translation));
 		}
 
-		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE void RTM_SIMD_CALL qvv_mul_point3_no_scale_soa(
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE void RTM_SIMD_CALL qvv_mul_point3_no_scale_x4(
 			rtm::vector4f_arg0 point_xxxx, rtm::vector4f_arg1 point_yyyy, rtm::vector4f_arg2 point_zzzz,
 			rtm::qvvf_argn qvv,
 			rtm::vector4f& out_result_xxxx, rtm::vector4f& out_result_yyyy, rtm::vector4f& out_result_zzzz) RTM_NO_EXCEPT
@@ -79,7 +79,7 @@ namespace acl
 			rtm::vector4f result_xxxx;
 			rtm::vector4f result_yyyy;
 			rtm::vector4f result_zzzz;
-			quat_mul_vector3_soa(
+			quat_mul_vector3_x4(
 				point_xxxx, point_yyyy, point_zzzz,
 				qvv.rotation,
 				result_xxxx, result_yyyy, result_zzzz);

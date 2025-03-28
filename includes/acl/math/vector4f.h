@@ -59,7 +59,7 @@ namespace acl
 			return rtm::vector_length_squared3_as_scalar(difference);
 		}
 
-		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL vector_dot3_soa(
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL vector_dot3_x4(
 			rtm::vector4f_arg0 lhs_xxxx, rtm::vector4f_arg1 lhs_yyyy, rtm::vector4f_arg2 lhs_zzzz,
 			rtm::vector4f_arg3 rhs_xxxx, rtm::vector4f_arg4 rhs_yyyy, rtm::vector4f_arg5 rhs_zzzz) RTM_NO_EXCEPT
 		{
@@ -70,7 +70,7 @@ namespace acl
 			return rtm::vector_add(rtm::vector_add(tmp_xxxx, tmp_yyyy), tmp_zzzz);
 		}
 
-		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL vector_distance_squared3_soa(
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL vector_distance_squared3_x4(
 			rtm::vector4f_arg0 lhs_xxxx, rtm::vector4f_arg1 lhs_yyyy, rtm::vector4f_arg2 lhs_zzzz,
 			rtm::vector4f_arg3 rhs_xxxx, rtm::vector4f_arg4 rhs_yyyy, rtm::vector4f_arg5 rhs_zzzz) RTM_NO_EXCEPT
 		{
@@ -82,7 +82,7 @@ namespace acl
 			rtm::vector4f difference_yyyy = rtm::vector_sub(lhs_yyyy, rhs_yyyy);
 			rtm::vector4f difference_zzzz = rtm::vector_sub(lhs_zzzz, rhs_zzzz);
 
-			return vector_dot3_soa(
+			return vector_dot3_x4(
 				difference_xxxx, difference_yyyy, difference_zzzz,
 				difference_xxxx, difference_yyyy, difference_zzzz);
 		}
