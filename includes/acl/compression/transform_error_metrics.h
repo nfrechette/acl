@@ -80,9 +80,10 @@ namespace acl
 			rtm::quatf_arg3 rotation,
 			rtm::vector4f& out_result_xxxx, rtm::vector4f& out_result_yyyy, rtm::vector4f& out_result_zzzz) RTM_NO_EXCEPT
 		{
-			//quatf vector_quat = quat_set_w(vector_to_quat(vector), 0.0f);
-			//quatf inv_rotation = quat_conjugate(rotation);
-			//return quat_to_vector(quat_mul(quat_mul(inv_rotation, vector_quat), rotation));
+			// AoS equivalent
+			// quatf vector_quat = quat_set_w(vector_to_quat(vector), 0.0f);
+			// quatf inv_rotation = quat_conjugate(rotation);
+			// return quat_to_vector(quat_mul(quat_mul(inv_rotation, vector_quat), rotation));
 
 			rtm::quatf inv_rotation = rtm::quat_conjugate(rotation);
 
@@ -172,7 +173,8 @@ namespace acl
 			rtm::qvvf_argn qvv,
 			rtm::vector4f& out_result_xxxx, rtm::vector4f& out_result_yyyy, rtm::vector4f& out_result_zzzz) RTM_NO_EXCEPT
 		{
-			//return rtm::vector_add(rtm::quat_mul_vector3(rtm::vector_mul(qvv.scale, point), qvv.rotation), qvv.translation);
+			// AoS equivalent
+			// return rtm::vector_add(rtm::quat_mul_vector3(rtm::vector_mul(qvv.scale, point), qvv.rotation), qvv.translation);
 
 			rtm::vector4f result_xxxx = rtm::vector_mul(point_xxxx, rtm::vector_dup_x(qvv.scale));
 			rtm::vector4f result_yyyy = rtm::vector_mul(point_yyyy, rtm::vector_dup_y(qvv.scale));
@@ -193,7 +195,8 @@ namespace acl
 			rtm::qvvf_argn qvv,
 			rtm::vector4f& out_result_xxxx, rtm::vector4f& out_result_yyyy, rtm::vector4f& out_result_zzzz) RTM_NO_EXCEPT
 		{
-			//return rtm::vector_add(rtm::quat_mul_vector3(point, qvv.rotation), qvv.translation);
+			// AoS equivalent
+			// return rtm::vector_add(rtm::quat_mul_vector3(point, qvv.rotation), qvv.translation);
 
 			rtm::vector4f result_xxxx = point_xxxx;
 			rtm::vector4f result_yyyy = point_yyyy;
@@ -224,8 +227,9 @@ namespace acl
 			rtm::vector4f_arg0 lhs_xxxx, rtm::vector4f_arg1 lhs_yyyy, rtm::vector4f_arg2 lhs_zzzz,
 			rtm::vector4f_arg3 rhs_xxxx, rtm::vector4f_arg4 rhs_yyyy, rtm::vector4f_arg5 rhs_zzzz) RTM_NO_EXCEPT
 		{
-			//const rtm::vector4f difference = rtm::vector_sub(lhs, rhs);
-			//return rtm::vector_length_squared3_as_scalar(difference);
+			// AoS equivalent
+			// const rtm::vector4f difference = rtm::vector_sub(lhs, rhs);
+			// return rtm::vector_length_squared3_as_scalar(difference);
 
 			rtm::vector4f difference_xxxx = rtm::vector_sub(lhs_xxxx, rhs_xxxx);
 			rtm::vector4f difference_yyyy = rtm::vector_sub(lhs_yyyy, rhs_yyyy);
