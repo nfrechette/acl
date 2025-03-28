@@ -139,7 +139,7 @@ namespace acl
 
 		// About 31 cycles with AVX on Skylake
 		// Force inline this function, we only use it to keep the code readable
-		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL quat_from_positive_w4(rtm::vector4f_arg0 xxxx, rtm::vector4f_arg1 yyyy, rtm::vector4f_arg2 zzzz)
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL quat_from_positive_w4(rtm::vector4f_arg0 xxxx, rtm::vector4f_arg1 yyyy, rtm::vector4f_arg2 zzzz)
 		{
 			// 1.0 - (x * x)
 			rtm::vector4f result = rtm::vector_neg_mul_sub(xxxx, xxxx, rtm::vector_set(1.0F));
@@ -155,7 +155,7 @@ namespace acl
 
 #if defined(ACL_IMPL_USE_AVX_8_WIDE_DECOMP)
 		// Force inline this function, we only use it to keep the code readable
-		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK __m256 RTM_SIMD_CALL quat_from_positive_w_avx8(__m256 xxxx0_xxxx1, __m256 yyyy0_yyyy1, __m256 zzzz0_zzzz1)
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE __m256 RTM_SIMD_CALL quat_from_positive_w_avx8(__m256 xxxx0_xxxx1, __m256 yyyy0_yyyy1, __m256 zzzz0_zzzz1)
 		{
 			const __m256 one_v = _mm256_set1_ps(1.0F);
 
@@ -174,7 +174,7 @@ namespace acl
 
 		// About 28 cycles with AVX on Skylake
 		// Force inline this function, we only use it to keep the code readable
-		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL quat_lerp_no_normalization4(
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE void RTM_SIMD_CALL quat_lerp_no_normalization4(
 			rtm::vector4f_arg0 xxxx0, rtm::vector4f_arg1 yyyy0, rtm::vector4f_arg2 zzzz0, rtm::vector4f_arg3 wwww0,
 			rtm::vector4f_arg4 xxxx1, rtm::vector4f_arg5 yyyy1, rtm::vector4f_arg6 zzzz1, rtm::vector4f_arg7 wwww1,
 			rtm::vector4f_argn interpolation_alpha,
@@ -204,7 +204,7 @@ namespace acl
 
 		// About 9 cycles with AVX on Skylake
 		// Force inline this function, we only use it to keep the code readable
-		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL quat_normalize4(rtm::vector4f& xxxx, rtm::vector4f& yyyy, rtm::vector4f& zzzz, rtm::vector4f& wwww)
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE void RTM_SIMD_CALL quat_normalize4(rtm::vector4f& xxxx, rtm::vector4f& yyyy, rtm::vector4f& zzzz, rtm::vector4f& wwww)
 		{
 			const rtm::vector4f dot4 = rtm::vector_mul_add(wwww, wwww, rtm::vector_mul_add(zzzz, zzzz, rtm::vector_mul_add(yyyy, yyyy, rtm::vector_mul(xxxx, xxxx))));
 
