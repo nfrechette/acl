@@ -131,7 +131,7 @@ namespace acl
 			calculate_error_args.transform0 = &local_transforms_converted[metric_transform_size * 0];
 			calculate_error_args.transform1 = &local_transforms_converted[metric_transform_size * 1];
 
-			const rtm::scalarf precision = rtm::scalar_set(shell.precision);
+			const rtm::scalarf precision_sq = rtm::scalar_set(shell.precision * shell.precision);
 
 			const uint32_t num_samples = lossy_clip_context.num_samples;
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
@@ -212,10 +212,10 @@ namespace acl
 					error_metric.apply_additive_to_base(apply_additive_to_base_args, &local_transforms_converted[0]);
 				}
 
-				const rtm::scalarf vtx_error = error_metric.calculate_error(calculate_error_args);
+				const rtm::scalarf vtx_error_sq = error_metric.calculate_error_squared(calculate_error_args);
 
 				// If our error exceeds the desired precision, we are not constant
-				if (rtm::scalar_greater_than(vtx_error, precision))
+				if (rtm::scalar_greater_than(vtx_error_sq, precision_sq))
 					return false;
 			}
 
@@ -1148,11 +1148,11 @@ namespace acl
 							calculate_error_args.transform0 = &transform_to_root_raw;
 							calculate_error_args.transform1 = &transform_to_root_lossy;
 
-							const rtm::scalarf precision = rtm::scalar_set(transform_to_test_metadata.precision);
-							const rtm::scalarf vtx_error = error_metric.calculate_error(calculate_error_args);
+							const rtm::scalarf precision_sq = rtm::scalar_set(transform_to_test_metadata.precision * transform_to_test_metadata.precision);
+							const rtm::scalarf vtx_error_sq = error_metric.calculate_error_squared(calculate_error_args);
 
 							// If our error exceeds the desired precision, this permutation isn't valid
-							is_permutation_valid = !rtm::scalar_greater_than(vtx_error, precision);
+							is_permutation_valid = !rtm::scalar_greater_than(vtx_error_sq, precision_sq);
 						}
 
 						// If our dominant transform isn't a leaf, we have to consider it as well
@@ -1167,11 +1167,11 @@ namespace acl
 							calculate_error_args.transform0 = &root_to_dominant_raw;
 							calculate_error_args.transform1 = &root_to_dominant_lossy;
 
-							const rtm::scalarf precision = rtm::scalar_set(dominant_metadata.precision);
-							const rtm::scalarf vtx_error = error_metric.calculate_error(calculate_error_args);
+							const rtm::scalarf precision_sq = rtm::scalar_set(dominant_metadata.precision * dominant_metadata.precision);
+							const rtm::scalarf vtx_error_sq = error_metric.calculate_error_squared(calculate_error_args);
 
 							// If our error exceeds the desired precision, this permutation isn't valid
-							is_permutation_valid = !rtm::scalar_greater_than(vtx_error, precision);
+							is_permutation_valid = !rtm::scalar_greater_than(vtx_error_sq, precision_sq);
 						}
 
 						// Next, test each leaf in object space if we are valid so far
@@ -1190,11 +1190,11 @@ namespace acl
 								calculate_error_args.transform0 = &root_to_leaf_raw;
 								calculate_error_args.transform1 = &root_to_leaf_lossy;
 
-								const rtm::scalarf precision = rtm::scalar_set(leaf_metadata.precision);
-								const rtm::scalarf vtx_error = error_metric.calculate_error(calculate_error_args);
+								const rtm::scalarf precision_sq = rtm::scalar_set(leaf_metadata.precision * leaf_metadata.precision);
+								const rtm::scalarf vtx_error_sq = error_metric.calculate_error_squared(calculate_error_args);
 
 								// If our error exceeds the desired precision, this permutation isn't valid
-								if (rtm::scalar_greater_than(vtx_error, precision))
+								if (rtm::scalar_greater_than(vtx_error_sq, precision_sq))
 								{
 									is_permutation_valid = false;
 									break;

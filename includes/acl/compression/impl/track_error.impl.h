@@ -365,17 +365,20 @@ namespace acl
 					calculate_error_args.transform1 = lossy_object_pose + (bone_index * transform_size);
 					calculate_error_args.construct_sphere_shell(shell_distance);
 
-					const float error = rtm::scalar_cast(error_metric.calculate_error(calculate_error_args));
+					const float error_sq = rtm::scalar_cast(error_metric.calculate_error_squared(calculate_error_args));
 
-					if (error > result.error)
+					if (error_sq > result.error)
 					{
-						result.error = error;
+						result.error = error_sq;
 						result.index = bone_index;
 						result.sample_time = sample_time;
 						result.keyframe_index = sample_index;
 					}
 				}
 			}
+
+			// We computed the squared error
+			result.error = rtm::scalar_sqrt(result.error);
 
 			deallocate_type_array(allocator, raw_local_pose_converted, num_tracks * transform_size);
 			deallocate_type_array(allocator, base_local_pose_converted, num_tracks * transform_size);

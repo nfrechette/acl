@@ -166,16 +166,17 @@ namespace acl
 				{
 					const float shell_distance = raw_clip.get_transform_shell_distance(transform_index);
 					const rtm::scalarf precision = rtm::scalar_set(raw_clip.get_transform_precision(transform_index));
+					const rtm::scalarf precision_sq = rtm::scalar_mul(precision, precision);
 
 					itransform_error_metric::calculate_error_args calculate_error_args;
 					calculate_error_args.construct_sphere_shell(shell_distance);
 					calculate_error_args.transform0 = clip_transforms_first + transform_index;
 					calculate_error_args.transform1 = clip_transforms_last + transform_index;
 
-					const rtm::scalarf error = error_metric.calculate_error(calculate_error_args);
+					const rtm::scalarf error_sq = error_metric.calculate_error_squared(calculate_error_args);
 
 					// If our error exceeds the desired precision, we are not wrapping
-					if (rtm::scalar_greater_than(error, precision))
+					if (rtm::scalar_greater_than(error_sq, precision_sq))
 					{
 						is_wrapping = false;
 						break;

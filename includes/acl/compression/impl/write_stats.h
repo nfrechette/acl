@@ -136,7 +136,7 @@ namespace acl
 			ACL_ASSERT(!settings.error_metric->needs_conversion(has_scale), "Error metric conversion not supported");
 
 			const auto local_to_object_space_impl = std::mem_fn(has_scale ? &itransform_error_metric::local_to_object_space : &itransform_error_metric::local_to_object_space_no_scale);
-			const auto calculate_error_impl = std::mem_fn(has_scale ? &itransform_error_metric::calculate_error : &itransform_error_metric::calculate_error_no_scale);
+			const auto calculate_error_squared_impl = std::mem_fn(has_scale ? &itransform_error_metric::calculate_error_squared : &itransform_error_metric::calculate_error_squared_no_scale);
 			const auto apply_additive_to_base_impl = std::mem_fn(has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
 
 			rtm::qvvf* raw_local_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
@@ -220,7 +220,8 @@ namespace acl
 								calculate_error_args.transform1 = lossy_object_pose + bone_index;
 								calculate_error_args.construct_sphere_shell(desc.shell_distance);
 
-								const float error = rtm::scalar_cast(calculate_error_impl(settings.error_metric, calculate_error_args));
+								const float error_sq = rtm::scalar_cast(calculate_error_squared_impl(settings.error_metric, calculate_error_args));
+								const float error = rtm::scalar_sqrt(error_sq);
 
 								frame_writer.push(error);
 
