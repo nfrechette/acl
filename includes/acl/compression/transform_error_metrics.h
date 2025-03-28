@@ -442,6 +442,15 @@ namespace acl
 			// A point on our rigid shell along the Z axis.
 			rtm::vector4f shell_point_z;
 
+			// Points on our rigid shell stored transposed.
+			rtm::vector4f shell_points_xxxx;
+
+			// Points on our rigid shell stored transposed.
+			rtm::vector4f shell_points_yyyy;
+
+			// Points on our rigid shell stored transposed.
+			rtm::vector4f shell_points_zzzz;
+
 			// The first transform used to measure the error.
 			// In the type expected by the error metric.
 			// Could be in local or object space (same space as lossy).
@@ -462,6 +471,10 @@ namespace acl
 				shell_point_x = rtm::vector_set(shell_distance, 0.0F, 0.0F, 0.0F);
 				shell_point_y = rtm::vector_set(0.0F, shell_distance, 0.0F, 0.0F);
 				shell_point_z = rtm::vector_set(0.0F, 0.0F, shell_distance, 0.0F);
+
+				RTM_MATRIXF_TRANSPOSE_3X3(
+					shell_point_x, shell_point_y, shell_point_z,
+					shell_points_xxxx, shell_points_yyyy, shell_points_zzzz);
 			}
 		};
 
@@ -555,12 +568,9 @@ namespace acl
 			// Note that because we have scale, we must measure all three axes
 
 #if defined(ACL_IMPL_USE_SOA_ERROR_METRIC)
-			rtm::vector4f vtx_xxx_;
-			rtm::vector4f vtx_yyy_;
-			rtm::vector4f vtx_zzz_;
-			RTM_MATRIXF_TRANSPOSE_3X3(
-				args.shell_point_x, args.shell_point_y, args.shell_point_z,
-				vtx_xxx_, vtx_yyy_, vtx_zzz_);
+			const rtm::vector4f vtx_xxx_ = args.shell_points_xxxx;
+			const rtm::vector4f vtx_yyy_ = args.shell_points_yyyy;
+			const rtm::vector4f vtx_zzz_ = args.shell_points_zzzz;
 
 			rtm::vector4f raw_vtx_xxx_;
 			rtm::vector4f raw_vtx_yyy_;
@@ -610,12 +620,9 @@ namespace acl
 			const rtm::qvvf& lossy_transform_ = *static_cast<const rtm::qvvf*>(args.transform1);
 
 #if defined(ACL_IMPL_USE_SOA_ERROR_METRIC)
-			rtm::vector4f vtx_xx__;
-			rtm::vector4f vtx_yy__;
-			rtm::vector4f vtx_zz__;
-			RTM_MATRIXF_TRANSPOSE_3X3(
-				args.shell_point_x, args.shell_point_y, args.shell_point_y,	// repeat y, no transpose 2x2
-				vtx_xx__, vtx_yy__, vtx_zz__);
+			const rtm::vector4f vtx_xx__ = args.shell_points_xxxx;
+			const rtm::vector4f vtx_yy__ = args.shell_points_yyyy;
+			const rtm::vector4f vtx_zz__ = args.shell_points_zzzz;
 
 			rtm::vector4f raw_vtx_xxx_;
 			rtm::vector4f raw_vtx_yyy_;
