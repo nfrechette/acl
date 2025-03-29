@@ -45,6 +45,9 @@
 // to facilitate debugging as SoA code can be quite opaque.
 #define ACL_IMPL_USE_SOA_ERROR_METRIC
 
+// Whether or not to use a third point even when no scale is present
+//#define ACL_IMPL_USE_3_POINTS_WITHOUT_SCALE
+
 ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
@@ -457,7 +460,11 @@ namespace acl
 				raw_vtx_xxx_, raw_vtx_yyy_, raw_vtx_zzz_,
 				lossy_vtx_xxx_, lossy_vtx_yyy_, lossy_vtx_zzz_);
 
+	#if defined(ACL_IMPL_USE_3_POINTS_WITHOUT_SCALE)
+			return rtm::vector_get_max_component_as_scalar(rtm::vector_set_w(vtx_error_sq_xy__, 0.0F));
+	#else
 			return rtm::scalar_max(rtm::vector_get_x_as_scalar(vtx_error_sq_xy__), rtm::vector_get_y_as_scalar(vtx_error_sq_xy__));
+	#endif
 #else
 			const rtm::vector4f vtx0 = args.shell_point_x;
 			const rtm::vector4f vtx1 = args.shell_point_y;
@@ -471,7 +478,15 @@ namespace acl
 			const rtm::scalarf vtx0_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx0, lossy_vtx0);
 			const rtm::scalarf vtx1_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx1, lossy_vtx1);
 
+	#if defined(ACL_IMPL_USE_3_POINTS_WITHOUT_SCALE)
+			const rtm::vector4f vtx2 = args.shell_point_z;
+			const rtm::vector4f raw_vtx2 = rtm::qvv_mul_point3_no_scale(vtx2, raw_transform_);
+			const rtm::vector4f lossy_vtx2 = rtm::qvv_mul_point3_no_scale(vtx2, lossy_transform_);
+			const rtm::scalarf vtx2_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx2, lossy_vtx2);
+			return rtm::scalar_max(rtm::scalar_max(vtx0_error, vtx1_error), vtx2_error);
+	#else
 			return rtm::scalar_max(vtx0_error, vtx1_error);
+	#endif
 #endif
 		}
 	};
