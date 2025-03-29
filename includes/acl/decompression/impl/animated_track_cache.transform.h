@@ -305,13 +305,20 @@ namespace acl
 			// Load and mask out our segment range data
 			const rtm::vector4f one_v = rtm::vector_set(1.0F);
 
-			rtm::vector4f segment_range_min_xxxx = segment_scratch.segment_range_min[scratch_offset + 0];
-			rtm::vector4f segment_range_min_yyyy = segment_scratch.segment_range_min[scratch_offset + 2];
-			rtm::vector4f segment_range_min_zzzz = segment_scratch.segment_range_min[scratch_offset + 4];
+			// Promote to register width to avoid redundant promotions below
+			size_t scratch_offset_ = scratch_offset;
 
-			rtm::vector4f segment_range_extent_xxxx = segment_scratch.segment_range_extent[scratch_offset + 0];
-			rtm::vector4f segment_range_extent_yyyy = segment_scratch.segment_range_extent[scratch_offset + 2];
-			rtm::vector4f segment_range_extent_zzzz = segment_scratch.segment_range_extent[scratch_offset + 4];
+			// Compute base pointers manually to facilitate immediate indexing below
+			const rtm::vector4f* segment_range_min_ptr = &segment_scratch.segment_range_min[scratch_offset_];
+			const rtm::vector4f* segment_range_extent_ptr = &segment_scratch.segment_range_extent[scratch_offset_];
+
+			rtm::vector4f segment_range_min_xxxx = segment_range_min_ptr[0];
+			rtm::vector4f segment_range_min_yyyy = segment_range_min_ptr[2];
+			rtm::vector4f segment_range_min_zzzz = segment_range_min_ptr[4];
+
+			rtm::vector4f segment_range_extent_xxxx = segment_range_extent_ptr[0];
+			rtm::vector4f segment_range_extent_yyyy = segment_range_extent_ptr[2];
+			rtm::vector4f segment_range_extent_zzzz = segment_range_extent_ptr[4];
 
 #if defined(RTM_SSE2_INTRINSICS)
 			// Mask out the segment min we ignore
