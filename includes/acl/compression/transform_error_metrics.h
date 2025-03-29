@@ -48,6 +48,9 @@
 // Whether or not to use a third point even when no scale is present
 //#define ACL_IMPL_USE_3_POINTS_WITHOUT_SCALE
 
+// Whether or not to use a fourth point to improve coverage
+//#define ACL_IMPL_USE_4_POINTS
+
 ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
@@ -254,6 +257,11 @@ namespace acl
 			// A point on our rigid shell along the Z axis.
 			rtm::vector4f shell_point_z;
 
+#if defined(ACL_IMPL_USE_4_POINTS)
+			// A point on our rigid shell along the mid line between the XYZ axes.
+			rtm::vector4f shell_point_mid;
+#endif
+
 #if defined(ACL_IMPL_USE_SOA_ERROR_METRIC)
 			// Points on our rigid shell stored transposed.
 			rtm::vector4f shell_points_xxxx;
@@ -286,10 +294,29 @@ namespace acl
 				shell_point_y = rtm::vector_set(0.0F, shell_distance, 0.0F, 0.0F);
 				shell_point_z = rtm::vector_set(0.0F, 0.0F, shell_distance, 0.0F);
 
+#if defined(ACL_IMPL_USE_4_POINTS)
+				// We want the 4th point to be between all 3 others
+				// Because they are axis aligned, we wish to be at 45 degrees on the XY plane
+				// and at 45 degrees along the XZ and YZ planes as well
+				// The easiest way to compute this point is to add the first three
+				// (1, 0, 0) + (0, 1, 0) + (0, 0, 1) = (1, 1, 1)
+				// Now we can normalize this to obtain the direction:
+				// ||(1, 1, 1)|| = sqrt(3) = 1.73205081
+				// (1, 1, 1) / sqrt(3) = (0.57735027, 0.57735027, 0.57735027)
+
+				shell_point_mid = rtm::vector_mul(rtm::vector_set(0.57735027F, 0.57735027F, 0.57735027F, 0.0F), shell_distance);
+#endif
+
 #if defined(ACL_IMPL_USE_SOA_ERROR_METRIC)
+	#if defined(ACL_IMPL_USE_4_POINTS)
+				RTM_MATRIXF_TRANSPOSE_4X3(
+					shell_point_x, shell_point_y, shell_point_z, shell_point_mid,
+					shell_points_xxxx, shell_points_yyyy, shell_points_zzzz);
+	#else
 				RTM_MATRIXF_TRANSPOSE_3X3(
 					shell_point_x, shell_point_y, shell_point_z,
 					shell_points_xxxx, shell_points_yyyy, shell_points_zzzz);
+	#endif
 #endif
 			}
 		};
@@ -408,7 +435,11 @@ namespace acl
 				raw_vtx_xxx_, raw_vtx_yyy_, raw_vtx_zzz_,
 				lossy_vtx_xxx_, lossy_vtx_yyy_, lossy_vtx_zzz_);
 
+	#if defined(ACL_IMPL_USE_4_POINTS)
+			return rtm::vector_get_max_component_as_scalar(vtx_error_sq_xyz_);
+	#else
 			return rtm::vector_get_max_component_as_scalar(rtm::vector_set_w(vtx_error_sq_xyz_, 0.0F));
+	#endif
 #else
 			const rtm::vector4f vtx0 = args.shell_point_x;
 			const rtm::vector4f vtx1 = args.shell_point_y;
@@ -426,7 +457,15 @@ namespace acl
 			const rtm::scalarf vtx1_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx1, lossy_vtx1);
 			const rtm::scalarf vtx2_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx2, lossy_vtx2);
 
+	#if defined(ACL_IMPL_USE_4_POINTS)
+			const rtm::vector4f vtx3 = args.shell_point_mid;
+			const rtm::vector4f raw_vtx3 = rtm::qvv_mul_point3(vtx3, raw_transform_);
+			const rtm::vector4f lossy_vtx3 = rtm::qvv_mul_point3(vtx3, lossy_transform_);
+			const rtm::scalarf vtx3_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx3, lossy_vtx3);
+			return rtm::scalar_max(rtm::scalar_max(vtx0_error, vtx1_error), rtm::scalar_max(vtx2_error, vtx3_error));
+	#else
 			return rtm::scalar_max(rtm::scalar_max(vtx0_error, vtx1_error), vtx2_error);
+	#endif
 #endif
 		}
 
@@ -460,7 +499,9 @@ namespace acl
 				raw_vtx_xxx_, raw_vtx_yyy_, raw_vtx_zzz_,
 				lossy_vtx_xxx_, lossy_vtx_yyy_, lossy_vtx_zzz_);
 
-	#if defined(ACL_IMPL_USE_3_POINTS_WITHOUT_SCALE)
+	#if defined(ACL_IMPL_USE_4_POINTS)
+			return rtm::vector_get_max_component_as_scalar(vtx_error_sq_xy__);
+	#elif defined(ACL_IMPL_USE_3_POINTS_WITHOUT_SCALE)
 			return rtm::vector_get_max_component_as_scalar(rtm::vector_set_w(vtx_error_sq_xy__, 0.0F));
 	#else
 			return rtm::scalar_max(rtm::vector_get_x_as_scalar(vtx_error_sq_xy__), rtm::vector_get_y_as_scalar(vtx_error_sq_xy__));
@@ -478,7 +519,17 @@ namespace acl
 			const rtm::scalarf vtx0_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx0, lossy_vtx0);
 			const rtm::scalarf vtx1_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx1, lossy_vtx1);
 
-	#if defined(ACL_IMPL_USE_3_POINTS_WITHOUT_SCALE)
+	#if defined(ACL_IMPL_USE_4_POINTS)
+			const rtm::vector4f vtx2 = args.shell_point_z;
+			const rtm::vector4f vtx3 = args.shell_point_mid;
+			const rtm::vector4f raw_vtx2 = rtm::qvv_mul_point3_no_scale(vtx2, raw_transform_);
+			const rtm::vector4f raw_vtx3 = rtm::qvv_mul_point3_no_scale(vtx3, raw_transform_);
+			const rtm::vector4f lossy_vtx2 = rtm::qvv_mul_point3_no_scale(vtx2, lossy_transform_);
+			const rtm::vector4f lossy_vtx3 = rtm::qvv_mul_point3_no_scale(vtx3, lossy_transform_);
+			const rtm::scalarf vtx2_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx2, lossy_vtx2);
+			const rtm::scalarf vtx3_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx3, lossy_vtx3);
+			return rtm::scalar_max(rtm::scalar_max(vtx0_error, vtx1_error), rtm::scalar_max(vtx2_error, vtx3_error));
+	#elif defined(ACL_IMPL_USE_3_POINTS_WITHOUT_SCALE)
 			const rtm::vector4f vtx2 = args.shell_point_z;
 			const rtm::vector4f raw_vtx2 = rtm::qvv_mul_point3_no_scale(vtx2, raw_transform_);
 			const rtm::vector4f lossy_vtx2 = rtm::qvv_mul_point3_no_scale(vtx2, lossy_transform_);
@@ -642,7 +693,15 @@ namespace acl
 			const rtm::scalarf vtx1_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx1, lossy_vtx1);
 			const rtm::scalarf vtx2_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx2, lossy_vtx2);
 
+#if defined(ACL_IMPL_USE_4_POINTS)
+			const rtm::vector4f vtx3 = args.shell_point_mid;
+			const rtm::vector4f raw_vtx3 = rtm::matrix_mul_point3(vtx3, raw_transform_);
+			const rtm::vector4f lossy_vtx3 = rtm::matrix_mul_point3(vtx3, lossy_transform_);
+			const rtm::scalarf vtx3_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx3, lossy_vtx3);
+			return rtm::scalar_max(rtm::scalar_max(vtx0_error, vtx1_error), rtm::scalar_max(vtx2_error, vtx3_error));
+#else
 			return rtm::scalar_max(rtm::scalar_max(vtx0_error, vtx1_error), vtx2_error);
+#endif
 		}
 	};
 
