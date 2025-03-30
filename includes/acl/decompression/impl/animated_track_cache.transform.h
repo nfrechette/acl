@@ -42,12 +42,29 @@
 #define ACL_IMPL_USE_ANIMATED_PREFETCH
 
 // Try our an alternate method of masking min/extent remap results (segment)
+// With Apple Clang, we save a few instructions but overall we are slightly slower on M1
+// probably because the masking happens after the fma which depends on the unpacked values.
+// If the unpacked values stall (e.g. due to cache miss), then the masking is a dependent
+// instruction but in the original code, it is independent and so can happen for free
+// if the scheduler window is long enough.
+// With Clang 18, enabling this triggers the value unpacking to inline which leads to
+// a small performance improvement.
 //#define ACL_IMPL_ALTERNATE_MIN_EXTENT_MASKING
 
 // Try our an alternate method of masking min/extent remap results (clip)
+// With Apple Clang, we save a few instructions but overall we are slightly slower on M1
+// probably because the masking happens after the fma which depends on the unpacked values.
+// If the unpacked values stall (e.g. due to cache miss), then the masking is a dependent
+// instruction but in the original code, it is independent and so can happen for free
+// if the scheduler window is long enough.
+// With Clang 18, enabling this reverts the value unpacking back to not inline but overall
+// still yields a small perf win vs reference
 //#define ACL_IMPL_ALTERNATE_MIN_EXTENT_MASKING2
 
 // Try an alternative method to unpack segment metadata using vtbl
+// With Apple Clang, we save a few instructions, mainly when we unpack the second segment
+// as we can re-use the constants. Overall, we are slightly slower.
+// With Clang 18, we end up with a slight performance improvement
 //#define ACL_IMPL_ALTERNATE_SEGMENT_UNPACK
 
 // On x86/x64 platforms the prefetching instruction can have a long latency and it requires
