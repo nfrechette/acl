@@ -47,6 +47,9 @@
 // Try our an alternate method of masking min/extent remap results (clip)
 //#define ACL_IMPL_ALTERNATE_MIN_EXTENT_MASKING2
 
+// Try an alternative method to unpack segment metadata using vtbl
+//#define ACL_IMPL_ALTERNATE_SEGMENT_UNPACK
+
 // On x86/x64 platforms the prefetching instruction can have a long latency and it requires
 // a few other registers to compute the address which is problematic when registers are scarce.
 // As such, we attempt to hide the prefetching behind longer latency instructions like square-roots
@@ -201,6 +204,24 @@ namespace acl
 			segment_range_extent_yyyy = _mm_mul_ps(segment_range_extent_yyyy, normalization_value);
 			segment_range_extent_zzzz = _mm_mul_ps(segment_range_extent_zzzz, normalization_value);
 #elif defined(RTM_NEON_INTRINSICS)
+	#if defined(RTM_NEON64_INTRINSICS) && defined(ACL_IMPL_ALTERNATE_SEGMENT_UNPACK)
+			const uint8x16_t segment_range_min_xxxx_yyyy_zzzz_u8 = vld1q_u8(segment_range_data);
+			const uint8x16_t segment_range_extent_xxxx_yyyy_zzzz_u8 = vld1q_u8(segment_range_data + 12);
+
+			// If we unpack a second segment (uncommon), then we can re-use these constants
+			const uint8x16_t idx0 = { 0, 255, 255, 255, 1, 255, 255, 255, 2, 255, 255, 255, 3, 255, 255, 255 };
+			const uint8x16_t idx1 = { 4, 255, 255, 255, 5, 255, 255, 255, 6, 255, 255, 255, 7, 255, 255, 255 };
+			const uint8x16_t idx2 = { 8, 255, 255, 255, 9, 255, 255, 255, 10, 255, 255, 255, 11, 255, 255, 255 };
+
+			uint32x4_t segment_range_min_xxxx_u32 = vqtbl1q_u8(segment_range_min_xxxx_yyyy_zzzz_u8, idx0);
+			const uint32x4_t segment_range_extent_xxxx_u32 = vqtbl1q_u8(segment_range_extent_xxxx_yyyy_zzzz_u8, idx0);
+
+			uint32x4_t segment_range_min_yyyy_u32 = vqtbl1q_u8(segment_range_min_xxxx_yyyy_zzzz_u8, idx1);
+			const uint32x4_t segment_range_extent_yyyy_u32 = vqtbl1q_u8(segment_range_extent_xxxx_yyyy_zzzz_u8, idx1);
+
+			uint32x4_t segment_range_min_zzzz_u32 = vqtbl1q_u8(segment_range_min_xxxx_yyyy_zzzz_u8, idx2);
+			const uint32x4_t segment_range_extent_zzzz_u32 = vqtbl1q_u8(segment_range_extent_xxxx_yyyy_zzzz_u8, idx2);
+	#else
 			const uint8x16_t segment_range_min_xxxx_yyyy_zzzz_extent_xxxx_u8 = vld1q_u8(segment_range_data);
 			const uint8x8_t segment_range_extent_yyyy_zzzz_u8 = vld1_u8(segment_range_data + 16);
 
@@ -216,6 +237,7 @@ namespace acl
 			const uint32x4_t segment_range_extent_xxxx_u32 = vmovl_u16(vget_high_u16(segment_range_min_zzzz_extent_xxxx_u16));
 			const uint32x4_t segment_range_extent_yyyy_u32 = vmovl_u16(vget_low_u16(segment_range_extent_yyyy_zzzz_u16));
 			const uint32x4_t segment_range_extent_zzzz_u32 = vmovl_u16(vget_high_u16(segment_range_extent_yyyy_zzzz_u16));
+	#endif
 
 			float32x4_t segment_range_min_xxxx = vcvtq_f32_u32(segment_range_min_xxxx_u32);
 			float32x4_t segment_range_min_yyyy = vcvtq_f32_u32(segment_range_min_yyyy_u32);
