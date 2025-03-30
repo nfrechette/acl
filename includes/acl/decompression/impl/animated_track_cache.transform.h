@@ -41,6 +41,12 @@
 
 #define ACL_IMPL_USE_ANIMATED_PREFETCH
 
+// Try our an alternate method of masking min/extent remap results (segment)
+//#define ACL_IMPL_ALTERNATE_MIN_EXTENT_MASKING
+
+// Try our an alternate method of masking min/extent remap results (clip)
+//#define ACL_IMPL_ALTERNATE_MIN_EXTENT_MASKING2
+
 // On x86/x64 platforms the prefetching instruction can have a long latency and it requires
 // a few other registers to compute the address which is problematic when registers are scarce.
 // As such, we attempt to hide the prefetching behind longer latency instructions like square-roots
@@ -303,7 +309,9 @@ namespace acl
 			rtm::vector4f& xxxx, rtm::vector4f& yyyy, rtm::vector4f& zzzz)
 		{
 			// Load and mask out our segment range data
+#if !defined(ACL_IMPL_ALTERNATE_MIN_EXTENT_MASKING)
 			const rtm::vector4f one_v = rtm::vector_set(1.0F);
+#endif
 
 			// Promote to register width to avoid redundant promotions below
 			size_t scratch_offset_ = scratch_offset;
@@ -324,27 +332,51 @@ namespace acl
 			// Mask out the segment min we ignore
 			const rtm::mask4f segment_range_ignore_mask_v = _mm_castsi128_ps(_mm_unpacklo_epi16(range_reduction_masks, range_reduction_masks));
 
+	#if !defined(ACL_IMPL_ALTERNATE_MIN_EXTENT_MASKING)
 			segment_range_min_xxxx = _mm_andnot_ps(segment_range_ignore_mask_v, segment_range_min_xxxx);
 			segment_range_min_yyyy = _mm_andnot_ps(segment_range_ignore_mask_v, segment_range_min_yyyy);
 			segment_range_min_zzzz = _mm_andnot_ps(segment_range_ignore_mask_v, segment_range_min_zzzz);
+	#endif
 #elif defined(RTM_NEON_INTRINSICS)
 			// Mask out the segment min we ignore
 			const uint32x4_t segment_range_ignore_mask_v = vreinterpretq_u32_s32(vmovl_s16(vget_low_s16(range_reduction_masks)));
 
+	#if !defined(ACL_IMPL_ALTERNATE_MIN_EXTENT_MASKING)
 			segment_range_min_xxxx = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(segment_range_min_xxxx), segment_range_ignore_mask_v));
 			segment_range_min_yyyy = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(segment_range_min_yyyy), segment_range_ignore_mask_v));
 			segment_range_min_zzzz = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(segment_range_min_zzzz), segment_range_ignore_mask_v));
+	#endif
 #else
+	#if !defined(ACL_IMPL_ALTERNATE_MIN_EXTENT_MASKING)
 			const rtm::vector4f zero_v = rtm::vector_zero();
+	#endif
 
 			const uint32_t segment_range_mask_u32 = uint32_t(range_reduction_masks);
 			const rtm::mask4f segment_range_ignore_mask_v = rtm::mask_set((segment_range_mask_u32 & 0x000000FF) != 0, (segment_range_mask_u32 & 0x0000FF00) != 0, (segment_range_mask_u32 & 0x00FF0000) != 0, (segment_range_mask_u32 & 0xFF000000) != 0);
 
+	#if !defined(ACL_IMPL_ALTERNATE_MIN_EXTENT_MASKING)
 			segment_range_min_xxxx = rtm::vector_select(segment_range_ignore_mask_v, zero_v, segment_range_min_xxxx);
 			segment_range_min_yyyy = rtm::vector_select(segment_range_ignore_mask_v, zero_v, segment_range_min_yyyy);
 			segment_range_min_zzzz = rtm::vector_select(segment_range_ignore_mask_v, zero_v, segment_range_min_zzzz);
+	#endif
 #endif
 
+#if defined(ACL_IMPL_ALTERNATE_MIN_EXTENT_MASKING)
+			// Load in temporary registers to avoid any potential aliasing issues
+			rtm::vector4f xxxx_ = xxxx;
+			rtm::vector4f yyyy_ = yyyy;
+			rtm::vector4f zzzz_ = zzzz;
+
+			// Remap
+			rtm::vector4f tmp_xxxx = rtm::vector_mul_add(xxxx_, segment_range_extent_xxxx, segment_range_min_xxxx);
+			rtm::vector4f tmp_yyyy = rtm::vector_mul_add(yyyy_, segment_range_extent_yyyy, segment_range_min_yyyy);
+			rtm::vector4f tmp_zzzz = rtm::vector_mul_add(zzzz_, segment_range_extent_zzzz, segment_range_min_zzzz);
+
+			// Mask out the lanes we ignore
+			xxxx = rtm::vector_select(segment_range_ignore_mask_v, xxxx_, tmp_xxxx);
+			yyyy = rtm::vector_select(segment_range_ignore_mask_v, yyyy_, tmp_yyyy);
+			zzzz = rtm::vector_select(segment_range_ignore_mask_v, zzzz_, tmp_zzzz);
+#else
 			// Mask out the segment extent we ignore
 			segment_range_extent_xxxx = rtm::vector_select(segment_range_ignore_mask_v, one_v, segment_range_extent_xxxx);
 			segment_range_extent_yyyy = rtm::vector_select(segment_range_ignore_mask_v, one_v, segment_range_extent_yyyy);
@@ -354,6 +386,7 @@ namespace acl
 			xxxx = rtm::vector_mul_add(xxxx, segment_range_extent_xxxx, segment_range_min_xxxx);
 			yyyy = rtm::vector_mul_add(yyyy, segment_range_extent_yyyy, segment_range_min_yyyy);
 			zzzz = rtm::vector_mul_add(zzzz, segment_range_extent_zzzz, segment_range_min_zzzz);
+#endif
 		}
 
 #if defined(ACL_IMPL_USE_AVX_8_WIDE_DECOMP)
@@ -424,6 +457,7 @@ namespace acl
 			const rtm::vector4f clip_range_extent_yyyy = rtm::vector_load(clip_range_data + load_size * 4);
 			const rtm::vector4f clip_range_extent_zzzz = rtm::vector_load(clip_range_data + load_size * 5);
 
+#if !defined(ACL_IMPL_ALTERNATE_MIN_EXTENT_MASKING2)
 			// Mask out the clip ranges we ignore
 #if defined(RTM_SSE2_INTRINSICS)
 			const rtm::vector4f clip_range_min_xxxx0 = _mm_andnot_ps(clip_range_mask0, clip_range_min_xxxx);
@@ -470,6 +504,34 @@ namespace acl
 			xxxx1 = rtm::vector_mul_add(xxxx1, clip_range_extent_xxxx1, clip_range_min_xxxx1);
 			yyyy1 = rtm::vector_mul_add(yyyy1, clip_range_extent_yyyy1, clip_range_min_yyyy1);
 			zzzz1 = rtm::vector_mul_add(zzzz1, clip_range_extent_zzzz1, clip_range_min_zzzz1);
+#else
+			// Load in temporary registers to avoid any potential aliasing issues
+			rtm::vector4f xxxx0_ = xxxx0;
+			rtm::vector4f yyyy0_ = yyyy0;
+			rtm::vector4f zzzz0_ = zzzz0;
+
+			rtm::vector4f xxxx1_ = xxxx1;
+			rtm::vector4f yyyy1_ = yyyy1;
+			rtm::vector4f zzzz1_ = zzzz1;
+
+			// Remap
+			rtm::vector4f tmp_xxxx0 = rtm::vector_mul_add(xxxx0_, clip_range_extent_xxxx, clip_range_min_xxxx);
+			rtm::vector4f tmp_yyyy0 = rtm::vector_mul_add(yyyy0_, clip_range_extent_yyyy, clip_range_min_yyyy);
+			rtm::vector4f tmp_zzzz0 = rtm::vector_mul_add(zzzz0_, clip_range_extent_zzzz, clip_range_min_zzzz);
+
+			rtm::vector4f tmp_xxxx1 = rtm::vector_mul_add(xxxx1_, clip_range_extent_xxxx, clip_range_min_xxxx);
+			rtm::vector4f tmp_yyyy1 = rtm::vector_mul_add(yyyy1_, clip_range_extent_yyyy, clip_range_min_yyyy);
+			rtm::vector4f tmp_zzzz1 = rtm::vector_mul_add(zzzz1_, clip_range_extent_zzzz, clip_range_min_zzzz);
+
+			// Mask out the lanes we ignore
+			xxxx0 = rtm::vector_select(clip_range_mask0, xxxx0_, tmp_xxxx0);
+			yyyy0 = rtm::vector_select(clip_range_mask0, yyyy0_, tmp_yyyy0);
+			zzzz0 = rtm::vector_select(clip_range_mask0, zzzz0_, tmp_zzzz0);
+
+			xxxx1 = rtm::vector_select(clip_range_mask1, xxxx1_, tmp_xxxx1);
+			yyyy1 = rtm::vector_select(clip_range_mask1, yyyy1_, tmp_yyyy1);
+			zzzz1 = rtm::vector_select(clip_range_mask1, zzzz1_, tmp_zzzz1);
+#endif
 		}
 
 #if defined(ACL_IMPL_USE_AVX_8_WIDE_DECOMP)
