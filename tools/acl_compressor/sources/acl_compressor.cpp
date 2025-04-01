@@ -93,6 +93,7 @@
 #endif    // _WIN32
 
 #include "acl_compressor.h"
+#include "acl/config.h"
 #include "acl/core/impl/bit_cast.impl.h"
 
 // Used to debug and validate that we compile without sjson-cpp

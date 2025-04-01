@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/config.h"
 #include "acl/version.h"
 #include "acl/compression/track_array.h"
 #include "acl/core/impl/compiler_utils.h"
