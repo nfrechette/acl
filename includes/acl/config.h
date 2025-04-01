@@ -81,10 +81,6 @@
 // You can disable deprecation warnings by defining ACL_NO_DEPRECATION
 //#define ACL_NO_DEPRECATION
 
-// When using the acl::ansi_allocator
-// You can disable all allocator sanitizing by defining ACL_NO_ALLOCATOR_SANITIZING
-//#define ACL_NO_ALLOCATOR_SANITIZING
-
 // Popcount intrinsic support can be enabled by defining ACL_USE_POPCOUNT
 // Note that this is a hardware feature and if the CPU does not support it, the
 // behavior is undefined. Make sure your platform supports it before enabling this.
@@ -101,8 +97,12 @@
 //#define ACL_USE_CPP11_STD_MEMORY_ORDER
 
 ////////////////////////////////////////////////////////////////////////////////
-// Defines below are for debugging/profiling purposes
+// Defines below are for development debugging/profiling purposes
 ////////////////////////////////////////////////////////////////////////////////
+
+// When using the acl::ansi_allocator
+// You can disable all allocator sanitizing by defining ACL_NO_ALLOCATOR_SANITIZING
+//#define ACL_NO_ALLOCATOR_SANITIZING
 
 // Enable this to prevent bind pose stripping
 // This will set each default track value to the identity
