@@ -107,3 +107,14 @@
 // Enable this to prevent bind pose stripping
 // This will set each default track value to the identity
 //#define ACL_IMPL_DISABLE_BIND_POSE_STRIPPING
+
+// Enable this to disable inlining
+// This is handy to debug the code and to more easily view
+// the generated assembly for each piece
+//#define ACL_IMPL_ENABLE_DEBUG_FORCE_INLINE
+
+#if defined(ACL_IMPL_ENABLE_DEBUG_FORCE_INLINE)
+	#define ACL_IMPL_DEBUG_FORCE_INLINE inline RTM_FORCE_NOINLINE
+#else
+	#define ACL_IMPL_DEBUG_FORCE_INLINE RTM_FORCE_INLINE
+#endif

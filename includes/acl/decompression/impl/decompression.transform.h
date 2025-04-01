@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/config.h"
 #include "acl/version.h"
 #include "acl/core/bit_manip_utils.h"
 #include "acl/core/bitset.h"
@@ -51,17 +52,6 @@
 
 #include <cstdint>
 #include <type_traits>
-
-// Enable this to disable inlining (disabled by default)
-// This is handy to debug the code and to more easily view
-// the generated assembly for each piece
-//#define ACL_IMPL_ENABLE_DEBUG_INLINE
-
-#if defined(ACL_IMPL_ENABLE_DEBUG_INLINE)
-	#define ACL_IMPL_DEBUG_INLINE inline RTM_FORCE_NOINLINE
-#else
-	#define ACL_IMPL_DEBUG_INLINE RTM_FORCE_INLINE
-#endif
 
 // Use bit scanning to iterate over default/constant/animated sub-tracks instead
 // of unrolling and branching
@@ -977,7 +967,7 @@ namespace acl
 #if defined(ACL_IMPL_USE_UNROLLED_ITERATION_DEFAULT)
 		// Force inline this function, we only use it to keep the code readable
 		template<class track_writer_type>
-		ACL_IMPL_DEBUG_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_default_rotation_sub_tracks(
+		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_default_rotation_sub_tracks(
 			const packed_sub_track_types* rotation_sub_track_types, uint32_t last_entry_index, uint32_t padding_mask,
 			track_writer_type& writer)
 		{
@@ -1120,7 +1110,7 @@ namespace acl
 #elif defined(ACL_IMPL_USE_BIT_SCAN_ITERATION_DEFAULT)
 		// Force inline this function, we only use it to keep the code readable
 		template<class track_writer_type>
-		ACL_IMPL_DEBUG_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_default_rotation_sub_tracks(
+		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_default_rotation_sub_tracks(
 			const packed_sub_track_types* rotation_sub_track_types, uint32_t last_entry_index, uint32_t padding_mask,
 			track_writer_type& writer)
 		{
@@ -1179,7 +1169,7 @@ namespace acl
 #else
 		// Force inline this function, we only use it to keep the code readable
 		template<class track_writer_type>
-		ACL_IMPL_DEBUG_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_default_rotation_sub_tracks(
+		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_default_rotation_sub_tracks(
 			const packed_sub_track_types* rotation_sub_track_types, uint32_t last_entry_index, uint32_t padding_mask,
 			track_writer_type& writer)
 		{
@@ -1286,7 +1276,7 @@ namespace acl
 #if defined(ACL_IMPL_USE_BIT_SCAN_ITERATION_CONSTANT)
 		// Force inline this function, we only use it to keep the code readable
 		template<class decompression_settings_type, class track_writer_type>
-		ACL_IMPL_DEBUG_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_constant_rotation_sub_tracks(
+		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_constant_rotation_sub_tracks(
 			const packed_sub_track_types* rotation_sub_track_types, uint32_t last_entry_index,
 			const persistent_transform_decompression_context_v0& context,
 			constant_track_cache_v0& constant_track_cache, track_writer_type& writer)
@@ -1327,7 +1317,7 @@ namespace acl
 #else
 		// Force inline this function, we only use it to keep the code readable
 		template<class decompression_settings_type, class track_writer_type>
-		ACL_IMPL_DEBUG_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_constant_rotation_sub_tracks(
+		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_constant_rotation_sub_tracks(
 			const packed_sub_track_types* rotation_sub_track_types, uint32_t last_entry_index,
 			const persistent_transform_decompression_context_v0& context,
 			constant_track_cache_v0& constant_track_cache, track_writer_type& writer)
@@ -1403,7 +1393,7 @@ namespace acl
 #if defined(ACL_IMPL_USE_BIT_SCAN_ITERATION_ANIMATED)
 		// Force inline this function, we only use it to keep the code readable
 		template<class decompression_settings_type, class track_writer_type>
-		ACL_IMPL_DEBUG_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_animated_rotation_sub_tracks(
+		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_animated_rotation_sub_tracks(
 			const packed_sub_track_types* rotation_sub_track_types, uint32_t last_entry_index,
 			const persistent_transform_decompression_context_v0& context,
 			animated_track_cache_v0& animated_track_cache, track_writer_type& writer)
@@ -1459,7 +1449,7 @@ namespace acl
 #else
 		// Force inline this function, we only use it to keep the code readable
 		template<class decompression_settings_type, class track_writer_type>
-		ACL_IMPL_DEBUG_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_animated_rotation_sub_tracks(
+		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_animated_rotation_sub_tracks(
 			const packed_sub_track_types* rotation_sub_track_types, uint32_t last_entry_index,
 			const persistent_transform_decompression_context_v0& context,
 			animated_track_cache_v0& animated_track_cache, track_writer_type& writer)
@@ -1593,7 +1583,7 @@ namespace acl
 #if defined(ACL_IMPL_USE_UNROLLED_ITERATION_DEFAULT)
 		// Force inline this function, we only use it to keep the code readable
 		template<class track_writer_type>
-		ACL_IMPL_DEBUG_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_default_translation_sub_tracks(
+		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_default_translation_sub_tracks(
 			const packed_sub_track_types* translation_sub_track_types, uint32_t last_entry_index, uint32_t padding_mask,
 			track_writer_type& writer)
 		{
@@ -1735,7 +1725,7 @@ namespace acl
 #elif defined(ACL_IMPL_USE_BIT_SCAN_ITERATION_DEFAULT)
 		// Force inline this function, we only use it to keep the code readable
 		template<class track_writer_type>
-		ACL_IMPL_DEBUG_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_default_translation_sub_tracks(
+		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_default_translation_sub_tracks(
 			const packed_sub_track_types* translation_sub_track_types, uint32_t last_entry_index, uint32_t padding_mask,
 			track_writer_type& writer)
 		{
@@ -1794,7 +1784,7 @@ namespace acl
 #else
 		// Force inline this function, we only use it to keep the code readable
 		template<class track_writer_type>
-		ACL_IMPL_DEBUG_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_default_translation_sub_tracks(
+		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_default_translation_sub_tracks(
 			const packed_sub_track_types* translation_sub_track_types, uint32_t last_entry_index, uint32_t padding_mask,
 			track_writer_type& writer)
 		{
@@ -1899,7 +1889,7 @@ namespace acl
 
 		// Force inline this function, we only use it to keep the code readable
 		template<class track_writer_type>
-		ACL_IMPL_DEBUG_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_constant_translation_sub_tracks(
+		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_constant_translation_sub_tracks(
 			const packed_sub_track_types* translation_sub_track_types, uint32_t last_entry_index,
 			constant_track_cache_v0& constant_track_cache, track_writer_type& writer)
 		{
@@ -1988,7 +1978,7 @@ namespace acl
 
 		// Force inline this function, we only use it to keep the code readable
 		template<class decompression_settings_adapter_type, class track_writer_type>
-		ACL_IMPL_DEBUG_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_animated_translation_sub_tracks(
+		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_animated_translation_sub_tracks(
 			const packed_sub_track_types* translation_sub_track_types, uint32_t last_entry_index,
 			const persistent_transform_decompression_context_v0& context,
 			animated_track_cache_v0& animated_track_cache, track_writer_type& writer)
@@ -2117,7 +2107,7 @@ namespace acl
 #if defined(ACL_IMPL_USE_UNROLLED_ITERATION_DEFAULT)
 		// Force inline this function, we only use it to keep the code readable
 		template<class track_writer_type>
-		ACL_IMPL_DEBUG_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_default_scale_sub_tracks(
+		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_default_scale_sub_tracks(
 			const packed_sub_track_types* scale_sub_track_types, uint32_t last_entry_index, uint32_t padding_mask,
 			rtm::vector4f_arg0 default_scale_, track_writer_type& writer)
 		{
@@ -2264,7 +2254,7 @@ namespace acl
 #elif defined(ACL_IMPL_USE_BIT_SCAN_ITERATION_DEFAULT)
 		// Force inline this function, we only use it to keep the code readable
 		template<class track_writer_type>
-		ACL_IMPL_DEBUG_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_default_scale_sub_tracks(
+		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_default_scale_sub_tracks(
 			const packed_sub_track_types* scale_sub_track_types, uint32_t last_entry_index, uint32_t padding_mask,
 			rtm::vector4f_arg0 default_scale_, track_writer_type& writer)
 		{
@@ -2328,7 +2318,7 @@ namespace acl
 #else
 		// Force inline this function, we only use it to keep the code readable
 		template<class track_writer_type>
-		ACL_IMPL_DEBUG_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_default_scale_sub_tracks(
+		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_default_scale_sub_tracks(
 			const packed_sub_track_types* scale_sub_track_types, uint32_t last_entry_index, uint32_t padding_mask,
 			rtm::vector4f_arg0 default_scale_, track_writer_type& writer)
 		{
@@ -2438,7 +2428,7 @@ namespace acl
 
 		// Force inline this function, we only use it to keep the code readable
 		template<class track_writer_type>
-		ACL_IMPL_DEBUG_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_constant_scale_sub_tracks(
+		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_constant_scale_sub_tracks(
 			const packed_sub_track_types* scale_sub_track_types, uint32_t last_entry_index,
 			constant_track_cache_v0& constant_track_cache, track_writer_type& writer)
 		{
@@ -2527,7 +2517,7 @@ namespace acl
 
 		// Force inline this function, we only use it to keep the code readable
 		template<class decompression_settings_adapter_type, class track_writer_type>
-		ACL_IMPL_DEBUG_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_animated_scale_sub_tracks(
+		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_animated_scale_sub_tracks(
 			const packed_sub_track_types* scale_sub_track_types, uint32_t last_entry_index,
 			const persistent_transform_decompression_context_v0& context,
 			animated_track_cache_v0& animated_track_cache, track_writer_type& writer)
@@ -3184,9 +3174,3 @@ namespace acl
 #endif
 
 ACL_IMPL_FILE_PRAGMA_POP
-
-#if defined(ACL_IMPL_ENABLE_DEBUG_INLINE)
-	#undef ACL_IMPL_ENABLE_DEBUG_INLINE
-#endif
-
-#undef ACL_IMPL_DEBUG_INLINE
