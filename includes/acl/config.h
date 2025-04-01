@@ -99,3 +99,11 @@
 // This is sometimes necessary if you compile with a modern compiler version but use an older stdlib
 // that does not contain the necessary enum entries
 //#define ACL_USE_CPP11_STD_MEMORY_ORDER
+
+////////////////////////////////////////////////////////////////////////////////
+// Defines below are for debugging/profiling purposes
+////////////////////////////////////////////////////////////////////////////////
+
+// Enable this to prevent bind pose stripping
+// This will set each default track value to the identity
+//#define ACL_IMPL_DISABLE_BIND_POSE_STRIPPING

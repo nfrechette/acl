@@ -74,9 +74,15 @@ namespace acl
 			//////////////////////////////////////////////////////////////////////////
 			// For performance reasons, this writer skips all default sub-tracks.
 			// It is the responsibility of the caller to pre-populate them by calling initialize_with_defaults().
+#if defined(ACL_IMPL_DISABLE_BIND_POSE_STRIPPING)
+			static constexpr default_sub_track_mode get_default_rotation_mode() { return default_sub_track_mode::constant; }
+			static constexpr default_sub_track_mode get_default_translation_mode() { return default_sub_track_mode::constant; }
+			static constexpr default_sub_track_mode get_default_scale_mode() { return default_sub_track_mode::constant; }
+#else
 			static constexpr default_sub_track_mode get_default_rotation_mode() { return default_sub_track_mode::skipped; }
 			static constexpr default_sub_track_mode get_default_translation_mode() { return default_sub_track_mode::skipped; }
 			static constexpr default_sub_track_mode get_default_scale_mode() { return default_sub_track_mode::skipped; }
+#endif
 
 			//////////////////////////////////////////////////////////////////////////
 			// Initializes the internal buffer with the sub-track default values provided.
