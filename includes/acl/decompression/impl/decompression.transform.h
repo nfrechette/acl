@@ -69,8 +69,20 @@
 // This appears to be slighty faster than the current impl on ARM64 M1
 //#define ACL_IMPL_USE_UNROLLED_ITERATION_DEFAULT
 
+// Use step based decompression where we try and perform about
+// 50-100 instructions worth of work in between prefetch requests
+// to make sure we can warm up everything we need
+//#define ACL_IMPL_USE_STEP_DECOMPRESSION
 
-
+#if defined(ACL_IMPL_USE_STEP_DECOMPRESSION)
+	#include "acl/decompression/impl/steps/rotation_constant.h"
+	#include "acl/decompression/impl/steps/rotation_default.h"
+	#include "acl/decompression/impl/steps/scale_constant.h"
+	#include "acl/decompression/impl/steps/scale_default.h"
+	#include "acl/decompression/impl/steps/step_context.h"
+	#include "acl/decompression/impl/steps/translation_constant.h"
+	#include "acl/decompression/impl/steps/translation_default.h"
+#endif
 
 // Why are all the changes almost the same within noise margin?
 // It could be that all of this executes mostly for free hidden
@@ -105,7 +117,7 @@
 // At 1.6 Ghz, that comes down to 160 cycles.
 // If we assume that the frontend can at least triple dispatch
 // which is common on weaker mobile processors, then that
-// means we can cover around 320-480 instructions in that time.
+// means we can dispatch around 320-480 instructions in that time.
 // On modern processors, frontends can typically dispatch up
 // to 4-5 instructions easily per cycle, bringing us to
 // 640-800 instructions. A processor twice as fast at 3.2 Ghz
@@ -129,20 +141,57 @@
 // A Zen5 (x64) has a ROB of 448 entries.
 // As such, we can easily see that we will hit this limit
 // long before the memory fetch or prefetch is completed.
-// It would thus be most helpful if we could split the work
-// into bundles of ROB * 1.25 entries per platform.
 
 // Another limitation we can run into when prefetching is
 // the amount of line fill buffers. We have buffers that service
 // L1 misses that get used when we load/prefetch and we miss
 // in L1. We have separate buffers in L2 if we miss there.
-// Typically, we have 5-8 line fill buffers when we miss in
-// L1 and maybe 8-12 if we miss in L2. The line fill buffers
+// Typically, we have 5-10 line fill buffers when we miss in
+// L1 and maybe 8-16 if we miss in L2. The line fill buffers
 // are also shared between hyperthreads and similarly when
 // the L2 is shared, the buffers there are shared as well.
 // As such, ideally, we want to prefetch into L2 only about
 // 6 cache lines to leave room for the neighbor thread and
 // only 3-4 cache lines into L1.
+
+// It is thus critical to place the prefetch instructions
+// at their optimal place within the ROB window. If our bundle
+// does too little work and we can queue up a second one
+// while the first is still in flight, then we'll begin
+// prefetching the next iteration. This would double up
+// the number of line fill buffers we need which would be
+// precarious. As such, in an ideal world, we'd like our
+// next bundle's prefetch to land about ROB size away from
+// the previous one. Because newer hardware has more L2 line
+// fill buffers than older generations, we can optimize
+// for a ROB of about 80-100 instructions. Then on something
+// like a Jaguar we'll stall before the next bundle begins
+// prefetching and once the previous one completes, we'll
+// quickly begin prefetching the next. Meanwhile, on something
+// like a Zen5 we might be able to fit 4-5 bundles within
+// the ROB window, increasing our prefetching request count
+// by that amount. We are thus likely to run out of LFB
+// and our prefetch will stall before dispatching.
+
+// It is also worth considering the common case where the
+// same animation may be decompressed multiple times within
+// a short period of time. This isn't typically so short
+// that it would be in L1 but it could very well be within
+// L2 or L3. When this occurs, our prefetch instructions
+// will complete very quickly or right away. Without stalling
+// for memory, we'll run at full speed. Although there will
+// be the redundant cost of the prefetch, it could very
+// well become hidden behind the latency of the L2. This
+// also hints at another property we can leverage: while
+// most of the clip data is likely to be re-used in a second
+// decompression request, some is less likely to be needed.
+// Something like clip range data will be needed regardless
+// of which keyframes we sample but the keyframe animated
+// data is likely to be unique each time. And so we could
+// use non-temporal prefetching for the animated data.
+// However, it is not trivial to use non-temporal behavior
+// and it might not work with prefetch with write-back
+// memory (processor dependent).
 
 // We will assume that the output pose lives in the CPU L1
 // and thus writes are very cheap/free.
@@ -2700,6 +2749,7 @@ namespace acl
 			animated_track_cache_v0 animated_track_cache;
 			animated_track_cache.initialize<decompression_settings_type, translation_adapter>(context);
 
+#if !defined(ACL_IMPL_USE_STEP_DECOMPRESSION)
 			{
 				// Start prefetching the per track metadata of both segments
 				// They might live in a different memory page than the clip's header and constant data
@@ -2708,6 +2758,7 @@ namespace acl
 				ACL_IMPL_SEEK_PREFETCH(context.format_per_track_data[0]);
 				ACL_IMPL_SEEK_PREFETCH(context.format_per_track_data[1]);
 			}
+#endif
 
 			// TODO: The first time we iterate over the sub-track types, unpack it into our output pose as a temporary buffer
 			// We can build a linked list
@@ -2721,6 +2772,93 @@ namespace acl
 			// since it'll allow us to quickly skip entries we don't care about. The same scheme can be used for constant/default tracks.
 			// When we unpack our bitset, we can also count the number of entries for each type to help iterate
 
+#if defined(ACL_IMPL_USE_STEP_DECOMPRESSION)
+			step_context_t step_context;
+			step_context.rotation_sub_track_types = rotation_sub_track_types;
+			step_context.translation_sub_track_types = translation_sub_track_types;
+			step_context.scale_sub_track_types = scale_sub_track_types;
+			step_context.constant_data_rotations = constant_track_cache.constant_data_rotations;
+			step_context.constant_data_translations = constant_track_cache.constant_data_translations;
+			step_context.constant_data_scales = constant_track_cache.constant_data_scales;
+			step_context.last_entry_index = last_entry_index;
+			step_context.padding_mask = padding_mask;
+			step_context.num_tracks = num_tracks;
+
+			// Setup our prefetch queue
+			{
+				uint32_t prefetch_entry_index = 0;
+
+				if (has_scale)
+				{
+					step_context.prefetch_queue[prefetch_entry_index++] = constant_track_cache.constant_data_scales;
+					step_context.prefetch_queue[prefetch_entry_index++] = constant_track_cache.constant_data_scales + 64;
+					step_context.prefetch_queue[prefetch_entry_index++] = constant_track_cache.constant_data_scales + 128;
+				}
+
+				// The first sub-step when unpacking animated data needs the segment range data
+				// The first and second segments used might be the same
+				// They might live in a different memory page than the clip's header and constant data
+				// and we need to prime VMEM translation and the TLB
+				const uint8_t* segment_range_data0 = animated_track_cache.segment_sampling_context_rotations[0].segment_range_data;
+				const uint8_t* segment_range_data1 = animated_track_cache.segment_sampling_context_rotations[1].segment_range_data;
+				step_context.prefetch_queue[prefetch_entry_index++] = segment_range_data0;
+				step_context.prefetch_queue[prefetch_entry_index++] = segment_range_data1;
+
+				// The second sub-step when unpacking animated data needs the per sub-track metadata
+				// and the animated data
+				// The first and second segments used might be the same
+				const uint8_t* per_track_metadata0 = animated_track_cache.segment_sampling_context_rotations[0].format_per_track_data;
+				const uint8_t* per_track_metadata1 = animated_track_cache.segment_sampling_context_rotations[1].format_per_track_data;
+				step_context.prefetch_queue[prefetch_entry_index++] = per_track_metadata0;
+				step_context.prefetch_queue[prefetch_entry_index++] = per_track_metadata1;
+
+				const uint8_t* animated_data0 = animated_track_cache.segment_sampling_context_rotations[0].animated_track_data;
+				const uint8_t* animated_data1 = animated_track_cache.segment_sampling_context_rotations[1].animated_track_data;
+				const uint8_t* frame_animated_data0 = animated_data0 + (animated_track_cache.segment_sampling_context_rotations[0].animated_track_data_bit_offset / 8);
+				const uint8_t* frame_animated_data1 = animated_data1 + (animated_track_cache.segment_sampling_context_rotations[1].animated_track_data_bit_offset / 8);
+				step_context.prefetch_queue[prefetch_entry_index++] = frame_animated_data0;
+				step_context.prefetch_queue[prefetch_entry_index++] = frame_animated_data1;
+
+				// The third sub-step when unpacking animated data needs the clip range data
+				// We need 2 cache lines per sub-step
+				const uint8_t* clip_range_data = animated_track_cache.clip_sampling_context_rotations.clip_range_data;
+				step_context.prefetch_queue[prefetch_entry_index++] = clip_range_data;
+				step_context.prefetch_queue[prefetch_entry_index++] = clip_range_data + 64;
+
+				// By the time we finish processing the third sub-step, the data for the first
+				// sub-step should be ready but add a few more cache lines just in case
+				step_context.prefetch_queue[prefetch_entry_index++] = segment_range_data0 + 64;
+				step_context.prefetch_queue[prefetch_entry_index++] = segment_range_data1 + 64;
+				step_context.prefetch_queue[prefetch_entry_index++] = per_track_metadata0 + 64;
+				step_context.prefetch_queue[prefetch_entry_index++] = per_track_metadata1 + 64;
+				step_context.prefetch_queue[prefetch_entry_index++] = frame_animated_data0 + 64;
+				step_context.prefetch_queue[prefetch_entry_index++] = frame_animated_data1 + 64;
+				step_context.prefetch_queue[prefetch_entry_index++] = clip_range_data + 128;
+				step_context.prefetch_queue[prefetch_entry_index++] = clip_range_data + 192;
+
+				// Zero pad 3 entries to ensure we can always prefetch 4 entries if the first we
+				// test is not nullptr
+				step_context.prefetch_queue[prefetch_entry_index++] = nullptr;
+				step_context.prefetch_queue[prefetch_entry_index++] = nullptr;
+				step_context.prefetch_queue[prefetch_entry_index++] = nullptr;
+
+				// Start prefetching the first entry
+				step_context.prefetch_queue_ptr = step_context.prefetch_queue;
+			}
+
+			step_unpack_default_rotations(step_context, writer);
+			step_unpack_default_translations(step_context, writer);
+			if (has_scale)
+				step_unpack_default_scales(step_context, default_scale, writer);
+			else
+				step_set_default_scales(step_context, default_scale, writer);
+
+			step_unpack_constant_rotations<decompression_settings_type>(step_context, context, writer);
+			step_unpack_constant_translations(step_context, writer);
+
+			if (has_scale)
+				step_unpack_constant_scales(step_context, writer);
+#else
 			// Unpack our default rotation sub-tracks
 			// Default rotation sub-tracks are uncommon, this shouldn't take much more than 50 cycles
 			unpack_default_rotation_sub_tracks(rotation_sub_track_types, last_entry_index, padding_mask, writer);
@@ -2820,6 +2958,7 @@ namespace acl
 
 				// TODO: Can we prefetch the translation data ahead instead to prime the TLB?
 			}
+#endif
 
 			// Unpack our variable sub-tracks
 			// Sub-track data is sorted by type: rotations ... translations ... scales ...
