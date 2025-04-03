@@ -232,7 +232,37 @@ static void benchmark_decompression(benchmark::State& state)
 	// Flush the CPU cache
 	memset_impl(flush_buffer + k_vmem_padding, k_flush_buffer_size, 1);
 
-	uint32_t current_context_index = 0;
+	// Warm up the code cache and output pose
+	// It is rare to decompress a single clip in a short space of time
+	// Typically, multiple clips are decompressed and blended together
+	// and so while it is common for the decompressed data to be cold
+	// each clip, the code typically lives in L2
+	// Similarly, the output pose is likely warm on the CPU L1 or L2
+	// Output poses are often re-used and recycled since they have the
+	// same size for multiple clips blended together. Even when that
+	// isn't the case, the bind pose is often pre-filled in it just
+	// before decompression. Either way, the output pose is generally
+	// warm in the CPU cache.
+	{
+		// We use the first context to warm things up
+		acl::decompression_context<benchmark_transform_decompression_settings>& context = decompression_contexts[0];
+		context.seek(0.0F, acl::sample_rounding_policy::none);
+
+		switch (decompression_function)
+		{
+		case DecompressionFunction::DecompressPose:
+			context.decompress_tracks(pose_writer);
+			break;
+		case DecompressionFunction::DecompressBone:
+			context.decompress_track(0, pose_writer);
+			break;
+		case DecompressionFunction::Memcpy:
+			std::memcpy(pose_writer.tracks_typed.qvvf, decompression_instances[0], pose_size);
+			break;
+		}
+	}
+
+	uint32_t current_context_index = 1;
 	uint32_t current_sample_index = 0;
 	uint8_t flush_value = 2;
 	for (auto _ : state)
@@ -243,23 +273,25 @@ static void benchmark_decompression(benchmark::State& state)
 
 		const float sample_time = sample_times[current_sample_index];
 
-		acl::decompression_context<benchmark_transform_decompression_settings>& context = decompression_contexts[current_context_index];
-
-		// Interpolate as this is the most common scenario
-		context.seek(sample_time, acl::sample_rounding_policy::none);
-
-		switch (decompression_function)
 		{
-		case DecompressionFunction::DecompressPose:
-			context.decompress_tracks(pose_writer);
-			break;
-		case DecompressionFunction::DecompressBone:
-			for (uint32_t bone_index = 0; bone_index < num_tracks; ++bone_index)
-				context.decompress_track(bone_index, pose_writer);
-			break;
-		case DecompressionFunction::Memcpy:
-			std::memcpy(pose_writer.tracks_typed.qvvf, decompression_instances[current_context_index], pose_size);
-			break;
+			acl::decompression_context<benchmark_transform_decompression_settings>& context = decompression_contexts[current_context_index];
+
+			// Interpolate as this is the most common scenario
+			context.seek(sample_time, acl::sample_rounding_policy::none);
+
+			switch (decompression_function)
+			{
+			case DecompressionFunction::DecompressPose:
+				context.decompress_tracks(pose_writer);
+				break;
+			case DecompressionFunction::DecompressBone:
+				for (uint32_t bone_index = 0; bone_index < num_tracks; ++bone_index)
+					context.decompress_track(bone_index, pose_writer);
+				break;
+			case DecompressionFunction::Memcpy:
+				std::memcpy(pose_writer.tracks_typed.qvvf, decompression_instances[current_context_index], pose_size);
+				break;
+			}
 		}
 
 		const auto end = std::chrono::high_resolution_clock::now();
@@ -271,7 +303,7 @@ static void benchmark_decompression(benchmark::State& state)
 		current_context_index++;
 		if (current_context_index >= k_num_copies)
 		{
-			current_context_index = 0;
+			current_context_index = 1;
 			current_sample_index++;
 
 			if (current_sample_index >= k_num_decompression_samples)
@@ -279,6 +311,27 @@ static void benchmark_decompression(benchmark::State& state)
 
 			// Flush the CPU cache
 			memset_impl(flush_buffer + k_vmem_padding, k_flush_buffer_size, flush_value++);
+
+			// Warm up the code cache and output pose
+			// See above
+			{
+				// We use the first context to warm things up
+				acl::decompression_context<benchmark_transform_decompression_settings>& context = decompression_contexts[0];
+				context.seek(0.0F, acl::sample_rounding_policy::none);
+
+				switch (decompression_function)
+				{
+				case DecompressionFunction::DecompressPose:
+					context.decompress_tracks(pose_writer);
+					break;
+				case DecompressionFunction::DecompressBone:
+					context.decompress_track(0, pose_writer);
+					break;
+				case DecompressionFunction::Memcpy:
+					std::memcpy(pose_writer.tracks_typed.qvvf, decompression_instances[0], pose_size);
+					break;
+				}
+			}
 		}
 	}
 
