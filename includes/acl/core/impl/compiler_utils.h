@@ -24,6 +24,7 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "acl/config.h"
 #include "acl/version.h"
 
 #include <rtm/impl/compiler_utils.h>
@@ -145,6 +146,15 @@ namespace acl
 	#define ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL __attribute__ ((fallthrough))
 #else
 	#define ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL (void)0
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+// Allows force inlined functions to be debugged temporarily by disabling inlining
+//////////////////////////////////////////////////////////////////////////
+#if defined(ACL_IMPL_ENABLE_DEBUG_FORCE_INLINE)
+	#define ACL_IMPL_DEBUG_FORCE_INLINE inline RTM_FORCE_NOINLINE
+#else
+	#define ACL_IMPL_DEBUG_FORCE_INLINE RTM_FORCE_INLINE
 #endif
 
 // When enabled, constant sub-tracks will use the weighted average of every sample instead of the first sample

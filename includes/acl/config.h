@@ -112,9 +112,3 @@
 // This is handy to debug the code and to more easily view
 // the generated assembly for each piece
 //#define ACL_IMPL_ENABLE_DEBUG_FORCE_INLINE
-
-#if defined(ACL_IMPL_ENABLE_DEBUG_FORCE_INLINE)
-	#define ACL_IMPL_DEBUG_FORCE_INLINE inline RTM_FORCE_NOINLINE
-#else
-	#define ACL_IMPL_DEBUG_FORCE_INLINE RTM_FORCE_INLINE
-#endif
