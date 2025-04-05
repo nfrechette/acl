@@ -1,4 +1,3 @@
-cmake_minimum_required(VERSION 3.2)
 project(acl_regression_tester_ios)
 
 # iOS cmake toolchain does not support CMAKE_CXX_STANDARD

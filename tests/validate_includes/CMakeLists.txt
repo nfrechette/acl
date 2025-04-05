@@ -1,4 +1,3 @@
-cmake_minimum_required (VERSION 3.2)
 project(acl_validate_includes CXX)
 
 # The goal of this project is to generate a single cpp file for every public header

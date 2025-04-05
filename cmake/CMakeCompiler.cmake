@@ -1,5 +1,3 @@
-cmake_minimum_required (VERSION 3.2)
-
 macro(setup_default_compiler_flags _project_name)
 	if(MSVC)
 		# Replace some default compiler switches and add new ones

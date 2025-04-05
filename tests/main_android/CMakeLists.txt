@@ -1,4 +1,3 @@
-cmake_minimum_required(VERSION 3.2)
 project(acl_unit_tests_gradle_shim NONE)
 
 # Set our project root since our gradle files used to build live in the binary output directory
