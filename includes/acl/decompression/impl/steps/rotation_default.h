@@ -99,10 +99,10 @@ namespace acl
 					// Finally, we mask out everything but the second bit for each sub-track
 					// After this, our original default tracks are equal to 2, our constant tracks are equal to 1, and our animated tracks are equal to 0
 					// Testing for default tracks can be done by testing the second bit of each group (same as animated track testing)
-					packed_entry = (~packed_entry - 0x55555555) & 0xAAAAAAAA;
+					packed_entry = ~packed_entry - 0x55555555;
 
 					// Because our last entry might have padding with 0 (default), we have to strip any padding we might have
-					const uint32_t entry_padding_mask = (entry_index == last_entry_index) ? padding_mask : 0xFFFFFFFF;
+					const uint32_t entry_padding_mask = (entry_index == last_entry_index) ? padding_mask : 0xAAAAAAAA;
 					packed_entry &= entry_padding_mask;
 
 					// We have 2 bits per sub-track
