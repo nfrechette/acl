@@ -91,6 +91,12 @@ enum class DecompressionFunction
 	Memcpy,
 };
 
+enum class CPUCacheTemperature
+{
+	Warm,
+	Cold,
+};
+
 struct benchmark_transform_decompression_settings final : public acl::default_transform_decompression_settings
 {
 	// Only support our latest version
@@ -193,6 +199,7 @@ static void benchmark_decompression(benchmark::State& state)
 	acl::compressed_tracks& compressed_tracks = *acl::acl_impl::bit_cast<acl::compressed_tracks*>(state.range(0));
 	const PlaybackDirection playback_direction = static_cast<PlaybackDirection>(state.range(1));
 	const DecompressionFunction decompression_function = static_cast<DecompressionFunction>(state.range(2));
+	const CPUCacheTemperature cpu_cache_temperature = static_cast<CPUCacheTemperature>(state.range(3));
 
 	if (s_benchmark_state.compressed_tracks != &compressed_tracks)
 		setup_benchmark_state(compressed_tracks);	// We have a new clip, setup everything
@@ -229,42 +236,48 @@ static void benchmark_decompression(benchmark::State& state)
 	const uint32_t num_tracks = compressed_tracks.get_num_tracks();
 	acl::acl_impl::debug_track_writer pose_writer(s_allocator, acl::track_type8::qvvf, num_tracks);
 
-	// Flush the CPU cache
-	memset_impl(flush_buffer + k_vmem_padding, k_flush_buffer_size, 1);
+	uint32_t current_context_index = 0;
+	uint32_t current_sample_index = 0;
+	uint8_t flush_value = 2;
 
-	// Warm up the code cache and output pose
-	// It is rare to decompress a single clip in a short space of time
-	// Typically, multiple clips are decompressed and blended together
-	// and so while it is common for the decompressed data to be cold
-	// each clip, the code typically lives in L2
-	// Similarly, the output pose is likely warm on the CPU L1 or L2
-	// Output poses are often re-used and recycled since they have the
-	// same size for multiple clips blended together. Even when that
-	// isn't the case, the bind pose is often pre-filled in it just
-	// before decompression. Either way, the output pose is generally
-	// warm in the CPU cache.
+	if (cpu_cache_temperature == CPUCacheTemperature::Cold)
 	{
-		// We use the first context to warm things up
-		acl::decompression_context<benchmark_transform_decompression_settings>& context = decompression_contexts[0];
-		context.seek(0.0F, acl::sample_rounding_policy::none);
+		// Flush the CPU cache
+		memset_impl(flush_buffer + k_vmem_padding, k_flush_buffer_size, 1);
 
-		switch (decompression_function)
+		// Warm up the code cache and output pose
+		// It is rare to decompress a single clip in a short space of time
+		// Typically, multiple clips are decompressed and blended together
+		// and so while it is common for the decompressed data to be cold
+		// each clip, the code typically lives in L2
+		// Similarly, the output pose is likely warm on the CPU L1 or L2
+		// Output poses are often re-used and recycled since they have the
+		// same size for multiple clips blended together. Even when that
+		// isn't the case, the bind pose is often pre-filled in it just
+		// before decompression. Either way, the output pose is generally
+		// warm in the CPU cache.
 		{
-		case DecompressionFunction::DecompressPose:
-			context.decompress_tracks(pose_writer);
-			break;
-		case DecompressionFunction::DecompressBone:
-			context.decompress_track(0, pose_writer);
-			break;
-		case DecompressionFunction::Memcpy:
-			std::memcpy(pose_writer.tracks_typed.qvvf, decompression_instances[0], pose_size);
-			break;
+			// We use the first context to warm things up
+			acl::decompression_context<benchmark_transform_decompression_settings>& context = decompression_contexts[0];
+			context.seek(0.0F, acl::sample_rounding_policy::none);
+
+			switch (decompression_function)
+			{
+			case DecompressionFunction::DecompressPose:
+				context.decompress_tracks(pose_writer);
+				break;
+			case DecompressionFunction::DecompressBone:
+				context.decompress_track(0, pose_writer);
+				break;
+			case DecompressionFunction::Memcpy:
+				std::memcpy(pose_writer.tracks_typed.qvvf, decompression_instances[0], pose_size);
+				break;
+			}
+
+			current_context_index++;
 		}
 	}
 
-	uint32_t current_context_index = 1;
-	uint32_t current_sample_index = 0;
-	uint8_t flush_value = 2;
 	for (auto _ : state)
 	{
 		(void)_;
@@ -298,38 +311,41 @@ static void benchmark_decompression(benchmark::State& state)
 		const auto elapsed_seconds = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
 		state.SetIterationTime(elapsed_seconds.count());
 
-		// Move on to the next context and sample
-		// We only move on to the next sample once every context has been touched
-		current_context_index++;
-		if (current_context_index >= k_num_copies)
+		if (cpu_cache_temperature == CPUCacheTemperature::Cold)
 		{
-			current_context_index = 1;
-			current_sample_index++;
-
-			if (current_sample_index >= k_num_decompression_samples)
-				current_sample_index = 0;
-
-			// Flush the CPU cache
-			memset_impl(flush_buffer + k_vmem_padding, k_flush_buffer_size, flush_value++);
-
-			// Warm up the code cache and output pose
-			// See above
+			// Move on to the next context and sample
+			// We only move on to the next sample once every context has been touched
+			current_context_index++;
+			if (current_context_index >= k_num_copies)
 			{
-				// We use the first context to warm things up
-				acl::decompression_context<benchmark_transform_decompression_settings>& context = decompression_contexts[0];
-				context.seek(0.0F, acl::sample_rounding_policy::none);
+				current_context_index = 1;
+				current_sample_index++;
 
-				switch (decompression_function)
+				if (current_sample_index >= k_num_decompression_samples)
+					current_sample_index = 0;
+
+				// Flush the CPU cache
+				memset_impl(flush_buffer + k_vmem_padding, k_flush_buffer_size, flush_value++);
+
+				// Warm up the code cache and output pose
+				// See above
 				{
-				case DecompressionFunction::DecompressPose:
-					context.decompress_tracks(pose_writer);
-					break;
-				case DecompressionFunction::DecompressBone:
-					context.decompress_track(0, pose_writer);
-					break;
-				case DecompressionFunction::Memcpy:
-					std::memcpy(pose_writer.tracks_typed.qvvf, decompression_instances[0], pose_size);
-					break;
+					// We use the first context to warm things up
+					acl::decompression_context<benchmark_transform_decompression_settings>& context = decompression_contexts[0];
+					context.seek(0.0F, acl::sample_rounding_policy::none);
+
+					switch (decompression_function)
+					{
+					case DecompressionFunction::DecompressPose:
+						context.decompress_tracks(pose_writer);
+						break;
+					case DecompressionFunction::DecompressBone:
+						context.decompress_track(0, pose_writer);
+						break;
+					case DecompressionFunction::Memcpy:
+						std::memcpy(pose_writer.tracks_typed.qvvf, decompression_instances[0], pose_size);
+						break;
+					}
 				}
 			}
 		}
@@ -501,8 +517,11 @@ bool prepare_clip(const std::string& clip_name, const acl::compressed_tracks& ra
 	//bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Random, (int64_t)DecompressionFunction::DecompressPose });
 	//bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Random, (int64_t)DecompressionFunction::DecompressBone });
 
+	// With Warm CPU Cache
+	//bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Forward, (int64_t)DecompressionFunction::DecompressPose, (int64_t)CPUCacheTemperature::Warm });
+
 	// Name our arguments
-	bench->ArgNames({ "", "Dir", "Func" });
+	bench->ArgNames({ "", "Dir", "Func", "Temp" });
 
 	// Sometimes the numbers are slightly different from run to run, we'll run a few times
 	bench->Repetitions(3);
