@@ -2716,7 +2716,8 @@ namespace acl
 			const rtm::vector4f default_scale = rtm::vector_set(float(header.get_default_scale()));
 			const uint32_t has_scale = context.has_scale;
 
-			const packed_sub_track_types* sub_track_types = get_transform_tracks_header(*tracks).get_sub_track_types();
+			const transform_tracks_header& transforms_header = get_transform_tracks_header(*tracks);
+			const packed_sub_track_types* sub_track_types = transforms_header.get_sub_track_types();
 			const uint32_t num_sub_track_entries = (num_tracks + k_num_sub_tracks_per_packed_entry - 1) / k_num_sub_tracks_per_packed_entry;
 			const uint32_t num_padded_sub_tracks = (num_sub_track_entries * k_num_sub_tracks_per_packed_entry) - num_tracks;
 			const uint32_t last_entry_index = num_sub_track_entries - 1;
@@ -2788,6 +2789,14 @@ namespace acl
 			{
 				uint32_t prefetch_entry_index = 0;
 
+				// If our clip has many tracks, then we prefetch 2 more cache lines to kick start things
+				const uint32_t sub_track_types_size = (num_tracks * (has_scale ? 3 : 2)) / 32 * 4;
+				if (sub_track_types_size >= 128)
+				{
+					step_context.prefetch_queue[prefetch_entry_index++] = sub_track_types + 128;
+					step_context.prefetch_queue[prefetch_entry_index++] = sub_track_types + 192;
+				}
+
 				if (has_scale)
 				{
 					step_context.prefetch_queue[prefetch_entry_index++] = constant_track_cache.constant_data_scales;
@@ -2795,49 +2804,55 @@ namespace acl
 					step_context.prefetch_queue[prefetch_entry_index++] = constant_track_cache.constant_data_scales + 128;
 				}
 
-				// The first sub-step when unpacking animated data needs the segment range data
-				// The first and second segments used might be the same
-				// They might live in a different memory page than the clip's header and constant data
-				// and we need to prime VMEM translation and the TLB
-				const uint8_t* segment_range_data0 = animated_track_cache.segment_sampling_context_rotations[0].segment_range_data;
-				const uint8_t* segment_range_data1 = animated_track_cache.segment_sampling_context_rotations[1].segment_range_data;
-				step_context.prefetch_queue[prefetch_entry_index++] = segment_range_data0;
-				step_context.prefetch_queue[prefetch_entry_index++] = segment_range_data1;
+				// Don't prefetch animated data if we have none
+				// Common for single pose clips
+				if (transforms_header.num_animated_variable_sub_tracks != 0)
+				{
+					// The first sub-step when unpacking animated data needs the segment range data
+					// The first and second segments used might be the same
+					// They might live in a different memory page than the clip's header and constant data
+					// and we need to prime VMEM translation and the TLB
+					const uint8_t* segment_range_data0 = animated_track_cache.segment_sampling_context_rotations[0].segment_range_data;
+					const uint8_t* segment_range_data1 = animated_track_cache.segment_sampling_context_rotations[1].segment_range_data;
+					step_context.prefetch_queue[prefetch_entry_index++] = segment_range_data0;
+					step_context.prefetch_queue[prefetch_entry_index++] = segment_range_data1;
 
-				// The second sub-step when unpacking animated data needs the per sub-track metadata
-				// and the animated data
-				// The first and second segments used might be the same
-				const uint8_t* per_track_metadata0 = animated_track_cache.segment_sampling_context_rotations[0].format_per_track_data;
-				const uint8_t* per_track_metadata1 = animated_track_cache.segment_sampling_context_rotations[1].format_per_track_data;
-				step_context.prefetch_queue[prefetch_entry_index++] = per_track_metadata0;
-				step_context.prefetch_queue[prefetch_entry_index++] = per_track_metadata1;
+					// The second sub-step when unpacking animated data needs the per sub-track metadata
+					// and the animated data
+					// The first and second segments used might be the same
+					const uint8_t* per_track_metadata0 = animated_track_cache.segment_sampling_context_rotations[0].format_per_track_data;
+					const uint8_t* per_track_metadata1 = animated_track_cache.segment_sampling_context_rotations[1].format_per_track_data;
+					step_context.prefetch_queue[prefetch_entry_index++] = per_track_metadata0;
+					step_context.prefetch_queue[prefetch_entry_index++] = per_track_metadata1;
 
-				const uint8_t* animated_data0 = animated_track_cache.segment_sampling_context_rotations[0].animated_track_data;
-				const uint8_t* animated_data1 = animated_track_cache.segment_sampling_context_rotations[1].animated_track_data;
-				const uint8_t* frame_animated_data0 = animated_data0 + (animated_track_cache.segment_sampling_context_rotations[0].animated_track_data_bit_offset / 8);
-				const uint8_t* frame_animated_data1 = animated_data1 + (animated_track_cache.segment_sampling_context_rotations[1].animated_track_data_bit_offset / 8);
-				step_context.prefetch_queue[prefetch_entry_index++] = frame_animated_data0;
-				step_context.prefetch_queue[prefetch_entry_index++] = frame_animated_data1;
+					const uint8_t* animated_data0 = animated_track_cache.segment_sampling_context_rotations[0].animated_track_data;
+					const uint8_t* animated_data1 = animated_track_cache.segment_sampling_context_rotations[1].animated_track_data;
+					const uint8_t* frame_animated_data0 = animated_data0 + (animated_track_cache.segment_sampling_context_rotations[0].animated_track_data_bit_offset / 8);
+					const uint8_t* frame_animated_data1 = animated_data1 + (animated_track_cache.segment_sampling_context_rotations[1].animated_track_data_bit_offset / 8);
+					step_context.prefetch_queue[prefetch_entry_index++] = frame_animated_data0;
+					step_context.prefetch_queue[prefetch_entry_index++] = frame_animated_data1;
 
-				// The third sub-step when unpacking animated data needs the clip range data
-				// We need 2 cache lines per sub-step
-				const uint8_t* clip_range_data = animated_track_cache.clip_sampling_context_rotations.clip_range_data;
-				step_context.prefetch_queue[prefetch_entry_index++] = clip_range_data;
-				step_context.prefetch_queue[prefetch_entry_index++] = clip_range_data + 64;
+					// The third sub-step when unpacking animated data needs the clip range data
+					// We need 2 cache lines per sub-step
+					const uint8_t* clip_range_data = animated_track_cache.clip_sampling_context_rotations.clip_range_data;
+					step_context.prefetch_queue[prefetch_entry_index++] = clip_range_data;
+					step_context.prefetch_queue[prefetch_entry_index++] = clip_range_data + 64;
 
-				// By the time we finish processing the third sub-step, the data for the first
-				// sub-step should be ready but add a few more cache lines just in case
-				step_context.prefetch_queue[prefetch_entry_index++] = segment_range_data0 + 64;
-				step_context.prefetch_queue[prefetch_entry_index++] = segment_range_data1 + 64;
-				step_context.prefetch_queue[prefetch_entry_index++] = per_track_metadata0 + 64;
-				step_context.prefetch_queue[prefetch_entry_index++] = per_track_metadata1 + 64;
-				step_context.prefetch_queue[prefetch_entry_index++] = frame_animated_data0 + 64;
-				step_context.prefetch_queue[prefetch_entry_index++] = frame_animated_data1 + 64;
-				step_context.prefetch_queue[prefetch_entry_index++] = clip_range_data + 128;
-				step_context.prefetch_queue[prefetch_entry_index++] = clip_range_data + 192;
+					// By the time we finish processing the third sub-step, the data for the first
+					// sub-step should be ready but add a few more cache lines just in case
+					step_context.prefetch_queue[prefetch_entry_index++] = segment_range_data0 + 64;
+					step_context.prefetch_queue[prefetch_entry_index++] = segment_range_data1 + 64;
+					step_context.prefetch_queue[prefetch_entry_index++] = per_track_metadata0 + 64;
+					step_context.prefetch_queue[prefetch_entry_index++] = per_track_metadata1 + 64;
+					step_context.prefetch_queue[prefetch_entry_index++] = frame_animated_data0 + 64;
+					step_context.prefetch_queue[prefetch_entry_index++] = frame_animated_data1 + 64;
+					step_context.prefetch_queue[prefetch_entry_index++] = clip_range_data + 128;
+					step_context.prefetch_queue[prefetch_entry_index++] = clip_range_data + 192;
+				}
 
-				// Zero pad 3 entries to ensure we can always prefetch 4 entries if the first we
+				// Zero pad a few entries to ensure we can always prefetch 4 entries if the first we
 				// test is not nullptr
+				step_context.prefetch_queue[prefetch_entry_index++] = nullptr;
 				step_context.prefetch_queue[prefetch_entry_index++] = nullptr;
 				step_context.prefetch_queue[prefetch_entry_index++] = nullptr;
 				step_context.prefetch_queue[prefetch_entry_index++] = nullptr;
@@ -2846,18 +2861,26 @@ namespace acl
 				step_context.prefetch_queue_ptr = step_context.prefetch_queue;
 			}
 
-			step_unpack_default_rotations(step_context, writer);
-			step_unpack_default_translations(step_context, writer);
-			if (has_scale)
-				step_unpack_default_scales(step_context, default_scale, writer);
-			else
-				step_set_default_scales(step_context, default_scale, writer);
+			// Default sub-tracks
+			{
+				step_unpack_default_rotations(step_context, writer);
+				step_unpack_default_translations(step_context, writer);
 
-			step_unpack_constant_rotations<decompression_settings_type>(step_context, context, writer);
-			step_unpack_constant_translations(step_context, writer);
+				if (has_scale)
+					step_unpack_default_scales(step_context, default_scale, writer);
+				else
+					step_set_default_scales(step_context, default_scale, writer);
+			}
 
-			if (has_scale)
-				step_unpack_constant_scales(step_context, writer);
+			// Constant sub-tracks
+			{
+				step_unpack_constant_rotations<decompression_settings_type>(step_context, context, writer);
+
+				step_unpack_constant_translations(step_context, writer);
+
+				if (has_scale)
+					step_unpack_constant_scales(step_context, writer);
+			}
 #else
 			// Unpack our default rotation sub-tracks
 			// Default rotation sub-tracks are uncommon, this shouldn't take much more than 50 cycles
