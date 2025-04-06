@@ -159,7 +159,7 @@ namespace acl
 				if (packed_entry == 0)
 				{
 					if (entry_index > last_entry_index)
-						break;	// We are done
+						goto done;	// We are done
 
 					// Mask out everything but constant sub-tracks, this way we can early out when we iterate
 					// Use and_not(..) to load our sub-track types directly from memory on x64 with BMI
@@ -174,20 +174,21 @@ namespace acl
 				// Reset our unpack count if it is k_sub_step_unpack_count
 				num_unpacked %= k_sub_step_unpack_count;
 
+				// Our sub-step loop takes about 60 instructions and so we want to prefetch
+				// 2 cache lines into the L1 each iteration
+				memory_prefetch_into_L1(constant_data_rotations + (3 * 64));
+
 				if (num_unpacked == 0)
 				{
-					// Our sub-step loop takes about 60 instructions and so we want to prefetch
-					// 4 cache lines into the L2 each iteration
 					if (next_prefetch_ptr)
 					{
-						memory_prefetch_into_L2(next_prefetch_ptr);
-						memory_prefetch_into_L2(prefetch_queue_ptr[1]);
-						memory_prefetch_into_L2(prefetch_queue_ptr[2]);
-						memory_prefetch_into_L2(prefetch_queue_ptr[3]);
+						memory_prefetch_into_L1(next_prefetch_ptr);
 
-						prefetch_queue_ptr += 4;
+						prefetch_queue_ptr += 1;
 						next_prefetch_ptr = *prefetch_queue_ptr;
 					}
+					else
+						break;
 
 					// Unpack up to 4 rotations
 					unpack_constant_rotation_group<decompression_settings_type>(decomp_context, constant_data_rotations, num_left_to_unpack, constant_rotations);
@@ -212,6 +213,54 @@ namespace acl
 				}
 			}
 
+			memory_prefetch_into_L1(constant_data_rotations + (3 * 64));
+			memory_prefetch_into_L1(constant_data_rotations + (4 * 64));
+
+			while (true)
+			{
+				// If our entry is empty, grab the next one
+				if (packed_entry == 0)
+				{
+					if (entry_index > last_entry_index)
+						goto done;	// We are done
+
+					// Mask out everything but constant sub-tracks, this way we can early out when we iterate
+					// Use and_not(..) to load our sub-track types directly from memory on x64 with BMI
+					packed_entry = and_not(~0x55555555U, rotation_sub_track_types[entry_index].types);
+
+					// We have 2 bits per sub-track
+					curr_entry_track_index = entry_index * 16;
+
+					entry_index++;
+				}
+
+				num_unpacked %= k_sub_step_unpack_count;
+
+				if (num_unpacked == 0)
+				{
+					// Unpack up to 4 rotations
+					unpack_constant_rotation_group<decompression_settings_type>(decomp_context, constant_data_rotations, num_left_to_unpack, constant_rotations);
+				}
+
+				while (packed_entry != 0 && num_unpacked < k_sub_step_unpack_count)
+				{
+					const uint32_t set_bit_index = count_leading_zeros(packed_entry);
+					const uint32_t highest_set_bit = 1 << (31 - set_bit_index);
+
+					// Mask out the bit we just consumed
+					packed_entry ^= highest_set_bit;
+
+					// We have 2 bits per sub-track
+					const uint32_t track_index = curr_entry_track_index + (set_bit_index / 2);
+
+					if (!writer.skip_track_rotation(track_index))
+						writer.write_rotation(track_index, constant_rotations[num_unpacked]);
+
+					num_unpacked++;
+				}
+			}
+
+		done:
 			step_context.prefetch_queue_ptr = prefetch_queue_ptr;
 		}
 	}
