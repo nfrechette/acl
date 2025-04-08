@@ -2788,7 +2788,7 @@ namespace acl
 			// Setup our prefetch queue
 			{
 				uint32_t prefetch_entry_index = 0;
-
+#if 0
 				// If our clip has many tracks, then we prefetch 2 more cache lines to kick start things
 				const uint32_t sub_track_types_size = (num_tracks * (has_scale ? 3 : 2)) / 32 * 4;
 				if (sub_track_types_size >= 128)
@@ -2849,7 +2849,7 @@ namespace acl
 					step_context.prefetch_queue[prefetch_entry_index++] = clip_range_data + 128;
 					step_context.prefetch_queue[prefetch_entry_index++] = clip_range_data + 192;
 				}
-
+#endif
 				// Zero pad a few entries to ensure we can always prefetch 4 entries if the first we
 				// test is not nullptr
 				step_context.prefetch_queue[prefetch_entry_index++] = nullptr;
