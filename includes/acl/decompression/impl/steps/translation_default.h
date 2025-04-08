@@ -40,6 +40,7 @@ namespace acl
 
 	namespace acl_impl
 	{
+#if 0
 		template<class track_writer_type>
 		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL step_unpack_default_translations(
 			step_context_t& step_context,
@@ -201,6 +202,128 @@ namespace acl
 		done:
 			step_context.prefetch_queue_ptr = prefetch_queue_ptr;
 		}
+#else
+		template<class track_writer_type>
+		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL step_unpack_default_translations(
+			step_context_t& step_context,
+			track_writer_type& writer)
+		{
+			// On Apply M1:
+			//   - Warm CPU Cache: 5.30 IPC (default impl)
+			//   - Cold CPU cache: 2.26 IPC (default impl)
+
+			if (track_writer_type::skip_all_translations())
+				return;
+
+			constexpr default_sub_track_mode default_mode = track_writer_type::get_default_translation_mode();
+			static_assert(default_mode != default_sub_track_mode::legacy, "Not supported for translations");
+			if (default_mode == default_sub_track_mode::skipped)
+				return;
+
+			const packed_sub_track_types* translation_sub_track_types = step_context.translation_sub_track_types;
+			const uint32_t last_entry_index = step_context.last_entry_index;
+			const uint32_t padding_mask = step_context.padding_mask;
+			//const void** prefetch_queue_ptr = step_context.prefetch_queue_ptr;
+
+			// Cache the next prefetch ptr to avoid reloading it each loop iteration
+			// This way, the branch can easily be predicted because once we are done
+			// prefetching every entry, the ptr will remain forever null and this
+			// the branch is always constant: not zero for some time, then forever zero
+			//const void* next_prefetch_ptr = *prefetch_queue_ptr;
+
+			// Grab our constant default translation if we have one, otherwise init with some value
+			const rtm::vector4f default_translation = default_mode == default_sub_track_mode::constant ? writer.get_constant_default_translation() : rtm::vector_zero();
+
+			for (uint32_t entry_index = 0, track_index = 0; entry_index <= last_entry_index; ++entry_index)
+			{
+				uint32_t packed_entry = translation_sub_track_types[entry_index].types;
+
+				// Mask out everything but default sub-tracks, this way we can early out when we iterate
+				// Each sub-track is either 0 (default), 1 (constant), or 2 (animated)
+				// By flipping the bits with logical NOT, 0 becomes 3, 1 becomes 2, and 2 becomes 1
+				// We then subtract 1 from every group so 3 becomes 2, 2 becomes 1, and 1 becomes 0
+				// Finally, we mask out everything but the second bit for each sub-track
+				// After this, our original default tracks are equal to 2, our constant tracks are equal to 1, and our animated tracks are equal to 0
+				// Testing for default tracks can be done by testing the second bit of each group (same as animated track testing)
+				packed_entry = ~packed_entry - 0x55555555;
+
+				// Because our last entry might have padding with 0 (default), we have to strip any padding we might have
+				const uint32_t entry_padding_mask = (entry_index == last_entry_index) ? padding_mask : 0xAAAAAAAA;
+				packed_entry &= entry_padding_mask;
+
+				uint32_t curr_entry_track_index = track_index;
+
+				// We might early out below, always skip 16 tracks
+				track_index += 16;
+
+				// Process 4 sub-tracks at a time
+				while (packed_entry != 0)
+				{
+					const uint32_t packed_group = packed_entry;
+					const uint32_t curr_group_track_index = curr_entry_track_index;
+
+					// Move to the next group
+					packed_entry <<= 8;
+					curr_entry_track_index += 4;
+
+					if ((packed_group & 0xAA000000) == 0)
+						continue;	// This group contains no default sub-tracks, skip it
+
+					if ((packed_group & 0x80000000) != 0)
+					{
+						const uint32_t track_index0 = curr_group_track_index + 0;
+
+						if (!writer.skip_track_translation(track_index0))
+						{
+							if (default_mode == default_sub_track_mode::variable)
+								writer.write_translation(track_index0, writer.get_variable_default_translation(track_index0));
+							else
+								writer.write_translation(track_index0, default_translation);
+						}
+					}
+
+					if ((packed_group & 0x20000000) != 0)
+					{
+						const uint32_t track_index1 = curr_group_track_index + 1;
+
+						if (!writer.skip_track_translation(track_index1))
+						{
+							if (default_mode == default_sub_track_mode::variable)
+								writer.write_translation(track_index1, writer.get_variable_default_translation(track_index1));
+							else
+								writer.write_translation(track_index1, default_translation);
+						}
+					}
+
+					if ((packed_group & 0x08000000) != 0)
+					{
+						const uint32_t track_index2 = curr_group_track_index + 2;
+
+						if (!writer.skip_track_translation(track_index2))
+						{
+							if (default_mode == default_sub_track_mode::variable)
+								writer.write_translation(track_index2, writer.get_variable_default_translation(track_index2));
+							else
+								writer.write_translation(track_index2, default_translation);
+						}
+					}
+
+					if ((packed_group & 0x02000000) != 0)
+					{
+						const uint32_t track_index3 = curr_group_track_index + 3;
+
+						if (!writer.skip_track_translation(track_index3))
+						{
+							if (default_mode == default_sub_track_mode::variable)
+								writer.write_translation(track_index3, writer.get_variable_default_translation(track_index3));
+							else
+								writer.write_translation(track_index3, default_translation);
+						}
+					}
+				}
+			}
+		}
+#endif
 	}
 
 	ACL_IMPL_VERSION_NAMESPACE_END
