@@ -2874,12 +2874,15 @@ namespace acl
 
 			// Constant sub-tracks
 			{
-				step_unpack_constant_rotations<decompression_settings_type>(step_context, context, writer);
+				unpack_constant_rotation_sub_tracks<decompression_settings_type>(rotation_sub_track_types, last_entry_index, context, constant_track_cache, writer);
+				//step_unpack_constant_rotations<decompression_settings_type>(step_context, context, writer);
 
-				step_unpack_constant_translations(step_context, writer);
+				unpack_constant_translation_sub_tracks(translation_sub_track_types, last_entry_index, constant_track_cache, writer);
+				//step_unpack_constant_translations(step_context, writer);
 
 				if (has_scale)
-					step_unpack_constant_scales(step_context, writer);
+					unpack_constant_scale_sub_tracks(scale_sub_track_types, last_entry_index, constant_track_cache, writer);
+					//step_unpack_constant_scales(step_context, writer);
 			}
 #else
 			// Unpack our default rotation sub-tracks
