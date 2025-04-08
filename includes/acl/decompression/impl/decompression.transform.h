@@ -74,6 +74,10 @@
 // to make sure we can warm up everything we need
 //#define ACL_IMPL_USE_STEP_DECOMPRESSION
 
+//#define ACL_IMPL_DISABLE_DEFAULT_SUB_TRACKS
+//#define ACL_IMPL_DISABLE_CONSTANT_SUB_TRACKS
+//#define ACL_IMPL_DISABLE_ANIMATED_SUB_TRACKS
+
 #if defined(ACL_IMPL_USE_STEP_DECOMPRESSION)
 	#include "acl/decompression/impl/steps/rotation_constant.h"
 	#include "acl/decompression/impl/steps/rotation_default.h"
@@ -2711,7 +2715,10 @@ namespace acl
 				disable_fp_exceptions(fp_env);
 
 			using translation_adapter = acl_impl::translation_decompression_settings_adapter<decompression_settings_type>;
+
+	#if !defined(ACL_IMPL_DISABLE_ANIMATED_SUB_TRACKS)
 			using scale_adapter = acl_impl::scale_decompression_settings_adapter<decompression_settings_type>;
+	#endif
 
 			const rtm::vector4f default_scale = rtm::vector_set(float(header.get_default_scale()));
 			const uint32_t has_scale = context.has_scale;
@@ -2872,6 +2879,7 @@ namespace acl
 					step_set_default_scales(step_context, default_scale, writer);
 			}
 
+	#if !defined(ACL_IMPL_DISABLE_CONSTANT_SUB_TRACKS)
 			// Constant sub-tracks
 			{
 				unpack_constant_rotation_sub_tracks<decompression_settings_type>(rotation_sub_track_types, last_entry_index, context, constant_track_cache, writer);
@@ -2884,14 +2892,17 @@ namespace acl
 					unpack_constant_scale_sub_tracks(scale_sub_track_types, last_entry_index, constant_track_cache, writer);
 					//step_unpack_constant_scales(step_context, writer);
 			}
+	#endif
 #else
 			// Unpack our default rotation sub-tracks
 			// Default rotation sub-tracks are uncommon, this shouldn't take much more than 50 cycles
 			unpack_default_rotation_sub_tracks(rotation_sub_track_types, last_entry_index, padding_mask, writer);
 
+	#if !defined(ACL_IMPL_DISABLE_CONSTANT_SUB_TRACKS)
 			// Unpack our constant rotation sub-tracks
 			// Constant rotation sub-tracks are very common, this should take at least 200 cycles
 			unpack_constant_rotation_sub_tracks<decompression_settings_type>(rotation_sub_track_types, last_entry_index, context, constant_track_cache, writer);
+	#endif
 
 			// By now, our constant translations (3 cache lines) have landed in L2 after our prefetching has completed
 			// We typically will do enough work above to hide the latency
@@ -2919,9 +2930,11 @@ namespace acl
 			// Default translation sub-tracks are rare, this shouldn't take much more than 50 cycles
 			unpack_default_translation_sub_tracks(translation_sub_track_types, last_entry_index, padding_mask, writer);
 
+	#if !defined(ACL_IMPL_DISABLE_CONSTANT_SUB_TRACKS)
 			// Unpack our constant translation sub-tracks
 			// Constant translation sub-tracks are very common, this should take at least 200 cycles
 			unpack_constant_translation_sub_tracks(translation_sub_track_types, last_entry_index, constant_track_cache, writer);
+	#endif
 
 			if (has_scale)
 			{
@@ -2929,9 +2942,11 @@ namespace acl
 				// Scale sub-tracks are almost always default, this should take at least 200 cycles
 				unpack_default_scale_sub_tracks(scale_sub_track_types, last_entry_index, padding_mask, default_scale, writer);
 
+	#if !defined(ACL_IMPL_DISABLE_CONSTANT_SUB_TRACKS)
 				// Unpack our constant scale sub-tracks
 				// Constant scale sub-tracks are very rare, this shouldn't take much more than 50 cycles
 				unpack_constant_scale_sub_tracks(scale_sub_track_types, last_entry_index, constant_track_cache, writer);
+	#endif
 			}
 			else
 			{
@@ -3002,7 +3017,7 @@ namespace acl
 
 			// TODO: Unpack 4, then iterate over tracks to write?
 			// Can we keep the rotations in registers? Does it matter?
-
+	#if !defined(ACL_IMPL_DISABLE_ANIMATED_SUB_TRACKS)
 			// Unpack rotations first
 			// Animated rotation sub-tracks are very common, this should take at least 400 cycles
 			unpack_animated_rotation_sub_tracks<decompression_settings_type>(rotation_sub_track_types, last_entry_index, context, animated_track_cache, writer);
@@ -3015,6 +3030,7 @@ namespace acl
 			// Animated scale sub-tracks are very rare, this shouldn't take much more than 100 cycles
 			if (has_scale)
 				unpack_animated_scale_sub_tracks<scale_adapter>(scale_sub_track_types, last_entry_index, context, animated_track_cache, writer);
+	#endif
 
 			if (decompression_settings_type::disable_fp_exeptions())
 				restore_fp_exceptions(fp_env);
