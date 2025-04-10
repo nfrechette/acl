@@ -2785,16 +2785,18 @@ namespace acl
 			step_context.rotation_sub_track_types = rotation_sub_track_types;
 			step_context.translation_sub_track_types = translation_sub_track_types;
 			step_context.scale_sub_track_types = scale_sub_track_types;
+#if 0
 			step_context.constant_data_rotations = constant_track_cache.constant_data_rotations;
 			step_context.constant_data_translations = constant_track_cache.constant_data_translations;
 			step_context.constant_data_scales = constant_track_cache.constant_data_scales;
+#endif
 			step_context.last_entry_index = last_entry_index;
 			step_context.padding_mask = padding_mask;
 			step_context.num_tracks = num_tracks;
 
 			// Setup our prefetch queue
 			{
-				uint32_t prefetch_entry_index = 0;
+				//uint32_t prefetch_entry_index = 0;
 #if 0
 				// If our clip has many tracks, then we prefetch 2 more cache lines to kick start things
 				const uint32_t sub_track_types_size = (num_tracks * (has_scale ? 3 : 2)) / 32 * 4;
@@ -2857,6 +2859,7 @@ namespace acl
 					step_context.prefetch_queue[prefetch_entry_index++] = clip_range_data + 192;
 				}
 #endif
+#if 0
 				// Zero pad a few entries to ensure we can always prefetch 4 entries if the first we
 				// test is not nullptr
 				step_context.prefetch_queue[prefetch_entry_index++] = nullptr;
@@ -2866,6 +2869,7 @@ namespace acl
 
 				// Start prefetching the first entry
 				step_context.prefetch_queue_ptr = step_context.prefetch_queue;
+#endif
 			}
 
 			// Default sub-tracks
