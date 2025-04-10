@@ -232,7 +232,7 @@ namespace acl
 			const uint32_t padding_mask = step_context.padding_mask;
 			//const void** prefetch_queue_ptr = step_context.prefetch_queue_ptr;
 
-			const packed_sub_track_types* rotation_sub_track_types_last = step_context.rotation_sub_track_types + last_entry_index;
+			const packed_sub_track_types* rotation_sub_track_types_last = rotation_sub_track_types + last_entry_index;
 
 			// Cache the next prefetch ptr to avoid reloading it each loop iteration
 			// This way, the branch can easily be predicted because once we are done
