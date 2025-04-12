@@ -2720,7 +2720,7 @@ namespace acl
 			using scale_adapter = acl_impl::scale_decompression_settings_adapter<decompression_settings_type>;
 	#endif
 
-	#if !defined(ACL_IMPL_DISABLE_DEFAULT_SUB_TRACKS)
+	#if !defined(ACL_IMPL_USE_STEP_DECOMPRESSION) && !defined(ACL_IMPL_DISABLE_DEFAULT_SUB_TRACKS)
 			const rtm::vector4f default_scale = rtm::vector_set(float(header.get_default_scale()));
 	#endif
 
@@ -2729,14 +2729,16 @@ namespace acl
 			const transform_tracks_header& transforms_header = get_transform_tracks_header(*tracks);
 			const packed_sub_track_types* sub_track_types = transforms_header.get_sub_track_types();
 			const uint32_t num_sub_track_entries = (num_tracks + k_num_sub_tracks_per_packed_entry - 1) / k_num_sub_tracks_per_packed_entry;
-			const uint32_t num_padded_sub_tracks = (num_sub_track_entries * k_num_sub_tracks_per_packed_entry) - num_tracks;
 			const uint32_t last_entry_index = num_sub_track_entries - 1;
 
+	#if defined(ACL_IMPL_USE_STEP_DECOMPRESSION) || !defined(ACL_IMPL_DISABLE_DEFAULT_SUB_TRACKS)
 			// Build a mask to strip the extra sub-tracks we don't need that live in the padding
 			// They are set to 0 which means they would be 'default' sub-tracks but they don't really exist
 			// If we have no padding, we retain every sub-track
 			// Sub-tracks that are kept have their bits set to 1 to mask them with logical AND later
+			const uint32_t num_padded_sub_tracks = (num_sub_track_entries * k_num_sub_tracks_per_packed_entry) - num_tracks;
 			const uint32_t padding_mask = num_padded_sub_tracks != 0 ? ~(0xFFFFFFFF >> ((k_num_sub_tracks_per_packed_entry - num_padded_sub_tracks) * 2)) : 0xFFFFFFFF;
+	#endif
 
 			const packed_sub_track_types* rotation_sub_track_types = sub_track_types;
 			const packed_sub_track_types* translation_sub_track_types = rotation_sub_track_types + num_sub_track_entries;
@@ -2760,7 +2762,7 @@ namespace acl
 			animated_track_cache_v0 animated_track_cache;
 			animated_track_cache.initialize<decompression_settings_type, translation_adapter>(context);
 
-#if !defined(ACL_IMPL_USE_STEP_DECOMPRESSION)
+#if !defined(ACL_IMPL_USE_STEP_DECOMPRESSION) && !defined(ACL_IMPL_DISABLE_ANIMATED_SUB_TRACKS)
 			{
 				// Start prefetching the per track metadata of both segments
 				// They might live in a different memory page than the clip's header and constant data
@@ -2915,6 +2917,7 @@ namespace acl
 			unpack_constant_rotation_sub_tracks<decompression_settings_type>(rotation_sub_track_types, last_entry_index, context, constant_track_cache, writer);
 	#endif
 
+	#if !defined(ACL_IMPL_DISABLE_ANIMATED_SUB_TRACKS)
 			// By now, our constant translations (3 cache lines) have landed in L2 after our prefetching has completed
 			// We typically will do enough work above to hide the latency
 			// We do not prefetch our constant scales because scale is fairly rare
@@ -2936,6 +2939,7 @@ namespace acl
 				ACL_IMPL_SEEK_PREFETCH(frame_animated_data0);
 				ACL_IMPL_SEEK_PREFETCH(frame_animated_data1);
 			}
+	#endif
 
 	#if !defined(ACL_IMPL_DISABLE_DEFAULT_SUB_TRACKS)
 			// Unpack our default translation sub-tracks
@@ -2965,6 +2969,7 @@ namespace acl
 			}
 			else
 			{
+	#if !defined(ACL_IMPL_DISABLE_DEFAULT_SUB_TRACKS)
 				constexpr default_sub_track_mode default_scale_mode = track_writer_type::get_default_scale_mode();
 				if (default_scale_mode != default_sub_track_mode::skipped)
 				{
@@ -2990,8 +2995,10 @@ namespace acl
 						}
 					}
 				}
+	#endif
 			}
 
+	#if !defined(ACL_IMPL_DISABLE_ANIMATED_SUB_TRACKS)
 			{
 				// By now the first few cache lines of our segment data has landed in the L2
 				// Prefetch ahead some more to prime the hardware prefetcher
@@ -3014,6 +3021,7 @@ namespace acl
 
 				// TODO: Can we prefetch the translation data ahead instead to prime the TLB?
 			}
+	#endif
 #endif
 
 			// Unpack our variable sub-tracks
