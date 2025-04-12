@@ -91,8 +91,8 @@ namespace acl
 				if (decompression_settings_type::get_rotation_normalization_policy() == rotation_normalization_policy_t::always)
 					quat_normalize_x4(xxxx, yyyy, zzzz, wwww);
 
-#if defined(RTM_NEON_INTRINSICS)
-				// This is much more compact, assemly wise
+#if defined(RTM_NEON_INTRINSICS) && 0
+				// This is much more compact, assemly wise, however it appears to be slower
 				// Store interleaved
 				// TODO: Measure perf with/without
 				const float32x4x4_t result = { xxxx, yyyy, zzzz, wwww };

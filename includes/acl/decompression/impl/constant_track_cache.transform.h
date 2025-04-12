@@ -174,6 +174,12 @@ namespace acl
 						if (decompression_settings_type::get_rotation_normalization_policy() == rotation_normalization_policy_t::always)
 							quat_normalize_x4(xxxx, yyyy, zzzz, wwww);
 
+#if defined(RTM_NEON_INTRINSICS) && 0
+						// This is much more compact, assemly wise, however it appears to be slower
+						// Store interleaved
+						const float32x4x4_t result = { xxxx, yyyy, zzzz, wwww };
+						vst4q_f32(bit_cast<float*>(cache_ptr), result);
+#else
 						rtm::vector4f sample0;
 						rtm::vector4f sample1;
 						rtm::vector4f sample2;
@@ -185,6 +191,7 @@ namespace acl
 						cache_ptr[1] = rtm::vector_to_quat(sample1);
 						cache_ptr[2] = rtm::vector_to_quat(sample2);
 						cache_ptr[3] = rtm::vector_to_quat(sample3);
+#endif
 						cache_ptr += 4;
 					}
 				}
