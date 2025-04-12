@@ -2720,7 +2720,7 @@ namespace acl
 			using scale_adapter = acl_impl::scale_decompression_settings_adapter<decompression_settings_type>;
 	#endif
 
-	#if !defined(ACL_IMPL_USE_STEP_DECOMPRESSION) && !defined(ACL_IMPL_DISABLE_DEFAULT_SUB_TRACKS)
+	#if !defined(ACL_IMPL_DISABLE_DEFAULT_SUB_TRACKS)
 			const rtm::vector4f default_scale = rtm::vector_set(float(header.get_default_scale()));
 	#endif
 
