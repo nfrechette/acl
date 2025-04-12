@@ -2720,7 +2720,10 @@ namespace acl
 			using scale_adapter = acl_impl::scale_decompression_settings_adapter<decompression_settings_type>;
 	#endif
 
+	#if !defined(ACL_IMPL_DISABLE_DEFAULT_SUB_TRACKS)
 			const rtm::vector4f default_scale = rtm::vector_set(float(header.get_default_scale()));
+	#endif
+
 			const uint32_t has_scale = context.has_scale;
 
 			const transform_tracks_header& transforms_header = get_transform_tracks_header(*tracks);
@@ -2872,6 +2875,7 @@ namespace acl
 #endif
 			}
 
+	#if !defined(ACL_IMPL_DISABLE_DEFAULT_SUB_TRACKS)
 			// Default sub-tracks
 			{
 				step_unpack_default_rotations(step_context, writer);
@@ -2882,6 +2886,7 @@ namespace acl
 				else
 					step_set_default_scales(step_context, default_scale, writer);
 			}
+	#endif
 
 	#if !defined(ACL_IMPL_DISABLE_CONSTANT_SUB_TRACKS)
 			// Constant sub-tracks
@@ -2898,9 +2903,11 @@ namespace acl
 			}
 	#endif
 #else
+	#if !defined(ACL_IMPL_DISABLE_DEFAULT_SUB_TRACKS)
 			// Unpack our default rotation sub-tracks
 			// Default rotation sub-tracks are uncommon, this shouldn't take much more than 50 cycles
 			unpack_default_rotation_sub_tracks(rotation_sub_track_types, last_entry_index, padding_mask, writer);
+	#endif
 
 	#if !defined(ACL_IMPL_DISABLE_CONSTANT_SUB_TRACKS)
 			// Unpack our constant rotation sub-tracks
@@ -2930,9 +2937,11 @@ namespace acl
 				ACL_IMPL_SEEK_PREFETCH(frame_animated_data1);
 			}
 
+	#if !defined(ACL_IMPL_DISABLE_DEFAULT_SUB_TRACKS)
 			// Unpack our default translation sub-tracks
 			// Default translation sub-tracks are rare, this shouldn't take much more than 50 cycles
 			unpack_default_translation_sub_tracks(translation_sub_track_types, last_entry_index, padding_mask, writer);
+	#endif
 
 	#if !defined(ACL_IMPL_DISABLE_CONSTANT_SUB_TRACKS)
 			// Unpack our constant translation sub-tracks
@@ -2942,9 +2951,11 @@ namespace acl
 
 			if (has_scale)
 			{
+	#if !defined(ACL_IMPL_DISABLE_DEFAULT_SUB_TRACKS)
 				// Unpack our default scale sub-tracks
 				// Scale sub-tracks are almost always default, this should take at least 200 cycles
 				unpack_default_scale_sub_tracks(scale_sub_track_types, last_entry_index, padding_mask, default_scale, writer);
+	#endif
 
 	#if !defined(ACL_IMPL_DISABLE_CONSTANT_SUB_TRACKS)
 				// Unpack our constant scale sub-tracks
