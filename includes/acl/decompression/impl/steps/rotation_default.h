@@ -37,6 +37,7 @@
 // 1: Simple bit scan
 // 2: Bit scan + pop count
 // 3: Dual bit scan
+// 4: Reverse bit scan
 #define ACL_IMPL_STEP_CURRENT_VARIANT 0
 
 ACL_IMPL_FILE_PRAGMA_PUSH
@@ -647,6 +648,79 @@ namespace acl
 						writer.write_rotation(track_index, writer.get_variable_default_rotation(track_index));
 					else
 						writer.write_rotation(track_index, default_rotation);
+				}
+			}
+		}
+#elif ACL_IMPL_STEP_CURRENT_VARIANT == 4 // Reverse bit scan
+		template<class track_writer_type>
+		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL step_unpack_default_rotations(
+			step_context_t& step_context,
+			track_writer_type& writer)
+		{
+			// On Apply M1:
+			//   - Warm CPU Cache: ???? IPC (default impl)
+			//   - Cold CPU cache: ???? IPC (default impl)
+
+			if (track_writer_type::skip_all_rotations())
+				return;
+
+			constexpr default_sub_track_mode default_mode = track_writer_type::get_default_rotation_mode();
+			static_assert(default_mode != default_sub_track_mode::legacy, "Not supported for rotations");
+			if (default_mode == default_sub_track_mode::skipped)
+				return;
+
+			const packed_sub_track_types* rotation_sub_track_types = step_context.rotation_sub_track_types;
+			const uint32_t last_entry_index = step_context.last_entry_index;
+			const uint32_t padding_mask = step_context.padding_mask;
+			//const void** prefetch_queue_ptr = step_context.prefetch_queue_ptr;
+
+			// Cache the next prefetch ptr to avoid reloading it each loop iteration
+			// This way, the branch can easily be predicted because once we are done
+			// prefetching every entry, the ptr will remain forever null and this
+			// the branch is always constant: not zero for some time, then forever zero
+			//const void* next_prefetch_ptr = *prefetch_queue_ptr;
+
+			// Grab our constant default rotation if we have one, otherwise init with some value
+			const rtm::quatf default_rotation = default_mode == default_sub_track_mode::constant ? writer.get_constant_default_rotation() : rtm::quat_identity();
+
+			for (uint32_t entry_index = 0; entry_index <= last_entry_index; ++entry_index)
+			{
+				uint32_t packed_entry = rotation_sub_track_types[entry_index].types;
+
+				// Mask out everything but default sub-tracks, this way we can early out when we iterate
+				// Each sub-track is either 0 (default), 1 (constant), or 2 (animated)
+				// By flipping the bits with logical NOT, 0 becomes 3, 1 becomes 2, and 2 becomes 1
+				// We then subtract 1 from every group so 3 becomes 2, 2 becomes 1, and 1 becomes 0
+				// Finally, we mask out everything but the second bit for each sub-track
+				// After this, our original default tracks are equal to 2, our constant tracks are equal to 1, and our animated tracks are equal to 0
+				// Testing for default tracks can be done by testing the second bit of each group (same as animated track testing)
+				packed_entry = ~packed_entry - 0x55555555;
+
+				// Because our last entry might have padding with 0 (default), we have to strip any padding we might have
+				const uint32_t entry_padding_mask = (entry_index == last_entry_index) ? padding_mask : 0xAAAAAAAA;
+				packed_entry &= entry_padding_mask;
+
+				uint32_t curr_entry_track_index = entry_index * 16;
+
+				while (packed_entry != 0)
+				{
+					// HACKED just to test performance, would require reversing the data format
+					const uint32_t lowest_set_bit = packed_entry & -packed_entry;
+					const uint32_t set_bit_index = 31 - count_trailing_zeros(packed_entry);
+
+					// Mask out the bit we just consumed
+					packed_entry ^= lowest_set_bit;
+
+					// We have 2 bits per sub-track
+					const uint32_t track_index = curr_entry_track_index + (set_bit_index / 2);
+
+					if (!writer.skip_track_rotation(track_index))
+					{
+						if (default_mode == default_sub_track_mode::variable)
+							writer.write_rotation(track_index, writer.get_variable_default_rotation(track_index));
+						else
+							writer.write_rotation(track_index, default_rotation);
+					}
 				}
 			}
 		}
