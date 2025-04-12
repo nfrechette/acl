@@ -167,6 +167,28 @@ namespace acl
 	}
 
 	//////////////////////////////////////////////////////////////////////////
+	// Starting at the MSB, counts the number of leading zeros
+	inline uint64_t count_leading_zeros(uint64_t value)
+	{
+#if defined(ACL_USE_POPCOUNT)
+		return _lzcnt_u64(value);
+#elif defined(RTM_COMPILER_MSVC)
+		unsigned long first_set_bit_index;
+		return _BitScanReverse64(&first_set_bit_index, value) ? (63 - first_set_bit_index) : 64;
+#elif defined(RTM_COMPILER_GCC) || defined(RTM_COMPILER_CLANG)
+		return value != 0 ? __builtin_clzll(value) : 64;
+#else
+		value = value | (value >> 1);
+		value = value | (value >> 2);
+		value = value | (value >> 4);
+		value = value | (value >> 8);
+		value = value | (value >> 16);
+		value = value | (value >> 32);
+		return count_set_bits(~value);
+#endif
+	}
+
+	//////////////////////////////////////////////////////////////////////////
 	// Starting at the LSB, counts the number of trailing zeros
 	inline uint32_t count_trailing_zeros(uint32_t value)
 	{
@@ -179,6 +201,22 @@ namespace acl
 		return value != 0 ? __builtin_ctz(value) : 32;
 #else
 		return value != 0 ? (31 - count_leading_zeros(value & -value)) : 32;
+#endif
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Starting at the LSB, counts the number of trailing zeros
+	inline uint64_t count_trailing_zeros(uint64_t value)
+	{
+#if defined(ACL_BMI_INTRINSICS)
+		return _tzcnt_u64(value);
+#elif defined(RTM_COMPILER_MSVC)
+		unsigned long first_set_bit_index;
+		return _BitScanForward64(&first_set_bit_index, value) ? first_set_bit_index : 64;
+#elif defined(RTM_COMPILER_GCC) || defined(RTM_COMPILER_CLANG)
+		return value != 0 ? __builtin_ctzll(value) : 64;
+#else
+		return value != 0 ? (63 - count_leading_zeros(value & -value)) : 64;
 #endif
 	}
 
