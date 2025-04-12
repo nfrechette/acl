@@ -194,7 +194,7 @@ static void memset_impl(uint8_t* buffer, size_t buffer_size, uint8_t value)
 		*ptr = value;
 }
 
-static void benchmark_decompression(benchmark::State& state)
+void benchmark_decompression(benchmark::State& state)
 {
 	acl::compressed_tracks& compressed_tracks = *acl::acl_impl::bit_cast<acl::compressed_tracks*>(state.range(0));
 	const PlaybackDirection playback_direction = static_cast<PlaybackDirection>(state.range(1));
@@ -448,6 +448,7 @@ bool read_clip(const std::string& clip_dir, const std::string& clip, acl::ialloc
 
 bool prepare_clip(const std::string& clip_name, const acl::compressed_tracks& raw_tracks, std::vector<acl::compressed_tracks*>& out_compressed_clips)
 {
+#if defined(ACL_IMPL_BENCHMARK_DECOMPRESSION)
 	printf("Preparing clip %s ...\n", clip_name.c_str());
 
 	acl::error_result result = raw_tracks.is_valid(false);
@@ -537,5 +538,11 @@ bool prepare_clip(const std::string& clip_name, const acl::compressed_tracks& ra
 	bench->ComputeStatistics("max", [](const std::vector<double>& v) { return *std::max_element(std::begin(v), std::end(v)); });
 
 	out_compressed_clips.push_back(compressed_tracks);
+#else
+	(void)clip_name;
+	(void)raw_tracks;
+	(void)out_compressed_clips;
+#endif
+
 	return true;
 }

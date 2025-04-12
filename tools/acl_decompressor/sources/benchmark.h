@@ -30,6 +30,9 @@
 #include <string>
 #include <vector>
 
+// Whether or not to enable the decompression benchmarks
+#define ACL_IMPL_BENCHMARK_DECOMPRESSION
+
 extern acl::ansi_allocator s_allocator;
 
 void clear_benchmark_state();
