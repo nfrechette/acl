@@ -206,7 +206,11 @@ int main(int argc, char* argv[])
 			continue;
 		}
 
-		prepare_clip(clip, *raw_tracks, compressed_clips);
+		if (!prepare_clip(clip, *raw_tracks, compressed_clips))
+		{
+			printf("Failed to prepare clip %s!\n", clip.c_str());
+			continue;
+		}
 
 		s_allocator.deallocate(raw_tracks, raw_tracks->get_size());
 	}
