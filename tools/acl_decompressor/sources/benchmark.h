@@ -33,6 +33,9 @@
 // Whether or not to enable the decompression benchmarks
 #define ACL_IMPL_BENCHMARK_DECOMPRESSION
 
+// Whether or not to enable the bit set iteration benchmarks
+//#define ACL_IMPL_BENCHMARK_BIT_SET_ITERATION
+
 extern acl::ansi_allocator s_allocator;
 
 void clear_benchmark_state();

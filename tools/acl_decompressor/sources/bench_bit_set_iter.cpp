@@ -1,0 +1,799 @@
+////////////////////////////////////////////////////////////////////////////////
+// The MIT License (MIT)
+//
+// Copyright (c) 2025 Nicholas Frechette & Animation Compression Library contributors
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+////////////////////////////////////////////////////////////////////////////////
+
+#include "benchmark.h"
+
+#if defined(ACL_IMPL_BENCHMARK_BIT_SET_ITERATION)
+
+#include <acl/core/bit_manip_utils.h>
+
+#include <rtm/quatf.h>
+#include <rtm/qvvf.h>
+
+// Interesting notes:
+//
+// The AppleClang compiler is clever with: packed_entry = ~packed_entry - 0x55555555
+// It generates: packed_entry = -0x55555556 - packed_entry
+// It yields a single sub instruction with a constant and the second operand comes from memory
+//
+// On Apple M1:
+// Count-trailing-zeroes is fastest for low density (up to ~82.5%) and the ACL 2.1 reference
+// is faster with high density (~82.5% and up).
+// The 32 and 64-bit variants yield the same assembly, just with wider registers and yet the
+// 64-bit variant is slightly slower.
+// Light vs heavy work per bit has an impact mostly on bit scanning where it becomes cheaper
+// because the latency of the scanning instruction can be hidden. And so with heavy work per bit,
+// count-trailing-zeroes is always faster even with high density.
+// The hybrid method that picks between the two is overall the best for light work.
+// At low density, the cost of popcount makes it slightly slower than pure CTZ but as density
+// grows, we end up faster. For heavy work, it ends up slower as density resizes when we fall
+// back to the reference implementation.
+
+static constexpr double k_bit_set_densities[] =
+{
+	// Common
+	0.3,	// 0
+	0.6,	// 1
+	0.9,	// 2
+	0.75,	// 3
+	0.80,	// 4
+	0.85,	// 5
+};
+
+// Direct memory access, minimal overhead
+struct track_writer_light
+{
+	rtm::qvvf* output = nullptr;
+
+	RTM_FORCE_INLINE bool skip_track(uint32_t track_index) const
+	{
+		(void)track_index;
+		return false;
+	}
+
+	RTM_FORCE_INLINE void RTM_SIMD_CALL write_value(uint32_t track_index, rtm::quatf_arg0 rotation)
+	{
+		output[track_index].rotation = rotation;
+	}
+};
+
+// Direct memory access, large overhead
+struct track_writer_heavy
+{
+	rtm::qvvf* output = nullptr;
+
+	RTM_FORCE_INLINE bool skip_track(uint32_t track_index) const
+	{
+		(void)track_index;
+		return false;
+	}
+
+	RTM_FORCE_INLINE void RTM_SIMD_CALL write_value(uint32_t track_index, rtm::quatf_arg0 rotation)
+	{
+		output[track_index].rotation = rtm::quat_normalize(rotation);
+	}
+};
+
+enum class writer_cost_t
+{
+	light,
+	heavy,
+};
+
+template<typename word_type_t>
+static void setup_bit_set(double bit_set_density, word_type_t* packed_entries, uint32_t num_packed_entries)
+{
+	std::srand(81440);
+
+	constexpr uint32_t k_num_bits_per_word = sizeof(word_type_t) * 8;
+	const uint32_t num_bits_to_set = uint32_t(double(k_num_bits_per_word) * num_packed_entries * bit_set_density);
+
+	uint32_t num_bits_set = 0;
+	while (num_bits_set < num_bits_to_set)
+	{
+		const uint32_t bit_index = std::rand() % (k_num_bits_per_word * num_packed_entries);
+		const uint32_t word_index = bit_index / k_num_bits_per_word;
+		const word_type_t word_bit_mask = word_type_t(1) << (bit_index % k_num_bits_per_word);
+
+		if ((packed_entries[word_index] & word_bit_mask) != 0)
+			continue;	// Already set, try again
+
+		packed_entries[word_index] |= word_bit_mask;
+		num_bits_set++;
+	}
+
+#if 0
+	for (uint32_t i = 0; i < num_packed_entries; ++i)
+		printf("%0u: 0x%X (%f)\n", i, packed_entries[i], double(acl::count_set_bits(packed_entries[i])) / 32.0);
+#endif
+}
+
+// Reference implementation from ACL 2.1 with minor improvements
+template<class track_writer_type>
+RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_NOINLINE
+void bitset_iter_ref(
+	const uint32_t* packed_entries, uint32_t last_entry_index,
+	uint32_t padding_mask,
+	track_writer_type& writer)
+{
+	const uint32_t* packed_entries_ptr = packed_entries;
+	const uint32_t* packed_entries_last_ptr = packed_entries + last_entry_index;
+
+	const rtm::quatf default_rotation = rtm::quat_identity();
+
+	uint32_t track_index = 0;
+
+	while (packed_entries_ptr <= packed_entries_last_ptr)
+	{
+		uint32_t packed_entry = *packed_entries_ptr;
+
+		// Mask out everything but default sub-tracks, this way we can early out when we iterate
+		// Each sub-track is either 0 (default), 1 (constant), or 2 (animated)
+		// By flipping the bits with logical NOT, 0 becomes 3, 1 becomes 2, and 2 becomes 1
+		// We then subtract 1 from every group so 3 becomes 2, 2 becomes 1, and 1 becomes 0
+		// Finally, we mask out everything but the second bit for each sub-track
+		// After this, our original default tracks are equal to 2, our constant tracks are equal to 1, and our animated tracks are equal to 0
+		// Testing for default tracks can be done by testing the second bit of each group (same as animated track testing)
+		packed_entry = ~packed_entry - 0x55555555;
+
+		// Because our last entry might have padding with 0 (default), we have to strip any padding we might have
+		const uint32_t entry_padding_mask = packed_entries_ptr == packed_entries_last_ptr ? padding_mask : 0xAAAAAAAA;
+		packed_entry &= entry_padding_mask;
+
+		uint32_t curr_entry_track_index = track_index;
+
+		// We might early out below, always skip 16 tracks
+		track_index += 16;
+		packed_entries_ptr++;
+
+		// Process 4 sub-tracks at a time
+		while (packed_entry != 0)
+		{
+			// Requires that entries be packed LSB to MSB
+			const uint32_t packed_group = packed_entry;
+			const uint32_t curr_group_track_index = curr_entry_track_index;
+
+			// Move to the next group
+			packed_entry <<= 8;
+			curr_entry_track_index += 4;
+
+			if ((packed_group & 0xAA000000) == 0)
+				continue;	// This group contains no default sub-tracks, skip it
+
+			if ((packed_group & 0x80000000) != 0)
+			{
+				const uint32_t track_index0 = curr_group_track_index + 0;
+
+				if (!writer.skip_track(track_index0))
+					writer.write_value(track_index0, default_rotation);
+			}
+
+			if ((packed_group & 0x20000000) != 0)
+			{
+				const uint32_t track_index1 = curr_group_track_index + 1;
+
+				if (!writer.skip_track(track_index1))
+					writer.write_value(track_index1, default_rotation);
+			}
+
+			if ((packed_group & 0x08000000) != 0)
+			{
+				const uint32_t track_index2 = curr_group_track_index + 2;
+
+				if (!writer.skip_track(track_index2))
+					writer.write_value(track_index2, default_rotation);
+			}
+
+			if ((packed_group & 0x02000000) != 0)
+			{
+				const uint32_t track_index3 = curr_group_track_index + 3;
+
+				if (!writer.skip_track(track_index3))
+					writer.write_value(track_index3, default_rotation);
+			}
+		}
+	}
+}
+
+template<class ...args_>
+static void bm_bitset_iter_ref(benchmark::State& state, args_&&... args)
+{
+	const auto args_tuple = std::make_tuple(std::move(args)...);
+	const double bit_set_density = k_bit_set_densities[std::get<0>(args_tuple)];
+	const writer_cost_t writer_cost = std::get<1>(args_tuple);
+
+	constexpr uint32_t k_num_packed_entries = 64;
+	uint32_t packed_entries[k_num_packed_entries] = { 0 };
+
+	//printf("Density: %f\n", bit_set_density);
+	setup_bit_set(bit_set_density, packed_entries, k_num_packed_entries);
+
+	rtm::qvvf output[k_num_packed_entries * 32];
+
+	if (writer_cost == writer_cost_t::light)
+	{
+		track_writer_light writer;
+		writer.output = output;
+
+		for (auto _ : state)
+			bitset_iter_ref(packed_entries, k_num_packed_entries - 1, 0xFFFFFFFFU, writer);
+	}
+	else
+	{
+		track_writer_heavy writer;
+		writer.output = output;
+
+		for (auto _ : state)
+			bitset_iter_ref(packed_entries, k_num_packed_entries - 1, 0xFFFFFFFFU, writer);
+	}
+}
+
+BENCHMARK_CAPTURE(bm_bitset_iter_ref, d30_light, 0, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_ref, d60_light, 1, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_ref, d75_light, 3, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_ref, d80_light, 4, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_ref, d85_light, 5, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_ref, d90_light, 2, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_ref, d30_heavy, 0, writer_cost_t::heavy);
+BENCHMARK_CAPTURE(bm_bitset_iter_ref, d60_heavy, 1, writer_cost_t::heavy);
+BENCHMARK_CAPTURE(bm_bitset_iter_ref, d90_heavy, 2, writer_cost_t::heavy);
+
+// Iterates over every bit one by one naively
+template<class track_writer_type>
+RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_NOINLINE
+void bitset_iter_naive(
+	const uint32_t* packed_entries, uint32_t last_entry_index,
+	uint32_t padding_mask,
+	track_writer_type& writer)
+{
+	const uint32_t* packed_entries_ptr = packed_entries;
+	const uint32_t* packed_entries_last_ptr = packed_entries + last_entry_index;
+
+	const rtm::quatf default_rotation = rtm::quat_identity();
+
+	uint32_t track_index = 0;
+
+	while (packed_entries_ptr <= packed_entries_last_ptr)
+	{
+		uint32_t packed_entry = *packed_entries_ptr;
+
+		// Mask out everything but default sub-tracks, this way we can early out when we iterate
+		// Each sub-track is either 0 (default), 1 (constant), or 2 (animated)
+		// By flipping the bits with logical NOT, 0 becomes 3, 1 becomes 2, and 2 becomes 1
+		// We then subtract 1 from every group so 3 becomes 2, 2 becomes 1, and 1 becomes 0
+		// Finally, we mask out everything but the second bit for each sub-track
+		// After this, our original default tracks are equal to 2, our constant tracks are equal to 1, and our animated tracks are equal to 0
+		// Testing for default tracks can be done by testing the second bit of each group (same as animated track testing)
+		packed_entry = ~packed_entry - 0x55555555;
+
+		// Because our last entry might have padding with 0 (default), we have to strip any padding we might have
+		const uint32_t entry_padding_mask = packed_entries_ptr == packed_entries_last_ptr ? padding_mask : 0xAAAAAAAA;
+		packed_entry &= entry_padding_mask;
+
+		// We have 2 bits per sub-track
+		uint32_t curr_entry_track_index = track_index;
+		track_index += 16;
+		packed_entries_ptr++;
+
+		while (packed_entry != 0)
+		{
+			// Test MSB
+			if ((packed_entry >> 31) != 0)
+			{
+				const uint32_t curr_track_index = curr_entry_track_index;
+
+				if (!writer.skip_track(curr_track_index))
+					writer.write_value(curr_track_index, default_rotation);
+			}
+
+			// Shift by two to MSB
+			packed_entry <<= 2;
+			curr_entry_track_index++;
+		}
+	}
+}
+
+template<class ...args_>
+static void bm_bitset_iter_naive(benchmark::State& state, args_&&... args)
+{
+	const auto args_tuple = std::make_tuple(std::move(args)...);
+	const double bit_set_density = k_bit_set_densities[std::get<0>(args_tuple)];
+	const writer_cost_t writer_cost = std::get<1>(args_tuple);
+
+	constexpr uint32_t k_num_packed_entries = 64;
+	uint32_t packed_entries[k_num_packed_entries] = { 0 };
+
+	//printf("Density: %f\n", bit_set_density);
+	setup_bit_set(bit_set_density, packed_entries, k_num_packed_entries);
+
+	rtm::qvvf output[k_num_packed_entries * 32];
+
+	if (writer_cost == writer_cost_t::light)
+	{
+		track_writer_light writer;
+		writer.output = output;
+
+		for (auto _ : state)
+			bitset_iter_naive(packed_entries, k_num_packed_entries - 1, 0xFFFFFFFFU, writer);
+	}
+	else
+	{
+		track_writer_heavy writer;
+		writer.output = output;
+
+		for (auto _ : state)
+			bitset_iter_naive(packed_entries, k_num_packed_entries - 1, 0xFFFFFFFFU, writer);
+	}
+}
+
+BENCHMARK_CAPTURE(bm_bitset_iter_naive, d30_light, 0, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_naive, d60_light, 1, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_naive, d90_light, 2, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_naive, d30_heavy, 0, writer_cost_t::heavy);
+BENCHMARK_CAPTURE(bm_bitset_iter_naive, d60_heavy, 1, writer_cost_t::heavy);
+BENCHMARK_CAPTURE(bm_bitset_iter_naive, d90_heavy, 2, writer_cost_t::heavy);
+
+// Uses count leading zeroes to bit scan each entry
+template<class track_writer_type>
+RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_NOINLINE
+void bitset_iter_bit_scan_clz(
+	const uint32_t* packed_entries, uint32_t last_entry_index,
+	uint32_t padding_mask,
+	track_writer_type& writer)
+{
+	const uint32_t* packed_entries_ptr = packed_entries;
+	const uint32_t* packed_entries_last_ptr = packed_entries + last_entry_index;
+
+	const rtm::quatf default_rotation = rtm::quat_identity();
+
+	uint32_t track_index = 0;
+
+	while (packed_entries_ptr <= packed_entries_last_ptr)
+	{
+		uint32_t packed_entry = *packed_entries_ptr;
+
+		// Mask out everything but default sub-tracks, this way we can early out when we iterate
+		// Each sub-track is either 0 (default), 1 (constant), or 2 (animated)
+		// By flipping the bits with logical NOT, 0 becomes 3, 1 becomes 2, and 2 becomes 1
+		// We then subtract 1 from every group so 3 becomes 2, 2 becomes 1, and 1 becomes 0
+		// Finally, we mask out everything but the second bit for each sub-track
+		// After this, our original default tracks are equal to 2, our constant tracks are equal to 1, and our animated tracks are equal to 0
+		// Testing for default tracks can be done by testing the second bit of each group (same as animated track testing)
+		packed_entry = ~packed_entry - 0x55555555;
+
+		// Because our last entry might have padding with 0 (default), we have to strip any padding we might have
+		const uint32_t entry_padding_mask = packed_entries_ptr == packed_entries_last_ptr ? padding_mask : 0xAAAAAAAA;
+		packed_entry &= entry_padding_mask;
+
+		// We have 2 bits per sub-track
+		const uint32_t curr_entry_track_index = track_index;
+		track_index += 16;
+		packed_entries_ptr++;
+
+		while (packed_entry != 0)
+		{
+			// Requires that entries be packed LSB to MSB
+			const uint32_t set_bit_index = acl::count_leading_zeros(packed_entry);
+			const uint32_t highest_set_bit = 1 << (31 - set_bit_index);
+
+			// Mask out the bit we just consumed
+			packed_entry ^= highest_set_bit;
+
+			// We have 2 bits per sub-track
+			const uint32_t curr_track_index = curr_entry_track_index + (set_bit_index / 2);
+
+			if (!writer.skip_track(curr_track_index))
+				writer.write_value(curr_track_index, default_rotation);
+		}
+	}
+}
+
+template<class ...args_>
+static void bm_bitset_iter_bit_scan_clz(benchmark::State& state, args_&&... args)
+{
+	const auto args_tuple = std::make_tuple(std::move(args)...);
+	const double bit_set_density = k_bit_set_densities[std::get<0>(args_tuple)];
+	const writer_cost_t writer_cost = std::get<1>(args_tuple);
+
+	constexpr uint32_t k_num_packed_entries = 64;
+	uint32_t packed_entries[k_num_packed_entries] = { 0 };
+
+	//printf("Density: %f\n", bit_set_density);
+	setup_bit_set(bit_set_density, packed_entries, k_num_packed_entries);
+
+	rtm::qvvf output[k_num_packed_entries * 32];
+
+	if (writer_cost == writer_cost_t::light)
+	{
+		track_writer_light writer;
+		writer.output = output;
+
+		for (auto _ : state)
+			bitset_iter_bit_scan_clz(packed_entries, k_num_packed_entries - 1, 0xFFFFFFFFU, writer);
+	}
+	else
+	{
+		track_writer_heavy writer;
+		writer.output = output;
+
+		for (auto _ : state)
+			bitset_iter_bit_scan_clz(packed_entries, k_num_packed_entries - 1, 0xFFFFFFFFU, writer);
+	}
+}
+
+BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_clz, d30_light, 0, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_clz, d60_light, 1, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_clz, d90_light, 2, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_clz, d30_heavy, 0, writer_cost_t::heavy);
+BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_clz, d60_heavy, 1, writer_cost_t::heavy);
+BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_clz, d90_heavy, 2, writer_cost_t::heavy);
+
+// Uses count trailing zeroes to bit scan each entry
+template<class track_writer_type>
+RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_NOINLINE
+void bitset_iter_bit_scan_ctz_32(
+	const uint32_t* packed_entries, uint32_t last_entry_index,
+	uint32_t padding_mask,
+	track_writer_type& writer)
+{
+	const uint32_t* packed_entries_ptr = packed_entries;
+	const uint32_t* packed_entries_last_ptr = packed_entries + last_entry_index;
+
+	const rtm::quatf default_rotation = rtm::quat_identity();
+
+	uint32_t track_index = 0;
+
+	while (packed_entries_ptr <= packed_entries_last_ptr)
+	{
+		uint32_t packed_entry = *packed_entries_ptr;
+
+		// Mask out everything but default sub-tracks, this way we can early out when we iterate
+		// Each sub-track is either 0 (default), 1 (constant), or 2 (animated)
+		// By flipping the bits with logical NOT, 0 becomes 3, 1 becomes 2, and 2 becomes 1
+		// We then subtract 1 from every group so 3 becomes 2, 2 becomes 1, and 1 becomes 0
+		// Finally, we mask out everything but the second bit for each sub-track
+		// After this, our original default tracks are equal to 2, our constant tracks are equal to 1, and our animated tracks are equal to 0
+		// Testing for default tracks can be done by testing the second bit of each group (same as animated track testing)
+		packed_entry = ~packed_entry - 0x55555555;
+
+		// Because our last entry might have padding with 0 (default), we have to strip any padding we might have
+		const uint32_t entry_padding_mask = packed_entries_ptr == packed_entries_last_ptr ? padding_mask : 0xAAAAAAAA;
+		packed_entry &= entry_padding_mask;
+
+		// We have 2 bits per sub-track
+		const uint32_t curr_entry_track_index = track_index;
+		track_index += 16;
+		packed_entries_ptr++;
+
+		while (packed_entry != 0)
+		{
+			// Requires that entries be packed LSB to MSB
+			const uint32_t lowest_set_bit = packed_entry & -packed_entry;
+			const uint32_t set_bit_index = acl::count_trailing_zeros(packed_entry);
+
+			// Mask out the bit we just consumed
+			packed_entry ^= lowest_set_bit;
+
+			// We have 2 bits per sub-track
+			const uint32_t curr_track_index = curr_entry_track_index + (set_bit_index / 2);
+
+			if (!writer.skip_track(curr_track_index))
+				writer.write_value(curr_track_index, default_rotation);
+		}
+	}
+}
+
+template<class ...args_>
+static void bm_bitset_iter_bit_scan_ctz_32(benchmark::State& state, args_&&... args)
+{
+	const auto args_tuple = std::make_tuple(std::move(args)...);
+	const double bit_set_density = k_bit_set_densities[std::get<0>(args_tuple)];
+	const writer_cost_t writer_cost = std::get<1>(args_tuple);
+
+	constexpr uint32_t k_num_packed_entries = 64;
+	uint32_t packed_entries[k_num_packed_entries] = { 0 };
+
+	//printf("Density: %f\n", bit_set_density);
+	setup_bit_set(bit_set_density, packed_entries, k_num_packed_entries);
+
+	rtm::qvvf output[k_num_packed_entries * 32];
+
+	if (writer_cost == writer_cost_t::light)
+	{
+		track_writer_light writer;
+		writer.output = output;
+
+		for (auto _ : state)
+			bitset_iter_bit_scan_ctz_32(packed_entries, k_num_packed_entries - 1, 0xFFFFFFFFU, writer);
+	}
+	else
+	{
+		track_writer_heavy writer;
+		writer.output = output;
+
+		for (auto _ : state)
+			bitset_iter_bit_scan_ctz_32(packed_entries, k_num_packed_entries - 1, 0xFFFFFFFFU, writer);
+	}
+}
+
+BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_ctz_32, d30_light, 0, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_ctz_32, d60_light, 1, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_ctz_32, d75_light, 3, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_ctz_32, d80_light, 4, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_ctz_32, d85_light, 5, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_ctz_32, d90_light, 2, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_ctz_32, d30_heavy, 0, writer_cost_t::heavy);
+BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_ctz_32, d60_heavy, 1, writer_cost_t::heavy);
+BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_ctz_32, d90_heavy, 2, writer_cost_t::heavy);
+
+// Uses count trailing zeroes to bit scan each entry
+template<class track_writer_type>
+RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_NOINLINE
+void bitset_iter_bit_scan_ctz_64(
+	const uint64_t* packed_entries, uint32_t last_entry_index,
+	uint64_t padding_mask,
+	track_writer_type& writer)
+{
+	const uint64_t* packed_entries_ptr = packed_entries;
+	const uint64_t* packed_entries_last_ptr = packed_entries + last_entry_index;
+
+	const rtm::quatf default_rotation = rtm::quat_identity();
+
+	uint32_t track_index = 0;
+
+	while (packed_entries_ptr <= packed_entries_last_ptr)
+	{
+		uint64_t packed_entry = *packed_entries_ptr;
+
+		// Mask out everything but default sub-tracks, this way we can early out when we iterate
+		// Each sub-track is either 0 (default), 1 (constant), or 2 (animated)
+		// By flipping the bits with logical NOT, 0 becomes 3, 1 becomes 2, and 2 becomes 1
+		// We then subtract 1 from every group so 3 becomes 2, 2 becomes 1, and 1 becomes 0
+		// Finally, we mask out everything but the second bit for each sub-track
+		// After this, our original default tracks are equal to 2, our constant tracks are equal to 1, and our animated tracks are equal to 0
+		// Testing for default tracks can be done by testing the second bit of each group (same as animated track testing)
+		packed_entry = ~packed_entry - 0x5555555555555555ULL;
+
+		// Because our last entry might have padding with 0 (default), we have to strip any padding we might have
+		const uint64_t entry_padding_mask = packed_entries_ptr == packed_entries_last_ptr ? padding_mask : 0xAAAAAAAAAAAAAAAAULL;
+		packed_entry &= entry_padding_mask;
+
+		// We have 2 bits per sub-track
+		const uint32_t curr_entry_track_index = track_index;
+		track_index += 16;
+		packed_entries_ptr++;
+
+		while (packed_entry != 0)
+		{
+			// Requires that entries be packed LSB to MSB
+			const uint64_t lowest_set_bit = packed_entry & -packed_entry;
+			const uint32_t set_bit_index = uint32_t(acl::count_trailing_zeros(packed_entry));
+
+			// Mask out the bit we just consumed
+			packed_entry ^= lowest_set_bit;
+
+			// We have 2 bits per sub-track
+			const uint32_t curr_track_index = curr_entry_track_index + (set_bit_index / 2);
+
+			if (!writer.skip_track(curr_track_index))
+				writer.write_value(curr_track_index, default_rotation);
+		}
+	}
+}
+
+template<class ...args_>
+static void bm_bitset_iter_bit_scan_ctz_64(benchmark::State& state, args_&&... args)
+{
+	const auto args_tuple = std::make_tuple(std::move(args)...);
+	const double bit_set_density = k_bit_set_densities[std::get<0>(args_tuple)];
+	const writer_cost_t writer_cost = std::get<1>(args_tuple);
+
+	constexpr uint32_t k_num_packed_entries = 32;	// Half as many as with 32-bit words
+	uint64_t packed_entries[k_num_packed_entries] = { 0 };
+
+	//printf("Density: %f\n", bit_set_density);
+	setup_bit_set(bit_set_density, packed_entries, k_num_packed_entries);
+
+	rtm::qvvf output[k_num_packed_entries * 64];	// Twice as many as with 32-bit words
+
+	if (writer_cost == writer_cost_t::light)
+	{
+		track_writer_light writer;
+		writer.output = output;
+
+		for (auto _ : state)
+			bitset_iter_bit_scan_ctz_64(packed_entries, k_num_packed_entries - 1, 0xFFFFFFFFFFFFFFFFULL, writer);
+	}
+	else
+	{
+		track_writer_heavy writer;
+		writer.output = output;
+
+		for (auto _ : state)
+			bitset_iter_bit_scan_ctz_64(packed_entries, k_num_packed_entries - 1, 0xFFFFFFFFFFFFFFFFULL, writer);
+	}
+}
+
+BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_ctz_64, d30_light, 0, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_ctz_64, d60_light, 1, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_ctz_64, d90_light, 2, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_ctz_64, d30_heavy, 0, writer_cost_t::heavy);
+BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_ctz_64, d60_heavy, 1, writer_cost_t::heavy);
+BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_ctz_64, d90_heavy, 2, writer_cost_t::heavy);
+
+// Uses count trailing zeroes to bit scan each entry for low density and reference method
+// for high density (82.5% and up) using popcount to determine density
+template<class track_writer_type>
+RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_NOINLINE
+void bitset_iter_hybrid(
+	const uint32_t* packed_entries, uint32_t last_entry_index,
+	uint32_t padding_mask,
+	track_writer_type& writer)
+{
+	const uint32_t* packed_entries_ptr = packed_entries;
+	const uint32_t* packed_entries_last_ptr = packed_entries + last_entry_index;
+
+	const rtm::quatf default_rotation = rtm::quat_identity();
+
+	uint32_t track_index = 0;
+
+	while (packed_entries_ptr <= packed_entries_last_ptr)
+	{
+		uint32_t packed_entry = *packed_entries_ptr;
+
+		// Mask out everything but default sub-tracks, this way we can early out when we iterate
+		// Each sub-track is either 0 (default), 1 (constant), or 2 (animated)
+		// By flipping the bits with logical NOT, 0 becomes 3, 1 becomes 2, and 2 becomes 1
+		// We then subtract 1 from every group so 3 becomes 2, 2 becomes 1, and 1 becomes 0
+		// Finally, we mask out everything but the second bit for each sub-track
+		// After this, our original default tracks are equal to 2, our constant tracks are equal to 1, and our animated tracks are equal to 0
+		// Testing for default tracks can be done by testing the second bit of each group (same as animated track testing)
+		packed_entry = ~packed_entry - 0x55555555;
+
+		// Because our last entry might have padding with 0 (default), we have to strip any padding we might have
+		const uint32_t entry_padding_mask = packed_entries_ptr == packed_entries_last_ptr ? padding_mask : 0xAAAAAAAA;
+		packed_entry &= entry_padding_mask;
+
+		// We have 2 bits per sub-track
+		uint32_t curr_entry_track_index = track_index;
+		track_index += 16;
+		packed_entries_ptr++;
+
+		const uint32_t num_set_bits = acl::count_set_bits(packed_entry);
+		// 26 / 32 = 81.25%, we use half of that since we have 2 bits per sub-track
+		if (num_set_bits >= 13)
+		{
+			// High density, use reference impl
+			// Process 4 sub-tracks at a time
+			while (packed_entry != 0)
+			{
+				// Requires that entries be packed LSB to MSB
+				const uint32_t packed_group = packed_entry;
+				const uint32_t curr_group_track_index = curr_entry_track_index;
+
+				// Move to the next group
+				packed_entry <<= 8;
+				curr_entry_track_index += 4;
+
+				if ((packed_group & 0xAA000000) == 0)
+					continue;	// This group contains no default sub-tracks, skip it
+
+				if ((packed_group & 0x80000000) != 0)
+				{
+					const uint32_t track_index0 = curr_group_track_index + 0;
+
+					if (!writer.skip_track(track_index0))
+						writer.write_value(track_index0, default_rotation);
+				}
+
+				if ((packed_group & 0x20000000) != 0)
+				{
+					const uint32_t track_index1 = curr_group_track_index + 1;
+
+					if (!writer.skip_track(track_index1))
+						writer.write_value(track_index1, default_rotation);
+				}
+
+				if ((packed_group & 0x08000000) != 0)
+				{
+					const uint32_t track_index2 = curr_group_track_index + 2;
+
+					if (!writer.skip_track(track_index2))
+						writer.write_value(track_index2, default_rotation);
+				}
+
+				if ((packed_group & 0x02000000) != 0)
+				{
+					const uint32_t track_index3 = curr_group_track_index + 3;
+
+					if (!writer.skip_track(track_index3))
+						writer.write_value(track_index3, default_rotation);
+				}
+			}
+		}
+		else
+		{
+			// Low density, use ctz impl
+			while (packed_entry != 0)
+			{
+				// Requires that entries be packed LSB to MSB
+				const uint32_t lowest_set_bit = packed_entry & -packed_entry;
+				const uint32_t set_bit_index = acl::count_trailing_zeros(packed_entry);
+
+				// Mask out the bit we just consumed
+				packed_entry ^= lowest_set_bit;
+
+				// We have 2 bits per sub-track
+				const uint32_t curr_track_index = curr_entry_track_index + (set_bit_index / 2);
+
+				if (!writer.skip_track(curr_track_index))
+					writer.write_value(curr_track_index, default_rotation);
+			}
+		}
+	}
+}
+
+template<class ...args_>
+static void bm_bitset_iter_hybrid(benchmark::State& state, args_&&... args)
+{
+	const auto args_tuple = std::make_tuple(std::move(args)...);
+	const double bit_set_density = k_bit_set_densities[std::get<0>(args_tuple)];
+	const writer_cost_t writer_cost = std::get<1>(args_tuple);
+
+	constexpr uint32_t k_num_packed_entries = 64;
+	uint32_t packed_entries[k_num_packed_entries] = { 0 };
+
+	//printf("Density: %f\n", bit_set_density);
+	setup_bit_set(bit_set_density, packed_entries, k_num_packed_entries);
+
+	rtm::qvvf output[k_num_packed_entries * 32];
+
+	if (writer_cost == writer_cost_t::light)
+	{
+		track_writer_light writer;
+		writer.output = output;
+
+		for (auto _ : state)
+			bitset_iter_hybrid(packed_entries, k_num_packed_entries - 1, 0xFFFFFFFFU, writer);
+	}
+	else
+	{
+		track_writer_heavy writer;
+		writer.output = output;
+
+		for (auto _ : state)
+			bitset_iter_hybrid(packed_entries, k_num_packed_entries - 1, 0xFFFFFFFFU, writer);
+	}
+}
+
+BENCHMARK_CAPTURE(bm_bitset_iter_hybrid, d30_light, 0, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_hybrid, d60_light, 1, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_hybrid, d75_light, 3, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_hybrid, d80_light, 4, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_hybrid, d85_light, 5, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_hybrid, d90_light, 2, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_hybrid, d30_heavy, 0, writer_cost_t::heavy);
+BENCHMARK_CAPTURE(bm_bitset_iter_hybrid, d60_heavy, 1, writer_cost_t::heavy);
+BENCHMARK_CAPTURE(bm_bitset_iter_hybrid, d90_heavy, 2, writer_cost_t::heavy);
+#endif // defined(ACL_IMPL_BENCHMARK_BIT_SET_ITERATION)
