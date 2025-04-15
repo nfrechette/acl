@@ -405,7 +405,7 @@ void bitset_iter_bit_scan_clz(
 
 		while (packed_entry != 0)
 		{
-			// Requires that entries be packed LSB to MSB
+			// Requires that entries be packed MSB to LSB
 			const uint32_t set_bit_index = acl::count_leading_zeros(packed_entry);
 			const uint32_t highest_set_bit = 1 << (31 - set_bit_index);
 
