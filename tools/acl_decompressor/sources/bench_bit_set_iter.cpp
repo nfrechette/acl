@@ -37,6 +37,10 @@
 // It generates: packed_entry = -0x55555556 - packed_entry
 // It yields a single sub instruction with a constant and the second operand comes from memory
 //
+// The AppleClang compiler is clever with: packed_entry ^= packed_entry & -packed_entry;
+// It generates: packed_entry &= packed_entry - 1
+// It yields 2 instructions (SUB+ANDS) instead of 3
+//
 // On Apple M1:
 // Count-trailing-zeroes is fastest for low density (up to ~82.5%) and the ACL 2.1 reference
 // is faster with high density (~82.5% and up).
@@ -56,6 +60,8 @@ static constexpr double k_bit_set_densities[] =
 	0.3,	// 0
 	0.6,	// 1
 	0.9,	// 2
+
+	// Extra
 	0.75,	// 3
 	0.80,	// 4
 	0.85,	// 5
@@ -130,6 +136,9 @@ static void setup_bit_set(double bit_set_density, word_type_t* packed_entries, u
 }
 
 // Reference implementation from ACL 2.1 with minor improvements
+// Aims to maximize the number of independent instructions since each
+// bit with a group of 4 are independently tested
+// MSB first
 template<class track_writer_type>
 RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_NOINLINE
 void bitset_iter_ref(
@@ -260,6 +269,7 @@ BENCHMARK_CAPTURE(bm_bitset_iter_ref, d60_heavy, 1, writer_cost_t::heavy);
 BENCHMARK_CAPTURE(bm_bitset_iter_ref, d90_heavy, 2, writer_cost_t::heavy);
 
 // Iterates over every bit one by one naively
+// MSB first
 template<class track_writer_type>
 RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_NOINLINE
 void bitset_iter_naive(
@@ -355,6 +365,8 @@ BENCHMARK_CAPTURE(bm_bitset_iter_naive, d60_heavy, 1, writer_cost_t::heavy);
 BENCHMARK_CAPTURE(bm_bitset_iter_naive, d90_heavy, 2, writer_cost_t::heavy);
 
 // Uses count leading zeroes to bit scan each entry
+// On ARM64, we have a CLZ instruction which is quite efficient
+// MSB first
 template<class track_writer_type>
 RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_NOINLINE
 void bitset_iter_bit_scan_clz(
@@ -450,6 +462,9 @@ BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_clz, d60_heavy, 1, writer_cost_t::heav
 BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_clz, d90_heavy, 2, writer_cost_t::heavy);
 
 // Uses count trailing zeroes to bit scan each entry
+// On ARM64, we don't have a native CTZ instruction and so we end up with
+// RBIT+CLZ which reverses the bits and counts leading zeroes
+// LSB first
 template<class track_writer_type>
 RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_NOINLINE
 void bitset_iter_bit_scan_ctz_32(
@@ -548,6 +563,7 @@ BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_ctz_32, d60_heavy, 1, writer_cost_t::h
 BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_ctz_32, d90_heavy, 2, writer_cost_t::heavy);
 
 // Uses count trailing zeroes to bit scan each entry
+// Same as above, 64-bit variant
 template<class track_writer_type>
 RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_NOINLINE
 void bitset_iter_bit_scan_ctz_64(
@@ -644,6 +660,9 @@ BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_ctz_64, d90_heavy, 2, writer_cost_t::h
 
 // Uses count trailing zeroes to bit scan each entry for low density and reference method
 // for high density (82.5% and up) using popcount to determine density
+// On ARM64, we have a native CNT instruction which requires 2x parallel ADD instructions
+// to implement popcount. Total 5 instructions: MOV+CNT+PADD+PADD+MOV
+// MSB/LSB first (mixed atm, not correct)
 template<class track_writer_type>
 RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_NOINLINE
 void bitset_iter_hybrid(
