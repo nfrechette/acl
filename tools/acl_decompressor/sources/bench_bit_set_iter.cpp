@@ -36,10 +36,14 @@
 // The AppleClang compiler is clever with: packed_entry = ~packed_entry - 0x55555555
 // It generates: packed_entry = -0x55555556 - packed_entry
 // It yields a single sub instruction with a constant and the second operand comes from memory
+// ~0xA56B12DE - 0x55555555 = 0x5A94ED21 - 0x55555555 = 0x053F97CC
+// -0x55555556 - 0xA56B12DE = 0xAAAAAAAA - 0xA56B12DE = 0x053F97CC
 //
 // The AppleClang compiler is clever with: packed_entry ^= packed_entry & -packed_entry;
 // It generates: packed_entry &= packed_entry - 1
 // It yields 2 instructions (SUB+ANDS) instead of 3
+// 0xA56B12DE ^ (0xA56B12DE & -0xA56B12DE) = 0xA56B12DE ^ 0x00000002 = 0xA56B12DC
+// 0xA56B12DE & (0xA56B12DE - 1) = 0xA56B12DE & 0xA56B12DD = 0xA56B12DC
 //
 // On Apple M1:
 // Count-trailing-zeroes is fastest for low density (up to ~82.5%) and the ACL 2.1 reference
