@@ -658,6 +658,164 @@ BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_ctz_64, d30_heavy, 0, writer_cost_t::h
 BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_ctz_64, d60_heavy, 1, writer_cost_t::heavy);
 BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_ctz_64, d90_heavy, 2, writer_cost_t::heavy);
 
+// Uses count leading zeroes to bit scan each entry for low density and reference method
+// for high density (82.5% and up) using popcount to determine density
+// On ARM64, we have a native CNT instruction which requires 2x parallel ADD instructions
+// to implement popcount. Total 5 instructions: MOV+CNT+PADD+PADD+MOV
+// MSB first
+template<class track_writer_type>
+RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_NOINLINE
+void bitset_iter_hybrid_clz(
+	const uint32_t* packed_entries, uint32_t last_entry_index,
+	uint32_t padding_mask,
+	track_writer_type& writer)
+{
+	const uint32_t* packed_entries_ptr = packed_entries;
+	const uint32_t* packed_entries_last_ptr = packed_entries + last_entry_index;
+
+	const rtm::quatf default_rotation = rtm::quat_identity();
+
+	uint32_t track_index = 0;
+
+	while (packed_entries_ptr <= packed_entries_last_ptr)
+	{
+		uint32_t packed_entry = *packed_entries_ptr;
+
+		// Mask out everything but default sub-tracks, this way we can early out when we iterate
+		// Each sub-track is either 0 (default), 1 (constant), or 2 (animated)
+		// By flipping the bits with logical NOT, 0 becomes 3, 1 becomes 2, and 2 becomes 1
+		// We then subtract 1 from every group so 3 becomes 2, 2 becomes 1, and 1 becomes 0
+		// Finally, we mask out everything but the second bit for each sub-track
+		// After this, our original default tracks are equal to 2, our constant tracks are equal to 1, and our animated tracks are equal to 0
+		// Testing for default tracks can be done by testing the second bit of each group (same as animated track testing)
+		packed_entry = ~packed_entry - 0x55555555;
+
+		// Because our last entry might have padding with 0 (default), we have to strip any padding we might have
+		const uint32_t entry_padding_mask = packed_entries_ptr == packed_entries_last_ptr ? padding_mask : 0xAAAAAAAA;
+		packed_entry &= entry_padding_mask;
+
+		// We have 2 bits per sub-track
+		uint32_t curr_entry_track_index = track_index;
+		track_index += 16;
+		packed_entries_ptr++;
+
+		const uint32_t num_set_bits = acl::count_set_bits(packed_entry);
+		// 26 / 32 = 81.25%, we use half of that since we have 2 bits per sub-track
+		if (num_set_bits >= 13)
+		{
+			// High density, use reference impl
+			// Process 4 sub-tracks at a time
+			while (packed_entry != 0)
+			{
+				// Requires that entries be packed LSB to MSB
+				const uint32_t packed_group = packed_entry;
+				const uint32_t curr_group_track_index = curr_entry_track_index;
+
+				// Move to the next group
+				packed_entry <<= 8;
+				curr_entry_track_index += 4;
+
+				if ((packed_group & 0xAA000000) == 0)
+					continue;	// This group contains no default sub-tracks, skip it
+
+				if ((packed_group & 0x80000000) != 0)
+				{
+					const uint32_t track_index0 = curr_group_track_index + 0;
+
+					if (!writer.skip_track(track_index0))
+						writer.write_value(track_index0, default_rotation);
+				}
+
+				if ((packed_group & 0x20000000) != 0)
+				{
+					const uint32_t track_index1 = curr_group_track_index + 1;
+
+					if (!writer.skip_track(track_index1))
+						writer.write_value(track_index1, default_rotation);
+				}
+
+				if ((packed_group & 0x08000000) != 0)
+				{
+					const uint32_t track_index2 = curr_group_track_index + 2;
+
+					if (!writer.skip_track(track_index2))
+						writer.write_value(track_index2, default_rotation);
+				}
+
+				if ((packed_group & 0x02000000) != 0)
+				{
+					const uint32_t track_index3 = curr_group_track_index + 3;
+
+					if (!writer.skip_track(track_index3))
+						writer.write_value(track_index3, default_rotation);
+				}
+			}
+		}
+		else
+		{
+			// Low density, use ctz impl
+			while (packed_entry != 0)
+			{
+				// Requires that entries be packed MSB to LSB
+				const uint32_t set_bit_index = acl::count_leading_zeros(packed_entry);
+				const uint32_t highest_set_bit = 1 << (31 - set_bit_index);
+
+				// Mask out the bit we just consumed
+				packed_entry ^= highest_set_bit;
+
+				// We have 2 bits per sub-track
+				const uint32_t curr_track_index = curr_entry_track_index + (set_bit_index / 2);
+
+				if (!writer.skip_track(curr_track_index))
+					writer.write_value(curr_track_index, default_rotation);
+			}
+		}
+	}
+}
+
+template<class ...args_>
+static void bm_bitset_iter_hybrid_clz(benchmark::State& state, args_&&... args)
+{
+	const auto args_tuple = std::make_tuple(std::move(args)...);
+	const double bit_set_density = k_bit_set_densities[std::get<0>(args_tuple)];
+	const writer_cost_t writer_cost = std::get<1>(args_tuple);
+
+	constexpr uint32_t k_num_packed_entries = 64;
+	uint32_t packed_entries[k_num_packed_entries] = { 0 };
+
+	//printf("Density: %f\n", bit_set_density);
+	setup_bit_set(bit_set_density, packed_entries, k_num_packed_entries);
+
+	rtm::qvvf output[k_num_packed_entries * 32];
+
+	if (writer_cost == writer_cost_t::light)
+	{
+		track_writer_light writer;
+		writer.output = output;
+
+		for (auto _ : state)
+			bitset_iter_hybrid_clz(packed_entries, k_num_packed_entries - 1, 0xFFFFFFFFU, writer);
+	}
+	else
+	{
+		track_writer_heavy writer;
+		writer.output = output;
+
+		for (auto _ : state)
+			bitset_iter_hybrid_clz(packed_entries, k_num_packed_entries - 1, 0xFFFFFFFFU, writer);
+	}
+}
+
+BENCHMARK_CAPTURE(bm_bitset_iter_hybrid_clz, d30_light, 0, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_hybrid_clz, d60_light, 1, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_hybrid_clz, d75_light, 3, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_hybrid_clz, d80_light, 4, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_hybrid_clz, d85_light, 5, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_hybrid_clz, d90_light, 2, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_hybrid_clz, d30_heavy, 0, writer_cost_t::heavy);
+BENCHMARK_CAPTURE(bm_bitset_iter_hybrid_clz, d60_heavy, 1, writer_cost_t::heavy);
+BENCHMARK_CAPTURE(bm_bitset_iter_hybrid_clz, d90_heavy, 2, writer_cost_t::heavy);
+
 // Uses count trailing zeroes to bit scan each entry for low density and reference method
 // for high density (82.5% and up) using popcount to determine density
 // On ARM64, we have a native CNT instruction which requires 2x parallel ADD instructions
