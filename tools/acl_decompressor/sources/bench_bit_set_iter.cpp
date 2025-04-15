@@ -38,12 +38,14 @@
 // It yields a single sub instruction with a constant and the second operand comes from memory
 // ~0xA56B12DE - 0x55555555 = 0x5A94ED21 - 0x55555555 = 0x053F97CC
 // -0x55555556 - 0xA56B12DE = 0xAAAAAAAA - 0xA56B12DE = 0x053F97CC
+// VS2022 does the same optimization
 //
 // The AppleClang compiler is clever with: packed_entry ^= packed_entry & -packed_entry;
 // It generates: packed_entry &= packed_entry - 1
 // It yields 2 instructions (SUB+ANDS) instead of 3
 // 0xA56B12DE ^ (0xA56B12DE & -0xA56B12DE) = 0xA56B12DE ^ 0x00000002 = 0xA56B12DC
 // 0xA56B12DE & (0xA56B12DE - 1) = 0xA56B12DE & 0xA56B12DD = 0xA56B12DC
+// VS2022 does the same optimization
 //
 // On Apple M1:
 // Count-trailing-zeroes is fastest for low density (up to ~82.5%) and the ACL 2.1 reference
@@ -57,6 +59,15 @@
 // At low density, the cost of popcount makes it slightly slower than pure CTZ but as density
 // grows, we end up faster. For heavy work, it ends up slower as density resizes when we fall
 // back to the reference implementation.
+//
+// On AMD Zen2:
+// Count trailing zeroes is faster than count leading zeroes but both are slower than the
+// reference implementation. The 64-bit variant of CTZ is faster than the 32-bit variant.
+// Interestingly, light vs heavy makes no difference for bit scan variants, only slightly
+// slower for heavy work per set bit. However, for the reference implementation and the naive
+// iteration heavy work is significantly slower. This is probably as a result of branch
+// miss-prediction which causes the heavy work to start late.
+//
 
 static constexpr double k_bit_set_densities[] =
 {
@@ -370,6 +381,7 @@ BENCHMARK_CAPTURE(bm_bitset_iter_naive, d90_heavy, 2, writer_cost_t::heavy);
 
 // Uses count leading zeroes to bit scan each entry
 // On ARM64, we have a CLZ instruction which is quite efficient
+// On Zen2, we have a LZCNT instruction which is quite efficient (1 cycle)
 // MSB first
 template<class track_writer_type>
 RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_NOINLINE
@@ -471,6 +483,7 @@ BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_clz, d90_heavy, 2, writer_cost_t::heav
 // Uses count trailing zeroes to bit scan each entry
 // On ARM64, we don't have a native CTZ instruction and so we end up with
 // RBIT+CLZ which reverses the bits and counts leading zeroes
+// On Zen2, we have a TZCNT instruction which is quite efficient (2 cycle)
 // LSB first
 template<class track_writer_type>
 RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_NOINLINE
@@ -669,6 +682,7 @@ BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_ctz_64, d90_heavy, 2, writer_cost_t::h
 // for high density (82.5% and up) using popcount to determine density
 // On ARM64, we have a native CNT instruction which requires 2x parallel ADD instructions
 // to implement popcount. Total 5 instructions: MOV+CNT+PADD+PADD+MOV
+// On Zen2, we have a POPCNT instruction which is quite efficient (1 cycle)
 // MSB first
 template<class track_writer_type>
 RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_NOINLINE
@@ -827,6 +841,7 @@ BENCHMARK_CAPTURE(bm_bitset_iter_hybrid_clz, d90_heavy, 2, writer_cost_t::heavy)
 // for high density (82.5% and up) using popcount to determine density
 // On ARM64, we have a native CNT instruction which requires 2x parallel ADD instructions
 // to implement popcount. Total 5 instructions: MOV+CNT+PADD+PADD+MOV
+// On Zen2, we have a POPCNT instruction which is quite efficient (1 cycle)
 // MSB/LSB first (mixed atm, not correct)
 template<class track_writer_type>
 RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_NOINLINE
