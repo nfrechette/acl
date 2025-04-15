@@ -665,7 +665,7 @@ BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_ctz_64, d90_heavy, 2, writer_cost_t::h
 // MSB/LSB first (mixed atm, not correct)
 template<class track_writer_type>
 RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_NOINLINE
-void bitset_iter_hybrid(
+void bitset_iter_hybrid_ctz(
 	const uint32_t* packed_entries, uint32_t last_entry_index,
 	uint32_t padding_mask,
 	track_writer_type& writer)
@@ -774,7 +774,7 @@ void bitset_iter_hybrid(
 }
 
 template<class ...args_>
-static void bm_bitset_iter_hybrid(benchmark::State& state, args_&&... args)
+static void bm_bitset_iter_hybrid_ctz(benchmark::State& state, args_&&... args)
 {
 	const auto args_tuple = std::make_tuple(std::move(args)...);
 	const double bit_set_density = k_bit_set_densities[std::get<0>(args_tuple)];
@@ -794,7 +794,7 @@ static void bm_bitset_iter_hybrid(benchmark::State& state, args_&&... args)
 		writer.output = output;
 
 		for (auto _ : state)
-			bitset_iter_hybrid(packed_entries, k_num_packed_entries - 1, 0xFFFFFFFFU, writer);
+			bitset_iter_hybrid_ctz(packed_entries, k_num_packed_entries - 1, 0xFFFFFFFFU, writer);
 	}
 	else
 	{
@@ -802,17 +802,17 @@ static void bm_bitset_iter_hybrid(benchmark::State& state, args_&&... args)
 		writer.output = output;
 
 		for (auto _ : state)
-			bitset_iter_hybrid(packed_entries, k_num_packed_entries - 1, 0xFFFFFFFFU, writer);
+			bitset_iter_hybrid_ctz(packed_entries, k_num_packed_entries - 1, 0xFFFFFFFFU, writer);
 	}
 }
 
-BENCHMARK_CAPTURE(bm_bitset_iter_hybrid, d30_light, 0, writer_cost_t::light);
-BENCHMARK_CAPTURE(bm_bitset_iter_hybrid, d60_light, 1, writer_cost_t::light);
-BENCHMARK_CAPTURE(bm_bitset_iter_hybrid, d75_light, 3, writer_cost_t::light);
-BENCHMARK_CAPTURE(bm_bitset_iter_hybrid, d80_light, 4, writer_cost_t::light);
-BENCHMARK_CAPTURE(bm_bitset_iter_hybrid, d85_light, 5, writer_cost_t::light);
-BENCHMARK_CAPTURE(bm_bitset_iter_hybrid, d90_light, 2, writer_cost_t::light);
-BENCHMARK_CAPTURE(bm_bitset_iter_hybrid, d30_heavy, 0, writer_cost_t::heavy);
-BENCHMARK_CAPTURE(bm_bitset_iter_hybrid, d60_heavy, 1, writer_cost_t::heavy);
-BENCHMARK_CAPTURE(bm_bitset_iter_hybrid, d90_heavy, 2, writer_cost_t::heavy);
+BENCHMARK_CAPTURE(bm_bitset_iter_hybrid_ctz, d30_light, 0, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_hybrid_ctz, d60_light, 1, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_hybrid_ctz, d75_light, 3, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_hybrid_ctz, d80_light, 4, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_hybrid_ctz, d85_light, 5, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_hybrid_ctz, d90_light, 2, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_hybrid_ctz, d30_heavy, 0, writer_cost_t::heavy);
+BENCHMARK_CAPTURE(bm_bitset_iter_hybrid_ctz, d60_heavy, 1, writer_cost_t::heavy);
+BENCHMARK_CAPTURE(bm_bitset_iter_hybrid_ctz, d90_heavy, 2, writer_cost_t::heavy);
 #endif // defined(ACL_IMPL_BENCHMARK_BIT_SET_ITERATION)
