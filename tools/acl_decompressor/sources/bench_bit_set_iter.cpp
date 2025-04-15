@@ -460,6 +460,9 @@ static void bm_bitset_iter_bit_scan_clz(benchmark::State& state, args_&&... args
 
 BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_clz, d30_light, 0, writer_cost_t::light);
 BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_clz, d60_light, 1, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_clz, d75_light, 3, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_clz, d80_light, 4, writer_cost_t::light);
+BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_clz, d85_light, 5, writer_cost_t::light);
 BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_clz, d90_light, 2, writer_cost_t::light);
 BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_clz, d30_heavy, 0, writer_cost_t::heavy);
 BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_clz, d60_heavy, 1, writer_cost_t::heavy);
