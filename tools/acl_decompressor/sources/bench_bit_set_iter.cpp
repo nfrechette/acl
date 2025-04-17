@@ -69,6 +69,9 @@
 // miss-prediction which causes the heavy work to start late.
 //
 
+// How many bits to profile iterating on
+static constexpr uint32_t k_num_bits_in_bit_set = 64 * 32;
+
 static constexpr double k_bit_set_densities[] =
 {
 	// Common
@@ -247,13 +250,14 @@ static void bm_bitset_iter_ref(benchmark::State& state, args_&&... args)
 	const double bit_set_density = k_bit_set_densities[std::get<0>(args_tuple)];
 	const writer_cost_t writer_cost = std::get<1>(args_tuple);
 
-	constexpr uint32_t k_num_packed_entries = 64;
-	uint32_t packed_entries[k_num_packed_entries] = { 0 };
+	constexpr uint32_t k_num_bits_per_entry = 32;
+	constexpr uint32_t k_num_packed_entries = k_num_bits_in_bit_set / k_num_bits_per_entry;
+	uint32_t* packed_entries = new uint32_t[k_num_packed_entries];
+	std::fill(packed_entries, packed_entries + k_num_packed_entries, 0);
 
-	//printf("Density: %f\n", bit_set_density);
 	setup_bit_set(bit_set_density, packed_entries, k_num_packed_entries);
 
-	rtm::qvvf output[k_num_packed_entries * 32];
+	rtm::qvvf* output = new rtm::qvvf[k_num_packed_entries * k_num_bits_per_entry];
 
 	if (writer_cost == writer_cost_t::light)
 	{
@@ -271,6 +275,9 @@ static void bm_bitset_iter_ref(benchmark::State& state, args_&&... args)
 		for (auto _ : state)
 			bitset_iter_ref(packed_entries, k_num_packed_entries - 1, 0xFFFFFFFFU, writer);
 	}
+
+	delete[] packed_entries;
+	delete[] output;
 }
 
 BENCHMARK_CAPTURE(bm_bitset_iter_ref, d30_light, 0, writer_cost_t::light);
@@ -346,13 +353,14 @@ static void bm_bitset_iter_naive(benchmark::State& state, args_&&... args)
 	const double bit_set_density = k_bit_set_densities[std::get<0>(args_tuple)];
 	const writer_cost_t writer_cost = std::get<1>(args_tuple);
 
-	constexpr uint32_t k_num_packed_entries = 64;
-	uint32_t packed_entries[k_num_packed_entries] = { 0 };
+	constexpr uint32_t k_num_bits_per_entry = 32;
+	constexpr uint32_t k_num_packed_entries = k_num_bits_in_bit_set / k_num_bits_per_entry;
+	uint32_t* packed_entries = new uint32_t[k_num_packed_entries];
+	std::fill(packed_entries, packed_entries + k_num_packed_entries, 0);
 
-	//printf("Density: %f\n", bit_set_density);
 	setup_bit_set(bit_set_density, packed_entries, k_num_packed_entries);
 
-	rtm::qvvf output[k_num_packed_entries * 32];
+	rtm::qvvf* output = new rtm::qvvf[k_num_packed_entries * k_num_bits_per_entry];
 
 	if (writer_cost == writer_cost_t::light)
 	{
@@ -370,6 +378,9 @@ static void bm_bitset_iter_naive(benchmark::State& state, args_&&... args)
 		for (auto _ : state)
 			bitset_iter_naive(packed_entries, k_num_packed_entries - 1, 0xFFFFFFFFU, writer);
 	}
+
+	delete[] packed_entries;
+	delete[] output;
 }
 
 BENCHMARK_CAPTURE(bm_bitset_iter_naive, d30_light, 0, writer_cost_t::light);
@@ -444,13 +455,14 @@ static void bm_bitset_iter_bit_scan_clz(benchmark::State& state, args_&&... args
 	const double bit_set_density = k_bit_set_densities[std::get<0>(args_tuple)];
 	const writer_cost_t writer_cost = std::get<1>(args_tuple);
 
-	constexpr uint32_t k_num_packed_entries = 64;
-	uint32_t packed_entries[k_num_packed_entries] = { 0 };
+	constexpr uint32_t k_num_bits_per_entry = 32;
+	constexpr uint32_t k_num_packed_entries = k_num_bits_in_bit_set / k_num_bits_per_entry;
+	uint32_t* packed_entries = new uint32_t[k_num_packed_entries];
+	std::fill(packed_entries, packed_entries + k_num_packed_entries, 0);
 
-	//printf("Density: %f\n", bit_set_density);
 	setup_bit_set(bit_set_density, packed_entries, k_num_packed_entries);
 
-	rtm::qvvf output[k_num_packed_entries * 32];
+	rtm::qvvf* output = new rtm::qvvf[k_num_packed_entries * k_num_bits_per_entry];
 
 	if (writer_cost == writer_cost_t::light)
 	{
@@ -468,6 +480,9 @@ static void bm_bitset_iter_bit_scan_clz(benchmark::State& state, args_&&... args
 		for (auto _ : state)
 			bitset_iter_bit_scan_clz(packed_entries, k_num_packed_entries - 1, 0xFFFFFFFFU, writer);
 	}
+
+	delete[] packed_entries;
+	delete[] output;
 }
 
 BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_clz, d30_light, 0, writer_cost_t::light);
@@ -546,13 +561,14 @@ static void bm_bitset_iter_bit_scan_ctz_32(benchmark::State& state, args_&&... a
 	const double bit_set_density = k_bit_set_densities[std::get<0>(args_tuple)];
 	const writer_cost_t writer_cost = std::get<1>(args_tuple);
 
-	constexpr uint32_t k_num_packed_entries = 64;
-	uint32_t packed_entries[k_num_packed_entries] = { 0 };
+	constexpr uint32_t k_num_bits_per_entry = 32;
+	constexpr uint32_t k_num_packed_entries = k_num_bits_in_bit_set / k_num_bits_per_entry;
+	uint32_t* packed_entries = new uint32_t[k_num_packed_entries];
+	std::fill(packed_entries, packed_entries + k_num_packed_entries, 0);
 
-	//printf("Density: %f\n", bit_set_density);
 	setup_bit_set(bit_set_density, packed_entries, k_num_packed_entries);
 
-	rtm::qvvf output[k_num_packed_entries * 32];
+	rtm::qvvf* output = new rtm::qvvf[k_num_packed_entries * k_num_bits_per_entry];
 
 	if (writer_cost == writer_cost_t::light)
 	{
@@ -570,6 +586,9 @@ static void bm_bitset_iter_bit_scan_ctz_32(benchmark::State& state, args_&&... a
 		for (auto _ : state)
 			bitset_iter_bit_scan_ctz_32(packed_entries, k_num_packed_entries - 1, 0xFFFFFFFFU, writer);
 	}
+
+	delete[] packed_entries;
+	delete[] output;
 }
 
 BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_ctz_32, d30_light, 0, writer_cost_t::light);
@@ -645,13 +664,14 @@ static void bm_bitset_iter_bit_scan_ctz_64(benchmark::State& state, args_&&... a
 	const double bit_set_density = k_bit_set_densities[std::get<0>(args_tuple)];
 	const writer_cost_t writer_cost = std::get<1>(args_tuple);
 
-	constexpr uint32_t k_num_packed_entries = 32;	// Half as many as with 32-bit words
-	uint64_t packed_entries[k_num_packed_entries] = { 0 };
+	constexpr uint32_t k_num_bits_per_entry = 64;
+	constexpr uint32_t k_num_packed_entries = k_num_bits_in_bit_set / k_num_bits_per_entry;
+	uint64_t* packed_entries = new uint64_t[k_num_packed_entries];
+	std::fill(packed_entries, packed_entries + k_num_packed_entries, 0);
 
-	//printf("Density: %f\n", bit_set_density);
 	setup_bit_set(bit_set_density, packed_entries, k_num_packed_entries);
 
-	rtm::qvvf output[k_num_packed_entries * 64];	// Twice as many as with 32-bit words
+	rtm::qvvf* output = new rtm::qvvf[k_num_packed_entries * k_num_bits_per_entry];
 
 	if (writer_cost == writer_cost_t::light)
 	{
@@ -669,6 +689,9 @@ static void bm_bitset_iter_bit_scan_ctz_64(benchmark::State& state, args_&&... a
 		for (auto _ : state)
 			bitset_iter_bit_scan_ctz_64(packed_entries, k_num_packed_entries - 1, 0xFFFFFFFFFFFFFFFFULL, writer);
 	}
+
+	delete[] packed_entries;
+	delete[] output;
 }
 
 BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_ctz_64, d30_light, 0, writer_cost_t::light);
@@ -801,13 +824,14 @@ static void bm_bitset_iter_hybrid_clz(benchmark::State& state, args_&&... args)
 	const double bit_set_density = k_bit_set_densities[std::get<0>(args_tuple)];
 	const writer_cost_t writer_cost = std::get<1>(args_tuple);
 
-	constexpr uint32_t k_num_packed_entries = 64;
-	uint32_t packed_entries[k_num_packed_entries] = { 0 };
+	constexpr uint32_t k_num_bits_per_entry = 32;
+	constexpr uint32_t k_num_packed_entries = k_num_bits_in_bit_set / k_num_bits_per_entry;
+	uint32_t* packed_entries = new uint32_t[k_num_packed_entries];
+	std::fill(packed_entries, packed_entries + k_num_packed_entries, 0);
 
-	//printf("Density: %f\n", bit_set_density);
 	setup_bit_set(bit_set_density, packed_entries, k_num_packed_entries);
 
-	rtm::qvvf output[k_num_packed_entries * 32];
+	rtm::qvvf* output = new rtm::qvvf[k_num_packed_entries * k_num_bits_per_entry];
 
 	if (writer_cost == writer_cost_t::light)
 	{
@@ -825,6 +849,9 @@ static void bm_bitset_iter_hybrid_clz(benchmark::State& state, args_&&... args)
 		for (auto _ : state)
 			bitset_iter_hybrid_clz(packed_entries, k_num_packed_entries - 1, 0xFFFFFFFFU, writer);
 	}
+
+	delete[] packed_entries;
+	delete[] output;
 }
 
 BENCHMARK_CAPTURE(bm_bitset_iter_hybrid_clz, d30_light, 0, writer_cost_t::light);
@@ -960,13 +987,14 @@ static void bm_bitset_iter_hybrid_ctz(benchmark::State& state, args_&&... args)
 	const double bit_set_density = k_bit_set_densities[std::get<0>(args_tuple)];
 	const writer_cost_t writer_cost = std::get<1>(args_tuple);
 
-	constexpr uint32_t k_num_packed_entries = 64;
-	uint32_t packed_entries[k_num_packed_entries] = { 0 };
+	constexpr uint32_t k_num_bits_per_entry = 32;
+	constexpr uint32_t k_num_packed_entries = k_num_bits_in_bit_set / k_num_bits_per_entry;
+	uint32_t* packed_entries = new uint32_t[k_num_packed_entries];
+	std::fill(packed_entries, packed_entries + k_num_packed_entries, 0);
 
-	//printf("Density: %f\n", bit_set_density);
 	setup_bit_set(bit_set_density, packed_entries, k_num_packed_entries);
 
-	rtm::qvvf output[k_num_packed_entries * 32];
+	rtm::qvvf* output = new rtm::qvvf[k_num_packed_entries * k_num_bits_per_entry];
 
 	if (writer_cost == writer_cost_t::light)
 	{
@@ -984,6 +1012,9 @@ static void bm_bitset_iter_hybrid_ctz(benchmark::State& state, args_&&... args)
 		for (auto _ : state)
 			bitset_iter_hybrid_ctz(packed_entries, k_num_packed_entries - 1, 0xFFFFFFFFU, writer);
 	}
+
+	delete[] packed_entries;
+	delete[] output;
 }
 
 BENCHMARK_CAPTURE(bm_bitset_iter_hybrid_ctz, d30_light, 0, writer_cost_t::light);
