@@ -1,3 +1,4 @@
+cmake_minimum_required (VERSION 3.6)
 project(acl_regression_tester_android CXX)
 
 # Project root is <acl-dir>\tools\regression_tester_android
