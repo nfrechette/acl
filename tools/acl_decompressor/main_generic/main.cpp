@@ -88,7 +88,7 @@ static bool is_sjson_file(const char* filename)
 	return filename_len >= 6 && strncmp(filename + filename_len - 6, ".sjson", 6) == 0;
 }
 
-static bool parse_options(int argc, char* argv[], const char*& out_metadata_filename)
+bool parse_options(int argc, char* argv[], const char*& out_metadata_filename)
 {
 	out_metadata_filename = nullptr;
 
@@ -114,7 +114,7 @@ static bool parse_options(int argc, char* argv[], const char*& out_metadata_file
 	return out_metadata_filename != nullptr;
 }
 
-static bool read_metadata_file(const char* metadata_filename, const char*& out_metadata_buffer, size_t& out_metadata_buffer_size)
+bool read_metadata_file(const char* metadata_filename, const char*& out_metadata_buffer, size_t& out_metadata_buffer_size)
 {
 	out_metadata_buffer = nullptr;
 	out_metadata_buffer_size = 0;
@@ -179,6 +179,7 @@ int main(int argc, char* argv[])
 	SetProcessAffinityMask(GetCurrentProcess(), 1 << logical_core_index);
 #endif
 
+#if defined(ACL_IMPL_BENCHMARK_DECOMPRESSION)
 	const char* metadata_filename = nullptr;
 	if (!parse_options(argc, argv, metadata_filename))
 		return -1;
@@ -214,17 +215,20 @@ int main(int argc, char* argv[])
 
 		s_allocator.deallocate(raw_tracks, raw_tracks->get_size());
 	}
+#endif
 
 	benchmark::Initialize(&argc, argv);
 
 	// Run benchmarks
 	benchmark::RunSpecifiedBenchmarks();
 
+#if defined(ACL_IMPL_BENCHMARK_DECOMPRESSION)
 	// Clean up
 	clear_benchmark_state();
 
 	for (acl::compressed_tracks* compressed_tracks : compressed_clips)
 		s_allocator.deallocate(compressed_tracks, compressed_tracks->get_size());
+#endif
 
 #ifdef _WIN32
 	if (IsDebuggerPresent())
