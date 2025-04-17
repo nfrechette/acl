@@ -68,6 +68,14 @@
 // iteration heavy work is significantly slower. This is probably as a result of branch
 // miss-prediction which causes the heavy work to start late.
 //
+// On Pixel 7 (Google Tensor G2, 2x2.85 GHz Cortex-X1 & 2x2.35 GHz Cortex-A78 & 4x1.80 GHz Cortex-A55)
+// Count trailing zeroes is faster than count leading zeroes just like the Apple M1.
+// Similarly, the 64-bit variant is slower than the 32-bit variant.
+// Light vs heavy is quite comparable with heavy being slightly slower, especially for the
+// reference impl.
+// Bit scanning becomes more expensive somewhere between 60-75% density unlike the M1 where
+// it starts being slower around 82.5%.
+//
 
 // How many bits to profile iterating on
 static constexpr uint32_t k_num_bits_in_bit_set = 64 * 32;
