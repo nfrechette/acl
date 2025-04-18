@@ -2893,15 +2893,11 @@ namespace acl
 	#if !defined(ACL_IMPL_DISABLE_CONSTANT_SUB_TRACKS)
 			// Constant sub-tracks
 			{
-				unpack_constant_rotation_sub_tracks<decompression_settings_type>(rotation_sub_track_types, last_entry_index, context, constant_track_cache, writer);
-				//step_unpack_constant_rotations<decompression_settings_type>(step_context, context, writer);
-
-				unpack_constant_translation_sub_tracks(translation_sub_track_types, last_entry_index, constant_track_cache, writer);
-				//step_unpack_constant_translations(step_context, writer);
+				step_unpack_constant_rotations<decompression_settings_type>(step_context, context, constant_track_cache, writer);
+				step_unpack_constant_translations(step_context, constant_track_cache, writer);
 
 				if (has_scale)
-					unpack_constant_scale_sub_tracks(scale_sub_track_types, last_entry_index, constant_track_cache, writer);
-					//step_unpack_constant_scales(step_context, writer);
+					step_unpack_constant_scales(step_context, constant_track_cache, writer);
 			}
 	#endif
 #else

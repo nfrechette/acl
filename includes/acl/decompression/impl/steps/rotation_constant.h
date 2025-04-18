@@ -32,6 +32,10 @@
 
 #include <cstdint>
 
+// Controls which variant to use for this decompression step
+// 0: ACL 2.1 (baseline + minor tweaks)
+#define ACL_IMPL_STEP_CURRENT_VARIANT 0
+
 ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
@@ -40,6 +44,7 @@ namespace acl
 
 	namespace acl_impl
 	{
+#if 0
 		template<class decompression_settings_type>
 		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void unpack_constant_rotation_group(
 			const persistent_transform_decompression_context_v0& context,
@@ -112,7 +117,9 @@ namespace acl
 #endif
 			}
 		}
+#endif
 
+#if 0
 		template<class decompression_settings_type, class track_writer_type>
 		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL step_unpack_constant_rotations(
 			step_context_t& step_context,
@@ -264,8 +271,96 @@ namespace acl
 			step_context.prefetch_queue_ptr = prefetch_queue_ptr;
 		}
 	}
+#elif ACL_IMPL_STEP_CURRENT_VARIANT == 0 // ACL 2.1 (baseline + minor tweaks)
+		template<class decompression_settings_type, class track_writer_type>
+		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL step_unpack_constant_rotations(
+			step_context_t& step_context,
+			const persistent_transform_decompression_context_v0& decomp_context,
+			constant_track_cache_v0& constant_track_cache,
+			track_writer_type& writer)
+		{
+			if (track_writer_type::skip_all_rotations())
+				return;
+
+			const packed_sub_track_types* rotation_sub_track_types = step_context.rotation_sub_track_types;
+			const uint32_t last_entry_index = step_context.last_entry_index;
+
+			const packed_sub_track_types* rotation_sub_track_types_last = rotation_sub_track_types + last_entry_index;
+
+			uint32_t track_index = 0;
+
+			while (rotation_sub_track_types <= rotation_sub_track_types_last)
+			{
+				// Mask out everything but constant sub-tracks, this way we can early out when we iterate
+				// Use and_not(..) to load our sub-track types directly from memory on x64 with BMI
+				uint32_t packed_entry = and_not(~0x55555555U, rotation_sub_track_types->types);
+
+				uint32_t curr_entry_track_index = track_index;
+
+				// We might early out below, always skip 16 tracks
+				track_index += 16;
+				rotation_sub_track_types++;
+
+				// Unpack our next 16 tracks
+				constant_track_cache.unpack_rotation_group<decompression_settings_type>(decomp_context);
+
+				// Process 4 sub-tracks at a time
+				while (packed_entry != 0)
+				{
+					const uint32_t packed_group = packed_entry;
+					const uint32_t curr_group_track_index = curr_entry_track_index;
+
+					// Move to the next group
+					packed_entry <<= 8;
+					curr_entry_track_index += 4;
+
+					if ((packed_group & 0x55000000) == 0)
+						continue;	// This group contains no constant sub-tracks, skip it
+
+					if ((packed_group & 0x40000000) != 0)
+					{
+						const uint32_t track_index0 = curr_group_track_index + 0;
+						const rtm::quatf& rotation = constant_track_cache.consume_rotation();
+
+						if (!writer.skip_track_rotation(track_index0))
+							writer.write_rotation(track_index0, rotation);
+					}
+
+					if ((packed_group & 0x10000000) != 0)
+					{
+						const uint32_t track_index1 = curr_group_track_index + 1;
+						const rtm::quatf& rotation = constant_track_cache.consume_rotation();
+
+						if (!writer.skip_track_rotation(track_index1))
+							writer.write_rotation(track_index1, rotation);
+					}
+
+					if ((packed_group & 0x04000000) != 0)
+					{
+						const uint32_t track_index2 = curr_group_track_index + 2;
+						const rtm::quatf& rotation = constant_track_cache.consume_rotation();
+
+						if (!writer.skip_track_rotation(track_index2))
+							writer.write_rotation(track_index2, rotation);
+					}
+
+					if ((packed_group & 0x01000000) != 0)
+					{
+						const uint32_t track_index3 = curr_group_track_index + 3;
+						const rtm::quatf& rotation = constant_track_cache.consume_rotation();
+
+						if (!writer.skip_track_rotation(track_index3))
+							writer.write_rotation(track_index3, rotation);
+					}
+				}
+			}
+		}
+#endif
+	}
 
 	ACL_IMPL_VERSION_NAMESPACE_END
 }
+
+#undef ACL_IMPL_STEP_CURRENT_VARIANT
 
 ACL_IMPL_FILE_PRAGMA_POP
