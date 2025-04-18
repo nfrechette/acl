@@ -9,5 +9,10 @@ test_data/*.zip
 test_data/regression_test_data
 test_data/decomp_data*
 
+# Local development rules
+*.txt
+*.sh
+*.bat
+
 # Deprecated rules, remove for ACL 2.2 or later
 test_data/test_data*
