@@ -224,10 +224,10 @@ namespace acl
 			if (default_mode == default_sub_track_mode::skipped)
 				return;	// Nothing to write
 
-			const packed_sub_track_types* scale_sub_track_types = step_context.scale_sub_track_types;
 			const uint32_t last_entry_index = step_context.last_entry_index;
 			const uint32_t padding_mask = step_context.padding_mask;
 
+			const packed_sub_track_types* scale_sub_track_types = step_context.scale_sub_track_types;
 			const packed_sub_track_types* scale_sub_track_types_last = scale_sub_track_types + last_entry_index;
 
 			// Grab our constant default scale if we have one, otherwise init with some value
@@ -338,25 +338,12 @@ namespace acl
 			step_context_t& step_context, rtm::vector4f_arg0 default_scale_,
 			track_writer_type& writer)
 		{
-			// On Apply M1:
-			//   - Warm CPU Cache: 5.28 IPC (default impl)
-			//   - Cold CPU cache: 2.34 IPC (default impl)
-
 			if (track_writer_type::skip_all_scales())
 				return;
 
 			constexpr default_sub_track_mode default_mode = track_writer_type::get_default_scale_mode();
 			if (default_mode == default_sub_track_mode::skipped)
 				return;
-
-			const uint32_t num_tracks = step_context.num_tracks;
-			//const void** prefetch_queue_ptr = step_context.prefetch_queue_ptr;
-
-			// Cache the next prefetch ptr to avoid reloading it each loop iteration
-			// This way, the branch can easily be predicted because once we are done
-			// prefetching every entry, the ptr will remain forever null and this
-			// the branch is always constant: not zero for some time, then forever zero
-			//const void* next_prefetch_ptr = *prefetch_queue_ptr;
 
 			// Grab our constant default scale if we have one, otherwise init with some value
 			rtm::vector4f scale;
@@ -367,47 +354,9 @@ namespace acl
 			else
 				scale = rtm::vector_zero();
 
-			// Tuned to give us the right number of instructions per sub-step
-			// On ARM64:
-			//    - 11 instructions for prefetching (optional)
-			//    - 6 instructions per track index
-
-			// Inner loop is 6 instructions per track index
-			// Prefetch every 8 tracks (~48 instructions)
-			//constexpr uint32_t k_prefetch_multiple = 8;
-
 			// No scale present, everything is just the default value
-			uint32_t track_index = 0;
-			for (; track_index < num_tracks; ++track_index)
-			{
-		#if 0
-				// Our step takes about 50 instructions and so we want to prefetch
-				// 1 cache line into the L1
-				if ((track_index % k_prefetch_multiple) == 0)
-				{
-					if (next_prefetch_ptr != nullptr)
-					{
-						memory_prefetch_into_L1(next_prefetch_ptr);
-
-						prefetch_queue_ptr += 1;
-						next_prefetch_ptr = *prefetch_queue_ptr;
-					}
-					else
-						break;
-				}
-		#endif
-
-				if (!writer.skip_track_scale(track_index))
-				{
-					if (default_mode == default_sub_track_mode::variable)
-						writer.write_scale(track_index, writer.get_variable_default_scale(track_index));
-					else
-						writer.write_scale(track_index, scale);
-				}
-			}
-
-		#if 0
-			for (; track_index < num_tracks; ++track_index)
+			const uint32_t num_tracks = step_context.num_tracks;
+			for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 			{
 				if (!writer.skip_track_scale(track_index))
 				{
@@ -417,9 +366,6 @@ namespace acl
 						writer.write_scale(track_index, scale);
 				}
 			}
-
-			step_context.prefetch_queue_ptr = prefetch_queue_ptr;
-		#endif
 		}
 	}
 
