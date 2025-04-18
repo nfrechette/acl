@@ -281,7 +281,7 @@ namespace acl
 					{
 						const uint32_t track_index0 = curr_group_track_index + 0;
 
-						if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index0))
+						if (!writer.skip_track_scale(track_index0))
 						{
 							if (default_mode == default_sub_track_mode::variable)
 								writer.write_scale(track_index0, writer.get_variable_default_scale(track_index0));
@@ -294,7 +294,7 @@ namespace acl
 					{
 						const uint32_t track_index1 = curr_group_track_index + 1;
 
-						if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index1))
+						if (!writer.skip_track_scale(track_index1))
 						{
 							if (default_mode == default_sub_track_mode::variable)
 								writer.write_scale(track_index1, writer.get_variable_default_scale(track_index1));
@@ -307,7 +307,7 @@ namespace acl
 					{
 						const uint32_t track_index2 = curr_group_track_index + 2;
 
-						if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index2))
+						if (!writer.skip_track_scale(track_index2))
 						{
 							if (default_mode == default_sub_track_mode::variable)
 								writer.write_scale(track_index2, writer.get_variable_default_scale(track_index2));
@@ -320,7 +320,7 @@ namespace acl
 					{
 						const uint32_t track_index3 = curr_group_track_index + 3;
 
-						if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index3))
+						if (!writer.skip_track_scale(track_index3))
 						{
 							if (default_mode == default_sub_track_mode::variable)
 								writer.write_scale(track_index3, writer.get_variable_default_scale(track_index3));
