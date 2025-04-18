@@ -212,10 +212,6 @@ namespace acl
 			step_context_t& step_context,
 			track_writer_type& writer)
 		{
-			// On Apply M1:
-			//   - Warm CPU Cache: 5.39 IPC (default impl)
-			//   - Cold CPU cache: 2.03 IPC (default impl)
-
 			if (track_writer_type::skip_all_rotations())
 				return;
 
@@ -224,18 +220,11 @@ namespace acl
 			if (default_mode == default_sub_track_mode::skipped)
 				return;
 
-			const packed_sub_track_types* rotation_sub_track_types = step_context.rotation_sub_track_types;
 			const uint32_t last_entry_index = step_context.last_entry_index;
 			const uint32_t padding_mask = step_context.padding_mask;
-			//const void** prefetch_queue_ptr = step_context.prefetch_queue_ptr;
 
+			const packed_sub_track_types* rotation_sub_track_types = step_context.rotation_sub_track_types;
 			const packed_sub_track_types* rotation_sub_track_types_last = rotation_sub_track_types + last_entry_index;
-
-			// Cache the next prefetch ptr to avoid reloading it each loop iteration
-			// This way, the branch can easily be predicted because once we are done
-			// prefetching every entry, the ptr will remain forever null and this
-			// the branch is always constant: not zero for some time, then forever zero
-			//const void* next_prefetch_ptr = *prefetch_queue_ptr;
 
 			// Grab our constant default rotation if we have one, otherwise init with some value
 			const rtm::quatf default_rotation = default_mode == default_sub_track_mode::constant ? writer.get_constant_default_rotation() : rtm::quat_identity();
