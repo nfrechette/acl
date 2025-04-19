@@ -282,9 +282,9 @@ namespace acl
 			if (track_writer_type::skip_all_rotations())
 				return;
 
-			const packed_sub_track_types* rotation_sub_track_types = step_context.rotation_sub_track_types;
 			const uint32_t last_entry_index = step_context.last_entry_index;
 
+			const packed_sub_track_types* rotation_sub_track_types = step_context.rotation_sub_track_types;
 			const packed_sub_track_types* rotation_sub_track_types_last = rotation_sub_track_types + last_entry_index;
 
 			uint32_t track_index = 0;

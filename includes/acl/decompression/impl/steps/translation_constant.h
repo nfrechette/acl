@@ -186,10 +186,10 @@ namespace acl
 			if (track_writer_type::skip_all_translations())
 				return;
 
-			const packed_sub_track_types* translation_sub_track_types = step_context.translation_sub_track_types;
 			const uint32_t last_entry_index = step_context.last_entry_index;
 			const uint8_t* constant_data_translations = constant_track_cache.constant_data_translations;
 
+			const packed_sub_track_types* translation_sub_track_types = step_context.translation_sub_track_types;
 			const packed_sub_track_types* translation_sub_track_types_last = translation_sub_track_types + last_entry_index;
 
 			uint32_t track_index = 0;
