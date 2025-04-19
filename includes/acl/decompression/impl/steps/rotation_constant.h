@@ -33,7 +33,8 @@
 #include <cstdint>
 
 // Controls which variant to use for this decompression step
-// 0: ACL 2.1 (baseline + minor tweaks)
+// 0: ACL 2.1 (baseline + minor tweaks) (aka unrolled)
+// 1: Hybrid unrolled/CLZ bit scanning
 #define ACL_IMPL_STEP_CURRENT_VARIANT 0
 
 ACL_IMPL_FILE_PRAGMA_PUSH
@@ -351,6 +352,116 @@ namespace acl
 
 						if (!writer.skip_track_rotation(track_index3))
 							writer.write_rotation(track_index3, rotation);
+					}
+				}
+			}
+		}
+#elif ACL_IMPL_STEP_CURRENT_VARIANT == 1 // 1: Hybrid unrolled/CLZ bit scanning
+		template<class decompression_settings_type, class track_writer_type>
+		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL step_unpack_constant_rotations(
+			step_context_t& step_context,
+			const persistent_transform_decompression_context_v0& decomp_context,
+			constant_track_cache_v0& constant_track_cache,
+			track_writer_type& writer)
+		{
+			if (track_writer_type::skip_all_rotations())
+				return;
+
+			const uint32_t last_entry_index = step_context.last_entry_index;
+
+			const packed_sub_track_types* rotation_sub_track_types = step_context.rotation_sub_track_types;
+			const packed_sub_track_types* rotation_sub_track_types_last = rotation_sub_track_types + last_entry_index;
+
+			uint32_t track_index = 0;
+
+			while (rotation_sub_track_types <= rotation_sub_track_types_last)
+			{
+				// Mask out everything but constant sub-tracks, this way we can early out when we iterate
+				// Use and_not(..) to load our sub-track types directly from memory on x64 with BMI
+				uint32_t packed_entry = and_not(~0x55555555U, rotation_sub_track_types->types);
+
+				// We have 2 bits per sub-track
+				uint32_t curr_entry_track_index = track_index;
+				track_index += 16;
+				rotation_sub_track_types++;
+
+				// Unpack our next 16 tracks
+				constant_track_cache.unpack_rotation_group<decompression_settings_type>(decomp_context);
+
+				const uint32_t num_set_bits = acl::count_set_bits(packed_entry);
+				// 26 / 32 = 81.25%, we use half of that since we have 2 bits per sub-track
+				if (num_set_bits >= 13)
+				{
+					// High density, use reference impl
+					// Process 4 sub-tracks at a time
+					while (packed_entry != 0)
+					{
+						// Requires that entries be packed LSB to MSB
+						const uint32_t packed_group = packed_entry;
+						const uint32_t curr_group_track_index = curr_entry_track_index;
+
+						// Move to the next group
+						packed_entry <<= 8;
+						curr_entry_track_index += 4;
+
+						if ((packed_group & 0x55000000) == 0)
+						continue;	// This group contains no constant sub-tracks, skip it
+
+						if ((packed_group & 0x40000000) != 0)
+						{
+							const uint32_t track_index0 = curr_group_track_index + 0;
+							const rtm::quatf& rotation = constant_track_cache.consume_rotation();
+
+							if (!writer.skip_track_rotation(track_index0))
+								writer.write_rotation(track_index0, rotation);
+						}
+
+						if ((packed_group & 0x10000000) != 0)
+						{
+							const uint32_t track_index1 = curr_group_track_index + 1;
+							const rtm::quatf& rotation = constant_track_cache.consume_rotation();
+
+							if (!writer.skip_track_rotation(track_index1))
+								writer.write_rotation(track_index1, rotation);
+						}
+
+						if ((packed_group & 0x04000000) != 0)
+						{
+							const uint32_t track_index2 = curr_group_track_index + 2;
+							const rtm::quatf& rotation = constant_track_cache.consume_rotation();
+
+							if (!writer.skip_track_rotation(track_index2))
+								writer.write_rotation(track_index2, rotation);
+						}
+
+						if ((packed_group & 0x01000000) != 0)
+						{
+							const uint32_t track_index3 = curr_group_track_index + 3;
+							const rtm::quatf& rotation = constant_track_cache.consume_rotation();
+
+							if (!writer.skip_track_rotation(track_index3))
+								writer.write_rotation(track_index3, rotation);
+						}
+					}
+				}
+				else
+				{
+					// Low density, use ctz impl
+					while (packed_entry != 0)
+					{
+						// Requires that entries be packed MSB to LSB
+						const uint32_t set_bit_index = acl::count_leading_zeros(packed_entry);
+						const uint32_t highest_set_bit = 1 << (31 - set_bit_index);
+
+						// Mask out the bit we just consumed
+						packed_entry ^= highest_set_bit;
+
+						// We have 2 bits per sub-track
+						const uint32_t curr_track_index = curr_entry_track_index + (set_bit_index / 2);
+						const rtm::quatf& rotation = constant_track_cache.consume_rotation();
+
+						if (!writer.skip_track_rotation(curr_track_index))
+							writer.write_rotation(curr_track_index, rotation);
 					}
 				}
 			}

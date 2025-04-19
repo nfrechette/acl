@@ -33,7 +33,8 @@
 #include <cstdint>
 
 // Controls which variant to use for this decompression step
-// 0: ACL 2.1 (baseline + minor tweaks)
+// 0: ACL 2.1 (baseline + minor tweaks) (aka unrolled)
+// 1: Hybrid unrolled/CLZ bit scanning
 #define ACL_IMPL_STEP_CURRENT_VARIANT 0
 
 ACL_IMPL_FILE_PRAGMA_PUSH
@@ -316,6 +317,151 @@ namespace acl
 								writer.write_translation(track_index3, writer.get_variable_default_translation(track_index3));
 							else
 								writer.write_translation(track_index3, default_translation);
+						}
+					}
+				}
+			}
+		}
+#elif ACL_IMPL_STEP_CURRENT_VARIANT == 1 // 1: Hybrid unrolled/CLZ bit scanning
+		template<class track_writer_type>
+		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL step_unpack_default_translations(
+			step_context_t& step_context,
+			track_writer_type& writer)
+		{
+			if (track_writer_type::skip_all_translations())
+				return;
+
+			constexpr default_sub_track_mode default_mode = track_writer_type::get_default_translation_mode();
+			static_assert(default_mode != default_sub_track_mode::legacy, "Not supported for translations");
+			if (default_mode == default_sub_track_mode::skipped)
+				return;
+
+			const uint32_t last_entry_index = step_context.last_entry_index;
+			const uint32_t padding_mask = step_context.padding_mask;
+
+			const packed_sub_track_types* translation_sub_track_types = step_context.translation_sub_track_types;
+			const packed_sub_track_types* translation_sub_track_types_last = translation_sub_track_types + last_entry_index;
+
+			// Grab our constant default translation if we have one, otherwise init with some value
+			const rtm::vector4f default_translation = default_mode == default_sub_track_mode::constant ? writer.get_constant_default_translation() : rtm::vector_zero();
+
+			uint32_t track_index = 0;
+
+			while (translation_sub_track_types <= translation_sub_track_types_last)
+			{
+				uint32_t packed_entry = translation_sub_track_types->types;
+
+				// Mask out everything but default sub-tracks, this way we can early out when we iterate
+				// Each sub-track is either 0 (default), 1 (constant), or 2 (animated)
+				// By flipping the bits with logical NOT, 0 becomes 3, 1 becomes 2, and 2 becomes 1
+				// We then subtract 1 from every group so 3 becomes 2, 2 becomes 1, and 1 becomes 0
+				// Finally, we mask out everything but the second bit for each sub-track
+				// After this, our original default tracks are equal to 2, our constant tracks are equal to 1, and our animated tracks are equal to 0
+				// Testing for default tracks can be done by testing the second bit of each group (same as animated track testing)
+				packed_entry = ~packed_entry - 0x55555555;
+
+				// Because our last entry might have padding with 0 (default), we have to strip any padding we might have
+				const uint32_t entry_padding_mask = translation_sub_track_types == translation_sub_track_types_last ? padding_mask : 0xAAAAAAAA;
+				packed_entry &= entry_padding_mask;
+
+				// We have 2 bits per sub-track
+				uint32_t curr_entry_track_index = track_index;
+				track_index += 16;
+				translation_sub_track_types++;
+
+				const uint32_t num_set_bits = acl::count_set_bits(packed_entry);
+				// 26 / 32 = 81.25%, we use half of that since we have 2 bits per sub-track
+				if (num_set_bits >= 13)
+				{
+					// High density, use reference impl
+					// Process 4 sub-tracks at a time
+					while (packed_entry != 0)
+					{
+						// Requires that entries be packed LSB to MSB
+						const uint32_t packed_group = packed_entry;
+						const uint32_t curr_group_track_index = curr_entry_track_index;
+
+						// Move to the next group
+						packed_entry <<= 8;
+						curr_entry_track_index += 4;
+
+						if ((packed_group & 0xAA000000) == 0)
+							continue;	// This group contains no default sub-tracks, skip it
+
+						if ((packed_group & 0x80000000) != 0)
+						{
+							const uint32_t track_index0 = curr_group_track_index + 0;
+
+							if (!writer.skip_track_translation(track_index0))
+							{
+								if (default_mode == default_sub_track_mode::variable)
+									writer.write_translation(track_index0, writer.get_variable_default_translation(track_index0));
+								else
+									writer.write_translation(track_index0, default_translation);
+							}
+						}
+
+						if ((packed_group & 0x20000000) != 0)
+						{
+							const uint32_t track_index1 = curr_group_track_index + 1;
+
+							if (!writer.skip_track_translation(track_index1))
+							{
+								if (default_mode == default_sub_track_mode::variable)
+									writer.write_translation(track_index1, writer.get_variable_default_translation(track_index1));
+								else
+									writer.write_translation(track_index1, default_translation);
+							}
+						}
+
+						if ((packed_group & 0x08000000) != 0)
+						{
+							const uint32_t track_index2 = curr_group_track_index + 2;
+
+							if (!writer.skip_track_translation(track_index2))
+							{
+								if (default_mode == default_sub_track_mode::variable)
+									writer.write_translation(track_index2, writer.get_variable_default_translation(track_index2));
+								else
+									writer.write_translation(track_index2, default_translation);
+							}
+						}
+
+						if ((packed_group & 0x02000000) != 0)
+						{
+							const uint32_t track_index3 = curr_group_track_index + 3;
+
+							if (!writer.skip_track_translation(track_index3))
+							{
+								if (default_mode == default_sub_track_mode::variable)
+									writer.write_translation(track_index3, writer.get_variable_default_translation(track_index3));
+								else
+									writer.write_translation(track_index3, default_translation);
+							}
+						}
+					}
+				}
+				else
+				{
+					// Low density, use ctz impl
+					while (packed_entry != 0)
+					{
+						// Requires that entries be packed MSB to LSB
+						const uint32_t set_bit_index = acl::count_leading_zeros(packed_entry);
+						const uint32_t highest_set_bit = 1 << (31 - set_bit_index);
+
+						// Mask out the bit we just consumed
+						packed_entry ^= highest_set_bit;
+
+						// We have 2 bits per sub-track
+						const uint32_t curr_track_index = curr_entry_track_index + (set_bit_index / 2);
+
+						if (!writer.skip_track_translation(curr_track_index))
+						{
+							if (default_mode == default_sub_track_mode::variable)
+								writer.write_translation(curr_track_index, writer.get_variable_default_translation(curr_track_index));
+							else
+								writer.write_translation(curr_track_index, default_translation);
 						}
 					}
 				}
