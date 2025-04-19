@@ -88,7 +88,7 @@ namespace acl
 			// Accessors for 'misc_packed'
 
 			// Scalar tracks use it like this (listed from LSB):
-			// Bits [0, 31): unused (31 bits)
+			// Bits [0, 30): unused (30 bits)
 			// Bit 30: is wrap optimized? See sample_looping_policy for details.
 			// Bit 31: has metadata?
 
