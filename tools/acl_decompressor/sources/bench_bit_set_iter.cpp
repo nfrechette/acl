@@ -47,34 +47,39 @@
 // 0xA56B12DE & (0xA56B12DE - 1) = 0xA56B12DE & 0xA56B12DD = 0xA56B12DC
 // VS2022 does the same optimization
 //
+// BE CAREFUL WHEN PROFILING!
+// If the bit sets used are too small, the CPU may be able to memorize the branching pattern
+// quite well which can skew the results considerably.
+//
 // On Apple M1:
-// Count-trailing-zeroes is fastest for low density (up to ~82.5%) and the ACL 2.1 reference
-// is faster with high density (~82.5% and up).
-// The 32 and 64-bit variants yield the same assembly, just with wider registers and yet the
-// 64-bit variant is slightly slower.
-// Light vs heavy work per bit has an impact mostly on bit scanning where it becomes cheaper
-// because the latency of the scanning instruction can be hidden. And so with heavy work per bit,
-// count-trailing-zeroes is always faster even with high density.
-// The hybrid method that picks between the two is overall the best for light work.
+// Count-trailing-zeroes is fastest for low density (up to ~87.5%) and the ACL 2.1 reference
+// is faster with high density (~87.5% and up).
+// The 32 and 64-bit variants yield the same assembly, just with wider registers. The 64-bit
+// variant is slightly faster overall.
+// Light vs heavy work per bit has an impact on non-bit scanning versions because branch
+// prediction plays a larger role there. Bit scanning method will have few branch miss-predictions
+// because we have a single branch within the inner loop and we'll only miss when exiting the loop.
+// The hybrid method that picks between the two is overall the best.
 // At low density, the cost of popcount makes it slightly slower than pure CTZ but as density
-// grows, we end up faster. For heavy work, it ends up slower as density resizes when we fall
-// back to the reference implementation.
+// grows, we end up faster.
 //
 // On AMD Zen2:
-// Count trailing zeroes is faster than count leading zeroes but both are slower than the
-// reference implementation. The 64-bit variant of CTZ is faster than the 32-bit variant.
-// Interestingly, light vs heavy makes no difference for bit scan variants, only slightly
-// slower for heavy work per set bit. However, for the reference implementation and the naive
-// iteration heavy work is significantly slower. This is probably as a result of branch
-// miss-prediction which causes the heavy work to start late.
+// Count leading zeroes is faster than count trailing zeroes despite the dependency chain
+// being longer but the CTZ 64-bit variant is faster. The reference implementation still
+// wins around 87.5% density and above. The hybrid versions perform well and degrade gracefully
+// as expected.
 //
-// On Pixel 7 (Google Tensor G2, 2x2.85 GHz Cortex-X1 & 2x2.35 GHz Cortex-A78 & 4x1.80 GHz Cortex-A55)
-// Count trailing zeroes is faster than count leading zeroes just like the Apple M1.
-// Similarly, the 64-bit variant is slower than the 32-bit variant.
-// Light vs heavy is quite comparable with heavy being slightly slower, especially for the
-// reference impl.
-// Bit scanning becomes more expensive somewhere between 60-75% density unlike the M1 where
-// it starts being slower around 82.5%.
+// Conclusion:
+// Both variants combine well within the hybrid versions. When density is low, the bit scanning
+// variant are faster because we have fewer branch miss-predictions and we have fewer branches
+// taken (1 per set bit). However, when density increases, the number of branches taken approaches
+// the count from the reference implementation. There, it gets a slight edge because with most
+// bits sets, we can predict much better where to go and so the unrolled loop outperforms bit
+// scanning. Combining both ensures that for each integer entry we pick the optimal strategy.
+// The added overhead of popcount and the initial branch between both versions ends up yielding
+// a net win regardless. It is worth noting that popcount is now required by Win11 and so is
+// expected to be present on all modern x64 processors. ARM64 also has a reasonably efficient
+// variant.
 //
 
 // How many bits to profile with
@@ -516,7 +521,7 @@ BENCHMARK_CAPTURE(bm_bitset_iter_bit_scan_clz, d90_heavy, 2, writer_cost_t::heav
 // Uses count trailing zeroes to bit scan each entry
 // On ARM64, we don't have a native CTZ instruction and so we end up with
 // RBIT+CLZ which reverses the bits and counts leading zeroes
-// On Zen2, we have a TZCNT instruction which is quite efficient (2 cycle)
+// On Zen2, we have a TZCNT instruction which is quite efficient (2 cycles)
 // LSB first
 template<class track_writer_type>
 RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_NOINLINE
