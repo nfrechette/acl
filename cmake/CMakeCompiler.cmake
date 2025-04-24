@@ -47,6 +47,12 @@ macro(setup_default_compiler_flags _project_name)
 		if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 			target_compile_options(${_project_name} PRIVATE -Wno-c++98-compat)				# No need to support C++98
 			target_compile_options(${_project_name} PRIVATE -Wno-c++98-compat-pedantic)		# No need to support C++98
+
+			if(USE_POPCNT_INSTRUCTIONS)
+				target_compile_options(${_project_name} PRIVATE "-mbmi")
+				target_compile_options(${_project_name} PRIVATE "-mpopcnt")
+				target_compile_options(${_project_name} PRIVATE "-mlzcnt")
+			endif()
 		endif()
 
 		# Add linker flags
@@ -74,7 +80,9 @@ macro(setup_default_compiler_flags _project_name)
 			endif()
 
 			if(USE_POPCNT_INSTRUCTIONS)
+				target_compile_options(${_project_name} PRIVATE "-mbmi")
 				target_compile_options(${_project_name} PRIVATE "-mpopcnt")
+				target_compile_options(${_project_name} PRIVATE "-mlzcnt")
 			endif()
 		else()
 			if(NOT USE_SIMD_INSTRUCTIONS)
