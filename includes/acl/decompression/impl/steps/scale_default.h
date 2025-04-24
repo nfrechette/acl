@@ -35,7 +35,7 @@
 // Controls which variant to use for this decompression step
 // 0: ACL 2.1 (baseline + minor tweaks) (aka unrolled)
 // 1: Hybrid unrolled/CLZ bit scanning
-#define ACL_IMPL_STEP_CURRENT_VARIANT 0
+#define ACL_IMPL_STEP_CURRENT_VARIANT 1
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
