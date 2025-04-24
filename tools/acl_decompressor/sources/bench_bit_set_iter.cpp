@@ -138,21 +138,31 @@ static void setup_bit_set(double bit_set_density, word_type_t* packed_entries, u
 {
 	std::srand(81440);
 
+	// rand() only has so much precision, we process 16 entires at a time
+	const uint32_t num_groups = (num_packed_entries + 15) / 16;
 	constexpr uint32_t k_num_bits_per_word = sizeof(word_type_t) * 8;
-	const uint32_t num_bits_to_set = uint32_t(double(k_num_bits_per_word) * num_packed_entries * bit_set_density);
 
-	uint32_t num_bits_set = 0;
-	while (num_bits_set < num_bits_to_set)
+	word_type_t* packed_entries_ptr = packed_entries;
+	for (uint32_t group_index = 0; group_index < num_groups; ++group_index)
 	{
-		const uint32_t bit_index = std::rand() % (k_num_bits_per_word * num_packed_entries);
-		const uint32_t word_index = bit_index / k_num_bits_per_word;
-		const word_type_t word_bit_mask = word_type_t(1) << (bit_index % k_num_bits_per_word);
+		const uint32_t num_group_entries = (group_index + 1) != num_groups ? 16 : (num_packed_entries % 16);
+		const uint32_t num_bits_to_set = uint32_t(double(k_num_bits_per_word) * num_group_entries * bit_set_density);
 
-		if ((packed_entries[word_index] & word_bit_mask) != 0)
-			continue;	// Already set, try again
+		uint32_t num_bits_set = 0;
+		while (num_bits_set < num_bits_to_set)
+		{
+			const uint32_t bit_index = std::rand() % (k_num_bits_per_word * num_group_entries);
+			const uint32_t word_index = bit_index / k_num_bits_per_word;
+			const word_type_t word_bit_mask = word_type_t(1) << (bit_index % k_num_bits_per_word);
 
-		packed_entries[word_index] |= word_bit_mask;
-		num_bits_set++;
+			if ((packed_entries_ptr[word_index] & word_bit_mask) != 0)
+				continue;	// Already set, try again
+
+				packed_entries_ptr[word_index] |= word_bit_mask;
+			num_bits_set++;
+		}
+
+		packed_entries_ptr += 16;
 	}
 
 #if 0
