@@ -158,7 +158,7 @@ static void setup_bit_set(double bit_set_density, word_type_t* packed_entries, u
 			if ((packed_entries_ptr[word_index] & word_bit_mask) != 0)
 				continue;	// Already set, try again
 
-				packed_entries_ptr[word_index] |= word_bit_mask;
+			packed_entries_ptr[word_index] |= word_bit_mask;
 			num_bits_set++;
 		}
 
