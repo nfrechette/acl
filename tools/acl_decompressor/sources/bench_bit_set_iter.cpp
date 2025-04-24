@@ -77,8 +77,8 @@
 // it starts being slower around 82.5%.
 //
 
-// How many bits to profile iterating on
-static constexpr uint32_t k_num_bits_in_bit_set = 64 * 32;
+// How many bits to profile with
+static constexpr uint32_t k_num_bits_in_bit_set = 6400 * 32;
 
 static constexpr double k_bit_set_densities[] =
 {
