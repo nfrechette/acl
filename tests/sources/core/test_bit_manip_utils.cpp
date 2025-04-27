@@ -83,5 +83,13 @@ TEST_CASE("bit_manip_utils", "[core][utils]")
 	CHECK(rotate_bits_left(0x10000010, 3) == 0x80000080);
 	CHECK(rotate_bits_left(0x10000010, 4) == 0x00000101);
 
+	CHECK(rotate_bits_right(0x00000010, 0) == 0x00000010);
+	CHECK(rotate_bits_right(0x10000010, 1) == 0x08000008);
+	CHECK(rotate_bits_right(0x10000010, 2) == 0x04000004);
+	CHECK(rotate_bits_right(0x10000010, 3) == 0x02000002);
+	CHECK(rotate_bits_right(0x10000010, 4) == 0x01000001);
+	CHECK(rotate_bits_right(0x10000010, 12) == 0x01010000);
+	CHECK(rotate_bits_right(0x10000010, 18) == 0x00040400);
+
 	CHECK(and_not(0x00000010, 0x10101011) == 0x10101001);
 }

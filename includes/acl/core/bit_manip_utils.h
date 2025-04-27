@@ -232,6 +232,17 @@ namespace acl
 	}
 
 	//////////////////////////////////////////////////////////////////////////
+	// Rotate the bits right by some amount
+	inline uint32_t rotate_bits_right(uint32_t value, int32_t num_bits)
+	{
+		ACL_ASSERT(num_bits >= 0, "Attempting to rotate by negative bits");
+		ACL_ASSERT(num_bits < 32, "Attempting to rotate by too many bits");
+		const uint32_t mask = 32 - 1;
+		num_bits &= mask;
+		return (value >> num_bits) | (value << ((-num_bits) & mask));
+	}
+
+	//////////////////////////////////////////////////////////////////////////
 	// Perform: ~not_value & and_value
 	inline uint32_t and_not(uint32_t not_value, uint32_t and_value)
 	{
