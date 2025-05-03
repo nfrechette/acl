@@ -74,10 +74,6 @@
 // to make sure we can warm up everything we need
 //#define ACL_IMPL_USE_STEP_DECOMPRESSION
 
-//#define ACL_IMPL_DISABLE_DEFAULT_SUB_TRACKS
-//#define ACL_IMPL_DISABLE_CONSTANT_SUB_TRACKS
-//#define ACL_IMPL_DISABLE_ANIMATED_SUB_TRACKS
-
 #if defined(ACL_IMPL_USE_STEP_DECOMPRESSION)
 	#include "acl/decompression/impl/steps/rotation_constant.h"
 	#include "acl/decompression/impl/steps/rotation_default.h"
@@ -2729,15 +2725,9 @@ namespace acl
 				disable_fp_exceptions(fp_env);
 
 			using translation_adapter = acl_impl::translation_decompression_settings_adapter<decompression_settings_type>;
-
-	#if !defined(ACL_IMPL_DISABLE_ANIMATED_SUB_TRACKS)
 			using scale_adapter = acl_impl::scale_decompression_settings_adapter<decompression_settings_type>;
-	#endif
 
-	#if !defined(ACL_IMPL_DISABLE_DEFAULT_SUB_TRACKS)
 			const rtm::vector4f default_scale = rtm::vector_set(float(header.get_default_scale()));
-	#endif
-
 			const uint32_t has_scale = context.has_scale;
 
 			const transform_tracks_header& transforms_header = get_transform_tracks_header(*tracks);
@@ -2745,14 +2735,12 @@ namespace acl
 			const uint32_t num_sub_track_entries = (num_tracks + k_num_sub_tracks_per_packed_entry - 1) / k_num_sub_tracks_per_packed_entry;
 			const uint32_t last_entry_index = num_sub_track_entries - 1;
 
-	#if defined(ACL_IMPL_USE_STEP_DECOMPRESSION) || !defined(ACL_IMPL_DISABLE_DEFAULT_SUB_TRACKS)
 			// Build a mask to strip the extra sub-tracks we don't need that live in the padding
 			// They are set to 0 which means they would be 'default' sub-tracks but they don't really exist
 			// If we have no padding, we retain every sub-track
 			// Sub-tracks that are kept have their bits set to 1 to mask them with logical AND later
 			const uint32_t num_padded_sub_tracks = (num_sub_track_entries * k_num_sub_tracks_per_packed_entry) - num_tracks;
 			const uint32_t padding_mask = num_padded_sub_tracks != 0 ? ~(0xFFFFFFFF >> ((k_num_sub_tracks_per_packed_entry - num_padded_sub_tracks) * 2)) : 0xFFFFFFFF;
-	#endif
 
 			const packed_sub_track_types* rotation_sub_track_types = sub_track_types;
 			const packed_sub_track_types* translation_sub_track_types = rotation_sub_track_types + num_sub_track_entries;
@@ -2776,7 +2764,7 @@ namespace acl
 			animated_track_cache_v0 animated_track_cache;
 			animated_track_cache.initialize<decompression_settings_type, translation_adapter>(context);
 
-#if !defined(ACL_IMPL_USE_STEP_DECOMPRESSION) && !defined(ACL_IMPL_DISABLE_ANIMATED_SUB_TRACKS)
+#if !defined(ACL_IMPL_USE_STEP_DECOMPRESSION)
 			{
 				// Start prefetching the per track metadata of both segments
 				// They might live in a different memory page than the clip's header and constant data
@@ -2891,7 +2879,6 @@ namespace acl
 #endif
 			}
 
-	#if !defined(ACL_IMPL_DISABLE_DEFAULT_SUB_TRACKS)
 			// Default sub-tracks
 			{
 				step_unpack_default_rotations(step_context, writer);
@@ -2902,9 +2889,7 @@ namespace acl
 				else
 					step_set_default_scales(step_context, default_scale, writer);
 			}
-	#endif
 
-	#if !defined(ACL_IMPL_DISABLE_CONSTANT_SUB_TRACKS)
 			// Constant sub-tracks
 			{
 				step_unpack_constant_rotations<decompression_settings_type>(step_context, context, constant_track_cache, writer);
@@ -2913,21 +2898,15 @@ namespace acl
 				if (has_scale)
 					step_unpack_constant_scales(step_context, constant_track_cache, writer);
 			}
-	#endif
 #else
-	#if !defined(ACL_IMPL_DISABLE_DEFAULT_SUB_TRACKS)
 			// Unpack our default rotation sub-tracks
 			// Default rotation sub-tracks are uncommon, this shouldn't take much more than 50 cycles
 			unpack_default_rotation_sub_tracks(rotation_sub_track_types, last_entry_index, padding_mask, writer);
-	#endif
 
-	#if !defined(ACL_IMPL_DISABLE_CONSTANT_SUB_TRACKS)
 			// Unpack our constant rotation sub-tracks
 			// Constant rotation sub-tracks are very common, this should take at least 200 cycles
 			unpack_constant_rotation_sub_tracks<decompression_settings_type>(rotation_sub_track_types, last_entry_index, context, constant_track_cache, writer);
-	#endif
 
-	#if !defined(ACL_IMPL_DISABLE_ANIMATED_SUB_TRACKS)
 			// By now, our constant translations (3 cache lines) have landed in L2 after our prefetching has completed
 			// We typically will do enough work above to hide the latency
 			// We do not prefetch our constant scales because scale is fairly rare
@@ -2949,37 +2928,27 @@ namespace acl
 				ACL_IMPL_SEEK_PREFETCH(frame_animated_data0);
 				ACL_IMPL_SEEK_PREFETCH(frame_animated_data1);
 			}
-	#endif
 
-	#if !defined(ACL_IMPL_DISABLE_DEFAULT_SUB_TRACKS)
 			// Unpack our default translation sub-tracks
 			// Default translation sub-tracks are rare, this shouldn't take much more than 50 cycles
 			unpack_default_translation_sub_tracks(translation_sub_track_types, last_entry_index, padding_mask, writer);
-	#endif
 
-	#if !defined(ACL_IMPL_DISABLE_CONSTANT_SUB_TRACKS)
 			// Unpack our constant translation sub-tracks
 			// Constant translation sub-tracks are very common, this should take at least 200 cycles
 			unpack_constant_translation_sub_tracks(translation_sub_track_types, last_entry_index, constant_track_cache, writer);
-	#endif
 
 			if (has_scale)
 			{
-	#if !defined(ACL_IMPL_DISABLE_DEFAULT_SUB_TRACKS)
 				// Unpack our default scale sub-tracks
 				// Scale sub-tracks are almost always default, this should take at least 200 cycles
 				unpack_default_scale_sub_tracks(scale_sub_track_types, last_entry_index, padding_mask, default_scale, writer);
-	#endif
 
-	#if !defined(ACL_IMPL_DISABLE_CONSTANT_SUB_TRACKS)
 				// Unpack our constant scale sub-tracks
 				// Constant scale sub-tracks are very rare, this shouldn't take much more than 50 cycles
 				unpack_constant_scale_sub_tracks(scale_sub_track_types, last_entry_index, constant_track_cache, writer);
-	#endif
 			}
 			else
 			{
-	#if !defined(ACL_IMPL_DISABLE_DEFAULT_SUB_TRACKS)
 				constexpr default_sub_track_mode default_scale_mode = track_writer_type::get_default_scale_mode();
 				if (default_scale_mode != default_sub_track_mode::skipped)
 				{
@@ -3005,10 +2974,8 @@ namespace acl
 						}
 					}
 				}
-	#endif
 			}
 
-	#if !defined(ACL_IMPL_DISABLE_ANIMATED_SUB_TRACKS)
 			{
 				// By now the first few cache lines of our segment data has landed in the L2
 				// Prefetch ahead some more to prime the hardware prefetcher
@@ -3031,7 +2998,6 @@ namespace acl
 
 				// TODO: Can we prefetch the translation data ahead instead to prime the TLB?
 			}
-	#endif
 #endif
 
 			// Unpack our variable sub-tracks
@@ -3050,7 +3016,6 @@ namespace acl
 
 			// TODO: Unpack 4, then iterate over tracks to write?
 			// Can we keep the rotations in registers? Does it matter?
-	#if !defined(ACL_IMPL_DISABLE_ANIMATED_SUB_TRACKS)
 			// Unpack rotations first
 			// Animated rotation sub-tracks are very common, this should take at least 400 cycles
 			unpack_animated_rotation_sub_tracks<decompression_settings_type>(rotation_sub_track_types, last_entry_index, context, animated_track_cache, writer);
@@ -3063,7 +3028,6 @@ namespace acl
 			// Animated scale sub-tracks are very rare, this shouldn't take much more than 100 cycles
 			if (has_scale)
 				unpack_animated_scale_sub_tracks<scale_adapter>(scale_sub_track_types, last_entry_index, context, animated_track_cache, writer);
-	#endif
 
 			if (decompression_settings_type::disable_fp_exeptions())
 				restore_fp_exceptions(fp_env);
