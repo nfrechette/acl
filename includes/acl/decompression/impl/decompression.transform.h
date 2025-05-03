@@ -491,9 +491,9 @@ namespace acl
 	namespace acl_impl
 	{
 #if defined(ACL_IMPL_USE_SEEK_PREFETCH)
-#define ACL_IMPL_SEEK_PREFETCH(ptr) memory_prefetch(ptr)
+	#define ACL_IMPL_SEEK_PREFETCH(ptr) memory_prefetch(ptr)
 #else
-#define ACL_IMPL_SEEK_PREFETCH(ptr) (void)(ptr)
+	#define ACL_IMPL_SEEK_PREFETCH(ptr) (void)(ptr)
 #endif
 
 		template<class decompression_settings_type>
