@@ -290,6 +290,8 @@ namespace acl
 
 			uint32_t track_index = 0;
 
+			constant_track_cache_read_cursor_v0 read_cursor;
+
 			while (rotation_sub_track_types <= rotation_sub_track_types_last)
 			{
 				// Mask out everything but constant sub-tracks, this way we can early out when we iterate
@@ -303,7 +305,7 @@ namespace acl
 				rotation_sub_track_types++;
 
 				// Unpack our next 16 tracks
-				constant_track_cache.unpack_rotation_group<decompression_settings_type>(decomp_context);
+				constant_track_cache.unpack_rotation_group<decompression_settings_type>(decomp_context, read_cursor);
 
 				// Process 4 sub-tracks at a time
 				while (packed_entry != 0)
@@ -321,7 +323,9 @@ namespace acl
 					if ((packed_group & 0x40000000) != 0)
 					{
 						const uint32_t track_index0 = curr_group_track_index + 0;
-						const rtm::quatf& rotation = constant_track_cache.consume_rotation();
+						const rtm::quatf& rotation = constant_track_cache.consume_rotation(read_cursor);
+						ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
+						ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
 
 						if (!writer.skip_track_rotation(track_index0))
 							writer.write_rotation(track_index0, rotation);
@@ -330,7 +334,9 @@ namespace acl
 					if ((packed_group & 0x10000000) != 0)
 					{
 						const uint32_t track_index1 = curr_group_track_index + 1;
-						const rtm::quatf& rotation = constant_track_cache.consume_rotation();
+						const rtm::quatf& rotation = constant_track_cache.consume_rotation(read_cursor);
+						ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
+						ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
 
 						if (!writer.skip_track_rotation(track_index1))
 							writer.write_rotation(track_index1, rotation);
@@ -339,7 +345,9 @@ namespace acl
 					if ((packed_group & 0x04000000) != 0)
 					{
 						const uint32_t track_index2 = curr_group_track_index + 2;
-						const rtm::quatf& rotation = constant_track_cache.consume_rotation();
+						const rtm::quatf& rotation = constant_track_cache.consume_rotation(read_cursor);
+						ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
+						ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
 
 						if (!writer.skip_track_rotation(track_index2))
 							writer.write_rotation(track_index2, rotation);
@@ -348,7 +356,9 @@ namespace acl
 					if ((packed_group & 0x01000000) != 0)
 					{
 						const uint32_t track_index3 = curr_group_track_index + 3;
-						const rtm::quatf& rotation = constant_track_cache.consume_rotation();
+						const rtm::quatf& rotation = constant_track_cache.consume_rotation(read_cursor);
+						ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
+						ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
 
 						if (!writer.skip_track_rotation(track_index3))
 							writer.write_rotation(track_index3, rotation);
@@ -374,6 +384,8 @@ namespace acl
 
 			uint32_t track_index = 0;
 
+			constant_track_cache_read_cursor_v0 read_cursor;
+
 			while (rotation_sub_track_types <= rotation_sub_track_types_last)
 			{
 				// Mask out everything but constant sub-tracks, this way we can early out when we iterate
@@ -386,7 +398,7 @@ namespace acl
 				rotation_sub_track_types++;
 
 				// Unpack our next 16 tracks
-				constant_track_cache.unpack_rotation_group<decompression_settings_type>(decomp_context);
+				constant_track_cache.unpack_rotation_group<decompression_settings_type>(decomp_context, read_cursor);
 
 				const uint32_t num_set_bits = acl::count_set_bits(packed_entry);
 				// 26 / 32 = 81.25%, we use half of that since we have 2 bits per sub-track
@@ -410,7 +422,9 @@ namespace acl
 						if ((packed_group & 0x40000000) != 0)
 						{
 							const uint32_t track_index0 = curr_group_track_index + 0;
-							const rtm::quatf& rotation = constant_track_cache.consume_rotation();
+							const rtm::quatf& rotation = constant_track_cache.consume_rotation(read_cursor);
+							ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
+							ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
 
 							if (!writer.skip_track_rotation(track_index0))
 								writer.write_rotation(track_index0, rotation);
@@ -419,7 +433,9 @@ namespace acl
 						if ((packed_group & 0x10000000) != 0)
 						{
 							const uint32_t track_index1 = curr_group_track_index + 1;
-							const rtm::quatf& rotation = constant_track_cache.consume_rotation();
+							const rtm::quatf& rotation = constant_track_cache.consume_rotation(read_cursor);
+							ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
+							ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
 
 							if (!writer.skip_track_rotation(track_index1))
 								writer.write_rotation(track_index1, rotation);
@@ -428,7 +444,9 @@ namespace acl
 						if ((packed_group & 0x04000000) != 0)
 						{
 							const uint32_t track_index2 = curr_group_track_index + 2;
-							const rtm::quatf& rotation = constant_track_cache.consume_rotation();
+							const rtm::quatf& rotation = constant_track_cache.consume_rotation(read_cursor);
+							ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
+							ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
 
 							if (!writer.skip_track_rotation(track_index2))
 								writer.write_rotation(track_index2, rotation);
@@ -437,7 +455,9 @@ namespace acl
 						if ((packed_group & 0x01000000) != 0)
 						{
 							const uint32_t track_index3 = curr_group_track_index + 3;
-							const rtm::quatf& rotation = constant_track_cache.consume_rotation();
+							const rtm::quatf& rotation = constant_track_cache.consume_rotation(read_cursor);
+							ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
+							ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
 
 							if (!writer.skip_track_rotation(track_index3))
 								writer.write_rotation(track_index3, rotation);
@@ -458,7 +478,9 @@ namespace acl
 
 						// We have 2 bits per sub-track
 						const uint32_t curr_track_index = curr_entry_track_index + (set_bit_index / 2);
-						const rtm::quatf& rotation = constant_track_cache.consume_rotation();
+						const rtm::quatf& rotation = constant_track_cache.consume_rotation(read_cursor);
+						ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
+						ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
 
 						if (!writer.skip_track_rotation(curr_track_index))
 							writer.write_rotation(curr_track_index, rotation);

@@ -91,6 +91,13 @@
 // behavior is undefined. Make sure your platform supports it before enabling this.
 //#define ACL_BMI_INTRINSICS
 
+// Disables usage of 8-wide AVX when AVX is enabled
+// This provides a small performance boost with modern AVX hardware but
+// with older hardware that generates 2x uOps per 8-wide instruction, it
+// can often yield a small performance loss (e.g. AMD Jaguar)
+// 8-wide AVX is enabled by default when AVX is enabled
+//#define ACL_NO_8_WIDE_AVX
+
 // If you use C++20 or greater, you can use older C++11 std::memory_order entries by defining ACL_USE_CPP11_STD_MEMORY_ORDER.
 // This is sometimes necessary if you compile with a modern compiler version but use an older stdlib
 // that does not contain the necessary enum entries
