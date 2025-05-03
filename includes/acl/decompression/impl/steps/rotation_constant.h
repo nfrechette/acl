@@ -120,162 +120,12 @@ namespace acl
 		}
 #endif
 
-#if 0
+#if ACL_IMPL_STEP_CURRENT_VARIANT == 0 // ACL 2.1 (baseline + minor tweaks)
 		template<class decompression_settings_type, class track_writer_type>
-		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL step_unpack_constant_rotations(
-			step_context_t& step_context,
-			const persistent_transform_decompression_context_v0& decomp_context,
-			track_writer_type& writer)
-		{
-			if (track_writer_type::skip_all_rotations())
-				return;
-
-			const packed_sub_track_types* rotation_sub_track_types = step_context.rotation_sub_track_types;
-			const uint8_t* constant_data_rotations = step_context.constant_data_rotations;
-			const uint32_t last_entry_index = step_context.last_entry_index;
-			const void** prefetch_queue_ptr = step_context.prefetch_queue_ptr;
-
-			// Cache the next prefetch ptr to avoid reloading it each loop iteration
-			// This way, the branch can easily be predicted because once we are done
-			// prefetching every entry, the ptr will remain forever null and this
-			// the branch is always constant: not zero for some time, then forever zero
-			const void* next_prefetch_ptr = *prefetch_queue_ptr;
-
-			// Tuned to give us the right number of instructions per sub-step
-			// On ARM64, 4 yields 78-103 instructions (68-93 with vst4q_f32):
-			//    - 2 instructions for inner loop
-			//    - 14 instructions to fetch the next entry (optional)
-			//    - 10 instructions for prefetching (optional)
-			//    - 28 instructions to unpack 4 rotations (18 with vst4q_f32)
-			//    - 12 instructions per set bit when bit scanning (4x unrolled)
-			constexpr uint32_t k_sub_step_unpack_count = 4;
-
-			uint32_t num_unpacked = 0;
-			uint32_t curr_entry_track_index = 0;
-			uint32_t entry_index = 0;
-			uint32_t packed_entry = 0;
-
-			const transform_tracks_header& transform_header = get_transform_tracks_header(*decomp_context.tracks);
-			uint32_t num_left_to_unpack = transform_header.num_constant_rotation_samples;
-
-			rtm::vector4f constant_rotations[4];
-
-			// This is our sub-step loop
-			while (true)
-			{
-				// If our entry is empty, grab the next one
-				if (packed_entry == 0)
-				{
-					if (entry_index > last_entry_index)
-						goto done;	// We are done
-
-					// Mask out everything but constant sub-tracks, this way we can early out when we iterate
-					// Use and_not(..) to load our sub-track types directly from memory on x64 with BMI
-					packed_entry = and_not(~0x55555555U, rotation_sub_track_types[entry_index].types);
-
-					// We have 2 bits per sub-track
-					curr_entry_track_index = entry_index * 16;
-
-					entry_index++;
-				}
-
-				// Reset our unpack count if it is k_sub_step_unpack_count
-				num_unpacked %= k_sub_step_unpack_count;
-
-				// Our sub-step loop takes about 60 instructions and so we want to prefetch
-				// 2 cache lines into the L1 each iteration
-				memory_prefetch_into_L1(constant_data_rotations + (3 * 64));
-
-				if (num_unpacked == 0)
-				{
-					if (next_prefetch_ptr)
-					{
-						memory_prefetch_into_L1(next_prefetch_ptr);
-
-						prefetch_queue_ptr += 1;
-						next_prefetch_ptr = *prefetch_queue_ptr;
-					}
-					else
-						break;
-
-					// Unpack up to 4 rotations
-					unpack_constant_rotation_group<decompression_settings_type>(decomp_context, constant_data_rotations, num_left_to_unpack, constant_rotations);
-				}
-
-				// While we have entries, unpack up to k_sub_step_unpack_count
-				while (packed_entry != 0 && num_unpacked < k_sub_step_unpack_count)
-				{
-					const uint32_t set_bit_index = count_leading_zeros(packed_entry);
-					const uint32_t highest_set_bit = 1 << (31 - set_bit_index);
-
-					// Mask out the bit we just consumed
-					packed_entry ^= highest_set_bit;
-
-					// We have 2 bits per sub-track
-					const uint32_t track_index = curr_entry_track_index + (set_bit_index / 2);
-
-					if (!writer.skip_track_rotation(track_index))
-						writer.write_rotation(track_index, constant_rotations[num_unpacked]);
-
-					num_unpacked++;
-				}
-			}
-
-			memory_prefetch_into_L1(constant_data_rotations + (3 * 64));
-			memory_prefetch_into_L1(constant_data_rotations + (4 * 64));
-
-			while (true)
-			{
-				// If our entry is empty, grab the next one
-				if (packed_entry == 0)
-				{
-					if (entry_index > last_entry_index)
-						goto done;	// We are done
-
-					// Mask out everything but constant sub-tracks, this way we can early out when we iterate
-					// Use and_not(..) to load our sub-track types directly from memory on x64 with BMI
-					packed_entry = and_not(~0x55555555U, rotation_sub_track_types[entry_index].types);
-
-					// We have 2 bits per sub-track
-					curr_entry_track_index = entry_index * 16;
-
-					entry_index++;
-				}
-
-				num_unpacked %= k_sub_step_unpack_count;
-
-				if (num_unpacked == 0)
-				{
-					// Unpack up to 4 rotations
-					unpack_constant_rotation_group<decompression_settings_type>(decomp_context, constant_data_rotations, num_left_to_unpack, constant_rotations);
-				}
-
-				while (packed_entry != 0 && num_unpacked < k_sub_step_unpack_count)
-				{
-					const uint32_t set_bit_index = count_leading_zeros(packed_entry);
-					const uint32_t highest_set_bit = 1 << (31 - set_bit_index);
-
-					// Mask out the bit we just consumed
-					packed_entry ^= highest_set_bit;
-
-					// We have 2 bits per sub-track
-					const uint32_t track_index = curr_entry_track_index + (set_bit_index / 2);
-
-					if (!writer.skip_track_rotation(track_index))
-						writer.write_rotation(track_index, constant_rotations[num_unpacked]);
-
-					num_unpacked++;
-				}
-			}
-
-		done:
-			step_context.prefetch_queue_ptr = prefetch_queue_ptr;
-		}
-	}
-#elif ACL_IMPL_STEP_CURRENT_VARIANT == 0 // ACL 2.1 (baseline + minor tweaks)
-		template<class decompression_settings_type, class track_writer_type>
-		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL step_unpack_constant_rotations(
-			step_context_t& step_context,
+		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK
+		void step_unpack_constant_rotations(
+			const packed_sub_track_types* rotation_sub_track_types,
+			uint32_t last_entry_index,
 			const persistent_transform_decompression_context_v0& decomp_context,
 			constant_track_cache_v0& constant_track_cache,
 			track_writer_type& writer)
@@ -283,9 +133,6 @@ namespace acl
 			if (track_writer_type::skip_all_rotations())
 				return;
 
-			const uint32_t last_entry_index = step_context.last_entry_index;
-
-			const packed_sub_track_types* rotation_sub_track_types = step_context.rotation_sub_track_types;
 			const packed_sub_track_types* rotation_sub_track_types_last = rotation_sub_track_types + last_entry_index;
 
 			uint32_t track_index = 0;
@@ -369,7 +216,8 @@ namespace acl
 #elif ACL_IMPL_STEP_CURRENT_VARIANT == 1 // 1: Hybrid unrolled/CLZ bit scanning
 		template<class decompression_settings_type, class track_writer_type>
 		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL step_unpack_constant_rotations(
-			step_context_t& step_context,
+			const packed_sub_track_types* rotation_sub_track_types,
+			uint32_t last_entry_index,
 			const persistent_transform_decompression_context_v0& decomp_context,
 			constant_track_cache_v0& constant_track_cache,
 			track_writer_type& writer)
@@ -377,9 +225,6 @@ namespace acl
 			if (track_writer_type::skip_all_rotations())
 				return;
 
-			const uint32_t last_entry_index = step_context.last_entry_index;
-
-			const packed_sub_track_types* rotation_sub_track_types = step_context.rotation_sub_track_types;
 			const packed_sub_track_types* rotation_sub_track_types_last = rotation_sub_track_types + last_entry_index;
 
 			uint32_t track_index = 0;

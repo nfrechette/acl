@@ -42,6 +42,7 @@
 #include "acl/decompression/impl/animated_track_cache.transform.h"
 #include "acl/decompression/impl/constant_track_cache.transform.h"
 #include "acl/decompression/impl/decompression_context.transform.h"
+#include "acl/decompression/impl/steps/rotation_constant.h"
 #include "acl/decompression/impl/steps/rotation_default.h"
 #include "acl/decompression/impl/steps/scale_default.h"
 #include "acl/decompression/impl/steps/translation_default.h"
@@ -78,7 +79,6 @@
 //#define ACL_IMPL_USE_STEP_DECOMPRESSION
 
 #if defined(ACL_IMPL_USE_STEP_DECOMPRESSION)
-	#include "acl/decompression/impl/steps/rotation_constant.h"
 	#include "acl/decompression/impl/steps/scale_constant.h"
 	#include "acl/decompression/impl/steps/step_context.h"
 	#include "acl/decompression/impl/steps/translation_constant.h"
@@ -1012,136 +1012,6 @@ namespace acl
 		//       I tried using uint32_t and uint64_t as its underlying type but code generation remained the same
 		//       Would using a raw uint32_t below instead of the typed enum help avoid the extra instruction?
 
-		// Constant rotations
-#if defined(ACL_IMPL_USE_BIT_SCAN_ITERATION_CONSTANT)
-		// Force inline this function, we only use it to keep the code readable
-		template<class decompression_settings_type, class track_writer_type>
-		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_constant_rotation_sub_tracks(
-			const packed_sub_track_types* rotation_sub_track_types, uint32_t last_entry_index,
-			const persistent_transform_decompression_context_v0& context,
-			constant_track_cache_v0& constant_track_cache, track_writer_type& writer)
-		{
-			if (track_writer_type::skip_all_rotations())
-				return;
-
-			constant_track_cache_read_cursor_v0 read_cursor;
-
-			for (uint32_t entry_index = 0; entry_index <= last_entry_index; ++entry_index)
-			{
-				// Mask out everything but constant sub-tracks, this way we can early out when we iterate
-				// Use and_not(..) to load our sub-track types directly from memory on x64 with BMI
-				uint32_t packed_entry = and_not(~0x55555555U, rotation_sub_track_types[entry_index].types);
-
-				// Unpack our next 16 tracks
-				constant_track_cache.unpack_rotation_group<decompression_settings_type>(context, read_cursor);
-
-				// We have 2 bits per sub-track
-				const uint32_t curr_entry_track_index = entry_index * 16;
-
-				while (packed_entry != 0)
-				{
-					const uint32_t set_bit_index = count_leading_zeros(packed_entry);
-					const uint32_t highest_set_bit = 1 << (31 - set_bit_index);
-
-					// Mask out the bit we just consumed
-					packed_entry ^= highest_set_bit;
-
-					// We have 2 bits per sub-track
-					const uint32_t track_index = curr_entry_track_index + (set_bit_index / 2);
-
-					const rtm::quatf& rotation = constant_track_cache.consume_rotation(read_cursor);
-					ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
-					ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
-
-					if (!writer.skip_track_rotation(track_index))
-						writer.write_rotation(track_index, rotation);
-				}
-			}
-		}
-#else
-		// Force inline this function, we only use it to keep the code readable
-		template<class decompression_settings_type, class track_writer_type>
-		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_constant_rotation_sub_tracks(
-			const packed_sub_track_types* rotation_sub_track_types, uint32_t last_entry_index,
-			const persistent_transform_decompression_context_v0& context,
-			constant_track_cache_v0& constant_track_cache, track_writer_type& writer)
-		{
-			constant_track_cache_read_cursor_v0 read_cursor;
-
-			for (uint32_t entry_index = 0, track_index = 0; entry_index <= last_entry_index; ++entry_index)
-			{
-				// Mask out everything but constant sub-tracks, this way we can early out when we iterate
-				// Use and_not(..) to load our sub-track types directly from memory on x64 with BMI
-				uint32_t packed_entry = and_not(~0x55555555U, rotation_sub_track_types[entry_index].types);
-
-				uint32_t curr_entry_track_index = track_index;
-
-				// We might early out below, always skip 16 tracks
-				track_index += 16;
-
-				// Unpack our next 16 tracks
-				constant_track_cache.unpack_rotation_group<decompression_settings_type>(context, read_cursor);
-
-				// Process 4 sub-tracks at a time
-				while (packed_entry != 0)
-				{
-					const uint32_t packed_group = packed_entry;
-					const uint32_t curr_group_track_index = curr_entry_track_index;
-
-					// Move to the next group
-					packed_entry <<= 8;
-					curr_entry_track_index += 4;
-
-					if ((packed_group & 0x55000000) == 0)
-						continue;	// This group contains no constant sub-tracks, skip it
-
-					if ((packed_group & 0x40000000) != 0)
-					{
-						const uint32_t track_index0 = curr_group_track_index + 0;
-						const rtm::quatf& rotation = constant_track_cache.consume_rotation(read_cursor);
-						ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
-						ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
-
-						if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index0))
-							writer.write_rotation(track_index0, rotation);
-					}
-
-					if ((packed_group & 0x10000000) != 0)
-					{
-						const uint32_t track_index1 = curr_group_track_index + 1;
-						const rtm::quatf& rotation = constant_track_cache.consume_rotation(read_cursor);
-						ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
-						ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
-
-						if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index1))
-							writer.write_rotation(track_index1, rotation);
-					}
-
-					if ((packed_group & 0x04000000) != 0)
-					{
-						const uint32_t track_index2 = curr_group_track_index + 2;
-						const rtm::quatf& rotation = constant_track_cache.consume_rotation(read_cursor);
-						ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
-						ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
-
-						if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index2))
-							writer.write_rotation(track_index2, rotation);
-					}
-
-					if ((packed_group & 0x01000000) != 0)
-					{
-						const uint32_t track_index3 = curr_group_track_index + 3;
-						const rtm::quatf& rotation = constant_track_cache.consume_rotation(read_cursor);
-						ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
-						ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
-
-						if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index3))
-							writer.write_rotation(track_index3, rotation);
-					}
-				}
-			}
-		}
-#endif
 
 		// Animated rotations
 #if defined(ACL_IMPL_USE_BIT_SCAN_ITERATION_ANIMATED)
@@ -1965,7 +1835,7 @@ namespace acl
 
 			// Unpack our constant rotation sub-tracks
 			// Constant rotation sub-tracks are very common, this should take at least 200 cycles
-			unpack_constant_rotation_sub_tracks<decompression_settings_type>(rotation_sub_track_types, last_entry_index, context, constant_track_cache, writer);
+			step_unpack_constant_rotations<decompression_settings_type>(rotation_sub_track_types, last_entry_index, context, constant_track_cache, writer);
 
 			// By now, our constant translations (3 cache lines) have landed in L2 after our prefetching has completed
 			// We typically will do enough work above to hide the latency
