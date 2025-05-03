@@ -45,112 +45,18 @@ namespace acl
 
 	namespace acl_impl
 	{
-#if 0
+#if ACL_IMPL_STEP_CURRENT_VARIANT == 0 // ACL 2.1 (baseline + minor tweaks)
 		template<class track_writer_type>
-		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL step_unpack_constant_scales(
-			step_context_t& step_context,
+		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK
+		void step_unpack_constant_scales(
+			const packed_sub_track_types* scale_sub_track_types,
+			uint32_t last_entry_index,
+			const uint8_t* constant_data_scales,
 			track_writer_type& writer)
 		{
 			if (track_writer_type::skip_all_scales())
 				return;
 
-			const packed_sub_track_types* scale_sub_track_types = step_context.scale_sub_track_types;
-			const uint8_t* constant_data_scales = step_context.constant_data_scales;
-			const uint32_t last_entry_index = step_context.last_entry_index;
-			const void** prefetch_queue_ptr = step_context.prefetch_queue_ptr;
-
-			// Cache the next prefetch ptr to avoid reloading it each loop iteration
-			// This way, the branch can easily be predicted because once we are done
-			// prefetching every entry, the ptr will remain forever null and this
-			// the branch is always constant: not zero for some time, then forever zero
-			const void* next_prefetch_ptr = *prefetch_queue_ptr;
-
-			// Tuned to give us the right number of instructions per sub-step
-			// On ARM64, 4 yields 60-79 instructions:
-			//    - 8 instructions for inner loop
-			//    - 9 instructions to fetch the next entry (optional)
-			//    - 10 instructions for prefetching (optional)
-			//    - 13 instructions per set bit when bit scanning (4x unrolled)
-			constexpr uint32_t k_sub_step_unpack_count = 4;
-
-			uint32_t num_unpacked = 0;
-			uint32_t curr_entry_track_index = 0;
-			uint32_t entry_index = 0;
-			uint32_t packed_entry = 0;
-
-			// This is our sub-step loop
-			while (true)
-			{
-				// If our entry is empty, grab the next one
-				if (packed_entry == 0)
-				{
-					if (entry_index > last_entry_index)
-						break;	// We are done
-
-					// Mask out everything but constant sub-tracks, this way we can early out when we iterate
-					// Use and_not(..) to load our sub-track types directly from memory on x64 with BMI
-					packed_entry = and_not(~0x55555555U, scale_sub_track_types[entry_index].types);
-
-					// We have 2 bits per sub-track
-					curr_entry_track_index = entry_index * 16;
-
-					entry_index++;
-				}
-
-				// Reset our unpack count if it is k_sub_step_unpack_count
-				num_unpacked %= k_sub_step_unpack_count;
-
-				// Our sub-step loop takes about 60 instructions and so we want to prefetch
-				// 4 cache lines into the L2 each iteration
-				if (next_prefetch_ptr && num_unpacked == 0)
-				{
-					memory_prefetch_into_L2(next_prefetch_ptr);
-					memory_prefetch_into_L2(prefetch_queue_ptr[1]);
-					memory_prefetch_into_L2(prefetch_queue_ptr[2]);
-					memory_prefetch_into_L2(prefetch_queue_ptr[3]);
-
-					prefetch_queue_ptr += 4;
-					next_prefetch_ptr = *prefetch_queue_ptr;
-				}
-
-				// While we have entries, unpack up to k_sub_step_unpack_count
-				while (packed_entry != 0 && num_unpacked < k_sub_step_unpack_count)
-				{
-					const uint32_t set_bit_index = count_leading_zeros(packed_entry);
-					const uint32_t highest_set_bit = 1 << (31 - set_bit_index);
-
-					// Mask out the bit we just consumed
-					packed_entry ^= highest_set_bit;
-
-					// We have 2 bits per sub-track
-					const uint32_t track_index = curr_entry_track_index + (set_bit_index / 2);
-
-					const uint8_t* scale_ptr = constant_data_scales;
-					constant_data_scales += sizeof(rtm::float3f);
-
-					if (!writer.skip_track_scale(track_index))
-						writer.write_scale(track_index, rtm::vector_load(scale_ptr));
-
-					num_unpacked++;
-				}
-			}
-
-			step_context.prefetch_queue_ptr = prefetch_queue_ptr;
-		}
-#elif ACL_IMPL_STEP_CURRENT_VARIANT == 0 // ACL 2.1 (baseline + minor tweaks)
-		template<class track_writer_type>
-		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL step_unpack_constant_scales(
-			step_context_t& step_context,
-			constant_track_cache_v0& constant_track_cache,
-			track_writer_type& writer)
-		{
-			if (track_writer_type::skip_all_scales())
-				return;
-
-			const uint32_t last_entry_index = step_context.last_entry_index;
-			const uint8_t* constant_data_scales = constant_track_cache.constant_data_scales;
-
-			const packed_sub_track_types* scale_sub_track_types = step_context.scale_sub_track_types;
 			const packed_sub_track_types* scale_sub_track_types_last = scale_sub_track_types + last_entry_index;
 
 			uint32_t track_index = 0;
@@ -248,18 +154,16 @@ namespace acl
 		}
 #elif ACL_IMPL_STEP_CURRENT_VARIANT == 1 // 1: Hybrid unrolled/CLZ bit scanning
 		template<class track_writer_type>
-		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL step_unpack_constant_scales(
-			step_context_t& step_context,
-			constant_track_cache_v0& constant_track_cache,
+		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK
+		void step_unpack_constant_scales(
+			const packed_sub_track_types* scale_sub_track_types,
+			uint32_t last_entry_index,
+			const uint8_t* constant_data_scales,
 			track_writer_type& writer)
 		{
 			if (track_writer_type::skip_all_scales())
 				return;
 
-			const uint32_t last_entry_index = step_context.last_entry_index;
-			const uint8_t* constant_data_scales = constant_track_cache.constant_data_scales;
-
-			const packed_sub_track_types* scale_sub_track_types = step_context.scale_sub_track_types;
 			const packed_sub_track_types* scale_sub_track_types_last = scale_sub_track_types + last_entry_index;
 
 			uint32_t track_index = 0;

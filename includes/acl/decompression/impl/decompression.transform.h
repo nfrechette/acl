@@ -44,6 +44,7 @@
 #include "acl/decompression/impl/decompression_context.transform.h"
 #include "acl/decompression/impl/steps/rotation_constant.h"
 #include "acl/decompression/impl/steps/rotation_default.h"
+#include "acl/decompression/impl/steps/scale_constant.h"
 #include "acl/decompression/impl/steps/scale_default.h"
 #include "acl/decompression/impl/steps/translation_constant.h"
 #include "acl/decompression/impl/steps/translation_default.h"
@@ -80,7 +81,6 @@
 //#define ACL_IMPL_USE_STEP_DECOMPRESSION
 
 #if defined(ACL_IMPL_USE_STEP_DECOMPRESSION)
-	#include "acl/decompression/impl/steps/scale_constant.h"
 	#include "acl/decompression/impl/steps/step_context.h"
 #endif
 
@@ -1331,95 +1331,6 @@ namespace acl
 		}
 
 		// Force inline this function, we only use it to keep the code readable
-		template<class track_writer_type>
-		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_constant_scale_sub_tracks(
-			const packed_sub_track_types* scale_sub_track_types, uint32_t last_entry_index,
-			constant_track_cache_v0& constant_track_cache, track_writer_type& writer)
-		{
-			for (uint32_t entry_index = 0, track_index = 0; entry_index <= last_entry_index; ++entry_index)
-			{
-				// Mask out everything but constant sub-tracks, this way we can early out when we iterate
-				// Use and_not(..) to load our sub-track types directly from memory on x64 with BMI
-				uint32_t packed_entry = and_not(~0x55555555U, scale_sub_track_types[entry_index].types);
-
-				uint32_t curr_entry_track_index = track_index;
-
-				// We might early out below, always skip 16 tracks
-				track_index += 16;
-
-				// Process 4 sub-tracks at a time
-				while (packed_entry != 0)
-				{
-					const uint32_t packed_group = packed_entry;
-					const uint32_t curr_group_track_index = curr_entry_track_index;
-
-					// Move to the next group
-					packed_entry <<= 8;
-					curr_entry_track_index += 4;
-
-					if ((packed_group & 0x55000000) == 0)
-						continue;	// This group contains no constant sub-tracks, skip it
-
-					if ((packed_group & 0x40000000) != 0)
-					{
-						const uint32_t track_index0 = curr_group_track_index + 0;
-						const uint8_t* scale_ptr = constant_track_cache.consume_scale();
-
-						if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index0))
-						{
-							const rtm::vector4f scale = rtm::vector_load(scale_ptr);
-							ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
-
-							writer.write_scale(track_index0, scale);
-						}
-					}
-
-					if ((packed_group & 0x10000000) != 0)
-					{
-						const uint32_t track_index1 = curr_group_track_index + 1;
-						const uint8_t* scale_ptr = constant_track_cache.consume_scale();
-
-						if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index1))
-						{
-							const rtm::vector4f scale = rtm::vector_load(scale_ptr);
-							ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
-
-							writer.write_scale(track_index1, scale);
-						}
-					}
-
-					if ((packed_group & 0x04000000) != 0)
-					{
-						const uint32_t track_index2 = curr_group_track_index + 2;
-						const uint8_t* scale_ptr = constant_track_cache.consume_scale();
-
-						if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index2))
-						{
-							const rtm::vector4f scale = rtm::vector_load(scale_ptr);
-							ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
-
-							writer.write_scale(track_index2, scale);
-						}
-					}
-
-					if ((packed_group & 0x01000000) != 0)
-					{
-						const uint32_t track_index3 = curr_group_track_index + 3;
-						const uint8_t* scale_ptr = constant_track_cache.consume_scale();
-
-						if (!track_writer_type::skip_all_scales() && !writer.skip_track_scale(track_index3))
-						{
-							const rtm::vector4f scale = rtm::vector_load(scale_ptr);
-							ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
-
-							writer.write_scale(track_index3, scale);
-						}
-					}
-				}
-			}
-		}
-
-		// Force inline this function, we only use it to keep the code readable
 		template<class decompression_settings_adapter_type, class track_writer_type>
 		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_animated_scale_sub_tracks(
 			const packed_sub_track_types* scale_sub_track_types, uint32_t last_entry_index,
@@ -1786,7 +1697,7 @@ namespace acl
 
 				// Unpack our constant scale sub-tracks
 				// Constant scale sub-tracks are very rare, this shouldn't take much more than 50 cycles
-				unpack_constant_scale_sub_tracks(scale_sub_track_types, last_entry_index, constant_track_cache, writer);
+				step_unpack_constant_scales(scale_sub_track_types, last_entry_index, constant_track_cache.constant_data_scales, writer);
 			}
 			else
 			{
