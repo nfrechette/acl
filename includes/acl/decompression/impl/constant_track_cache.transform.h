@@ -889,13 +889,6 @@ namespace acl
 				return sample;
 			}
 
-			RTM_DISABLE_SECURITY_COOKIE_CHECK const uint8_t* consume_translation()
-			{
-				const uint8_t* sample_ptr = constant_data_translations;
-				constant_data_translations += sizeof(rtm::float3f);
-				return sample_ptr;
-			}
-
 			RTM_DISABLE_SECURITY_COOKIE_CHECK void skip_scale_groups(uint32_t num_groups_to_skip)
 			{
 				const uint8_t* constant_track_data = constant_data_scales;
@@ -918,13 +911,6 @@ namespace acl
 				const rtm::vector4f sample = rtm::vector_load(constant_track_data);
 				ACL_ASSERT(rtm::vector_is_finite3(sample), "Sample is not valid!");
 				return sample;
-			}
-
-			RTM_DISABLE_SECURITY_COOKIE_CHECK const uint8_t* consume_scale()
-			{
-				const uint8_t* sample_ptr = constant_data_scales;
-				constant_data_scales += sizeof(rtm::float3f);
-				return sample_ptr;
 			}
 		};
 	}
