@@ -42,6 +42,7 @@
 #include "acl/decompression/impl/animated_track_cache.transform.h"
 #include "acl/decompression/impl/constant_track_cache.transform.h"
 #include "acl/decompression/impl/decompression_context.transform.h"
+#include "acl/decompression/impl/steps/rotation_animated.h"
 #include "acl/decompression/impl/steps/rotation_constant.h"
 #include "acl/decompression/impl/steps/rotation_default.h"
 #include "acl/decompression/impl/steps/scale_constant.h"
@@ -1013,196 +1014,6 @@ namespace acl
 		//       Would using a raw uint32_t below instead of the typed enum help avoid the extra instruction?
 
 
-		// Animated rotations
-#if defined(ACL_IMPL_USE_BIT_SCAN_ITERATION_ANIMATED)
-		// Force inline this function, we only use it to keep the code readable
-		template<class decompression_settings_type, class track_writer_type>
-		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_animated_rotation_sub_tracks(
-			const packed_sub_track_types* rotation_sub_track_types, uint32_t last_entry_index,
-			const persistent_transform_decompression_context_v0& context,
-			animated_track_cache_v0& animated_track_cache, track_writer_type& writer)
-		{
-			if (track_writer_type::skip_all_rotations())
-				return;
-
-			const sample_rounding_policy rounding_policy = context.get_rounding_policy();
-
-			for (uint32_t entry_index = 0; entry_index <= last_entry_index; ++entry_index)
-			{
-				// Mask out everything but animated sub-tracks, this way we can early out when we iterate
-				// Use and_not(..) to load our sub-track types directly from memory on x64 with BMI
-				uint32_t packed_entry = and_not(~0xAAAAAAAAU, rotation_sub_track_types[entry_index].types);
-
-				// We have 2 bits per sub-track
-				const uint32_t curr_entry_track_index = entry_index * 16;
-
-				while (packed_entry != 0)
-				{
-					// Unpack our next 4 tracks
-					animated_track_cache.unpack_rotation_group<decompression_settings_type>(context);
-
-					const uint32_t set_bit_index = count_leading_zeros(packed_entry);
-					const uint32_t highest_set_bit = 1 << (31 - set_bit_index);
-
-					// Mask out the bit we just consumed
-					packed_entry ^= highest_set_bit;
-
-					// We have 2 bits per sub-track
-					const uint32_t track_index = curr_entry_track_index + (set_bit_index / 2);
-
-					// We need the true rounding policy to be statically known when per track rounding is not supported
-					// When it isn't supported, we always use 'none' since the interpolation alpha was properly calculated
-					// and rounding has already been performed for us.
-					const sample_rounding_policy rounding_policy_ =
-						decompression_settings_type::is_per_track_rounding_supported() ?
-						writer.get_rounding_policy(rounding_policy, track_index) :
-						sample_rounding_policy::none;
-
-					ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
-
-					const rtm::quatf& rotation = animated_track_cache.consume_rotation(rounding_policy_);
-
-					ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
-					ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
-
-					if (!writer.skip_track_rotation(track_index))
-						writer.write_rotation(track_index, rotation);
-				}
-			}
-		}
-#else
-		// Force inline this function, we only use it to keep the code readable
-		template<class decompression_settings_type, class track_writer_type>
-		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_animated_rotation_sub_tracks(
-			const packed_sub_track_types* rotation_sub_track_types, uint32_t last_entry_index,
-			const persistent_transform_decompression_context_v0& context,
-			animated_track_cache_v0& animated_track_cache, track_writer_type& writer)
-		{
-			const sample_rounding_policy rounding_policy = context.get_rounding_policy();
-
-			for (uint32_t entry_index = 0, track_index = 0; entry_index <= last_entry_index; ++entry_index)
-			{
-				// Mask out everything but animated sub-tracks, this way we can early out when we iterate
-				// Use and_not(..) to load our sub-track types directly from memory on x64 with BMI
-				uint32_t packed_entry = and_not(~0xAAAAAAAAU, rotation_sub_track_types[entry_index].types);
-
-				uint32_t curr_entry_track_index = track_index;
-
-				// We might early out below, always skip 16 tracks
-				track_index += 16;
-
-				// Process 4 sub-tracks at a time
-				while (packed_entry != 0)
-				{
-					const uint32_t packed_group = packed_entry;
-					const uint32_t curr_group_track_index = curr_entry_track_index;
-
-					// Move to the next group
-					packed_entry <<= 8;
-					curr_entry_track_index += 4;
-
-					if ((packed_group & 0xAA000000) == 0)
-						continue;	// This group contains no animated sub-tracks, skip it
-
-					// Unpack our next 4 tracks
-					animated_track_cache.unpack_rotation_group<decompression_settings_type>(context);
-
-					if ((packed_group & 0x80000000) != 0)
-					{
-						const uint32_t track_index0 = curr_group_track_index + 0;
-
-						// We need the true rounding policy to be statically known when per track rounding is not supported
-						// When it isn't supported, we always use 'none' since the interpolation alpha was properly calculated
-						// and rounding has already been performed for us.
-						const sample_rounding_policy rounding_policy_ =
-							decompression_settings_type::is_per_track_rounding_supported() ?
-							writer.get_rounding_policy(rounding_policy, track_index0) :
-							sample_rounding_policy::none;
-
-						ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
-
-						const rtm::quatf& rotation = animated_track_cache.consume_rotation(rounding_policy_);
-
-						ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
-						ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
-
-						if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index0))
-							writer.write_rotation(track_index0, rotation);
-					}
-
-					if ((packed_group & 0x20000000) != 0)
-					{
-						const uint32_t track_index1 = curr_group_track_index + 1;
-
-						// We need the true rounding policy to be statically known when per track rounding is not supported
-						// When it isn't supported, we always use 'none' since the interpolation alpha was properly calculated
-						// and rounding has already been performed for us.
-						const sample_rounding_policy rounding_policy_ =
-							decompression_settings_type::is_per_track_rounding_supported() ?
-							writer.get_rounding_policy(rounding_policy, track_index1) :
-							sample_rounding_policy::none;
-
-						ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
-
-						const rtm::quatf& rotation = animated_track_cache.consume_rotation(rounding_policy_);
-
-						ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
-						ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
-
-						if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index1))
-							writer.write_rotation(track_index1, rotation);
-					}
-
-					if ((packed_group & 0x08000000) != 0)
-					{
-						const uint32_t track_index2 = curr_group_track_index + 2;
-
-						// We need the true rounding policy to be statically known when per track rounding is not supported
-						// When it isn't supported, we always use 'none' since the interpolation alpha was properly calculated
-						// and rounding has already been performed for us.
-						const sample_rounding_policy rounding_policy_ =
-							decompression_settings_type::is_per_track_rounding_supported() ?
-							writer.get_rounding_policy(rounding_policy, track_index2) :
-							sample_rounding_policy::none;
-
-						ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
-
-						const rtm::quatf& rotation = animated_track_cache.consume_rotation(rounding_policy_);
-
-						ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
-						ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
-
-						if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index2))
-							writer.write_rotation(track_index2, rotation);
-					}
-
-					if ((packed_group & 0x02000000) != 0)
-					{
-						const uint32_t track_index3 = curr_group_track_index + 3;
-
-						// We need the true rounding policy to be statically known when per track rounding is not supported
-						// When it isn't supported, we always use 'none' since the interpolation alpha was properly calculated
-						// and rounding has already been performed for us.
-						const sample_rounding_policy rounding_policy_ =
-							decompression_settings_type::is_per_track_rounding_supported() ?
-							writer.get_rounding_policy(rounding_policy, track_index3) :
-							sample_rounding_policy::none;
-
-						ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
-
-						const rtm::quatf& rotation = animated_track_cache.consume_rotation(rounding_policy_);
-
-						ACL_ASSERT(rtm::quat_is_finite(rotation), "Rotation is not valid!");
-						ACL_ASSERT(rtm::quat_is_normalized(rotation), "Rotation is not normalized!");
-
-						if (!track_writer_type::skip_all_rotations() && !writer.skip_track_rotation(track_index3))
-							writer.write_rotation(track_index3, rotation);
-					}
-				}
-			}
-		}
-#endif
-
 		// Force inline this function, we only use it to keep the code readable
 		template<class decompression_settings_adapter_type, class track_writer_type>
 		ACL_IMPL_DEBUG_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK void RTM_SIMD_CALL unpack_animated_translation_sub_tracks(
@@ -1742,11 +1553,9 @@ namespace acl
 			// Quite a few of these memory streams might live in separate memory pages if the clip is large
 			// and might thus require TLB misses
 
-			// TODO: Unpack 4, then iterate over tracks to write?
-			// Can we keep the rotations in registers? Does it matter?
 			// Unpack rotations first
 			// Animated rotation sub-tracks are very common, this should take at least 400 cycles
-			unpack_animated_rotation_sub_tracks<decompression_settings_type>(rotation_sub_track_types, last_entry_index, context, animated_track_cache, writer);
+			step_unpack_animated_rotations<decompression_settings_type>(rotation_sub_track_types, last_entry_index, context, animated_track_cache, writer);
 
 			// Unpack translations second
 			// Animated translation sub-tracks are common, this should take at least 200 cycles
