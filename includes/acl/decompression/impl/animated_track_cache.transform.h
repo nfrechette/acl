@@ -30,6 +30,7 @@
 #include "acl/decompression/impl/track_cache.h"
 #include "acl/decompression/impl/decompression_context.transform.h"
 #include "acl/decompression/impl/steps/animated_unpack_config.h"
+#include "acl/decompression/impl/steps/animated_unpack_types.h"
 #include "acl/math/quatf.h"
 #include "acl/math/vector4f.h"
 
@@ -66,35 +67,6 @@ namespace acl
 
 	namespace acl_impl
 	{
-		struct clip_animated_sampling_context_v0
-		{
-			// Data is ordered in groups of 4 animated sub-tracks (e.g rot0, rot1, rot2, rot3)
-			// Order depends on animated track order. If we have 6 animated rotation tracks before the first animated
-			// translation track, we'll have 8 animated rotation sub-tracks followed by 4 animated translation sub-tracks.
-			// Once we reach the end, there is no extra padding. The last group might be less than 4 sub-tracks.
-			// This is because we always process 4 animated sub-tracks at a time and cache the results.
-
-			const uint8_t* clip_range_data;				// Range information of the current sub-track in the clip
-		};
-
-		struct segment_animated_sampling_context_v0
-		{
-			// Data is ordered in groups of 4 animated sub-tracks (e.g rot0, rot1, rot2, rot3)
-			// Order depends on animated track order. If we have 6 animated rotation tracks before the first animated
-			// translation track, we'll have 8 animated rotation sub-tracks followed by 4 animated translation sub-tracks.
-			// Once we reach the end, there is no extra padding. The last group might be less than 4 sub-tracks.
-			// This is because we always process 4 animated sub-tracks at a time and cache the results.
-
-			const uint8_t* format_per_track_data;		// Metadata of the current sub-track
-			const uint8_t* segment_range_data;			// Range information (or constant sample if bit rate is 0) of the current sub-track in this segment
-
-			// For the animated samples, constant bit rate sub-tracks (with a bit rate of 0) do not contain samples.
-			// As such, their group will not contain 4 sub-tracks.
-
-			const uint8_t* animated_track_data;			// Base of animated sample data, constant and doesn't change after init
-			uint32_t animated_track_data_bit_offset;	// Bit offset of the current animated sub-track
-		};
-
 		struct alignas(32) segment_animated_scratch_v0
 		{
 			// We store out potential range data in SOA form and we have no W, just XYZ
