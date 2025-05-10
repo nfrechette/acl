@@ -3,6 +3,8 @@ build/
 *.suo
 **/__pycache__/
 .vscode/
+.idea/
+cmake-build-debug/
 
 # Test data rules
 test_data/*.zip
