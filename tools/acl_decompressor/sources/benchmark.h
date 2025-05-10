@@ -37,7 +37,7 @@
 //#define ACL_IMPL_BENCHMARK_BIT_SET_ITERATION
 
 // Whether or not to enable the unpacking benchmarks
-#define ACL_IMPL_BENCHMARK_UNPACKING
+//#define ACL_IMPL_BENCHMARK_UNPACKING
 
 extern acl::ansi_allocator s_allocator;
 
