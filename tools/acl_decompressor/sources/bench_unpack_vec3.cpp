@@ -161,7 +161,7 @@ rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_neon_v1(
 	// value.
 	// num bits: {bit range from MSB} = {byte range from MSB}
 	// 0 : dummy, not used
-	// 1 : {[0,8],  [1,9],   [2,10]}  = {[0,1,2,3], [0,1,2,3],   [0,1,2,3]}	mask 0 ((x-1)/8) = 0
+	// 1 : {[0,8],  [1,9],   [2,10]}  = {[0,1,2,3], [0,1,2,3],   [0,1,2,3]}
 	// 2 : {[0,9],  [2,11],  [4,13]}  = {[0,1,2,3], [0,1,2,3],   [0,1,2,3]}
 	// 3 : {[0,10], [3,13],  [6,16]}  = {[0,1,2,3], [0,1,2,3],   [0,1,2,3]}
 	// 4 : {[0,11], [4,15],  [8,19]}  = {[0,1,2,3], [0,1,2,3],   [0,1,2,3]}
@@ -169,7 +169,7 @@ rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_neon_v1(
 	// 6 : {[0,13], [6,19],  [12,25]} = {[0,1,2,3], [0,1,2,3],   [0,1,2,3]}
 	// 7 : {[0,14], [7,21],  [14,28]} = {[0,1,2,3], [0,1,2,3],   [0,1,2,3]}
 	// 8 : {[0,15], [8,23],  [16,31]} = {[0,1,2,3], [0,1,2,3],   [0,1,2,3]}
-	// 9 : {[0,16], [9,25],  [18,34]} = {[0,1,2,3], [1,2,3,4],   [2,3,4,5]}	mask 1 ((x-1)/8) = 1
+	// 9 : {[0,16], [9,25],  [18,34]} = {[0,1,2,3], [1,2,3,4],   [2,3,4,5]}
 	// 10: {[0,17], [10,27], [20,37]} = {[0,1,2,3], [1,2,3,4],   [2,3,4,5]}
 	// 11: {[0,18], [11,29], [22,40]} = {[0,1,2,3], [1,2,3,4],   [2,3,4,5]}
 	// 12: {[0,19], [12,31], [24,43]} = {[0,1,2,3], [1,2,3,4],   [2,3,4,5]}
@@ -177,7 +177,7 @@ rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_neon_v1(
 	// 14: {[0,21], [14,35], [28,49]} = {[0,1,2,3], [1,2,3,4],   [2,3,4,5,6]}
 	// 15: {[0,22], [15,37], [30,52]} = {[0,1,2,3], [1,2,3,4],   [2,3,4,5,6]}
 	// 16: {[0,23], [16,39], [32,55]} = {[0,1,2,3], [1,2,3,4],   [2,3,4,5,6]}
-	// 17: {[0,24], [17,41], [34,58]} = {[0,1,2,3], [2,3,4,5],   [4,5,6,7]}	mask 2 ((x-1)/8) = 2
+	// 17: {[0,24], [17,41], [34,58]} = {[0,1,2,3], [2,3,4,5],   [4,5,6,7]}
 	// 18: {[0,25], [18,43], [36,61]} = {[0,1,2,3], [2,3,4,5],   [4,5,6,7]}
 	// 19: {[0,26], [19,45], [38,64]} = {[0,1,2,3], [2,3,4,5],   [4,5,6,7,8]}
 	// 20: {[0,27], [20,47], [40,67]} = {[0,1,2,3], [2,3,4,5],   [5,6,7,8]}
@@ -238,7 +238,7 @@ rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_neon_v1(
 	// These values can easily be synthetized to avoid a potential cache miss and minimize
 	// the number of constants we have.
 
-	// Total size: 8 + 4*24 = 104
+	// Total size: 4*24 = 96
 	struct NEONConstants_t
 	{
 		float max_value[24];
@@ -264,12 +264,23 @@ rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_neon_v1(
 
 	// Select and swizzle using our mask
 	const uint8_t swizzle_mask_z_offset = static_cast<uint8_t>((num_bits >> 2) & 0x04);	// num_bits >= 16 ? 4 : 0
-	const uint64x2_t swizzle_mask_base = vmovq_n_u64(0x0001020304050607ULL);
-	const uint8x16_t swizzle_mask_xy = vreinterpretq_u8_u64(swizzle_mask_base);
-	const uint8x16_t swizzle_mask_zw = vreinterpretq_u8_u64(vaddq_u64(swizzle_mask_base, vreinterpretq_u64_u8(vmovq_n_u8(swizzle_mask_z_offset))));
+
+#if defined(RTM_NEON64_INTRINSICS)
+	const uint8x16_t swizzle_mask_base = vreinterpretq_u8_u64(vmovq_n_u64(0x0001020304050607ULL));
+	const uint8x16_t swizzle_mask_xy = swizzle_mask_base;
+	const uint8x16_t swizzle_mask_zw = vaddq_u8(swizzle_mask_base, vmovq_n_u8(swizzle_mask_z_offset));
 
 	uint64x2_t xy = vreinterpretq_u64_u8(vqtbl1q_u8(raw_bytes, swizzle_mask_xy));
 	uint64x2_t zw = vreinterpretq_u64_u8(vqtbl1q_u8(raw_bytes, swizzle_mask_zw));
+#else
+	const uint8x8_t swizzle_mask_base = vreinterpret_u8_u64(vmov_n_u64(0x0001020304050607ULL));
+	const uint8x8x2_t raw_bytes_split = { vget_low_u8(raw_bytes), vget_high_u8(raw_bytes) };
+	const uint8x8_t swizzle_mask_xy = swizzle_mask_base;
+	const uint8x8_t swizzle_mask_zw = vadd_u8(swizzle_mask_base, vmov_n_u8(swizzle_mask_z_offset));
+
+	uint64x2_t xy = vdupq_lane_u64(vreinterpret_u64_u8(vtbl1_u8(vget_low_u8(raw_bytes), swizzle_mask_xy)), 0);
+	uint64x2_t zw = vdupq_lane_u64(vreinterpret_u64_u8(vtbl2_u8(raw_bytes_split, swizzle_mask_zw)), 0);
+#endif
 
 	// Shift out the extra bits
 	const int64x2_t shift_offset_xy = vreinterpretq_s64_u64(vcombine_u64(vcreate_u64(base_bit_offset), vcreate_u64(base_bit_offset + num_bits)));
@@ -286,7 +297,11 @@ rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_neon_v1(
 
 	// Combine and mask our the extra bits
 	// As u64, we have: {x, y}, but when we cast to u32, we get: {x, _, y, _}
-	uint32x4_t xyzw_u32 = vuzp1q_u32(vreinterpretq_u32_u64(xy), vreinterpretq_u32_u64(zw));
+#if defined(RTM_NEON64_INTRINSICS)
+	const uint32x4_t xyzw_u32 = vuzp1q_u32(vreinterpretq_u32_u64(xy), vreinterpretq_u32_u64(zw));
+#else
+	const uint32x4_t xyzw_u32 = vuzpq_u32(vreinterpretq_u32_u64(xy), vreinterpretq_u32_u64(zw)).val[0];
+#endif
 
 	// Convert to float and re-scale
 	const float inv_max_value = k_packed_constants.max_value[num_bits];
