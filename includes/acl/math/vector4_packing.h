@@ -917,8 +917,13 @@ namespace acl
 		return rtm::vector_neg_mul_sub(decayed, -2.0F, rtm::vector_set(-1.0F));
 	}
 
+#if defined(RTM_SSE2_INTRINSICS)
 	// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 16 bytes from it
-	inline rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_unsafe(uint32_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
+	ACL_IMPL_DEBUG_FORCE_INLINE
+	rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_unsafe(
+		uint32_t num_bits,
+		const uint8_t* vector_data,
+		uint32_t bit_offset)
 	{
 		ACL_ASSERT(num_bits <= 23, "This function does not support reading more than 23 bits per component");
 
@@ -943,7 +948,6 @@ namespace acl
 			PackedTableEntry(20), PackedTableEntry(21), PackedTableEntry(22), PackedTableEntry(23),
 		};
 
-#if defined(RTM_SSE2_INTRINSICS)
 		const uint32_t bit_shift = 32 - num_bits;
 		const __m128i mask = _mm_castps_si128(_mm_load_ps1((const float*)&k_packed_constants[num_bits].mask));
 		const __m128 inv_max_value = _mm_load_ps1(&k_packed_constants[num_bits].max_value);
@@ -971,7 +975,38 @@ namespace acl
 		int_value = _mm_and_si128(int_value, mask);
 		const __m128 value = _mm_cvtepi32_ps(int_value);
 		return _mm_mul_ps(value, inv_max_value);
+	}
 #elif defined(RTM_NEON_INTRINSICS)
+	// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 16 bytes from it
+	ACL_IMPL_DEBUG_FORCE_INLINE
+	rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_unsafe(
+		uint32_t num_bits,
+		const uint8_t* vector_data,
+		uint32_t bit_offset)
+	{
+		ACL_ASSERT(num_bits <= 23, "This function does not support reading more than 23 bits per component");
+
+		struct PackedTableEntry
+		{
+			explicit constexpr PackedTableEntry(uint8_t num_bits_)
+				: max_value(num_bits_ == 0 ? 1.0F : (1.0F / float((1 << num_bits_) - 1)))
+				, mask((1U << num_bits_) - 1)
+			{}
+
+			float max_value;
+			uint32_t mask;
+		};
+
+		alignas(64) static constexpr PackedTableEntry k_packed_constants[24] =
+		{
+			PackedTableEntry(0), PackedTableEntry(1), PackedTableEntry(2), PackedTableEntry(3),
+			PackedTableEntry(4), PackedTableEntry(5), PackedTableEntry(6), PackedTableEntry(7),
+			PackedTableEntry(8), PackedTableEntry(9), PackedTableEntry(10), PackedTableEntry(11),
+			PackedTableEntry(12), PackedTableEntry(13), PackedTableEntry(14), PackedTableEntry(15),
+			PackedTableEntry(16), PackedTableEntry(17), PackedTableEntry(18), PackedTableEntry(19),
+			PackedTableEntry(20), PackedTableEntry(21), PackedTableEntry(22), PackedTableEntry(23),
+		};
+
 		const uint32_t bit_shift = 32 - num_bits;
 #if defined(RTM_COMPILER_MSVC)
 		// MSVC uses an alias
@@ -1006,7 +1041,38 @@ namespace acl
 		value_u32 = vandq_u32(value_u32, mask);
 		float32x4_t value_f32 = vcvtq_f32_u32(value_u32);
 		return vmulq_n_f32(value_f32, inv_max_value);
+	}
 #else
+	// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 16 bytes from it
+	ACL_IMPL_DEBUG_FORCE_INLINE
+	rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_unsafe(
+		uint32_t num_bits,
+		const uint8_t* vector_data,
+		uint32_t bit_offset)
+	{
+		ACL_ASSERT(num_bits <= 23, "This function does not support reading more than 23 bits per component");
+
+		struct PackedTableEntry
+		{
+			explicit constexpr PackedTableEntry(uint8_t num_bits_)
+				: max_value(num_bits_ == 0 ? 1.0F : (1.0F / float((1 << num_bits_) - 1)))
+				, mask((1U << num_bits_) - 1)
+			{}
+
+			float max_value;
+			uint32_t mask;
+		};
+
+		alignas(64) static constexpr PackedTableEntry k_packed_constants[24] =
+		{
+			PackedTableEntry(0), PackedTableEntry(1), PackedTableEntry(2), PackedTableEntry(3),
+			PackedTableEntry(4), PackedTableEntry(5), PackedTableEntry(6), PackedTableEntry(7),
+			PackedTableEntry(8), PackedTableEntry(9), PackedTableEntry(10), PackedTableEntry(11),
+			PackedTableEntry(12), PackedTableEntry(13), PackedTableEntry(14), PackedTableEntry(15),
+			PackedTableEntry(16), PackedTableEntry(17), PackedTableEntry(18), PackedTableEntry(19),
+			PackedTableEntry(20), PackedTableEntry(21), PackedTableEntry(22), PackedTableEntry(23),
+		};
+
 		const uint32_t bit_shift = 32 - num_bits;
 		const uint32_t mask = k_packed_constants[num_bits].mask;
 		const float inv_max_value = k_packed_constants[num_bits].max_value;
@@ -1031,8 +1097,8 @@ namespace acl
 		const uint32_t z32 = (vector_u32 >> (bit_shift - (bit_offset % 8))) & mask;
 
 		return rtm::vector_mul(rtm::vector_set(float(x32), float(y32), float(z32)), inv_max_value);
-#endif
 	}
+#endif
 
 	// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 16 bytes from it
 	inline rtm::vector4f RTM_SIMD_CALL unpack_vector3_sXX_unsafe(uint32_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
