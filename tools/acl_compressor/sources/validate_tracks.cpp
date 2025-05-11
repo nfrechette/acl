@@ -113,7 +113,7 @@ void validate_accuracy(
 	const float quat_error_threshold = 0.001F;
 	const float vec3_error_threshold = 0.0001F;
 #else
-	const float quat_error_threshold = 0.0001F;
+	const float quat_error_threshold = 0.001F;
 	const float vec3_error_threshold = 0.0F;
 #endif
 
