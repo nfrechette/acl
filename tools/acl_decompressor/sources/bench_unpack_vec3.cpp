@@ -563,12 +563,22 @@ static void bm_unpack_vector3_uXX_ref(benchmark::State& state)
 	rtm::vector4f v2 = rtm::vector_zero();
 	rtm::vector4f v3 = rtm::vector_zero();
 
+	volatile uint32_t num_bits_0 = 5;
+	volatile uint32_t num_bits_1 = 6;
+	volatile uint32_t num_bits_2 = 7;
+	volatile uint32_t num_bits_3 = 8;
+
+	volatile uint32_t bit_offset_0 = 4;
+	volatile uint32_t bit_offset_1 = 5;
+	volatile uint32_t bit_offset_2 = 6;
+	volatile uint32_t bit_offset_3 = 7;
+
 	for (auto _ : state)
 	{
-		v0 = rtm::vector_add(unpack_vector3_uXX_ref(5, buffer, 5), v0);
-		v1 = rtm::vector_add(unpack_vector3_uXX_ref(5, buffer, 5), v1);
-		v2 = rtm::vector_add(unpack_vector3_uXX_ref(5, buffer, 5), v2);
-		v3 = rtm::vector_add(unpack_vector3_uXX_ref(5, buffer, 5), v3);
+		v0 = rtm::vector_add(unpack_vector3_uXX_ref(num_bits_0, buffer, bit_offset_0), v0);
+		v1 = rtm::vector_add(unpack_vector3_uXX_ref(num_bits_1, buffer, bit_offset_1), v1);
+		v2 = rtm::vector_add(unpack_vector3_uXX_ref(num_bits_2, buffer, bit_offset_2), v2);
+		v3 = rtm::vector_add(unpack_vector3_uXX_ref(num_bits_3, buffer, bit_offset_3), v3);
 	}
 
 	benchmark::DoNotOptimize(buffer);
@@ -589,12 +599,23 @@ static void bm_unpack_vector3_uXX_neon_v0(benchmark::State& state)
 	rtm::vector4f v2 = rtm::vector_zero();
 	rtm::vector4f v3 = rtm::vector_zero();
 
+	// Prevent compiler from specializing the call with a constant
+	volatile uint32_t num_bits_0 = 5;
+	volatile uint32_t num_bits_1 = 6;
+	volatile uint32_t num_bits_2 = 7;
+	volatile uint32_t num_bits_3 = 8;
+
+	volatile uint32_t bit_offset_0 = 4;
+	volatile uint32_t bit_offset_1 = 5;
+	volatile uint32_t bit_offset_2 = 6;
+	volatile uint32_t bit_offset_3 = 7;
+
 	for (auto _ : state)
 	{
-		v0 = rtm::vector_add(unpack_vector3_uXX_neon_v0(5, buffer, 5), v0);
-		v1 = rtm::vector_add(unpack_vector3_uXX_neon_v0(5, buffer, 5), v1);
-		v2 = rtm::vector_add(unpack_vector3_uXX_neon_v0(5, buffer, 5), v2);
-		v3 = rtm::vector_add(unpack_vector3_uXX_neon_v0(5, buffer, 5), v3);
+		v0 = rtm::vector_add(unpack_vector3_uXX_neon_v0(num_bits_0, buffer, bit_offset_0), v0);
+		v1 = rtm::vector_add(unpack_vector3_uXX_neon_v0(num_bits_1, buffer, bit_offset_1), v1);
+		v2 = rtm::vector_add(unpack_vector3_uXX_neon_v0(num_bits_2, buffer, bit_offset_2), v2);
+		v3 = rtm::vector_add(unpack_vector3_uXX_neon_v0(num_bits_3, buffer, bit_offset_3), v3);
 	}
 
 	benchmark::DoNotOptimize(buffer);
@@ -614,12 +635,23 @@ static void bm_unpack_vector3_uXX_neon_v1(benchmark::State& state)
 	rtm::vector4f v2 = rtm::vector_zero();
 	rtm::vector4f v3 = rtm::vector_zero();
 
+	// Prevent compiler from specializing the call with a constant
+	volatile uint32_t num_bits_0 = 5;
+	volatile uint32_t num_bits_1 = 6;
+	volatile uint32_t num_bits_2 = 7;
+	volatile uint32_t num_bits_3 = 8;
+
+	volatile uint32_t bit_offset_0 = 4;
+	volatile uint32_t bit_offset_1 = 5;
+	volatile uint32_t bit_offset_2 = 6;
+	volatile uint32_t bit_offset_3 = 7;
+
 	for (auto _ : state)
 	{
-		v0 = rtm::vector_add(unpack_vector3_uXX_neon_v1(5, buffer, 5), v0);
-		v1 = rtm::vector_add(unpack_vector3_uXX_neon_v1(5, buffer, 5), v1);
-		v2 = rtm::vector_add(unpack_vector3_uXX_neon_v1(5, buffer, 5), v2);
-		v3 = rtm::vector_add(unpack_vector3_uXX_neon_v1(5, buffer, 5), v3);
+		v0 = rtm::vector_add(unpack_vector3_uXX_neon_v1(num_bits_0, buffer, bit_offset_0), v0);
+		v1 = rtm::vector_add(unpack_vector3_uXX_neon_v1(num_bits_1, buffer, bit_offset_1), v1);
+		v2 = rtm::vector_add(unpack_vector3_uXX_neon_v1(num_bits_2, buffer, bit_offset_2), v2);
+		v3 = rtm::vector_add(unpack_vector3_uXX_neon_v1(num_bits_3, buffer, bit_offset_3), v3);
 	}
 
 	benchmark::DoNotOptimize(buffer);
@@ -630,6 +662,42 @@ static void bm_unpack_vector3_uXX_neon_v1(benchmark::State& state)
 }
 
 BENCHMARK(bm_unpack_vector3_uXX_neon_v1);
+
+static void bm_unpack_vector3_uXX_neon_v2(benchmark::State& state)
+{
+	uint8_t buffer[128] = { 0 };
+	rtm::vector4f v0 = rtm::vector_zero();
+	rtm::vector4f v1 = rtm::vector_zero();
+	rtm::vector4f v2 = rtm::vector_zero();
+	rtm::vector4f v3 = rtm::vector_zero();
+
+	// Prevent compiler from specializing the call with a constant
+	volatile uint32_t num_bits_0 = 5;
+	volatile uint32_t num_bits_1 = 6;
+	volatile uint32_t num_bits_2 = 7;
+	volatile uint32_t num_bits_3 = 8;
+
+	volatile uint32_t bit_offset_0 = 4;
+	volatile uint32_t bit_offset_1 = 5;
+	volatile uint32_t bit_offset_2 = 6;
+	volatile uint32_t bit_offset_3 = 7;
+
+	for (auto _ : state)
+	{
+		v0 = rtm::vector_add(unpack_vector3_uXX_neon_v2(num_bits_0, buffer, bit_offset_0), v0);
+		v1 = rtm::vector_add(unpack_vector3_uXX_neon_v2(num_bits_1, buffer, bit_offset_1), v1);
+		v2 = rtm::vector_add(unpack_vector3_uXX_neon_v2(num_bits_2, buffer, bit_offset_2), v2);
+		v3 = rtm::vector_add(unpack_vector3_uXX_neon_v2(num_bits_3, buffer, bit_offset_3), v3);
+	}
+
+	benchmark::DoNotOptimize(buffer);
+	benchmark::DoNotOptimize(v0);
+	benchmark::DoNotOptimize(v1);
+	benchmark::DoNotOptimize(v2);
+	benchmark::DoNotOptimize(v3);
+}
+
+BENCHMARK(bm_unpack_vector3_uXX_neon_v2);
 #endif	// defined(RTM_NEON_INTRINSICS)
 
 #if defined(RTM_SSE2_INTRINSICS)
@@ -641,12 +709,23 @@ static void bm_unpack_vector3_uXX_sse2_v0(benchmark::State& state)
 	rtm::vector4f v2 = rtm::vector_zero();
 	rtm::vector4f v3 = rtm::vector_zero();
 
+	// Prevent compiler from specializing the call with a constant
+	volatile uint32_t num_bits_0 = 5;
+	volatile uint32_t num_bits_1 = 6;
+	volatile uint32_t num_bits_2 = 7;
+	volatile uint32_t num_bits_3 = 8;
+
+	volatile uint32_t bit_offset_0 = 4;
+	volatile uint32_t bit_offset_1 = 5;
+	volatile uint32_t bit_offset_2 = 6;
+	volatile uint32_t bit_offset_3 = 7;
+
 	for (auto _ : state)
 	{
-		v0 = rtm::vector_add(unpack_vector3_uXX_sse2_v0(5, buffer, 5), v0);
-		v1 = rtm::vector_add(unpack_vector3_uXX_sse2_v0(5, buffer, 5), v1);
-		v2 = rtm::vector_add(unpack_vector3_uXX_sse2_v0(5, buffer, 5), v2);
-		v3 = rtm::vector_add(unpack_vector3_uXX_sse2_v0(5, buffer, 5), v3);
+		v0 = rtm::vector_add(unpack_vector3_uXX_sse2_v0(num_bits_0, buffer, bit_offset_0), v0);
+		v1 = rtm::vector_add(unpack_vector3_uXX_sse2_v0(num_bits_1, buffer, bit_offset_1), v1);
+		v2 = rtm::vector_add(unpack_vector3_uXX_sse2_v0(num_bits_2, buffer, bit_offset_2), v2);
+		v3 = rtm::vector_add(unpack_vector3_uXX_sse2_v0(num_bits_3, buffer, bit_offset_3), v3);
 	}
 
 	benchmark::DoNotOptimize(buffer);
