@@ -221,9 +221,6 @@ namespace acl
 						packed_entry <<= 8;
 						curr_entry_track_index += 4;
 
-						if ((packed_group & 0xAA000000) == 0)
-							continue;	// This group contains no default sub-tracks, skip it
-
 						if ((packed_group & 0x80000000) != 0)
 						{
 							const uint32_t track_index0 = curr_group_track_index + 0;

@@ -229,9 +229,6 @@ namespace acl
 						packed_entry <<= 8;
 						curr_entry_track_index += 4;
 
-						if ((packed_group & 0xAA000000) == 0)
-							continue;	// This group contains no default sub-tracks, skip it
-
 						// Unpack our next 4 tracks
 						animated_track_cache.unpack_rotation_group<decompression_settings_type>(decomp_context);
 

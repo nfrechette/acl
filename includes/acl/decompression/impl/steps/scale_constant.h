@@ -195,9 +195,6 @@ namespace acl
 						packed_entry <<= 8;
 						curr_entry_track_index += 4;
 
-						if ((packed_group & 0x55000000) == 0)
-						continue;	// This group contains no constant sub-tracks, skip it
-
 						if ((packed_group & 0x40000000) != 0)
 						{
 							const uint32_t track_index0 = curr_group_track_index + 0;
