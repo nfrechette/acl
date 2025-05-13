@@ -475,10 +475,13 @@ namespace acl
 		return rtm::vector_load(vector_data);
 	}
 
-	// Assumes the 'vector_data' is in big-endian order and is padded in order to load up to 19 bytes from it
-	inline rtm::vector4f RTM_SIMD_CALL unpack_vector3_96_unsafe(const uint8_t* vector_data, uint32_t bit_offset)
-	{
 #if defined(RTM_SSE2_INTRINSICS)
+	// Assumes the 'vector_data' is in big-endian order and is padded in order to load up to 19 bytes from it
+	ACL_IMPL_DEBUG_FORCE_INLINE
+	rtm::vector4f RTM_SIMD_CALL unpack_vector3_96_unsafe(
+		const uint8_t* vector_data,
+		uint32_t bit_offset)
+	{
 		const uint32_t byte_offset = bit_offset / 8;
 		const uint32_t shift_offset = bit_offset % 8;
 		uint64_t vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 0);
@@ -503,7 +506,14 @@ namespace acl
 		const uint32_t z32 = uint32_t(vector_u64);
 
 		return _mm_castsi128_ps(_mm_set_epi32(static_cast<int32_t>(x32), static_cast<int32_t>(z32), static_cast<int32_t>(y32), static_cast<int32_t>(x32)));
+	}
 #elif defined(RTM_NEON64_INTRINSICS) && defined(__clang__) && __clang_major__ == 3 && __clang_minor__ == 8
+	// Assumes the 'vector_data' is in big-endian order and is padded in order to load up to 19 bytes from it
+	ACL_IMPL_DEBUG_FORCE_INLINE
+	rtm::vector4f RTM_SIMD_CALL unpack_vector3_96_unsafe(
+		const uint8_t* vector_data,
+		uint32_t bit_offset)
+	{
 		// Clang 3.8 has a bug in its codegen and we have to use a slightly slower impl to avoid it
 		// This is a pretty old version but UE 4.23 still uses it on android
 		const uint32_t byte_offset = bit_offset / 8;
@@ -524,7 +534,14 @@ namespace acl
 
 		const uint32x4_t xyz32 = vcombine_u32(xy32, vreinterpret_u32_u64(z64));
 		return vreinterpretq_f32_u32(xyz32);
+	}
 #elif defined(RTM_NEON64_INTRINSICS)
+	// Assumes the 'vector_data' is in big-endian order and is padded in order to load up to 19 bytes from it
+	ACL_IMPL_DEBUG_FORCE_INLINE
+	rtm::vector4f RTM_SIMD_CALL unpack_vector3_96_unsafe(
+		const uint8_t* vector_data,
+		uint32_t bit_offset)
+	{
 		const uint32_t byte_offset = bit_offset / 8;
 		const uint32_t shift_offset = bit_offset % 8;
 		uint64_t vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 0);
@@ -547,7 +564,14 @@ namespace acl
 		const uint32x2_t z = vcreate_u32(z64);
 		const uint32x4_t value_u32 = vcombine_u32(xy, z);
 		return vreinterpretq_f32_u32(value_u32);
+	}
 #elif defined(RTM_NEON_INTRINSICS)
+	// Assumes the 'vector_data' is in big-endian order and is padded in order to load up to 19 bytes from it
+	ACL_IMPL_DEBUG_FORCE_INLINE
+	rtm::vector4f RTM_SIMD_CALL unpack_vector3_96_unsafe(
+		const uint8_t* vector_data,
+		uint32_t bit_offset)
+	{
 		const uint32_t byte_offset = bit_offset / 8;
 		const uint32_t shift_offset = bit_offset % 8;
 
@@ -566,7 +590,14 @@ namespace acl
 
 		const uint32x4_t xyz32 = vcombine_u32(xy32, vrev64_u32(vreinterpret_u32_u64(z64)));
 		return vreinterpretq_f32_u32(xyz32);
+	}
 #else
+	// Assumes the 'vector_data' is in big-endian order and is padded in order to load up to 19 bytes from it
+	ACL_IMPL_DEBUG_FORCE_INLINE
+	rtm::vector4f RTM_SIMD_CALL unpack_vector3_96_unsafe(
+		const uint8_t* vector_data,
+		uint32_t bit_offset)
+	{
 		const uint32_t byte_offset = bit_offset / 8;
 		const uint32_t shift_offset = bit_offset % 8;
 		uint64_t vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 0);
@@ -595,8 +626,8 @@ namespace acl
 		const float z = aligned_load<float>(&z64);
 
 		return rtm::vector_set(x, y, z);
-#endif
 	}
+#endif
 
 	// Assumes the 'out_vector_data' is padded in order to write up to 16 bytes to it
 	inline void RTM_SIMD_CALL pack_vector3_u48_unsafe(rtm::vector4f_arg0 vector, uint8_t* out_vector_data)
