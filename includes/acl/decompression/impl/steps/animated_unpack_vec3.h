@@ -36,7 +36,7 @@
 // Controls which variant to use for this decompression step
 // 0: ACL 2.1 (baseline)
 // 1: ???
-#define ACL_IMPL_STEP_CURRENT_VARIANT 0
+#define ACL_IMPL_STEP_CURRENT_GROUP_VARIANT 0
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
@@ -46,10 +46,10 @@ namespace acl
 
 	namespace acl_impl
 	{
-#if ACL_IMPL_STEP_CURRENT_VARIANT == 0 // ACL 2.1 (baseline)
+#if ACL_IMPL_STEP_CURRENT_GROUP_VARIANT == 0 // ACL 2.1 (baseline)
 		template<class decompression_settings_adapter_type>
 		inline RTM_DISABLE_SECURITY_COOKIE_CHECK
-		void unpack_animated_vector3(
+		void unpack_grouped_animated_vector3(
 			const persistent_transform_decompression_context_v0& decomp_context,
 			rtm::vector4f output_scratch[4],
 			uint32_t num_to_unpack,
@@ -171,6 +171,8 @@ namespace acl
 			ACL_IMPL_ANIMATED_PREFETCH(animated_track_data + (animated_track_data_bit_offset / 8) + 63);
 			ACL_IMPL_ANIMATED_PREFETCH(segment_range_data + 48);
 		}
+#elif ACL_IMPL_STEP_CURRENT_GROUP_VARIANT == 1 // 1: ???
+#endif
 
 		template<class decompression_settings_adapter_type>
 		inline RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL
@@ -286,13 +288,11 @@ namespace acl
 			ACL_ASSERT(rtm::vector_is_finite3(sample), "Vector3 is not valid!");
 			return sample;
 		}
-#elif ACL_IMPL_STEP_CURRENT_VARIANT == 1 // 1: ???
-#endif
 	}
 
 	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
-#undef ACL_IMPL_STEP_CURRENT_VARIANT
+#undef ACL_IMPL_STEP_CURRENT_GROUP_VARIANT
 
 ACL_IMPL_FILE_PRAGMA_POP
