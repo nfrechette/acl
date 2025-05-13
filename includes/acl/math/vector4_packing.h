@@ -507,64 +507,6 @@ namespace acl
 
 		return _mm_castsi128_ps(_mm_set_epi32(static_cast<int32_t>(x32), static_cast<int32_t>(z32), static_cast<int32_t>(y32), static_cast<int32_t>(x32)));
 	}
-#elif defined(RTM_NEON64_INTRINSICS) && defined(__clang__) && __clang_major__ == 3 && __clang_minor__ == 8
-	// Assumes the 'vector_data' is in big-endian order and is padded in order to load up to 19 bytes from it
-	ACL_IMPL_DEBUG_FORCE_INLINE
-	rtm::vector4f RTM_SIMD_CALL unpack_vector3_96_unsafe(
-		const uint8_t* vector_data,
-		uint32_t bit_offset)
-	{
-		// Clang 3.8 has a bug in its codegen and we have to use a slightly slower impl to avoid it
-		// This is a pretty old version but UE 4.23 still uses it on android
-		const uint32_t byte_offset = bit_offset / 8;
-		const uint32_t shift_offset = bit_offset % 8;
-
-		uint8x16_t x64y64_u8 = vrev64q_u8(vld1q_u8(vector_data + byte_offset + 0));
-		uint64x2_t x64_tmp = vreinterpretq_u64_u8(x64y64_u8);
-		uint64x2_t tmp_y64 = vreinterpretq_u64_u8(vextq_u8(x64y64_u8, x64y64_u8, 4));
-
-		const uint64x2_t shift_offset64 = vdupq_n_u64(shift_offset);
-		x64_tmp = vshlq_u64(x64_tmp, shift_offset64);
-		tmp_y64 = vshlq_u64(tmp_y64, shift_offset64);
-		uint32x2_t xy32 = vreinterpret_u32_u64(vsri_n_u64(vget_high_u32(tmp_y64), vget_low_u64(x64_tmp), 32));
-
-		uint8x8_t z64_u8 = vrev64_u8(vld1_u8(vector_data + byte_offset + 8));
-		uint64x1_t z64 = vreinterpret_u64_u8(z64_u8);
-		z64 = vshl_u64(z64, vdup_n_u64(shift_offset - 32));
-
-		const uint32x4_t xyz32 = vcombine_u32(xy32, vreinterpret_u32_u64(z64));
-		return vreinterpretq_f32_u32(xyz32);
-	}
-#elif defined(RTM_NEON64_INTRINSICS)
-	// Assumes the 'vector_data' is in big-endian order and is padded in order to load up to 19 bytes from it
-	ACL_IMPL_DEBUG_FORCE_INLINE
-	rtm::vector4f RTM_SIMD_CALL unpack_vector3_96_unsafe(
-		const uint8_t* vector_data,
-		uint32_t bit_offset)
-	{
-		const uint32_t byte_offset = bit_offset / 8;
-		const uint32_t shift_offset = bit_offset % 8;
-		uint64_t vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 0);
-		vector_u64 = byte_swap(vector_u64);
-
-		const uint64_t x64 = (vector_u64 >> (32 - shift_offset)) & uint64_t(0x00000000FFFFFFFFULL);
-
-		vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 4);
-		vector_u64 = byte_swap(vector_u64);
-		vector_u64 <<= shift_offset;
-
-		const uint64_t y64 = vector_u64 & uint64_t(0xFFFFFFFF00000000ULL);
-
-		vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 8);
-		vector_u64 = byte_swap(vector_u64);
-
-		const uint64_t z64 = vector_u64 >> (32 - shift_offset);
-
-		const uint32x2_t xy = vcreate_u32(x64 | y64);
-		const uint32x2_t z = vcreate_u32(z64);
-		const uint32x4_t value_u32 = vcombine_u32(xy, z);
-		return vreinterpretq_f32_u32(value_u32);
-	}
 #elif defined(RTM_NEON_INTRINSICS)
 	// Assumes the 'vector_data' is in big-endian order and is padded in order to load up to 19 bytes from it
 	ACL_IMPL_DEBUG_FORCE_INLINE
@@ -572,24 +514,36 @@ namespace acl
 		const uint8_t* vector_data,
 		uint32_t bit_offset)
 	{
+		// Same principle as unpack_vector3_uXX_unsafe, see comment there
+		// 32: {[0,39], [32,71], [64,103]} = {[0,1,2,3,4], [4,5,6,7,8], [8,9,10,11,12]}
+		// Notice that X and Z start at their natural offset
 		const uint32_t byte_offset = bit_offset / 8;
 		const uint32_t shift_offset = bit_offset % 8;
 
-		uint8x16_t x64y64_u8 = vrev64q_u8(vld1q_u8(vector_data + byte_offset + 0));
-		uint64x2_t x64_tmp = vreinterpretq_u64_u8(x64y64_u8);
-		uint64x2_t tmp_y64 = vreinterpretq_u64_u8(vextq_u8(x64y64_u8, x64y64_u8, 4));
+		// Load 16 bytes
+		// [0,1,2,3,4,5,6,7], [8,9,10,11,12,13,14,15]
+		const uint8x16_t raw_bytes = vld1q_u8(vector_data + byte_offset);
 
-		const uint64x2_t shift_offset64 = vdupq_n_u64(shift_offset);
-		x64_tmp = vshlq_u64(x64_tmp, shift_offset64);
-		tmp_y64 = vshlq_u64(tmp_y64, shift_offset64);
-		uint32x2_t xy32 = vreinterpret_u32_u64(vsri_n_u64(vget_high_u32(tmp_y64), vget_low_u64(x64_tmp), 32));
+		// [7,6,5,4,3,2,1,0], [15,14,13,12,11,10,9,8]
+		const uint8x16_t rev_raw_bytes = vrev64q_u8(raw_bytes);
 
-		uint8x8_t z64_u8 = vrev64_u8(vld1_u8(vector_data + byte_offset + 8));
-		uint64x1_t z64 = vreinterpret_u64_u8(z64_u8);
-		z64 = vshl_u64(z64, vdup_n_u64(shift_offset));
+		// Select each component
+		const uint8x16_t xz = rev_raw_bytes;
+		const uint8x16_t y_ = vextq_u8(rev_raw_bytes, rev_raw_bytes, 12);	// [11,10,9,8,7,6,5,4], _
 
-		const uint32x4_t xyz32 = vcombine_u32(xy32, vrev64_u32(vreinterpret_u32_u64(z64)));
-		return vreinterpretq_f32_u32(xyz32);
+		// Combine our pairs
+		uint64x2_t xy = vcombine_u64(vget_low_u64(vreinterpretq_u64_u8(xz)), vget_low_u64(vreinterpretq_u64_u8(y_)));
+		uint64x2_t zz = vdupq_lane_u64(vget_high_u64(xz), 0);
+
+		// Shift out the extra bits
+		const int64x2_t shift_offset_s64 = vdupq_n_s64(shift_offset);
+		xy = vshlq_u64(xy, shift_offset_s64);
+		zz = vshlq_u64(zz, shift_offset_s64);
+
+		// Combine our result and cast
+		// As u64, we have: {x, y}, but when we cast to u32, we get: {_, x, _, y}
+		const uint32x4_t xyzw_u32 = vuzpq_u32(vreinterpretq_u32_u64(xy), vreinterpretq_u32_u64(zz)).val[1];
+		return vreinterpretq_f32_u32(xyzw_u32);
 	}
 #else
 	// Assumes the 'vector_data' is in big-endian order and is padded in order to load up to 19 bytes from it
