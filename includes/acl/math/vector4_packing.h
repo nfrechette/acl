@@ -482,30 +482,46 @@ namespace acl
 		const uint8_t* vector_data,
 		uint32_t bit_offset)
 	{
+		// Same principle as NEON
 		const uint32_t byte_offset = bit_offset / 8;
 		const uint32_t shift_offset = bit_offset % 8;
-		uint64_t vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 0);
-		vector_u64 = byte_swap(vector_u64);
-		vector_u64 <<= shift_offset;
-		vector_u64 >>= 32;
 
-		const uint32_t x32 = uint32_t(vector_u64);
+		// Load 16 bytes
+		// [0,1,2,3,4,5,6,7], [8,9,10,11,12,13,14,15]
+		const __m128i raw_bytes = _mm_loadu_si128((const __m128i*)(vector_data + byte_offset));
 
-		vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 4);
-		vector_u64 = byte_swap(vector_u64);
-		vector_u64 <<= shift_offset;
-		vector_u64 >>= 32;
+	#if defined(RTM_SSE3_INTRINSICS)
+		const __m128i k_byte_swap_mask = _mm_setr_epi32(0x04050607, 0x00010203, 0x0c0d0e0f, 0x08090a0b);
 
-		const uint32_t y32 = uint32_t(vector_u64);
+		// [7,6,5,4,3,2,1,0], [15,14,13,12,11,10,9,8]
+		const __m128i rev_raw_bytes = _mm_shuffle_epi8(raw_bytes, k_byte_swap_mask);
+	#else
+		// [_,0,_,2,_,4,_,6], [_,8,_,10,_,12,_,14]
+		const __m128i even_shifted = _mm_srli_epi16(raw_bytes, 8);
+		// [1,_,3,_,5,_,7,_], [9,_,11,_,13,_,15,_]
+		const __m128i odd_shifted = _mm_slli_epi16(raw_bytes, 8);
+		// [1,0,3,2,5,4,7,6], [9,8,11,10,13,12,15,14]
+		__m128i rev_raw_bytes = _mm_or_si128(even_shifted, odd_shifted);
+		// [7,6,5,4,3,2,1,0], [9,8,11,10,13,12,15,14]
+		rev_raw_bytes = _mm_shufflelo_epi16(rev_raw_bytes, 0x1B);
+		// [7,6,5,4,3,2,1,0], [15,14,13,12,11,10,9,8]
+		rev_raw_bytes = _mm_shufflehi_epi16(rev_raw_bytes, 0x1B);
+	#endif
 
-		vector_u64 = unaligned_load<uint64_t>(vector_data + byte_offset + 8);
-		vector_u64 = byte_swap(vector_u64);
-		vector_u64 <<= shift_offset;
-		vector_u64 >>= 32;
+		// Select each component and combine our pairs
+		// [7,6,5,4,3,2,1,0], [11,10,9,8,7,6,5,4]
+		__m128i xy = _mm_shuffle_epi32(rev_raw_bytes, _MM_SHUFFLE(0, 3, 1, 0));
+		// [15,14,13,12,11,10,9,8], [15,14,13,12,11,10,9,8]
+		__m128i zw = _mm_shuffle_epi32(rev_raw_bytes, _MM_SHUFFLE(3, 2, 3, 2));
 
-		const uint32_t z32 = uint32_t(vector_u64);
+		// Shift out the extra bits
+		const __m128i shift_offset_s64 = _mm_set1_epi64x(shift_offset);
+		xy = _mm_sll_epi64(xy, shift_offset_s64);
+		zw = _mm_sll_epi64(zw, shift_offset_s64);
 
-		return _mm_castsi128_ps(_mm_set_epi32(static_cast<int32_t>(x32), static_cast<int32_t>(z32), static_cast<int32_t>(y32), static_cast<int32_t>(x32)));
+		// Combine our result and cast
+		// As u64, we have: {x, y}, but when we cast to u32, we get: {_, x, _, y}
+		return _mm_shuffle_ps(_mm_castsi128_ps(xy), _mm_castsi128_ps(zw), _MM_SHUFFLE(3, 1, 3, 1));
 	}
 #elif defined(RTM_NEON_INTRINSICS)
 	// Assumes the 'vector_data' is in big-endian order and is padded in order to load up to 19 bytes from it
