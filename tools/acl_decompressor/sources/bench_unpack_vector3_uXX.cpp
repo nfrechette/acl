@@ -553,7 +553,807 @@ rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_sse2_v0(
 	const __m128 value = _mm_cvtepi32_ps(int_value);
 	return _mm_mul_ps(value, inv_max_value);
 }
+
+RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_NOINLINE
+rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_sse2_v1(
+	uint32_t num_bits,
+	const uint8_t* vector_data,
+	uint32_t bit_offset)
+{
+	// Same principle as NEON v1 (simd + create constants manually)
+
+	// Total size: 4*24 = 96
+	struct SSEConstants_t
+	{
+		float max_value[24];
+	};
+
+	alignas(128) static constexpr SSEConstants_t k_packed_constants =
+	{
+		{
+			1.0F, (1.0F / float((1 << 1) - 1)), (1.0F / float((1 << 2) - 1)), (1.0F / float((1 << 3) - 1)),
+			(1.0F / float((1 << 4) - 1)), (1.0F / float((1 << 5) - 1)), (1.0F / float((1 << 6) - 1)), (1.0F / float((1 << 7) - 1)),
+			(1.0F / float((1 << 8) - 1)), (1.0F / float((1 << 9) - 1)), (1.0F / float((1 << 10) - 1)), (1.0F / float((1 << 11) - 1)),
+			(1.0F / float((1 << 12) - 1)), (1.0F / float((1 << 13) - 1)), (1.0F / float((1 << 14) - 1)), (1.0F / float((1 << 15) - 1)),
+			(1.0F / float((1 << 16) - 1)), (1.0F / float((1 << 17) - 1)), (1.0F / float((1 << 18) - 1)), (1.0F / float((1 << 19) - 1)),
+			(1.0F / float((1 << 20) - 1)), (1.0F / float((1 << 21) - 1)), (1.0F / float((1 << 22) - 1)), (1.0F / float((1 << 23) - 1)),
+		}
+	};
+
+	const uint32_t byte_offset = bit_offset / 8;
+	const uint32_t base_bit_offset = bit_offset % 8;
+
+	// Load 16 bytes
+	// [0,1,2,3,4,5,6,7], [8,9,10,11,12,13,14,15]
+	const __m128i raw_bytes = _mm_loadu_si128((const __m128i*)(vector_data + byte_offset));
+
+	// Reverse the bytes in each 64-bit lane
+	// [_,0,_,2,_,4,_,6], [_,8,_,10,_,12,_,14]
+	const __m128i even_shifted = _mm_srli_epi16(raw_bytes, 8);
+	// [1,_,3,_,5,_,7,_], [9,_,11,_,13,_,15,_]
+	const __m128i odd_shifted = _mm_slli_epi16(raw_bytes, 8);
+	// [1,0,3,2,5,4,7,6], [9,8,11,10,13,12,15,14]
+	__m128i rev_raw_bytes = _mm_or_si128(even_shifted, odd_shifted);
+	// [7,6,5,4,3,2,1,0], [9,8,11,10,13,12,15,14]
+	rev_raw_bytes = _mm_shufflelo_epi16(rev_raw_bytes, 0x1B);
+	// [7,6,5,4,3,2,1,0], [15,14,13,12,11,10,9,8]
+	rev_raw_bytes = _mm_shufflehi_epi16(rev_raw_bytes, 0x1B);
+
+	// Select and swizzle using our mask
+	const __m128i swizzle_mask_z = _mm_set1_epi32((num_bits >> 4) - 1);	// num_bits >= 16 ? 0 : ~0
+
+	// [11,10,9,8,7,6,5,4], [11,10,9,8,7,6,5,4]
+	const __m128i higher_z = _mm_shuffle_epi32(rev_raw_bytes, _MM_SHUFFLE(0, 3, 0, 3));
+
+	__m128i x = rev_raw_bytes;
+	__m128i y = rev_raw_bytes;
+	__m128i z = _mm_or_si128(_mm_and_si128(rev_raw_bytes, swizzle_mask_z), _mm_andnot_si128(swizzle_mask_z, higher_z));
+
+	// Shift out the extra bits
+	const __m128i shift_offset_x = _mm_set_epi64x(0, base_bit_offset);
+	const __m128i shift_offset_y = _mm_set_epi64x(0, base_bit_offset + num_bits);
+	const __m128i shift_offset_z = _mm_set_epi64x(0, base_bit_offset + ((num_bits % 16) * 2));
+
+	// Shift left to truncate the extra leading bits
+	x = _mm_sll_epi64(x, shift_offset_x);
+	y = _mm_sll_epi64(y, shift_offset_y);
+	z = _mm_sll_epi64(z, shift_offset_z);
+
+	__m128i xy = _mm_unpacklo_epi64(x, y);
+
+	// Shift right to bring them in the right place at the bottom
+	const __m128i shift_num_bits = _mm_set_epi64x(0, 64 - num_bits);
+	xy = _mm_srl_epi64(xy, shift_num_bits);
+	z = _mm_srl_epi64(z, shift_num_bits);
+
+	// Combine and mask our the extra bits
+	// As u64, we have: {x, y}, but when we cast to u32, we get: {x, _, y, _}, {z, _, z, _}
+	const __m128i xzyz_u32 = _mm_or_si128(xy, _mm_slli_epi64(z, 32));
+
+	// Convert to float and re-scale
+	const __m128 inv_max_value = _mm_load_ps1(&k_packed_constants.max_value[num_bits]);
+	const __m128 xzyz_f32 = _mm_mul_ps(_mm_cvtepi32_ps(xzyz_u32), inv_max_value);
+
+	return _mm_shuffle_ps(xzyz_f32, xzyz_f32, _MM_SHUFFLE(1, 1, 2, 0));
+}
+
+RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_NOINLINE
+rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_sse2_v2(
+	uint32_t num_bits,
+	const uint8_t* vector_data,
+	uint32_t bit_offset)
+{
+	// Same principle as NEON v2 (simd + load constants)
+
+	struct SSEConstants_t
+	{
+		explicit constexpr SSEConstants_t(int32_t num_bits_)
+			: shift_offset_x(0)
+			, shift_offset_y(static_cast<uint8_t>(num_bits_))
+			, shift_offset_z(static_cast<uint8_t>((num_bits_ % 16) * 2))
+			, shift_num_bits(static_cast<uint8_t>(64 - num_bits_))
+			, max_value(num_bits_ == 0 ? 1.0F : (1.0F / float((1 << num_bits_) - 1)))
+		{}
+
+		uint8_t shift_offset_x;
+		uint8_t shift_offset_y;
+		uint8_t shift_offset_z;
+		uint8_t shift_num_bits;
+
+		float max_value;
+	};
+
+	// Total size: 8 * 24 = 192 (3 cache lines)
+	// Align to 256 bytes to avoid straddling over a page boundary
+	alignas(256) static constexpr SSEConstants_t k_packed_constants[24] =
+	{
+		SSEConstants_t(0), SSEConstants_t(1), SSEConstants_t(2), SSEConstants_t(3),
+		SSEConstants_t(4), SSEConstants_t(5), SSEConstants_t(6), SSEConstants_t(7),
+		SSEConstants_t(8), SSEConstants_t(9), SSEConstants_t(10), SSEConstants_t(11),
+		SSEConstants_t(12), SSEConstants_t(13), SSEConstants_t(14), SSEConstants_t(15),
+		SSEConstants_t(16), SSEConstants_t(17), SSEConstants_t(18), SSEConstants_t(19),
+		SSEConstants_t(20), SSEConstants_t(21), SSEConstants_t(22), SSEConstants_t(23),
+	};
+
+	const uint32_t byte_offset = bit_offset / 8;
+	const uint32_t base_bit_offset = bit_offset % 8;
+
+	// Load 16 bytes
+	// [0,1,2,3,4,5,6,7], [8,9,10,11,12,13,14,15]
+	const __m128i raw_bytes = _mm_loadu_si128((const __m128i*)(vector_data + byte_offset));
+
+	// Reverse the bytes in each 64-bit lane
+	// [_,0,_,2,_,4,_,6], [_,8,_,10,_,12,_,14]
+	const __m128i even_shifted = _mm_srli_epi16(raw_bytes, 8);
+	// [1,_,3,_,5,_,7,_], [9,_,11,_,13,_,15,_]
+	const __m128i odd_shifted = _mm_slli_epi16(raw_bytes, 8);
+	// [1,0,3,2,5,4,7,6], [9,8,11,10,13,12,15,14]
+	__m128i rev_raw_bytes = _mm_or_si128(even_shifted, odd_shifted);
+	// [7,6,5,4,3,2,1,0], [9,8,11,10,13,12,15,14]
+	rev_raw_bytes = _mm_shufflelo_epi16(rev_raw_bytes, 0x1B);
+	// [7,6,5,4,3,2,1,0], [15,14,13,12,11,10,9,8]
+	rev_raw_bytes = _mm_shufflehi_epi16(rev_raw_bytes, 0x1B);
+
+	// Select and swizzle using our mask
+	const __m128i swizzle_mask_z = _mm_set1_epi32((num_bits >> 4) - 1);	// num_bits >= 16 ? 0 : ~0
+
+	// [11,10,9,8,7,6,5,4], [11,10,9,8,7,6,5,4]
+	const __m128i higher_z = _mm_shuffle_epi32(rev_raw_bytes, _MM_SHUFFLE(0, 3, 0, 3));
+
+	__m128i x = rev_raw_bytes;
+	__m128i y = rev_raw_bytes;
+	__m128i z = _mm_or_si128(_mm_and_si128(rev_raw_bytes, swizzle_mask_z), _mm_andnot_si128(swizzle_mask_z, higher_z));
+
+	// Even though it is easy to compute the shift offsets on demand, we pre-compute them
+	// and load them here. We already pay the price of a load instruction for the inverse
+	// max value float which is too expensive to compute on demand. As such, we tack on
+	// another 4 bytes for the shift offsets and unpack them here. This uses fewer instructions.
+	const __m128i zero = _mm_setzero_si128();
+	const __m128i raw_constant_bytes_u8 = _mm_loadu_si64(&k_packed_constants[num_bits]);
+	const __m128i raw_constant_bytes_u16 = _mm_unpacklo_epi8(raw_constant_bytes_u8, zero);
+
+	// Shift out the extra bits
+	const __m128i base_bit_offset_u64 = _mm_set_epi64x(0, base_bit_offset);
+	const __m128i shift_offset_y = _mm_shufflelo_epi16(raw_constant_bytes_u16, 0x01);
+	const __m128i shift_offset_z = _mm_shufflelo_epi16(raw_constant_bytes_u16, 0x02);
+
+	// Shift left to truncate the extra leading bits
+	x = _mm_sll_epi64(x, base_bit_offset_u64);
+	y = _mm_sll_epi64(y, base_bit_offset_u64);
+	z = _mm_sll_epi64(z, base_bit_offset_u64);
+
+	y = _mm_sll_epi64(y, shift_offset_y);
+	z = _mm_sll_epi64(z, shift_offset_z);
+
+	__m128i xy = _mm_unpacklo_epi64(x, y);
+
+	// Shift right to bring them in the right place at the bottom
+	const __m128i shift_num_bits = _mm_shufflelo_epi16(raw_constant_bytes_u16, 0x03);
+	xy = _mm_srl_epi64(xy, shift_num_bits);
+	z = _mm_srl_epi64(z, shift_num_bits);
+
+	// Combine and mask our the extra bits
+	// As u64, we have: {x, y}, but when we cast to u32, we get: {x, _, y, _}, {z, _, z, _}
+	const __m128i xzyz_u32 = _mm_or_si128(xy, _mm_slli_epi64(z, 32));
+
+	// Convert to float and re-scale
+	const __m128 inv_max_value = _mm_castsi128_ps(_mm_shuffle_epi32(raw_constant_bytes_u8, _MM_SHUFFLE(1, 1, 1, 1)));
+	const __m128 xzyz_f32 = _mm_mul_ps(_mm_cvtepi32_ps(xzyz_u32), inv_max_value);
+
+	return _mm_shuffle_ps(xzyz_f32, xzyz_f32, _MM_SHUFFLE(1, 1, 2, 0));
+}
 #endif	// defined(RTM_SSE2_INTRINSICS)
+
+#if defined(RTM_SSE3_INTRINSICS)
+RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_NOINLINE
+rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_sse3_v0(
+	uint32_t num_bits,
+	const uint8_t* vector_data,
+	uint32_t bit_offset)
+{
+	// Same principle as SSE2 v1
+
+	// Total size: 4*24 = 96
+	struct SSEConstants_t
+	{
+		float max_value[24];
+	};
+
+	alignas(128) static constexpr SSEConstants_t k_packed_constants =
+	{
+		{
+			1.0F, (1.0F / float((1 << 1) - 1)), (1.0F / float((1 << 2) - 1)), (1.0F / float((1 << 3) - 1)),
+			(1.0F / float((1 << 4) - 1)), (1.0F / float((1 << 5) - 1)), (1.0F / float((1 << 6) - 1)), (1.0F / float((1 << 7) - 1)),
+			(1.0F / float((1 << 8) - 1)), (1.0F / float((1 << 9) - 1)), (1.0F / float((1 << 10) - 1)), (1.0F / float((1 << 11) - 1)),
+			(1.0F / float((1 << 12) - 1)), (1.0F / float((1 << 13) - 1)), (1.0F / float((1 << 14) - 1)), (1.0F / float((1 << 15) - 1)),
+			(1.0F / float((1 << 16) - 1)), (1.0F / float((1 << 17) - 1)), (1.0F / float((1 << 18) - 1)), (1.0F / float((1 << 19) - 1)),
+			(1.0F / float((1 << 20) - 1)), (1.0F / float((1 << 21) - 1)), (1.0F / float((1 << 22) - 1)), (1.0F / float((1 << 23) - 1)),
+		}
+	};
+
+	const uint32_t byte_offset = bit_offset / 8;
+	const uint32_t base_bit_offset = bit_offset % 8;
+
+	// Load 16 bytes
+	// [0,1,2,3,4,5,6,7], [8,9,10,11,12,13,14,15]
+	const __m128i raw_bytes = _mm_loadu_si128((const __m128i*)(vector_data + byte_offset));
+
+	const __m128i k_byte_swap_mask = _mm_setr_epi32(0x04050607, 0x00010203, 0x0c0d0e0f, 0x08090a0b);
+
+	// Reverse the bytes in each 64-bit lane
+	// [7,6,5,4,3,2,1,0], [15,14,13,12,11,10,9,8]
+	const __m128i rev_raw_bytes = _mm_shuffle_epi8(raw_bytes, k_byte_swap_mask);
+
+	// Select and swizzle using our mask
+	const __m128i swizzle_mask_z = _mm_set1_epi32((num_bits >> 4) - 1);	// num_bits >= 16 ? 0 : ~0
+
+	// [11,10,9,8,7,6,5,4], [11,10,9,8,7,6,5,4]
+	const __m128i higher_z = _mm_shuffle_epi32(rev_raw_bytes, _MM_SHUFFLE(0, 3, 0, 3));
+
+	__m128i x = rev_raw_bytes;
+	__m128i y = rev_raw_bytes;
+	__m128i z = _mm_or_si128(_mm_and_si128(rev_raw_bytes, swizzle_mask_z), _mm_andnot_si128(swizzle_mask_z, higher_z));
+
+	// Shift out the extra bits
+	const __m128i shift_offset_x = _mm_set_epi64x(0, base_bit_offset);
+	const __m128i shift_offset_y = _mm_set_epi64x(0, base_bit_offset + num_bits);
+	const __m128i shift_offset_z = _mm_set_epi64x(0, base_bit_offset + ((num_bits % 16) * 2));
+
+	// Shift left to truncate the extra leading bits
+	x = _mm_sll_epi64(x, shift_offset_x);
+	y = _mm_sll_epi64(y, shift_offset_y);
+	z = _mm_sll_epi64(z, shift_offset_z);
+
+	__m128i xy = _mm_unpacklo_epi64(x, y);
+
+	// Shift right to bring them in the right place at the bottom
+	const __m128i shift_num_bits = _mm_set_epi64x(0, 64 - num_bits);
+	xy = _mm_srl_epi64(xy, shift_num_bits);
+	z = _mm_srl_epi64(z, shift_num_bits);
+
+	// Combine and mask our the extra bits
+	// As u64, we have: {x, y}, but when we cast to u32, we get: {x, _, y, _}, {z, _, z, _}
+	const __m128i xzyz_u32 = _mm_or_si128(xy, _mm_slli_epi64(z, 32));
+
+	// Convert to float and re-scale
+	const __m128 inv_max_value = _mm_load_ps1(&k_packed_constants.max_value[num_bits]);
+	const __m128 xzyz_f32 = _mm_mul_ps(_mm_cvtepi32_ps(xzyz_u32), inv_max_value);
+
+	return _mm_shuffle_ps(xzyz_f32, xzyz_f32, _MM_SHUFFLE(1, 1, 2, 0));
+}
+
+RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_NOINLINE
+rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_sse3_v1(
+	uint32_t num_bits,
+	const uint8_t* vector_data,
+	uint32_t bit_offset)
+{
+	// Same principle as NEON v2 (simd + load constants)
+
+	struct SSEConstants_t
+	{
+		explicit constexpr SSEConstants_t(int32_t num_bits_)
+			: shift_offset_x(0)
+			, shift_offset_y(static_cast<uint8_t>(num_bits_))
+			, shift_offset_z(static_cast<uint8_t>((num_bits_ % 16) * 2))
+			, shift_num_bits(static_cast<uint8_t>(64 - num_bits_))
+			, max_value(num_bits_ == 0 ? 1.0F : (1.0F / float((1 << num_bits_) - 1)))
+		{}
+
+		uint8_t shift_offset_x;
+		uint8_t shift_offset_y;
+		uint8_t shift_offset_z;
+		uint8_t shift_num_bits;
+
+		float max_value;
+	};
+
+	// Total size: 8 * 24 = 192 (3 cache lines)
+	// Align to 256 bytes to avoid straddling over a page boundary
+	alignas(256) static constexpr SSEConstants_t k_packed_constants[24] =
+	{
+		SSEConstants_t(0), SSEConstants_t(1), SSEConstants_t(2), SSEConstants_t(3),
+		SSEConstants_t(4), SSEConstants_t(5), SSEConstants_t(6), SSEConstants_t(7),
+		SSEConstants_t(8), SSEConstants_t(9), SSEConstants_t(10), SSEConstants_t(11),
+		SSEConstants_t(12), SSEConstants_t(13), SSEConstants_t(14), SSEConstants_t(15),
+		SSEConstants_t(16), SSEConstants_t(17), SSEConstants_t(18), SSEConstants_t(19),
+		SSEConstants_t(20), SSEConstants_t(21), SSEConstants_t(22), SSEConstants_t(23),
+	};
+
+	const uint32_t byte_offset = bit_offset / 8;
+	const uint32_t base_bit_offset = bit_offset % 8;
+
+	// Load 16 bytes
+	// [0,1,2,3,4,5,6,7], [8,9,10,11,12,13,14,15]
+	const __m128i raw_bytes = _mm_loadu_si128((const __m128i*)(vector_data + byte_offset));
+
+	// Reverse the bytes in each 64-bit lane
+	const __m128i k_byte_swap_mask = _mm_setr_epi32(0x04050607, 0x00010203, 0x0c0d0e0f, 0x08090a0b);
+
+	// [7,6,5,4,3,2,1,0], [15,14,13,12,11,10,9,8]
+	const __m128i rev_raw_bytes = _mm_shuffle_epi8(raw_bytes, k_byte_swap_mask);
+
+	// Select and swizzle using our mask
+	const __m128i swizzle_mask_z = _mm_set1_epi32((num_bits >> 4) - 1);	// num_bits >= 16 ? 0 : ~0
+
+	// [11,10,9,8,7,6,5,4], [11,10,9,8,7,6,5,4]
+	const __m128i higher_z = _mm_shuffle_epi32(rev_raw_bytes, _MM_SHUFFLE(0, 3, 0, 3));
+
+	__m128i x = rev_raw_bytes;
+	__m128i y = rev_raw_bytes;
+	__m128i z = _mm_or_si128(_mm_and_si128(rev_raw_bytes, swizzle_mask_z), _mm_andnot_si128(swizzle_mask_z, higher_z));
+
+	// Even though it is easy to compute the shift offsets on demand, we pre-compute them
+	// and load them here. We already pay the price of a load instruction for the inverse
+	// max value float which is too expensive to compute on demand. As such, we tack on
+	// another 4 bytes for the shift offsets and unpack them here. This uses fewer instructions.
+	const __m128i zero = _mm_setzero_si128();
+	const __m128i raw_constant_bytes_u8 = _mm_loadu_si64(&k_packed_constants[num_bits]);
+	const __m128i raw_constant_bytes_u16 = _mm_unpacklo_epi8(raw_constant_bytes_u8, zero);
+
+	// Shift out the extra bits
+	const __m128i base_bit_offset_u64 = _mm_set_epi64x(0, base_bit_offset);
+	const __m128i shift_offset_y = _mm_shufflelo_epi16(raw_constant_bytes_u16, 0x01);
+	const __m128i shift_offset_z = _mm_shufflelo_epi16(raw_constant_bytes_u16, 0x02);
+
+	// Shift left to truncate the extra leading bits
+	x = _mm_sll_epi64(x, base_bit_offset_u64);
+	y = _mm_sll_epi64(y, base_bit_offset_u64);
+	z = _mm_sll_epi64(z, base_bit_offset_u64);
+
+	y = _mm_sll_epi64(y, shift_offset_y);
+	z = _mm_sll_epi64(z, shift_offset_z);
+
+	__m128i xy = _mm_unpacklo_epi64(x, y);
+
+	// Shift right to bring them in the right place at the bottom
+	const __m128i shift_num_bits = _mm_shufflelo_epi16(raw_constant_bytes_u16, 0x03);
+	xy = _mm_srl_epi64(xy, shift_num_bits);
+	z = _mm_srl_epi64(z, shift_num_bits);
+
+	// Combine and mask our the extra bits
+	// As u64, we have: {x, y}, but when we cast to u32, we get: {x, _, y, _}, {z, _, z, _}
+	const __m128i xzyz_u32 = _mm_or_si128(xy, _mm_slli_epi64(z, 32));
+
+	// Convert to float and re-scale
+	const __m128 inv_max_value = _mm_castsi128_ps(_mm_shuffle_epi32(raw_constant_bytes_u8, _MM_SHUFFLE(1, 1, 1, 1)));
+	const __m128 xzyz_f32 = _mm_mul_ps(_mm_cvtepi32_ps(xzyz_u32), inv_max_value);
+
+	return _mm_shuffle_ps(xzyz_f32, xzyz_f32, _MM_SHUFFLE(1, 1, 2, 0));
+}
+
+RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_NOINLINE
+rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_sse3_v2(
+	uint32_t num_bits,
+	const uint8_t* vector_data,
+	uint32_t bit_offset)
+{
+	// Same principle as SSE3 v1
+
+	struct SSEConstants_t
+	{
+		explicit constexpr SSEConstants_t(int32_t num_bits_)
+			: shift_offset_x(0)
+			, shift_offset_y(static_cast<uint8_t>(num_bits_))
+			, shift_offset_z(static_cast<uint8_t>((num_bits_ % 16) * 2))
+			, shift_num_bits(static_cast<uint8_t>(64 - num_bits_))
+			, max_value(num_bits_ == 0 ? 1.0F : (1.0F / float((1 << num_bits_) - 1)))
+		{}
+
+		uint8_t shift_offset_x;
+		uint8_t shift_offset_y;
+		uint8_t shift_offset_z;
+		uint8_t shift_num_bits;
+
+		float max_value;
+	};
+
+	// Total size: 8 * 24 = 192 (3 cache lines)
+	// Align to 256 bytes to avoid straddling over a page boundary
+	alignas(256) static constexpr SSEConstants_t k_packed_constants[24] =
+	{
+		SSEConstants_t(0), SSEConstants_t(1), SSEConstants_t(2), SSEConstants_t(3),
+		SSEConstants_t(4), SSEConstants_t(5), SSEConstants_t(6), SSEConstants_t(7),
+		SSEConstants_t(8), SSEConstants_t(9), SSEConstants_t(10), SSEConstants_t(11),
+		SSEConstants_t(12), SSEConstants_t(13), SSEConstants_t(14), SSEConstants_t(15),
+		SSEConstants_t(16), SSEConstants_t(17), SSEConstants_t(18), SSEConstants_t(19),
+		SSEConstants_t(20), SSEConstants_t(21), SSEConstants_t(22), SSEConstants_t(23),
+	};
+
+	const uint32_t byte_offset = bit_offset / 8;
+	const uint32_t base_bit_offset = bit_offset % 8;
+
+	// Load 16 bytes
+	// [0,1,2,3,4,5,6,7], [8,9,10,11,12,13,14,15]
+	const __m128i raw_bytes = _mm_loadu_si128((const __m128i*)(vector_data + byte_offset));
+
+	// Reverse the bytes in each 64-bit lane
+	const __m128i k_byte_swap_mask = _mm_setr_epi32(0x04050607, 0x00010203, 0x0c0d0e0f, 0x08090a0b);
+
+	// [7,6,5,4,3,2,1,0], [15,14,13,12,11,10,9,8]
+	const __m128i rev_raw_bytes = _mm_shuffle_epi8(raw_bytes, k_byte_swap_mask);
+
+	constexpr uint64_t k_swizzle_masks_z[2] = { 0x0001020304050607ULL, 0x0405060708091011ULL };
+	const uint32_t swizzle_mask_z_index = num_bits >> 4; // num_bits >= 16 ? 1 : 0
+
+	__m128i x = rev_raw_bytes;
+	__m128i y = rev_raw_bytes;
+	__m128i z = _mm_shuffle_epi8(raw_bytes, _mm_loadu_si64(&k_swizzle_masks_z[swizzle_mask_z_index]));
+
+	// Even though it is easy to compute the shift offsets on demand, we pre-compute them
+	// and load them here. We already pay the price of a load instruction for the inverse
+	// max value float which is too expensive to compute on demand. As such, we tack on
+	// another 4 bytes for the shift offsets and unpack them here. This uses fewer instructions.
+	const __m128i zero = _mm_setzero_si128();
+	const __m128i raw_constant_bytes_u8 = _mm_loadu_si64(&k_packed_constants[num_bits]);
+	const __m128i raw_constant_bytes_u16 = _mm_unpacklo_epi8(raw_constant_bytes_u8, zero);
+
+	// Shift out the extra bits
+	const __m128i base_bit_offset_u64 = _mm_set_epi64x(0, base_bit_offset);
+	const __m128i shift_offset_y = _mm_shufflelo_epi16(raw_constant_bytes_u16, 0x01);
+	const __m128i shift_offset_z = _mm_shufflelo_epi16(raw_constant_bytes_u16, 0x02);
+
+	// Shift left to truncate the extra leading bits
+	x = _mm_sll_epi64(x, base_bit_offset_u64);
+	y = _mm_sll_epi64(y, base_bit_offset_u64);
+	z = _mm_sll_epi64(z, base_bit_offset_u64);
+
+	y = _mm_sll_epi64(y, shift_offset_y);
+	z = _mm_sll_epi64(z, shift_offset_z);
+
+	__m128i xy = _mm_unpacklo_epi64(x, y);
+
+	// Shift right to bring them in the right place at the bottom
+	const __m128i shift_num_bits = _mm_shufflelo_epi16(raw_constant_bytes_u16, 0x03);
+	xy = _mm_srl_epi64(xy, shift_num_bits);
+	z = _mm_srl_epi64(z, shift_num_bits);
+
+	// Combine and mask our the extra bits
+	// As u64, we have: {x, y}, but when we cast to u32, we get: {x, _, y, _}, {z, _, z, _}
+	const __m128i xzyz_u32 = _mm_or_si128(xy, _mm_slli_epi64(z, 32));
+
+	// Convert to float and re-scale
+	const __m128 inv_max_value = _mm_castsi128_ps(_mm_shuffle_epi32(raw_constant_bytes_u8, _MM_SHUFFLE(1, 1, 1, 1)));
+	const __m128 xzyz_f32 = _mm_mul_ps(_mm_cvtepi32_ps(xzyz_u32), inv_max_value);
+
+	return _mm_shuffle_ps(xzyz_f32, xzyz_f32, _MM_SHUFFLE(1, 1, 2, 0));
+}
+#endif	// defined(RTM_SSE3_INTRINSICS)
+
+#if defined(RTM_SSE4_INTRINSICS)
+RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_NOINLINE
+rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_sse4_v0(
+	uint32_t num_bits,
+	const uint8_t* vector_data,
+	uint32_t bit_offset)
+{
+	// Same principle as SSE3 v0
+
+	// Total size: 4*24 = 96
+	struct SSEConstants_t
+	{
+		float max_value[24];
+	};
+
+	alignas(128) static constexpr SSEConstants_t k_packed_constants =
+	{
+		{
+			1.0F, (1.0F / float((1 << 1) - 1)), (1.0F / float((1 << 2) - 1)), (1.0F / float((1 << 3) - 1)),
+			(1.0F / float((1 << 4) - 1)), (1.0F / float((1 << 5) - 1)), (1.0F / float((1 << 6) - 1)), (1.0F / float((1 << 7) - 1)),
+			(1.0F / float((1 << 8) - 1)), (1.0F / float((1 << 9) - 1)), (1.0F / float((1 << 10) - 1)), (1.0F / float((1 << 11) - 1)),
+			(1.0F / float((1 << 12) - 1)), (1.0F / float((1 << 13) - 1)), (1.0F / float((1 << 14) - 1)), (1.0F / float((1 << 15) - 1)),
+			(1.0F / float((1 << 16) - 1)), (1.0F / float((1 << 17) - 1)), (1.0F / float((1 << 18) - 1)), (1.0F / float((1 << 19) - 1)),
+			(1.0F / float((1 << 20) - 1)), (1.0F / float((1 << 21) - 1)), (1.0F / float((1 << 22) - 1)), (1.0F / float((1 << 23) - 1)),
+		}
+	};
+
+	const uint32_t byte_offset = bit_offset / 8;
+	const uint32_t base_bit_offset = bit_offset % 8;
+
+	// Load 16 bytes
+	// [0,1,2,3,4,5,6,7], [8,9,10,11,12,13,14,15]
+	const __m128i raw_bytes = _mm_loadu_si128((const __m128i*)(vector_data + byte_offset));
+
+	const __m128i k_byte_swap_mask = _mm_setr_epi32(0x04050607, 0x00010203, 0x0c0d0e0f, 0x08090a0b);
+
+	// Reverse the bytes in each 64-bit lane
+	// [7,6,5,4,3,2,1,0], [15,14,13,12,11,10,9,8]
+	const __m128i rev_raw_bytes = _mm_shuffle_epi8(raw_bytes, k_byte_swap_mask);
+
+	// Select and swizzle using our mask
+	const __m128i swizzle_mask_z = _mm_set1_epi32((num_bits >> 4) - 1);	// num_bits >= 16 ? 0 : ~0
+
+	// [11,10,9,8,7,6,5,4], [11,10,9,8,7,6,5,4]
+	const __m128i higher_z = _mm_shuffle_epi32(rev_raw_bytes, _MM_SHUFFLE(0, 3, 0, 3));
+
+	__m128i x = rev_raw_bytes;
+	__m128i y = rev_raw_bytes;
+	__m128i z = _mm_blendv_epi8(higher_z, rev_raw_bytes, swizzle_mask_z);
+
+	// Shift out the extra bits
+	const __m128i base_bit_offset_u64 = _mm_set_epi64x(0, base_bit_offset);
+	const __m128i shift_offset_y = _mm_set_epi64x(0, num_bits);
+	const __m128i shift_offset_z = _mm_set_epi64x(0, (num_bits % 16) * 2);
+
+	// Shift left to truncate the extra leading bits
+	y = _mm_sll_epi64(y, shift_offset_y);
+	z = _mm_sll_epi64(z, shift_offset_z);
+
+	// Combine and mask our the extra bits
+	// As u64, we have: {x, y}, but when we cast to u32, we get: {x, _, y, _}, {z, _, z, _}
+	__m128i xy = _mm_unpacklo_epi64(x, y);
+	__m128i zxzy_u32 = _mm_blend_epi16(xy, _mm_srli_epi64(z, 32), 0x33);
+
+	zxzy_u32 = _mm_sll_epi32(zxzy_u32, base_bit_offset_u64);
+
+	// Shift right to bring them in the right place at the bottom
+	const __m128i shift_num_bits = _mm_set_epi64x(0, 32 - num_bits);
+	zxzy_u32 = _mm_srl_epi32(zxzy_u32, shift_num_bits);
+
+	// Convert to float and re-scale
+	const __m128 inv_max_value = _mm_load_ps1(&k_packed_constants.max_value[num_bits]);
+	const __m128 zxzy_f32 = _mm_mul_ps(_mm_cvtepi32_ps(zxzy_u32), inv_max_value);
+
+	return _mm_shuffle_ps(zxzy_f32, zxzy_f32, _MM_SHUFFLE(0, 0, 3, 1));
+}
+
+RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_NOINLINE
+rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_sse4_v1(
+	uint32_t num_bits,
+	const uint8_t* vector_data,
+	uint32_t bit_offset)
+{
+	// Same principle as SSE3 v1
+
+	struct SSEConstants_t
+	{
+		explicit constexpr SSEConstants_t(int32_t num_bits_)
+			: shift_offset_x(0)
+			, shift_offset_y(static_cast<uint8_t>(num_bits_))
+			, shift_offset_z(static_cast<uint8_t>((num_bits_ % 16) * 2))
+			, shift_num_bits(static_cast<uint8_t>(32 - num_bits_))
+			, max_value(num_bits_ == 0 ? 1.0F : (1.0F / float((1 << num_bits_) - 1)))
+		{}
+
+		uint8_t shift_offset_x;
+		uint8_t shift_offset_y;
+		uint8_t shift_offset_z;
+		uint8_t shift_num_bits;
+
+		float max_value;
+	};
+
+	// Total size: 8 * 24 = 192 (3 cache lines)
+	// Align to 256 bytes to avoid straddling over a page boundary
+	alignas(256) static constexpr SSEConstants_t k_packed_constants[24] =
+	{
+		SSEConstants_t(0), SSEConstants_t(1), SSEConstants_t(2), SSEConstants_t(3),
+		SSEConstants_t(4), SSEConstants_t(5), SSEConstants_t(6), SSEConstants_t(7),
+		SSEConstants_t(8), SSEConstants_t(9), SSEConstants_t(10), SSEConstants_t(11),
+		SSEConstants_t(12), SSEConstants_t(13), SSEConstants_t(14), SSEConstants_t(15),
+		SSEConstants_t(16), SSEConstants_t(17), SSEConstants_t(18), SSEConstants_t(19),
+		SSEConstants_t(20), SSEConstants_t(21), SSEConstants_t(22), SSEConstants_t(23),
+	};
+
+	const uint32_t byte_offset = bit_offset / 8;
+	const uint32_t base_bit_offset = bit_offset % 8;
+
+	// Load 16 bytes
+	// [0,1,2,3,4,5,6,7], [8,9,10,11,12,13,14,15]
+	const __m128i raw_bytes = _mm_loadu_si128((const __m128i*)(vector_data + byte_offset));
+
+	// Reverse the bytes in each 64-bit lane
+	const __m128i k_byte_swap_mask = _mm_setr_epi32(0x04050607, 0x00010203, 0x0c0d0e0f, 0x08090a0b);
+
+	// [7,6,5,4,3,2,1,0], [15,14,13,12,11,10,9,8]
+	const __m128i rev_raw_bytes = _mm_shuffle_epi8(raw_bytes, k_byte_swap_mask);
+
+	// Select and swizzle using our mask
+	const __m128i swizzle_mask_z = _mm_set1_epi32((num_bits >> 4) - 1);	// num_bits >= 16 ? 0 : ~0
+
+	// [11,10,9,8,7,6,5,4], [11,10,9,8,7,6,5,4]
+	const __m128i higher_z = _mm_shuffle_epi32(rev_raw_bytes, _MM_SHUFFLE(0, 3, 0, 3));
+
+	__m128i x = rev_raw_bytes;
+	__m128i y = rev_raw_bytes;
+	__m128i z = _mm_blendv_epi8(higher_z, rev_raw_bytes, swizzle_mask_z);
+
+	// Even though it is easy to compute the shift offsets on demand, we pre-compute them
+	// and load them here. We already pay the price of a load instruction for the inverse
+	// max value float which is too expensive to compute on demand. As such, we tack on
+	// another 4 bytes for the shift offsets and unpack them here. This uses fewer instructions.
+	const __m128i zero = _mm_setzero_si128();
+	const __m128i raw_constant_bytes_u8 = _mm_loadu_si64(&k_packed_constants[num_bits]);
+	const __m128i raw_constant_bytes_u16 = _mm_unpacklo_epi8(raw_constant_bytes_u8, zero);
+
+	// Shift out the extra bits
+	const __m128i base_bit_offset_u64 = _mm_set_epi64x(0, base_bit_offset);
+	const __m128i shift_offset_y = _mm_shufflelo_epi16(raw_constant_bytes_u16, 0x01);
+	const __m128i shift_offset_z = _mm_shufflelo_epi16(raw_constant_bytes_u16, 0x02);
+
+	// Shift left to truncate the extra leading bits
+	y = _mm_sll_epi64(y, shift_offset_y);
+	z = _mm_sll_epi64(z, shift_offset_z);
+
+	// Combine and mask our the extra bits
+	// As u64, we have: {x, y}, but when we cast to u32, we get: {x, _, y, _}, {z, _, z, _}
+	__m128i xy = _mm_unpacklo_epi64(x, y);
+	__m128i zxzy_u32 = _mm_blend_epi16(xy, _mm_srli_epi64(z, 32), 0x33);
+
+	zxzy_u32 = _mm_sll_epi32(zxzy_u32, base_bit_offset_u64);
+
+	// Shift right to bring them in the right place at the bottom
+	const __m128i shift_num_bits = _mm_shufflelo_epi16(raw_constant_bytes_u16, 0x03);
+	zxzy_u32 = _mm_srl_epi32(zxzy_u32, shift_num_bits);
+
+	// Convert to float and re-scale
+	const __m128 inv_max_value = _mm_castsi128_ps(_mm_shuffle_epi32(raw_constant_bytes_u8, _MM_SHUFFLE(1, 1, 1, 1)));
+	const __m128 zxzy_f32 = _mm_mul_ps(_mm_cvtepi32_ps(zxzy_u32), inv_max_value);
+
+	return _mm_shuffle_ps(zxzy_f32, zxzy_f32, _MM_SHUFFLE(0, 0, 3, 1));
+}
+
+RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_NOINLINE
+rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_sse4_v2(
+	uint32_t num_bits,
+	const uint8_t* vector_data,
+	uint32_t bit_offset)
+{
+	// Same principle as SSE3 v2
+
+	struct SSEConstants_t
+	{
+		explicit constexpr SSEConstants_t(int32_t num_bits_)
+			: shift_offset_x(0)
+			, shift_offset_y(static_cast<uint8_t>(num_bits_))
+			, shift_offset_z(static_cast<uint8_t>((num_bits_ % 16) * 2))
+			, shift_num_bits(static_cast<uint8_t>(32 - num_bits_))
+			, max_value(num_bits_ == 0 ? 1.0F : (1.0F / float((1 << num_bits_) - 1)))
+		{}
+
+		uint8_t shift_offset_x;
+		uint8_t shift_offset_y;
+		uint8_t shift_offset_z;
+		uint8_t shift_num_bits;
+
+		float max_value;
+	};
+
+	// Total size: 8 * 24 = 192 (3 cache lines)
+	// Align to 256 bytes to avoid straddling over a page boundary
+	alignas(256) static constexpr SSEConstants_t k_packed_constants[24] =
+	{
+		SSEConstants_t(0), SSEConstants_t(1), SSEConstants_t(2), SSEConstants_t(3),
+		SSEConstants_t(4), SSEConstants_t(5), SSEConstants_t(6), SSEConstants_t(7),
+		SSEConstants_t(8), SSEConstants_t(9), SSEConstants_t(10), SSEConstants_t(11),
+		SSEConstants_t(12), SSEConstants_t(13), SSEConstants_t(14), SSEConstants_t(15),
+		SSEConstants_t(16), SSEConstants_t(17), SSEConstants_t(18), SSEConstants_t(19),
+		SSEConstants_t(20), SSEConstants_t(21), SSEConstants_t(22), SSEConstants_t(23),
+	};
+
+	const uint32_t byte_offset = bit_offset / 8;
+	const uint32_t base_bit_offset = bit_offset % 8;
+
+	// Load 16 bytes
+	// [0,1,2,3,4,5,6,7], [8,9,10,11,12,13,14,15]
+	const __m128i raw_bytes = _mm_loadu_si128((const __m128i*)(vector_data + byte_offset));
+
+	// Reverse the bytes in each 64-bit lane
+	const __m128i k_byte_swap_mask = _mm_setr_epi32(0x04050607, 0x00010203, 0x0c0d0e0f, 0x08090a0b);
+
+	// [7,6,5,4,3,2,1,0], [15,14,13,12,11,10,9,8]
+	const __m128i rev_raw_bytes = _mm_shuffle_epi8(raw_bytes, k_byte_swap_mask);
+
+	// Select and swizzle using our mask
+	constexpr uint64_t k_swizzle_masks_z[2] = { 0x0001020304050607ULL, 0x0405060708091011ULL };
+	const uint32_t swizzle_mask_z_index = num_bits >> 4; // num_bits >= 16 ? 1 : 0
+
+	__m128i x = rev_raw_bytes;
+	__m128i y = rev_raw_bytes;
+	__m128i z = _mm_shuffle_epi8(raw_bytes, _mm_loadu_si64(&k_swizzle_masks_z[swizzle_mask_z_index]));
+
+	// Even though it is easy to compute the shift offsets on demand, we pre-compute them
+	// and load them here. We already pay the price of a load instruction for the inverse
+	// max value float which is too expensive to compute on demand. As such, we tack on
+	// another 4 bytes for the shift offsets and unpack them here. This uses fewer instructions.
+	const __m128i zero = _mm_setzero_si128();
+	const __m128i raw_constant_bytes_u8 = _mm_loadu_si64(&k_packed_constants[num_bits]);
+	const __m128i raw_constant_bytes_u16 = _mm_unpacklo_epi8(raw_constant_bytes_u8, zero);
+
+	// Shift out the extra bits
+	const __m128i base_bit_offset_u64 = _mm_set_epi64x(0, base_bit_offset);
+	const __m128i shift_offset_y = _mm_shufflelo_epi16(raw_constant_bytes_u16, 0x01);
+	const __m128i shift_offset_z = _mm_shufflelo_epi16(raw_constant_bytes_u16, 0x02);
+
+	// Shift left to truncate the extra leading bits
+	y = _mm_sll_epi64(y, shift_offset_y);
+	z = _mm_sll_epi64(z, shift_offset_z);
+
+	// Combine and mask our the extra bits
+	// As u64, we have: {x, y}, but when we cast to u32, we get: {x, _, y, _}, {z, _, z, _}
+	__m128i xy = _mm_unpacklo_epi64(x, y);
+	__m128i zxzy_u32 = _mm_blend_epi16(xy, _mm_srli_epi64(z, 32), 0x33);
+
+	zxzy_u32 = _mm_sll_epi32(zxzy_u32, base_bit_offset_u64);
+
+	// Shift right to bring them in the right place at the bottom
+	const __m128i shift_num_bits = _mm_shufflelo_epi16(raw_constant_bytes_u16, 0x03);
+	zxzy_u32 = _mm_srl_epi32(zxzy_u32, shift_num_bits);
+
+	// Convert to float and re-scale
+	const __m128 inv_max_value = _mm_castsi128_ps(_mm_shuffle_epi32(raw_constant_bytes_u8, _MM_SHUFFLE(1, 1, 1, 1)));
+	const __m128 zxzy_f32 = _mm_mul_ps(_mm_cvtepi32_ps(zxzy_u32), inv_max_value);
+
+	return _mm_shuffle_ps(zxzy_f32, zxzy_f32, _MM_SHUFFLE(0, 0, 3, 1));
+}
+#endif	// defined(RTM_SSE4_INTRINSICS)
+
+
+#if defined(RTM_AVX2_INTRINSICS)
+RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_NOINLINE
+rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_avx2_v0(
+	uint32_t num_bits,
+	const uint8_t* vector_data,
+	uint32_t bit_offset)
+{
+	// Same principle as SSE4 v0
+
+	// Total size: 4*24 = 96
+	struct SSEConstants_t
+	{
+		float max_value[24];
+	};
+
+	alignas(128) static constexpr SSEConstants_t k_packed_constants =
+	{
+		{
+			1.0F, (1.0F / float((1 << 1) - 1)), (1.0F / float((1 << 2) - 1)), (1.0F / float((1 << 3) - 1)),
+			(1.0F / float((1 << 4) - 1)), (1.0F / float((1 << 5) - 1)), (1.0F / float((1 << 6) - 1)), (1.0F / float((1 << 7) - 1)),
+			(1.0F / float((1 << 8) - 1)), (1.0F / float((1 << 9) - 1)), (1.0F / float((1 << 10) - 1)), (1.0F / float((1 << 11) - 1)),
+			(1.0F / float((1 << 12) - 1)), (1.0F / float((1 << 13) - 1)), (1.0F / float((1 << 14) - 1)), (1.0F / float((1 << 15) - 1)),
+			(1.0F / float((1 << 16) - 1)), (1.0F / float((1 << 17) - 1)), (1.0F / float((1 << 18) - 1)), (1.0F / float((1 << 19) - 1)),
+			(1.0F / float((1 << 20) - 1)), (1.0F / float((1 << 21) - 1)), (1.0F / float((1 << 22) - 1)), (1.0F / float((1 << 23) - 1)),
+		}
+	};
+
+	const uint32_t byte_offset = bit_offset / 8;
+	const uint32_t base_bit_offset = bit_offset % 8;
+
+	// Load 16 bytes
+	// [0,1,2,3,4,5,6,7], [8,9,10,11,12,13,14,15]
+	const __m256i raw_bytes = _mm256_castps_si256(_mm256_broadcast_ps((const __m128*)(vector_data + byte_offset)));
+
+	const __m256i k_byte_swap_mask = _mm256_set1_epi64x(0x0001020304050607ULL);
+
+	// Select and swizzle using our mask
+	const __m128i swizzle_mask_z = _mm_set1_epi8(static_cast<uint8_t>((num_bits >> 2) & 0x04));	// num_bits >= 16 ? 4 : 0
+
+	const __m128i zero = _mm_setzero_si128();
+	const __m256i swizzle_mask = _mm256_add_epi8(_mm256_set_m128i(swizzle_mask_z, zero), k_byte_swap_mask);
+
+	// Reverse the bytes in each 64-bit lane and line up XYZ
+	__m256i xyzw_u64 = _mm256_shuffle_epi8(raw_bytes, swizzle_mask);
+
+	// Shift out the extra bits
+	const __m256i shift_offset_xyzw = _mm256_set_epi64x(0, base_bit_offset + ((num_bits % 16) * 2), base_bit_offset + num_bits, base_bit_offset);
+
+	// Shift left to truncate the extra leading bits
+	xyzw_u64 = _mm256_sllv_epi64(xyzw_u64, shift_offset_xyzw);
+
+	// Combine and mask our the extra bits
+	// As u64, we have: {x, y}, but when we cast to u32, we get: {x, _, y, _}, {z, _, z, _}
+	const __m256i k_merge_shuffle_mask = _mm256_setr_epi32(1, 3, 5, 5, 0, 0, 0, 0);
+	__m128i xyzw_u32 = _mm256_castsi256_si128(_mm256_permutevar8x32_epi32(xyzw_u64, k_merge_shuffle_mask));
+
+	// Shift right to bring them in the right place at the bottom
+	const __m128i shift_num_bits = _mm_set1_epi32(32 - num_bits);
+	xyzw_u32 = _mm_srlv_epi32(xyzw_u32, shift_num_bits);
+
+	// Convert to float and re-scale
+	const __m128 inv_max_value = _mm_load_ps1(&k_packed_constants.max_value[num_bits]);
+	return _mm_mul_ps(_mm_cvtepi32_ps(xyzw_u32), inv_max_value);
+}
+#endif	// defined(RTM_AVX2_INTRINSICS)
 
 static void bm_unpack_vector3_uXX_ref(benchmark::State& state)
 {
@@ -736,5 +1536,335 @@ static void bm_unpack_vector3_uXX_sse2_v0(benchmark::State& state)
 }
 
 BENCHMARK(bm_unpack_vector3_uXX_sse2_v0);
+
+static void bm_unpack_vector3_uXX_sse2_v1(benchmark::State& state)
+{
+	uint8_t buffer[128] = { 0 };
+	rtm::vector4f v0 = rtm::vector_zero();
+	rtm::vector4f v1 = rtm::vector_zero();
+	rtm::vector4f v2 = rtm::vector_zero();
+	rtm::vector4f v3 = rtm::vector_zero();
+
+	// Prevent compiler from specializing the call with a constant
+	volatile uint32_t num_bits_0 = 5;
+	volatile uint32_t num_bits_1 = 6;
+	volatile uint32_t num_bits_2 = 7;
+	volatile uint32_t num_bits_3 = 8;
+
+	volatile uint32_t bit_offset_0 = 4;
+	volatile uint32_t bit_offset_1 = 5;
+	volatile uint32_t bit_offset_2 = 6;
+	volatile uint32_t bit_offset_3 = 7;
+
+	for (auto _ : state)
+	{
+		v0 = rtm::vector_add(unpack_vector3_uXX_sse2_v1(num_bits_0, buffer, bit_offset_0), v0);
+		v1 = rtm::vector_add(unpack_vector3_uXX_sse2_v1(num_bits_1, buffer, bit_offset_1), v1);
+		v2 = rtm::vector_add(unpack_vector3_uXX_sse2_v1(num_bits_2, buffer, bit_offset_2), v2);
+		v3 = rtm::vector_add(unpack_vector3_uXX_sse2_v1(num_bits_3, buffer, bit_offset_3), v3);
+	}
+
+	benchmark::DoNotOptimize(buffer);
+	benchmark::DoNotOptimize(v0);
+	benchmark::DoNotOptimize(v1);
+	benchmark::DoNotOptimize(v2);
+	benchmark::DoNotOptimize(v3);
+}
+
+BENCHMARK(bm_unpack_vector3_uXX_sse2_v1);
+
+static void bm_unpack_vector3_uXX_sse2_v2(benchmark::State& state)
+{
+	uint8_t buffer[128] = { 0 };
+	rtm::vector4f v0 = rtm::vector_zero();
+	rtm::vector4f v1 = rtm::vector_zero();
+	rtm::vector4f v2 = rtm::vector_zero();
+	rtm::vector4f v3 = rtm::vector_zero();
+
+	// Prevent compiler from specializing the call with a constant
+	volatile uint32_t num_bits_0 = 5;
+	volatile uint32_t num_bits_1 = 6;
+	volatile uint32_t num_bits_2 = 7;
+	volatile uint32_t num_bits_3 = 8;
+
+	volatile uint32_t bit_offset_0 = 4;
+	volatile uint32_t bit_offset_1 = 5;
+	volatile uint32_t bit_offset_2 = 6;
+	volatile uint32_t bit_offset_3 = 7;
+
+	for (auto _ : state)
+	{
+		v0 = rtm::vector_add(unpack_vector3_uXX_sse2_v2(num_bits_0, buffer, bit_offset_0), v0);
+		v1 = rtm::vector_add(unpack_vector3_uXX_sse2_v2(num_bits_1, buffer, bit_offset_1), v1);
+		v2 = rtm::vector_add(unpack_vector3_uXX_sse2_v2(num_bits_2, buffer, bit_offset_2), v2);
+		v3 = rtm::vector_add(unpack_vector3_uXX_sse2_v2(num_bits_3, buffer, bit_offset_3), v3);
+	}
+
+	benchmark::DoNotOptimize(buffer);
+	benchmark::DoNotOptimize(v0);
+	benchmark::DoNotOptimize(v1);
+	benchmark::DoNotOptimize(v2);
+	benchmark::DoNotOptimize(v3);
+}
+
+BENCHMARK(bm_unpack_vector3_uXX_sse2_v2);
 #endif	// defined(RTM_SSE2_INTRINSICS)
+
+#if defined(RTM_SSE3_INTRINSICS)
+static void bm_unpack_vector3_uXX_sse3_v0(benchmark::State& state)
+{
+	uint8_t buffer[128] = { 0 };
+	rtm::vector4f v0 = rtm::vector_zero();
+	rtm::vector4f v1 = rtm::vector_zero();
+	rtm::vector4f v2 = rtm::vector_zero();
+	rtm::vector4f v3 = rtm::vector_zero();
+
+	// Prevent compiler from specializing the call with a constant
+	volatile uint32_t num_bits_0 = 5;
+	volatile uint32_t num_bits_1 = 6;
+	volatile uint32_t num_bits_2 = 7;
+	volatile uint32_t num_bits_3 = 8;
+
+	volatile uint32_t bit_offset_0 = 4;
+	volatile uint32_t bit_offset_1 = 5;
+	volatile uint32_t bit_offset_2 = 6;
+	volatile uint32_t bit_offset_3 = 7;
+
+	for (auto _ : state)
+	{
+		v0 = rtm::vector_add(unpack_vector3_uXX_sse3_v0(num_bits_0, buffer, bit_offset_0), v0);
+		v1 = rtm::vector_add(unpack_vector3_uXX_sse3_v0(num_bits_1, buffer, bit_offset_1), v1);
+		v2 = rtm::vector_add(unpack_vector3_uXX_sse3_v0(num_bits_2, buffer, bit_offset_2), v2);
+		v3 = rtm::vector_add(unpack_vector3_uXX_sse3_v0(num_bits_3, buffer, bit_offset_3), v3);
+	}
+
+	benchmark::DoNotOptimize(buffer);
+	benchmark::DoNotOptimize(v0);
+	benchmark::DoNotOptimize(v1);
+	benchmark::DoNotOptimize(v2);
+	benchmark::DoNotOptimize(v3);
+}
+
+BENCHMARK(bm_unpack_vector3_uXX_sse3_v0);
+
+static void bm_unpack_vector3_uXX_sse3_v1(benchmark::State& state)
+{
+	uint8_t buffer[128] = { 0 };
+	rtm::vector4f v0 = rtm::vector_zero();
+	rtm::vector4f v1 = rtm::vector_zero();
+	rtm::vector4f v2 = rtm::vector_zero();
+	rtm::vector4f v3 = rtm::vector_zero();
+
+	// Prevent compiler from specializing the call with a constant
+	volatile uint32_t num_bits_0 = 5;
+	volatile uint32_t num_bits_1 = 6;
+	volatile uint32_t num_bits_2 = 7;
+	volatile uint32_t num_bits_3 = 8;
+
+	volatile uint32_t bit_offset_0 = 4;
+	volatile uint32_t bit_offset_1 = 5;
+	volatile uint32_t bit_offset_2 = 6;
+	volatile uint32_t bit_offset_3 = 7;
+
+	for (auto _ : state)
+	{
+		v0 = rtm::vector_add(unpack_vector3_uXX_sse3_v1(num_bits_0, buffer, bit_offset_0), v0);
+		v1 = rtm::vector_add(unpack_vector3_uXX_sse3_v1(num_bits_1, buffer, bit_offset_1), v1);
+		v2 = rtm::vector_add(unpack_vector3_uXX_sse3_v1(num_bits_2, buffer, bit_offset_2), v2);
+		v3 = rtm::vector_add(unpack_vector3_uXX_sse3_v1(num_bits_3, buffer, bit_offset_3), v3);
+	}
+
+	benchmark::DoNotOptimize(buffer);
+	benchmark::DoNotOptimize(v0);
+	benchmark::DoNotOptimize(v1);
+	benchmark::DoNotOptimize(v2);
+	benchmark::DoNotOptimize(v3);
+}
+
+BENCHMARK(bm_unpack_vector3_uXX_sse3_v1);
+
+static void bm_unpack_vector3_uXX_sse3_v2(benchmark::State& state)
+{
+	uint8_t buffer[128] = { 0 };
+	rtm::vector4f v0 = rtm::vector_zero();
+	rtm::vector4f v1 = rtm::vector_zero();
+	rtm::vector4f v2 = rtm::vector_zero();
+	rtm::vector4f v3 = rtm::vector_zero();
+
+	// Prevent compiler from specializing the call with a constant
+	volatile uint32_t num_bits_0 = 5;
+	volatile uint32_t num_bits_1 = 6;
+	volatile uint32_t num_bits_2 = 7;
+	volatile uint32_t num_bits_3 = 8;
+
+	volatile uint32_t bit_offset_0 = 4;
+	volatile uint32_t bit_offset_1 = 5;
+	volatile uint32_t bit_offset_2 = 6;
+	volatile uint32_t bit_offset_3 = 7;
+
+	for (auto _ : state)
+	{
+		v0 = rtm::vector_add(unpack_vector3_uXX_sse3_v2(num_bits_0, buffer, bit_offset_0), v0);
+		v1 = rtm::vector_add(unpack_vector3_uXX_sse3_v2(num_bits_1, buffer, bit_offset_1), v1);
+		v2 = rtm::vector_add(unpack_vector3_uXX_sse3_v2(num_bits_2, buffer, bit_offset_2), v2);
+		v3 = rtm::vector_add(unpack_vector3_uXX_sse3_v2(num_bits_3, buffer, bit_offset_3), v3);
+	}
+
+	benchmark::DoNotOptimize(buffer);
+	benchmark::DoNotOptimize(v0);
+	benchmark::DoNotOptimize(v1);
+	benchmark::DoNotOptimize(v2);
+	benchmark::DoNotOptimize(v3);
+}
+
+BENCHMARK(bm_unpack_vector3_uXX_sse3_v2);
+#endif	// defined(RTM_SSE3_INTRINSICS)
+
+#if defined(RTM_SSE4_INTRINSICS)
+static void bm_unpack_vector3_uXX_sse4_v0(benchmark::State& state)
+{
+	uint8_t buffer[128] = { 0 };
+	rtm::vector4f v0 = rtm::vector_zero();
+	rtm::vector4f v1 = rtm::vector_zero();
+	rtm::vector4f v2 = rtm::vector_zero();
+	rtm::vector4f v3 = rtm::vector_zero();
+
+	// Prevent compiler from specializing the call with a constant
+	volatile uint32_t num_bits_0 = 5;
+	volatile uint32_t num_bits_1 = 6;
+	volatile uint32_t num_bits_2 = 7;
+	volatile uint32_t num_bits_3 = 8;
+
+	volatile uint32_t bit_offset_0 = 4;
+	volatile uint32_t bit_offset_1 = 5;
+	volatile uint32_t bit_offset_2 = 6;
+	volatile uint32_t bit_offset_3 = 7;
+
+	for (auto _ : state)
+	{
+		v0 = rtm::vector_add(unpack_vector3_uXX_sse4_v0(num_bits_0, buffer, bit_offset_0), v0);
+		v1 = rtm::vector_add(unpack_vector3_uXX_sse4_v0(num_bits_1, buffer, bit_offset_1), v1);
+		v2 = rtm::vector_add(unpack_vector3_uXX_sse4_v0(num_bits_2, buffer, bit_offset_2), v2);
+		v3 = rtm::vector_add(unpack_vector3_uXX_sse4_v0(num_bits_3, buffer, bit_offset_3), v3);
+	}
+
+	benchmark::DoNotOptimize(buffer);
+	benchmark::DoNotOptimize(v0);
+	benchmark::DoNotOptimize(v1);
+	benchmark::DoNotOptimize(v2);
+	benchmark::DoNotOptimize(v3);
+}
+
+BENCHMARK(bm_unpack_vector3_uXX_sse4_v0);
+
+static void bm_unpack_vector3_uXX_sse4_v1(benchmark::State& state)
+{
+	uint8_t buffer[128] = { 0 };
+	rtm::vector4f v0 = rtm::vector_zero();
+	rtm::vector4f v1 = rtm::vector_zero();
+	rtm::vector4f v2 = rtm::vector_zero();
+	rtm::vector4f v3 = rtm::vector_zero();
+
+	// Prevent compiler from specializing the call with a constant
+	volatile uint32_t num_bits_0 = 5;
+	volatile uint32_t num_bits_1 = 6;
+	volatile uint32_t num_bits_2 = 7;
+	volatile uint32_t num_bits_3 = 8;
+
+	volatile uint32_t bit_offset_0 = 4;
+	volatile uint32_t bit_offset_1 = 5;
+	volatile uint32_t bit_offset_2 = 6;
+	volatile uint32_t bit_offset_3 = 7;
+
+	for (auto _ : state)
+	{
+		v0 = rtm::vector_add(unpack_vector3_uXX_sse4_v1(num_bits_0, buffer, bit_offset_0), v0);
+		v1 = rtm::vector_add(unpack_vector3_uXX_sse4_v1(num_bits_1, buffer, bit_offset_1), v1);
+		v2 = rtm::vector_add(unpack_vector3_uXX_sse4_v1(num_bits_2, buffer, bit_offset_2), v2);
+		v3 = rtm::vector_add(unpack_vector3_uXX_sse4_v1(num_bits_3, buffer, bit_offset_3), v3);
+	}
+
+	benchmark::DoNotOptimize(buffer);
+	benchmark::DoNotOptimize(v0);
+	benchmark::DoNotOptimize(v1);
+	benchmark::DoNotOptimize(v2);
+	benchmark::DoNotOptimize(v3);
+}
+
+BENCHMARK(bm_unpack_vector3_uXX_sse4_v1);
+
+static void bm_unpack_vector3_uXX_sse4_v2(benchmark::State& state)
+{
+	uint8_t buffer[128] = { 0 };
+	rtm::vector4f v0 = rtm::vector_zero();
+	rtm::vector4f v1 = rtm::vector_zero();
+	rtm::vector4f v2 = rtm::vector_zero();
+	rtm::vector4f v3 = rtm::vector_zero();
+
+	// Prevent compiler from specializing the call with a constant
+	volatile uint32_t num_bits_0 = 5;
+	volatile uint32_t num_bits_1 = 6;
+	volatile uint32_t num_bits_2 = 7;
+	volatile uint32_t num_bits_3 = 8;
+
+	volatile uint32_t bit_offset_0 = 4;
+	volatile uint32_t bit_offset_1 = 5;
+	volatile uint32_t bit_offset_2 = 6;
+	volatile uint32_t bit_offset_3 = 7;
+
+	for (auto _ : state)
+	{
+		v0 = rtm::vector_add(unpack_vector3_uXX_sse4_v2(num_bits_0, buffer, bit_offset_0), v0);
+		v1 = rtm::vector_add(unpack_vector3_uXX_sse4_v2(num_bits_1, buffer, bit_offset_1), v1);
+		v2 = rtm::vector_add(unpack_vector3_uXX_sse4_v2(num_bits_2, buffer, bit_offset_2), v2);
+		v3 = rtm::vector_add(unpack_vector3_uXX_sse4_v2(num_bits_3, buffer, bit_offset_3), v3);
+	}
+
+	benchmark::DoNotOptimize(buffer);
+	benchmark::DoNotOptimize(v0);
+	benchmark::DoNotOptimize(v1);
+	benchmark::DoNotOptimize(v2);
+	benchmark::DoNotOptimize(v3);
+}
+
+BENCHMARK(bm_unpack_vector3_uXX_sse4_v2);
+#endif	// defined(RTM_SSE4_INTRINSICS)
+
+#if defined(RTM_AVX2_INTRINSICS)
+static void bm_unpack_vector3_uXX_avx2_v0(benchmark::State& state)
+{
+	uint8_t buffer[128] = { 0 };
+	rtm::vector4f v0 = rtm::vector_zero();
+	rtm::vector4f v1 = rtm::vector_zero();
+	rtm::vector4f v2 = rtm::vector_zero();
+	rtm::vector4f v3 = rtm::vector_zero();
+
+	// Prevent compiler from specializing the call with a constant
+	volatile uint32_t num_bits_0 = 5;
+	volatile uint32_t num_bits_1 = 6;
+	volatile uint32_t num_bits_2 = 7;
+	volatile uint32_t num_bits_3 = 8;
+
+	volatile uint32_t bit_offset_0 = 4;
+	volatile uint32_t bit_offset_1 = 5;
+	volatile uint32_t bit_offset_2 = 6;
+	volatile uint32_t bit_offset_3 = 7;
+
+	for (auto _ : state)
+	{
+		v0 = rtm::vector_add(unpack_vector3_uXX_avx2_v0(num_bits_0, buffer, bit_offset_0), v0);
+		v1 = rtm::vector_add(unpack_vector3_uXX_avx2_v0(num_bits_1, buffer, bit_offset_1), v1);
+		v2 = rtm::vector_add(unpack_vector3_uXX_avx2_v0(num_bits_2, buffer, bit_offset_2), v2);
+		v3 = rtm::vector_add(unpack_vector3_uXX_avx2_v0(num_bits_3, buffer, bit_offset_3), v3);
+	}
+
+	benchmark::DoNotOptimize(buffer);
+	benchmark::DoNotOptimize(v0);
+	benchmark::DoNotOptimize(v1);
+	benchmark::DoNotOptimize(v2);
+	benchmark::DoNotOptimize(v3);
+}
+
+BENCHMARK(bm_unpack_vector3_uXX_avx2_v0);
+#endif	// defined(RTM_AVX2_INTRINSICS)
 #endif // defined(ACL_IMPL_BENCHMARK_UNPACKING)
