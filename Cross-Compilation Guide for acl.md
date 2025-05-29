@@ -11,7 +11,6 @@ The acl compilation scheme introduced in this chapter is：
 * [Preparing OpenHarmony SDK](#sdk_prepare_tag)
 * [Compiling Source Code via CMake](#cmake_tag)
 * [Verifying Compiled Outputs](#check_binary_tag)
-* [Compiling Source Code via configure](#configure_tag)
 
 
 ### Prerequisites
@@ -103,40 +102,5 @@ OpenHarmony provides SDKs for Linux, Windows, and macOS platforms, enabling cros
     
    acl_compressor: ELF 64-bit LSB shared object, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter/lib/ld-musl-aarch64
    so.1, BuildID[sha1]=c0aaff0b401feef924f074a6cb7d19b5958f74f5, with debug_info, not stripped
-   ```
-
-### Compiling configure-Based Projects <a id="configure_tag"></a>
-
-1. Review configuration options:
-   ```shell
-   owner@ubuntu:~/workspace/acl$ ./configure --help
-   ```
-
-2. Set cross-compilation environment variables (for 64-bit ARM):
-   ```shell
-   export OHOS_SDK=/home/owner/tools/OHOS_SDK/ohos-sdk/linux/
-   export AS=${OHOS_SDK}/native/llvm/bin/llvm-as
-   export CC="${OHOS_SDK}/native/llvm/bin/clang --target=aarch64-linux-ohos"
-   export CXX="${OHOS_SDK}/native/llvm/bin/clang++ --target=aarch64-linux-ohos"
-   export LD=${OHOS_SDK}/native/llvm/bin/ld.lld
-   export STRIP=${OHOS_SDK}/native/llvm/bin/llvm-strip
-   export RANLIB=${OHOS_SDK}/native/llvm/bin/llvm-ranlib
-   export OBJDUMP=${OHOS_SDK}/native/llvm/bin/llvm-objdump
-   export OBJCOPY=${OHOS_SDK}/native/llvm/bin/llvm-objcopy
-   export NM=${OHOS_SDK}/native/llvm/bin/llvm-nm
-   export AR=${OHOS_SDK}/native/llvm/bin/llvm-ar
-   export CFLAGS="-fPIC -D__MUSL__=1"      # For 32-bit: add "-march=armv7a"
-   export CXXFLAGS="-fPIC -D__MUSL__=1"    # For 32-bit: add "-march=armv7a"
-   ```
-
-3. Run configure with cross-compilation parameters:
-   ```shell
-   owner@ubuntu:~/workspace/acl$ ./configure --prefix=/home/owner/workspace/acl --host=aarch64-linux
-   ```
-
-4. Compile and install:
-   ```shell
-   owner@ubuntu:~/workspace/acl$ make
-   owner@ubuntu:~/workspace/acl$ make install
    ```
 
