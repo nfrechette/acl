@@ -476,14 +476,6 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 			stats_writer->insert("worst_track", error.index);
 			stats_writer->insert("worst_time", error.sample_time);
 			stats_writer->insert("worst_keyframe", error.keyframe_index);
-
-			const qvvf_precise_transform_error_metric error_metric;
-			const track_error error_precise = calculate_compression_error(allocator, transform_tracks, context, error_metric);
-
-			stats_writer->insert("max_error_precise", error_precise.error);
-			stats_writer->insert("worst_track_precise", error_precise.index);
-			stats_writer->insert("worst_time_precise", error_precise.sample_time);
-			stats_writer->insert("worst_keyframe_precise", error_precise.keyframe_index);
 		}
 #endif
 
