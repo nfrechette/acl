@@ -8,7 +8,7 @@ file(RELATIVE_PATH ACL_PROJECT_ROOT ${CMAKE_CURRENT_BINARY_DIR}/app ${PROJECT_SO
 # Setup our state
 set(ACL_ANDROID_PROJECT_NAME "ACL Unit Tests")
 set(ACL_ANDROID_PROJECT_PACKAGE_NAME "com.acl.unit_tests")
- 
+
 # Configure gradle for our build configuration
 configure_file(${ACL_ANDROID_MISC_DIR}/app/build.gradle.in app/build.gradle @ONLY)
 configure_file(${ACL_ANDROID_MISC_DIR}/app/src/main/AndroidManifest.xml.in app/src/main/AndroidManifest.xml @ONLY)
