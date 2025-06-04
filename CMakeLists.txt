@@ -1,16 +1,6 @@
 cmake_minimum_required (VERSION 3.2)
 project(acl CXX)
 
-# 针对 C++ 编译器添加编译选项
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    # 移除 -Werror 选项，添加 -Wno-unused-command-line-argument 选项
-    string(REPLACE "-Werror" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-command-line-argument")
-
-	# 替换错误的 -Wformat =format-security 为 -Wformat-security
-    string(REPLACE "-Wformat =format-security" "-Wformat-security" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-endif()
-
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
 
 include(CMakeUtils)
