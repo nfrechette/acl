@@ -1288,6 +1288,32 @@ rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_sse4_v2(
 }
 #endif	// defined(RTM_SSE4_INTRINSICS)
 
+// TODO: Can use use a float64 multiply to do per lane shift?
+// In order to use float64 multiplication to perform a bitwise shift, we need to load our
+// bytes such that we don't exceed the 53-bit mantissa
+// When loading, instead of swizzling and aligning to the MSB byte boundary, we can
+// do the same but align at the 6th byte boundary (bit 48) and truncate the LSB when needed
+// meaning we need a load mask like Z
+// Once loaded, we can't just multiply to shift left, instead we have to divide to shift
+// right (or multiply with inverse). The idea is to align our bits with the LSB instead
+// of the MSB like other variants before shifting down to LSB. Once in LSB, we can mask out
+// the extra bits instead. But before we can do so, we have to multiply again to shift by
+// our base bit offset. We'll have to use it to load a constant.
+// We also have to avoid denormals and so must flip a bit in the exponent before we multiply
+// but we don't need to clear it as we'll discard it when masking extra bits
+// The idea behind this approach isn't to be faster when unpacking XYZ, but rather to allow
+// for 8-wide AVX unpacking more easily without relying on AVX2
+// Being able to process 2-4 elements at a time will reduce register pressure
+// xy = _mm_or_pd(xy, exponent_bit)
+// xy = _mm_mul_pd(xy, shift_right_xy)
+// z = _mm_srl_epi64(z, shift_right_z)
+// xy = _mm_mul_pd(xy, base_bit_offset_shift_right_xy)
+// z = _mm_srl_epi64(z, shift_right_base_bit_offset)
+// xyz = _mm_shuffle_ps(xy, z, _MM_SHUFFLE(1, 1, 3, 1))
+// xyz = _mm_and_ps(xyz, num_bit_mask)
+// While this might technically work, even with SSE2 (x_, yz pairs), it is unlikely to be
+// any faster because we can process the xyz lanes independently with shifts but they will
+// serialize with float mul on top of the required magic to set it up
 
 #if defined(RTM_AVX2_INTRINSICS)
 RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_NOINLINE
@@ -1325,21 +1351,26 @@ rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_avx2_v0(
 
 	const __m256i k_byte_swap_mask = _mm256_set1_epi64x(0x0001020304050607ULL);
 
+	// TODO: Load from memory with broadcast
 	// Select and swizzle using our mask
 	const __m128i swizzle_mask_z = _mm_set1_epi8(static_cast<uint8_t>((num_bits >> 2) & 0x04));	// num_bits >= 16 ? 4 : 0
 
+	// TODO: Could perhaps reverse to zwxy to leverage _mm256_zextsi128_si256 for swizzle mask
 	const __m128i zero = _mm_setzero_si128();
 	const __m256i swizzle_mask = _mm256_add_epi8(_mm256_set_m128i(swizzle_mask_z, zero), k_byte_swap_mask);
 
 	// Reverse the bytes in each 64-bit lane and line up XYZ
 	__m256i xyzw_u64 = _mm256_shuffle_epi8(raw_bytes, swizzle_mask);
 
+	// TODO: set base bit offset once, add once (or shift by bit offset, see AVX)
+	// TODO: load constant, unpack 8/16/32/64 for shift offset
 	// Shift out the extra bits
 	const __m256i shift_offset_xyzw = _mm256_set_epi64x(0, base_bit_offset + ((num_bits % 16) * 2), base_bit_offset + num_bits, base_bit_offset);
 
 	// Shift left to truncate the extra leading bits
 	xyzw_u64 = _mm256_sllv_epi64(xyzw_u64, shift_offset_xyzw);
 
+	// TODO: avoid constant load by getting top 128bit (3 cycles), then merge/swizzle (shift/blend 2 cycles, shuffle 1 cycle)
 	// Combine and mask our the extra bits
 	// As u64, we have: {x, y}, but when we cast to u32, we get: {x, _, y, _}, {z, _, z, _}
 	const __m256i k_merge_shuffle_mask = _mm256_setr_epi32(1, 3, 5, 5, 0, 0, 0, 0);
