@@ -1206,14 +1206,14 @@ namespace acl
 		// Select and swizzle using our mask
 		const uint8_t swizzle_mask_z_offset = static_cast<uint8_t>((num_bits >> 2) & 0x04);	// num_bits >= 16 ? 4 : 0
 
-#if defined(RTM_NEON64_INTRINSICS)
+	#if defined(RTM_NEON64_INTRINSICS)
 		const uint8x16_t swizzle_mask_base = vreinterpretq_u8_u64(vmovq_n_u64(0x0001020304050607ULL));
 		const uint8x16_t swizzle_mask_xy = swizzle_mask_base;
 		const uint8x16_t swizzle_mask_zw = vaddq_u8(swizzle_mask_base, vmovq_n_u8(swizzle_mask_z_offset));
 
 		uint64x2_t xy = vreinterpretq_u64_u8(vqtbl1q_u8(raw_bytes, swizzle_mask_xy));
 		uint64x2_t zw = vreinterpretq_u64_u8(vqtbl1q_u8(raw_bytes, swizzle_mask_zw));
-#else
+	#else
 		const uint8x8_t swizzle_mask_base = vreinterpret_u8_u64(vmov_n_u64(0x0001020304050607ULL));
 		const uint8x8x2_t raw_bytes_split = { vget_low_u8(raw_bytes), vget_high_u8(raw_bytes) };
 		const uint8x8_t swizzle_mask_xy = swizzle_mask_base;
@@ -1221,7 +1221,7 @@ namespace acl
 
 		uint64x2_t xy = vdupq_lane_u64(vreinterpret_u64_u8(vtbl1_u8(vget_low_u8(raw_bytes), swizzle_mask_xy)), 0);
 		uint64x2_t zw = vdupq_lane_u64(vreinterpret_u64_u8(vtbl2_u8(raw_bytes_split, swizzle_mask_zw)), 0);
-#endif
+	#endif
 
 		// Even though it is easy to compute the shift offsets on demand, we pre-compute them
 		// and load them here. We already pay the price of a load instruction for the inverse
@@ -1249,11 +1249,11 @@ namespace acl
 
 		// Combine and mask our the extra bits
 		// As u64, we have: {x, y}, but when we cast to u32, we get: {x, _, y, _}
-#if defined(RTM_NEON64_INTRINSICS)
+	#if defined(RTM_NEON64_INTRINSICS)
 		const uint32x4_t xyzw_u32 = vuzp1q_u32(vreinterpretq_u32_u64(xy), vreinterpretq_u32_u64(zw));
-#else
+	#else
 		const uint32x4_t xyzw_u32 = vuzpq_u32(vreinterpretq_u32_u64(xy), vreinterpretq_u32_u64(zw)).val[0];
-#endif
+	#endif
 
 		// Convert to float and re-scale
 		const float32x4_t xyzw_f32 = vcvtq_f32_u32(xyzw_u32);
