@@ -918,7 +918,101 @@ namespace acl
 		return rtm::vector_neg_mul_sub(decayed, -2.0F, rtm::vector_set(-1.0F));
 	}
 
-#if defined(RTM_SSE2_INTRINSICS)
+#if defined(RTM_SSE4_INTRINSICS)
+	// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 16 bytes from it
+	ACL_IMPL_DEBUG_FORCE_INLINE
+	rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_unsafe(
+		uint32_t num_bits,
+		const uint8_t* vector_data,
+		uint32_t bit_offset)
+	{
+		ACL_ASSERT(num_bits <= 23, "This function does not support reading more than 23 bits per component");
+
+		struct SSEConstants_t
+		{
+			explicit constexpr SSEConstants_t(int32_t num_bits_)
+				: shift_offset_x(0)
+				, shift_offset_y(static_cast<uint8_t>(num_bits_))
+				, shift_offset_z(static_cast<uint8_t>((num_bits_ % 16) * 2))
+				, shift_num_bits(static_cast<uint8_t>(32 - num_bits_))
+				, max_value(num_bits_ == 0 ? 1.0F : (1.0F / float((1 << num_bits_) - 1)))
+			{}
+
+			uint8_t shift_offset_x;
+			uint8_t shift_offset_y;
+			uint8_t shift_offset_z;
+			uint8_t shift_num_bits;
+
+			float max_value;
+		};
+
+		// Total size: 8 * 24 = 192 (3 cache lines)
+		// Align to 256 bytes to avoid straddling over a page boundary
+		alignas(256) static constexpr SSEConstants_t k_packed_constants[24] =
+		{
+			SSEConstants_t(0), SSEConstants_t(1), SSEConstants_t(2), SSEConstants_t(3),
+			SSEConstants_t(4), SSEConstants_t(5), SSEConstants_t(6), SSEConstants_t(7),
+			SSEConstants_t(8), SSEConstants_t(9), SSEConstants_t(10), SSEConstants_t(11),
+			SSEConstants_t(12), SSEConstants_t(13), SSEConstants_t(14), SSEConstants_t(15),
+			SSEConstants_t(16), SSEConstants_t(17), SSEConstants_t(18), SSEConstants_t(19),
+			SSEConstants_t(20), SSEConstants_t(21), SSEConstants_t(22), SSEConstants_t(23),
+		};
+
+		const uint32_t byte_offset = bit_offset / 8;
+		const uint32_t base_bit_offset = bit_offset % 8;
+
+		// Load 16 bytes
+		// [0,1,2,3,4,5,6,7], [8,9,10,11,12,13,14,15]
+		const __m128i raw_bytes = _mm_loadu_si128((const __m128i*)(vector_data + byte_offset));
+
+		// Reverse the bytes in each 64-bit lane
+		const __m128i k_byte_swap_mask = _mm_setr_epi32(0x04050607, 0x00010203, 0x0c0d0e0f, 0x08090a0b);
+
+		// [7,6,5,4,3,2,1,0], [15,14,13,12,11,10,9,8]
+		const __m128i rev_raw_bytes = _mm_shuffle_epi8(raw_bytes, k_byte_swap_mask);
+
+		// Select and swizzle using our mask
+		constexpr uint64_t k_swizzle_masks_z[2] = { 0x0001020304050607ULL, 0x0405060708091011ULL };
+		const uint32_t swizzle_mask_z_index = num_bits >> 4; // num_bits >= 16 ? 1 : 0
+
+		__m128i x = rev_raw_bytes;
+		__m128i y = rev_raw_bytes;
+		__m128i z = _mm_shuffle_epi8(raw_bytes, _mm_loadu_si64(&k_swizzle_masks_z[swizzle_mask_z_index]));
+
+		// Even though it is easy to compute the shift offsets on demand, we pre-compute them
+		// and load them here. We already pay the price of a load instruction for the inverse
+		// max value float which is too expensive to compute on demand. As such, we tack on
+		// another 4 bytes for the shift offsets and unpack them here. This uses fewer instructions.
+		const __m128i raw_constant_bytes_u8 = _mm_loadu_si64(&k_packed_constants[num_bits]);
+		const __m128i raw_constant_bytes_u16 = _mm_cvtepu8_epi16(raw_constant_bytes_u8);
+
+		// Shift out the extra bits
+		const __m128i base_bit_offset_u64 = _mm_set_epi64x(0, base_bit_offset);
+		const __m128i shift_offset_y = _mm_shufflelo_epi16(raw_constant_bytes_u16, 0x01);
+		const __m128i shift_offset_z = _mm_shufflelo_epi16(raw_constant_bytes_u16, 0x02);
+
+		// Shift left to truncate the extra leading bits
+		y = _mm_sll_epi64(y, shift_offset_y);
+		z = _mm_sll_epi64(z, shift_offset_z);
+
+		// Combine and mask our the extra bits
+		// As u64, we have: {x, y}, but when we cast to u32, we get: {x, _, y, _}, {z, _, z, _}
+		__m128i xy = _mm_unpacklo_epi64(x, y);
+		__m128i zxzy_u32 = _mm_blend_epi16(xy, _mm_srli_epi64(z, 32), 0x33);
+
+		zxzy_u32 = _mm_sll_epi32(zxzy_u32, base_bit_offset_u64);
+
+		// Shift right to bring them in the right place at the bottom
+		const __m128i shift_num_bits = _mm_shufflelo_epi16(raw_constant_bytes_u16, 0x03);
+		zxzy_u32 = _mm_srl_epi32(zxzy_u32, shift_num_bits);
+
+		// Convert to float and re-scale
+		const __m128 inv_max_value = _mm_castsi128_ps(_mm_shuffle_epi32(raw_constant_bytes_u8, _MM_SHUFFLE(1, 1, 1, 1)));
+		const __m128 zxzy_f32 = _mm_mul_ps(_mm_cvtepi32_ps(zxzy_u32), inv_max_value);
+
+		return _mm_shuffle_ps(zxzy_f32, zxzy_f32, _MM_SHUFFLE(0, 0, 3, 1));
+	}
+#elif defined(RTM_SSE2_INTRINSICS)
 	// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 16 bytes from it
 	ACL_IMPL_DEBUG_FORCE_INLINE
 	rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_unsafe(
