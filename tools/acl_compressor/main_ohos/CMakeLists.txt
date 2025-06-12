@@ -41,10 +41,10 @@ add_definitions(-DRTM_ON_ASSERT_ABORT)
 add_definitions(-DSJSON_CPP_ON_ASSERT_ABORT)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "OHOS")
-target_link_libraries(acl_compressor 
-    PRIVATE
-	${HILOG_LIB_PATH}  
-)
+	target_link_libraries(acl_compressor 
+		PRIVATE
+		${HILOG_LIB_PATH}  
+	)
 endif()
 
 # Enable SJSON when needed
