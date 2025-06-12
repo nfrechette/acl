@@ -280,7 +280,7 @@ static bool parse_options(int argc, char** argv, Options& options)
 			const size_t filename_len = std::strlen(options.config_filename);
 			if (filename_len < 13 || strncmp(options.config_filename + filename_len - 13, ".config.sjson", 13) != 0)
 			{
-				printf("Configuration file must be a config SJSON file of the form: [*.config.sjson]\n");
+				OH_LOG_Print(LOG_APP,LOG_ERROR,LOG_DOMAIN,LOG_TAG,"Configuration file must be a config SJSON file of the form: [*.config.sjson]\n");
 				return false;
 			}
 #else
