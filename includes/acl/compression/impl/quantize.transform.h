@@ -58,6 +58,10 @@
 #include <cstdint>
 #include <functional>
 
+#if defined(__OHOS__)
+#include "hilog/log.h"
+#endif
+
 #define ACL_IMPL_DEBUG_LEVEL_NONE					0		// No logging whatsoever
 #define ACL_IMPL_DEBUG_LEVEL_SUMMARY_ONLY			1		// Logs a summary at the end
 #define ACL_IMPL_DEBUG_LEVEL_BASIC_INFO				2		// Logs the best bit rate after each pass
@@ -2994,7 +2998,7 @@ namespace acl
 #if defined(__ANDROID__)
 					__android_log_print(ANDROID_LOG_INFO, "acl", "Quantization optimization for segment %u took: %.4f ms", segment.segment_index, timer.get_elapsed_milliseconds());
 #elif defined(__OHOS__)
-					printf("Quantization optimization for segment %u took: %.4f ms\n", segment.segment_index, timer.get_elapsed_milliseconds());
+					OH_LOG_Print(LOG_APP,LOG_INFO,LOG_DOMAIN,LOG_TAG,"Quantization optimization for segment %u took: %.4f ms\n", segment.segment_index, timer.get_elapsed_milliseconds());
 #else
 					printf("Quantization optimization for segment %u took: %.4f ms\n", segment.segment_index, timer.get_elapsed_milliseconds());
 #endif

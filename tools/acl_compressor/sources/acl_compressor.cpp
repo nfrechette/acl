@@ -128,6 +128,10 @@
 #include <string>
 #include <memory>
 
+#if defined(__OHOS__)
+#include "hilog/log.h"
+#endif
+
 using namespace acl;
 
 struct Options
@@ -138,9 +142,6 @@ struct Options
 	bool			input_buffer_binary				= false;
 	const char*		config_buffer					= nullptr;
 	size_t			config_buffer_size				= 0;
-#elif defined(__OHOS__)
-	const char*		input_filename					= nullptr;
-	const char*		config_filename					= nullptr;
 #else
 	const char*		input_filename					= nullptr;
 	const char*		config_filename					= nullptr;
@@ -253,7 +254,7 @@ static bool parse_options(int argc, char** argv, Options& options)
 			options.input_filename = argument + option_length;
 			if (!is_acl_sjson_file(options.input_filename) && !is_acl_bin_file(options.input_filename))
 			{
-				printf("Input file must be an ACL SJSON file of the form: [*.acl.sjson] or a binary ACL file of the form: [*.acl]\n");
+				OH_LOG_Print(LOG_APP,LOG_ERROR,LOG_DOMAIN,LOG_TAG,"Input file must be an ACL SJSON file of the form: [*.acl.sjson] or a binary ACL file of the form: [*.acl]\n");
 				return false;
 			}
 #else

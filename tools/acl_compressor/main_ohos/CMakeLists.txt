@@ -40,6 +40,11 @@ add_definitions(-DACL_ON_ASSERT_ABORT)
 add_definitions(-DRTM_ON_ASSERT_ABORT)
 add_definitions(-DSJSON_CPP_ON_ASSERT_ABORT)
 
+target_link_libraries(acl_compressor 
+    PRIVATE
+	${HILOG_LIB_PATH}  
+)
+
 # Enable SJSON when needed
 if(USE_SJSON)
 	add_definitions(-DACL_USE_SJSON)

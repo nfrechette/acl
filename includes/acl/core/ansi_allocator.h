@@ -151,8 +151,6 @@ namespace acl
 				size_t* padding_size_ptr = add_offset_to_ptr<size_t>(ptr, -sizeof(size_t));
 				*padding_size_ptr = padding_size;
 			}
-#elif defined(__OHOS__)
-			ptr = aligned_alloc(alignment, aligned_size);
 #else
 			ptr = aligned_alloc(alignment, aligned_size);
 #endif
@@ -199,8 +197,6 @@ namespace acl
 			const size_t* padding_size_ptr = add_offset_to_ptr<size_t>(ptr, -sizeof(size_t));
 			void* allocated_ptr = add_offset_to_ptr<void>(ptr, -*padding_size_ptr);
 			free(allocated_ptr);
-#elif defined(__OHOS__)
-			free(ptr);
 #else
 			free(ptr);
 #endif

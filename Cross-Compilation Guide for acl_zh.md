@@ -70,7 +70,7 @@ OpenHarmony提供 linux/windwos以及mac平台的几种SDK，开发者可以在l
 2. 配置交叉编译参数，生成Makefile，本用例中，我们采用SDK中的cmake工具以及配置文件进行编译（对应的路径为：SDKPATH=~/workspace/ohos-sdk/linux/native/build-tools/cmake），参考命令如下：
 
    ```shell
-   owner@ubuntu:~/workspace/acl/build$ {SDKPATH}/bin/cmake -DCMAKE_TOOLCHAIN_FILE=/workspace/ohos-sdk/linux/native/build/cmake/ohos.toolchain.cmake -DCMAKE_INSTALL_PREFIX={INSTALL_PATH} -DOHOS_ARCH=arm64-v8a .. -L             # 执行cmake命令,执行完cmake成功后在当前目录生成Makefile文件
+   owner@ubuntu:~/workspace/acl/build$ {SDKPATH}/bin/cmake -DCMAKE_TOOLCHAIN_FILE=/workspace/ohos-sdk/linux/native/build/cmake/ohos.toolchain.cmake  -DCMAKE_CXX_FLAGS="-Wno-unused-command-line-argument" -DCMAKE_INSTALL_PREFIX={INSTALL_PATH} -DHILOG_LIB_PATH={HILOG_LIB_PATH} -DOHOS_ARCH=arm64-v8a .. -L             # 执行cmake命令,执行完cmake成功后在当前目录生成Makefile文件
    ```
 
    **注意这里执行的 cmake 必须是 SDK 内的 cmake，不是你自己系统上原有的 cmake 。否则会不识别参数OHOS_ARCH。**

@@ -68,7 +68,7 @@ OpenHarmony provides SDKs for Linux, Windows, and macOS platforms, enabling cros
 2. Configure cross-compilation parameters and generate Makefile. In this use case, we use the cmake tool and configuration file in the SDK for compilation (the corresponding path is: SDKPATH=~/workspace/ohos-sdk/linux/native/build-tools/cmake). The reference command is as follows:
 
    ```shell
-   owner@ubuntu:~/workspace/acl/build$ {SDKPATH}/bin/cmake -DCMAKE_TOOLCHAIN_FILE=/workspace/ohos-sdk/linux/native/build/cmake/ohos.toolchain.cmake -DCMAKE_INSTALL_PREFIX={INSTALL_PATH} -DOHOS_ARCH=arm64-v8a .. -L             # Execute the cmake command. After cmake is successfully executed, a Makefile file is generated in the current directory.
+   owner@ubuntu:~/workspace/acl/build$ {SDKPATH}/bin/cmake -DCMAKE_TOOLCHAIN_FILE=/workspace/ohos-sdk/linux/native/build/cmake/ohos.toolchain.cmake  -DCMAKE_CXX_FLAGS="-Wno-unused-command-line-argument" -DCMAKE_INSTALL_PREFIX={INSTALL_PATH} -DHILOG_LIB_PATH={HILOG_LIB_PATH} -DOHOS_ARCH=arm64-v8a .. -L             # Execute the cmake command. After cmake is successfully executed, a Makefile file is generated in the current directory.
    ```
 
    **Notes:** 
