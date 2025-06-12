@@ -1162,9 +1162,8 @@ rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_sse4_v1(
 	// and load them here. We already pay the price of a load instruction for the inverse
 	// max value float which is too expensive to compute on demand. As such, we tack on
 	// another 4 bytes for the shift offsets and unpack them here. This uses fewer instructions.
-	const __m128i zero = _mm_setzero_si128();
 	const __m128i raw_constant_bytes_u8 = _mm_loadu_si64(&k_packed_constants[num_bits]);
-	const __m128i raw_constant_bytes_u16 = _mm_unpacklo_epi8(raw_constant_bytes_u8, zero);
+	const __m128i raw_constant_bytes_u16 = _mm_cvtepu8_epi16(raw_constant_bytes_u8);
 
 	// Shift out the extra bits
 	const __m128i base_bit_offset_u64 = _mm_set_epi64x(0, base_bit_offset);
@@ -1256,9 +1255,8 @@ rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_sse4_v2(
 	// and load them here. We already pay the price of a load instruction for the inverse
 	// max value float which is too expensive to compute on demand. As such, we tack on
 	// another 4 bytes for the shift offsets and unpack them here. This uses fewer instructions.
-	const __m128i zero = _mm_setzero_si128();
 	const __m128i raw_constant_bytes_u8 = _mm_loadu_si64(&k_packed_constants[num_bits]);
-	const __m128i raw_constant_bytes_u16 = _mm_unpacklo_epi8(raw_constant_bytes_u8, zero);
+	const __m128i raw_constant_bytes_u16 = _mm_cvtepu8_epi16(raw_constant_bytes_u8);
 
 	// Shift out the extra bits
 	const __m128i base_bit_offset_u64 = _mm_set_epi64x(0, base_bit_offset);
