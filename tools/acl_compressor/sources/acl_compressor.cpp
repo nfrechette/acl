@@ -128,6 +128,10 @@
 #include <string>
 #include <memory>
 
+#if defined(__OHOS__)
+#include "hilog/log.h"
+#endif
+
 using namespace acl;
 
 struct Options
@@ -246,6 +250,13 @@ static bool parse_options(int argc, char** argv, Options& options)
 			sscanf(argument + option_length, "@%u,%p,%d", &buffer_size, &options.input_buffer, &is_acl_bin_buffer);
 			options.input_buffer_size = buffer_size;
 			options.input_buffer_binary = is_acl_bin_buffer != 0;
+#elif defined(__OHOS__)
+			options.input_filename = argument + option_length;
+			if (!is_acl_sjson_file(options.input_filename) && !is_acl_bin_file(options.input_filename))
+			{
+				OH_LOG_Print(LOG_APP,LOG_ERROR,LOG_DOMAIN,LOG_TAG,"Input file must be an ACL SJSON file of the form: [*.acl.sjson] or a binary ACL file of the form: [*.acl]\n");
+				return false;
+			}
 #else
 			options.input_filename = argument + option_length;
 			if (!is_acl_sjson_file(options.input_filename) && !is_acl_bin_file(options.input_filename))
@@ -264,6 +275,14 @@ static bool parse_options(int argc, char** argv, Options& options)
 			unsigned int buffer_size;
 			sscanf(argument + option_length, "@%u,%p", &buffer_size, &options.config_buffer);
 			options.config_buffer_size = buffer_size;
+#elif defined(__OHOS__)
+			options.config_filename = argument + option_length;
+			const size_t filename_len = std::strlen(options.config_filename);
+			if (filename_len < 13 || strncmp(options.config_filename + filename_len - 13, ".config.sjson", 13) != 0)
+			{
+				OH_LOG_Print(LOG_APP,LOG_ERROR,LOG_DOMAIN,LOG_TAG,"Configuration file must be a config SJSON file of the form: [*.config.sjson]\n");
+				return false;
+			}
 #else
 			options.config_filename = argument + option_length;
 			const size_t filename_len = std::strlen(options.config_filename);
@@ -416,6 +435,8 @@ static bool parse_options(int argc, char** argv, Options& options)
 
 #if defined(__ANDROID__)
 	if (options.input_buffer == nullptr || options.input_buffer_size == 0)
+#elif defined(__OHOS__)
+	if (options.input_filename == nullptr || options.input_filename[0] == '\0')
 #else
 	if (options.input_filename == nullptr || options.input_filename[0] == '\0')
 #endif
@@ -712,6 +733,9 @@ static bool read_acl_bin_file(iallocator& allocator, const Options& options, acl
 	tracks_data = allocate_type_array_aligned<char>(allocator, options.input_buffer_size, 64);
 	file_size = options.input_buffer_size;
 	std::memcpy(tracks_data, options.input_buffer, options.input_buffer_size);
+#elif defined(__OHOS__)
+	if (!read_file(allocator, options.input_filename, tracks_data, file_size))
+		return false;
 #else
 	if (!read_file(allocator, options.input_filename, tracks_data, file_size))
 		return false;
@@ -738,6 +762,11 @@ static bool read_acl_sjson_file(iallocator& allocator, const Options& options,
 
 #if defined(__ANDROID__)
 	clip_reader reader(allocator, options.input_buffer, options.input_buffer_size - 1);
+#elif defined(__OHOS__)
+	if (!read_file(allocator, options.input_filename, sjson_file_buffer, file_size))
+		return false;
+
+	clip_reader reader(allocator, sjson_file_buffer, file_size - 1);
 #else
 	if (!read_file(allocator, options.input_filename, sjson_file_buffer, file_size))
 		return false;
@@ -778,6 +807,13 @@ static bool read_config(iallocator& allocator, Options& options, compression_set
 {
 #if defined(__ANDROID__)
 	sjson::Parser parser(options.config_buffer, options.config_buffer_size - 1);
+#elif defined(__OHOS__)
+	std::ifstream t(options.config_filename);
+	std::stringstream buffer;
+	buffer << t.rdbuf();
+	std::string str = buffer.str();
+
+	sjson::Parser parser(str.c_str(), str.length());
 #else
 	std::ifstream t(options.config_filename);
 	std::stringstream buffer;
@@ -1007,6 +1043,8 @@ static int safe_main_impl(int argc, char* argv[])
 
 #if defined(__ANDROID__)
 	const bool is_input_acl_bin_file = options.input_buffer_binary;
+#elif defined(__OHOS__)
+	const bool is_input_acl_bin_file = is_acl_bin_file(options.input_filename);
 #else
 	const bool is_input_acl_bin_file = is_acl_bin_file(options.input_filename);
 #endif
@@ -1108,6 +1146,8 @@ static int safe_main_impl(int argc, char* argv[])
 
 #if defined(__ANDROID__)
 	if (options.config_buffer != nullptr && options.config_buffer_size != 0)
+#elif defined(__OHOS__)
+	if (options.config_filename != nullptr && options.config_filename[0] != '\0')
 #else
 	if (options.config_filename != nullptr && options.config_filename[0] != '\0')
 #endif
