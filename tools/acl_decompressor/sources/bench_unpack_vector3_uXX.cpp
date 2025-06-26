@@ -348,6 +348,7 @@ rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_neon_v2(
 	// 21: {[0,28], [21,49], [42,70]} = {[0,1,2,3], [2,3,4,5,6], [5,6,7,8]}
 	// 22: {[0,29], [22,51], [44,73]} = {[0,1,2,3], [2,3,4,5,6], [5,6,7,8,9]}
 	// 23: {[0,30], [23,53], [46,76]} = {[0,1,2,3], [2,3,4,5,6], [5,6,7,8,9]}
+	// 32: {[0,39], [32,71], [64,103]} = {[0,1,2,3,4], [4,5,6,7,8], [8,9,10,11,12]}
 	// As we can see, some values require 5 bytes to reconstruct. As such, we need to use
 	// 64-bit values for each lane until we shift out the excess. If we need 8 bytes
 	// per mask for each lane, then it becomes obvious that X and Y can use the
@@ -358,6 +359,11 @@ rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_neon_v2(
 	// XY: {0,1,2,3,4,5,6,7}
 	// Z: {0,1,2,3,4,5,6,7} and {4,5,6,7,8,9,10,11}
 	// Z's first mask can thus share the one used by XY.
+	// Note that this is only true up to 23 bits, if we wish to re-use the same logic for
+	// 32-bit values, Y needs its own mask and Z needs a third option as well.
+	// X: {0,1,2,3,4,5,6,7}
+	// Y: {0,1,2,3,4,5,6,7} or {4,5,6,7,8,9,10,11}
+	// Z: {0,1,2,3,4,5,6,7} or {4,5,6,7,8,9,10,11} or {8,9,10,11,12,13,14,15}
 	//
 	// We can use the shuffle to also perform the byte swap operation trivially and treat
 	// the resulting 64-bit numbers normally.
@@ -394,6 +400,7 @@ rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_neon_v2(
 	// 21: {[0],  [21], [10]}
 	// 22: {[0],  [22], [12]}
 	// 23: {[0],  [23], [14]}
+	// 32: {[0],  [0], [0]}
 	// For the XY lanes, because the first byte is byte 0, the shift offset is simply how
 	// many bites the previous lane consumed: always 0 for X, and num bits for Y.
 	// Z is different for values 16 and above because the first byte is the 4th. This
@@ -469,6 +476,7 @@ rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_neon_v2(
 	const int64x2_t base_shift_offset_zw = vmovl_s32(vget_high_s32(raw_shift_offsets_s32));
 
 	// Shift out the extra bits
+	// TODO: shift by base separately, swap add x2 to shift x2, avoid dependency
 	const int64x2_t base_bit_offset_s64 = vreinterpretq_s64_u64(vmovq_n_u64(base_bit_offset));
 	const int64x2_t shift_offset_xy = vaddq_s64(base_bit_offset_s64, base_shift_offset_xy);
 	const int64x2_t shift_offset_zw = vaddq_s64(base_bit_offset_s64, base_shift_offset_zw);
