@@ -454,7 +454,7 @@ rtm::vector4f RTM_SIMD_CALL unpack_vector3_mixed_neon_v1(
 	uint32x4_t xyzw_u32 = vuzpq_u32(vreinterpretq_u32_u64(xy), vreinterpretq_u32_u64(zw)).val[1];
 #endif
 
-	const int32x4_t shift_num_bits = vdupq_lane_s32(vget_high_s32(raw_shift_offsets_s32), 0);
+	const int32x4_t shift_num_bits = vdupq_lane_s32(vget_high_s32(raw_shift_offsets_s32), 1);
 	xyzw_u32 = vshlq_u32(xyzw_u32, shift_num_bits);
 
 	// Convert to float and re-scale
@@ -668,7 +668,7 @@ rtm::vector4f RTM_SIMD_CALL unpack_vector3_mixed_neon_v2(
 	uint32x4_t xyzw_u32 = vuzpq_u32(vreinterpretq_u32_u64(xy), vreinterpretq_u32_u64(zw)).val[1];
 #endif
 
-	const int32x4_t shift_num_bits = vdupq_lane_s32(vget_high_s32(raw_shift_offsets_s32), 0);
+	const int32x4_t shift_num_bits = vdupq_lane_s32(vget_high_s32(raw_shift_offsets_s32), 1);
 	xyzw_u32 = vshlq_u32(xyzw_u32, shift_num_bits);
 
 	// Convert to float and re-scale
