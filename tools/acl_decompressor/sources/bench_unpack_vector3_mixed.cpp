@@ -1053,7 +1053,7 @@ rtm::vector4f RTM_SIMD_CALL unpack_vector3_mixed_sse4_v0(
 	// [7,6,5,4,3,2,1,0], [11,10,9,8,7,6,5,4]
 	xy = _mm_shuffle_epi32(rev_raw_bytes, _MM_SHUFFLE(0, 3, 1, 0));
 	// [15,14,13,12,11,10,9,8], [15,14,13,12,11,10,9,8]
-	__m128 zw = _mm_shuffle_epi32(rev_raw_bytes, _MM_SHUFFLE(3, 2, 3, 2));
+	__m128i zw = _mm_shuffle_epi32(rev_raw_bytes, _MM_SHUFFLE(3, 2, 3, 2));
 
 	// Shift out the extra bits
 	xy = _mm_sll_epi64(xy, base_bit_offset_u64);
