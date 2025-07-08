@@ -1063,8 +1063,9 @@ rtm::vector4f RTM_SIMD_CALL unpack_vector3_mixed_sse4_v0(
 	// As u64, we have: {x, y}, but when we cast to u32, we get: {_, x, _, y}
 	const __m128 raw_value = _mm_shuffle_ps(_mm_castsi128_ps(xy), _mm_castsi128_ps(zw), _MM_SHUFFLE(3, 1, 3, 1));
 
-	//const __m128 is_raw_value = _mm_castsi128_ps(sse_selection_masks[num_bits >= 31]);
-	const __m128 is_raw_value = _mm_castsi128_ps(sse_selection_masks[uint32_t(30 - (int32_t)num_bits) >> 31]);
+	// We use uintptr to avoid zero/sign extending when using 64-bit registers
+	constexpr uintptr_t k_leading_bit_offset = sizeof(uintptr_t) == 8 ? 63 : 31;
+	const __m128 is_raw_value = _mm_castsi128_ps(sse_selection_masks[uintptr_t(30 - (intptr_t)num_bits) >> k_leading_bit_offset]);
 	return _mm_blendv_ps(lossy_value, raw_value, is_raw_value);
 }
 #endif	// defined(RTM_SSE4_INTRINSICS)
