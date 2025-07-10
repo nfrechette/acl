@@ -1448,7 +1448,7 @@ namespace acl
 			const uint8_t* vector_data,
 			uint32_t bit_offset)
 		{
-			ACL_ASSERT(num_bits <= 23 || num_bits == 31 || num_bits == 32, "This function does not support reading more than 23 (or 32) bits per component");
+			ACL_ASSERT(num_bits <= 23 || num_bits == 32, "This function does not support reading more than 23 (or 32) bits per component");
 
 			struct SSEConstants_t
 			{
@@ -1562,7 +1562,7 @@ namespace acl
 			const uint8_t* vector_data,
 			uint32_t bit_offset)
 		{
-			ACL_ASSERT(num_bits <= 23 || num_bits == 31 || num_bits == 32, "This function does not support reading more than 23 (or 32) bits per component");
+			ACL_ASSERT(num_bits <= 23 || num_bits == 32, "This function does not support reading more than 23 (or 32) bits per component");
 
 			// We use at most 23 bits per component and so we only care about the
 			// first 23*3+7=76 bits as we might need to shift up to 7 bits past our byte
@@ -1780,7 +1780,7 @@ namespace acl
 			const uint8_t* vector_data,
 			uint32_t bit_offset)
 		{
-			ACL_ASSERT(num_bits <= 23 || num_bits == 31 || num_bits == 32, "This function does not support reading more than 23 (or 32) bits per component");
+			ACL_ASSERT(num_bits <= 23 || num_bits == 32, "This function does not support reading more than 23 (or 32) bits per component");
 
 			rtm::vector4f raw_sample = unpack_vector3_96_unsafe(vector_data, bit_offset);
 			rtm::vector4f lossy_sample = unpack_vector3_uXX_unsafe(num_bits, vector_data, bit_offset);
