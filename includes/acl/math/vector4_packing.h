@@ -1708,7 +1708,7 @@ namespace acl
 
 			// Select and swizzle using our mask
 			const uint8_t swizzle_mask_y_offset = static_cast<uint8_t>((num_bits >> 3) & 0x04);	// num_bits >= 32 ? 4 : 0
-			const uint8_t swizzle_mask_z_offset = static_cast<uint8_t>((num_bits >> 2) & 0x0C);	// num_bits >= 16 ? 8 : num_bits >= 16 ? 4 : 0
+			const uint8_t swizzle_mask_z_offset = static_cast<uint8_t>((num_bits >> 2) & 0x0C);	// num_bits >= 32 ? 8 : num_bits >= 16 ? 4 : 0
 
 		#if defined(RTM_NEON64_INTRINSICS)
 			const uint8x16_t swizzle_mask_base = vreinterpretq_u8_u64(vmovq_n_u64(0x0001020304050607ULL));
