@@ -112,11 +112,18 @@ namespace acl
 						range_ignore_flags = 0x00;	// Don't skip range reduction
 					}
 				}
-				else // vector_format8::vector3f_full
+				else if (decompression_settings_adapter_type::is_vector_format_supported(vector_format8::vector3f_full))
 				{
+					ACL_ASSERT(format == vector_format8::vector3f_full, "Unexpected vector format");
 					sample = unpack_vector3_96_unsafe(animated_track_data, animated_track_data_bit_offset);
 					animated_track_data_bit_offset += 96;
 					range_ignore_flags = 0x03;	// Skip clip and segment
+				}
+				else
+				{
+					ACL_ASSERT(false, "Should never be reached");
+					sample = rtm::vector_zero();
+					range_ignore_flags = 0;
 				}
 
 				// Remap within our ranges
