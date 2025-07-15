@@ -194,6 +194,95 @@ static void memset_impl(uint8_t* buffer, size_t buffer_size, uint8_t value)
 		*ptr = value;
 }
 
+#define JUMP_X1 \
+	{ \
+		uint32_t test_count = num_loops; \
+		do \
+		{ \
+			/* Volatile store to prevent stripping */ \
+			counter = test_count--; \
+		} \
+		while (test_count != 0); \
+	}
+
+#define JUMP_X8 \
+	JUMP_X1 \
+	JUMP_X1 \
+	JUMP_X1 \
+	JUMP_X1 \
+	JUMP_X1 \
+	JUMP_X1 \
+	JUMP_X1 \
+	JUMP_X1
+
+#define JUMP_X64 \
+	JUMP_X8 \
+	JUMP_X8 \
+	JUMP_X8 \
+	JUMP_X8 \
+	JUMP_X8 \
+	JUMP_X8 \
+	JUMP_X8 \
+	JUMP_X8
+
+#define JUMP_X512 \
+	JUMP_X64 \
+	JUMP_X64 \
+	JUMP_X64 \
+	JUMP_X64 \
+	JUMP_X64 \
+	JUMP_X64 \
+	JUMP_X64 \
+	JUMP_X64
+
+static RTM_FORCE_NOINLINE uint32_t execute_jumps(uint32_t num_loops)
+{
+	// Dummy counter to prevent the compiler from stripping out dummy jumps
+	volatile uint32_t counter = 0;
+
+#if defined(ACL_IMPL_BENCHMARK_ENABLE_BTB_FLUSH)
+	JUMP_X512
+	JUMP_X512
+	JUMP_X512
+	JUMP_X512
+	JUMP_X512
+	JUMP_X512
+	JUMP_X512
+	JUMP_X512
+
+#if 0
+	JUMP_X512
+	JUMP_X512
+	JUMP_X512
+	JUMP_X512
+	JUMP_X512
+	JUMP_X512
+	JUMP_X512
+	JUMP_X512
+#endif
+#endif
+
+	return counter;
+}
+
+static RTM_FORCE_NOINLINE uint32_t flush_branch_prediction()
+{
+	// Dummy counter to prevent the compiler from stripping out dummy jumps
+	volatile uint32_t counter = 0;
+
+	uint32_t num_loops = 3;
+	//uint32_t num_loops = 1000;
+	do
+	{
+		counter = execute_jumps(num_loops);
+		//counter = execute_jumps(3);
+		num_loops--;
+	}
+	while (num_loops != 0);
+
+	return counter;
+}
+
 void benchmark_decompression(benchmark::State& state)
 {
 	acl::compressed_tracks& compressed_tracks = *acl::acl_impl::bit_cast<acl::compressed_tracks*>(state.range(0));
@@ -244,6 +333,9 @@ void benchmark_decompression(benchmark::State& state)
 	{
 		// Flush the CPU cache
 		memset_impl(flush_buffer + k_vmem_padding, k_flush_buffer_size, 1);
+
+		// Flush the CPU BTB
+		flush_branch_prediction();
 
 		// Warm up the code cache and output pose
 		// It is rare to decompress a single clip in a short space of time
@@ -326,6 +418,9 @@ void benchmark_decompression(benchmark::State& state)
 
 				// Flush the CPU cache
 				memset_impl(flush_buffer + k_vmem_padding, k_flush_buffer_size, flush_value++);
+
+				// Flush the CPU BTB
+				flush_branch_prediction();
 
 				// Warm up the code cache and output pose
 				// See above
