@@ -39,6 +39,14 @@
 // 2: Constant bit branch only
 #define ACL_IMPL_STEP_CURRENT_GROUP_VARIANT 0
 
+#if defined(RTM_COMPILER_CLANG)
+	#define ACL_BRANCH_LIKELY [[likely]]
+	#define ACL_BRANCH_UNLIKELY [[unlikely]]
+#else
+	#define ACL_BRANCH_LIKELY
+	#define ACL_BRANCH_UNLIKELY
+#endif
+
 ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
