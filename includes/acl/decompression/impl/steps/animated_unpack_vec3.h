@@ -35,9 +35,9 @@
 
 // Controls which variant to use for this decompression step
 // 0: ACL 2.1 (baseline)
-// 1: Branchless inner loop
-// 2: Constant bit branch only
-#define ACL_IMPL_STEP_CURRENT_GROUP_VARIANT 0
+// 1: Branchless constant/raw/variable unpacking
+// 2: Branchless raw/variable unpacking
+#define ACL_IMPL_STEP_CURRENT_GROUP_VARIANT 2
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
@@ -180,7 +180,7 @@ namespace acl
 			ACL_IMPL_ANIMATED_PREFETCH(animated_track_data + (animated_track_data_bit_offset / 8) + 63);
 			ACL_IMPL_ANIMATED_PREFETCH(segment_range_data + 48);
 		}
-#elif ACL_IMPL_STEP_CURRENT_GROUP_VARIANT == 1 // 1: Branchless inner loop
+#elif ACL_IMPL_STEP_CURRENT_GROUP_VARIANT == 1 // 1: Branchless constant/raw/variable unpacking
 		template<class decompression_settings_adapter_type>
 		ACL_IMPL_DEBUG_FORCE_INLINE
 		RTM_DISABLE_SECURITY_COOKIE_CHECK
@@ -312,7 +312,7 @@ namespace acl
 			ACL_IMPL_ANIMATED_PREFETCH(animated_track_data + (animated_track_data_bit_offset / 8) + 63);
 			ACL_IMPL_ANIMATED_PREFETCH(segment_range_data + 48);
 		}
-#elif ACL_IMPL_STEP_CURRENT_GROUP_VARIANT == 2 // 2: Constant bit branch only
+#elif ACL_IMPL_STEP_CURRENT_GROUP_VARIANT == 2 // 2: Branchless raw/variable unpacking
 		template<class decompression_settings_adapter_type>
 		ACL_IMPL_DEBUG_FORCE_INLINE
 		RTM_DISABLE_SECURITY_COOKIE_CHECK
@@ -340,10 +340,11 @@ namespace acl
 					uint32_t num_bits_at_bit_rate = *format_per_track_data;
 					format_per_track_data++;
 
-					// We unpack 3 ways and select the result we want
-					// Unpacking a constant sample is cheap, from CPU L1 with a few instructions
-					// Unpacking a raw sample is nearly the same as a variable sample, we can
-					// do both at the same time
+					// We retain an unlikely branch for constant unpacking as it is generally correctly
+					// predicted by the processor and this yields a small improvement over a branchless
+					// approach (see v1 above).
+					// We removed the branch to choose between raw/variable as the instructions to unpack
+					// them are quite similar and can be folded together cheaply.
 
 					if (num_bits_at_bit_rate == 0) ACL_BRANCH_UNLIKELY
 					{
