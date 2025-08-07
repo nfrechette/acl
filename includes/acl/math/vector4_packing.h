@@ -629,9 +629,15 @@ namespace acl
 	inline rtm::vector4f RTM_SIMD_CALL unpack_vector3_u48_unsafe(const uint8_t* vector_data)
 	{
 #if defined(RTM_SSE2_INTRINSICS)
-		__m128i zero = _mm_setzero_si128();
 		__m128i x16y16z16 = _mm_loadu_si128((const __m128i*)vector_data);
+
+	#if defined(RTM_SSE4_INTRINSICS) && 0	// TODO: Profile and test this
+		__m128i x32y32z32 = _mm_cvtepu16_epi32(x16y16z16);
+	#else
+		__m128i zero = _mm_setzero_si128();
 		__m128i x32y32z32 = _mm_unpacklo_epi16(x16y16z16, zero);
+	#endif
+
 		__m128 value = _mm_cvtepi32_ps(x32y32z32);
 		return _mm_mul_ps(value, _mm_set_ps1(1.0F / 65535.0F));
 #elif defined(RTM_NEON_INTRINSICS)
