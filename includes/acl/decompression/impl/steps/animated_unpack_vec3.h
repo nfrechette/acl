@@ -57,7 +57,8 @@ namespace acl
 	{
 #if ACL_IMPL_STEP_CURRENT_GROUP_VARIANT == 0 // ACL 2.1 (baseline)
 		template<class decompression_settings_adapter_type>
-		inline RTM_DISABLE_SECURITY_COOKIE_CHECK
+		ACL_IMPL_DEBUG_FORCE_INLINE
+		RTM_DISABLE_SECURITY_COOKIE_CHECK
 		void unpack_grouped_animated_vector3(
 			const persistent_transform_decompression_context_v0& decomp_context,
 			rtm::vector4f output_scratch[4],
