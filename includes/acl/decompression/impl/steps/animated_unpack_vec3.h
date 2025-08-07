@@ -191,7 +191,6 @@ namespace acl
 #elif ACL_IMPL_STEP_CURRENT_GROUP_VARIANT == 1 // 1: Branchless inner loop
 		template<class decompression_settings_adapter_type>
 		ACL_IMPL_DEBUG_FORCE_INLINE
-		//RTM_FORCE_NOINLINE
 		RTM_DISABLE_SECURITY_COOKIE_CHECK
 		void unpack_grouped_animated_vector3(
 			const persistent_transform_decompression_context_v0& decomp_context,
@@ -201,10 +200,6 @@ namespace acl
 			segment_animated_sampling_context_v0& segment_sampling_context)
 		{
 			const vector_format8 format = get_vector_format<decompression_settings_adapter_type>(decompression_settings_adapter_type::get_vector_format(decomp_context));
-			//const compressed_tracks_version16 version = get_version<decompression_settings_adapter_type>(decomp_context.get_version());
-
-			// See write_format_per_track_data(..) for details
-			//const uint32_t num_raw_bit_rate_bits = version >= compressed_tracks_version16::v02_01_99_1 ? 31U : 32U;
 
 			const uint8_t* format_per_track_data = segment_sampling_context.format_per_track_data;
 			const uint8_t* segment_range_data = segment_sampling_context.segment_range_data;
@@ -328,7 +323,6 @@ namespace acl
 #elif ACL_IMPL_STEP_CURRENT_GROUP_VARIANT == 2 // 2: Constant bit branch only
 		template<class decompression_settings_adapter_type>
 		ACL_IMPL_DEBUG_FORCE_INLINE
-		//RTM_FORCE_NOINLINE
 		RTM_DISABLE_SECURITY_COOKIE_CHECK
 		void unpack_grouped_animated_vector3(
 			const persistent_transform_decompression_context_v0& decomp_context,
@@ -338,10 +332,6 @@ namespace acl
 			segment_animated_sampling_context_v0& segment_sampling_context)
 		{
 			const vector_format8 format = get_vector_format<decompression_settings_adapter_type>(decompression_settings_adapter_type::get_vector_format(decomp_context));
-			//const compressed_tracks_version16 version = get_version<decompression_settings_adapter_type>(decomp_context.get_version());
-
-			// See write_format_per_track_data(..) for details
-			//const uint32_t num_raw_bit_rate_bits = version >= compressed_tracks_version16::v02_01_99_1 ? 31U : 32U;
 
 			const uint8_t* format_per_track_data = segment_sampling_context.format_per_track_data;
 			const uint8_t* segment_range_data = segment_sampling_context.segment_range_data;
