@@ -157,6 +157,17 @@ namespace acl
 	#define ACL_IMPL_DEBUG_FORCE_INLINE RTM_FORCE_INLINE
 #endif
 
+//////////////////////////////////////////////////////////////////////////
+// Allows us to specify branch hints
+//////////////////////////////////////////////////////////////////////////
+#if defined(RTM_COMPILER_CLANG) || RTM_CPP_VERSION >= RTM_CPP_VERSION_20
+	#define ACL_BRANCH_LIKELY [[likely]]
+	#define ACL_BRANCH_UNLIKELY [[unlikely]]
+#else
+	#define ACL_BRANCH_LIKELY
+	#define ACL_BRANCH_UNLIKELY
+#endif
+
 // When enabled, constant sub-tracks will use the weighted average of every sample instead of the first sample
 // Disabled by default, most clips have no measurable gain but some clips suffer greatly, needs to be investigated, possibly a bug somewhere
 // Note: Code has been removed in the pull request that closes: https://github.com/nfrechette/acl/issues/353
