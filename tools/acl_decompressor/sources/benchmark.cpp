@@ -207,6 +207,7 @@ static void memset_impl(uint8_t* buffer, size_t buffer_size, uint8_t value)
 		*ptr = value;
 }
 
+#if defined(ACL_IMPL_BENCHMARK_ENABLE_BTB_FLUSH)
 #define JUMP_X1 \
 	{ \
 		uint32_t test_count = num_loops; \
@@ -253,7 +254,6 @@ static RTM_FORCE_NOINLINE uint32_t execute_jumps(uint32_t num_loops)
 	// Dummy counter to prevent the compiler from stripping out dummy jumps
 	volatile uint32_t counter = 0;
 
-#if defined(ACL_IMPL_BENCHMARK_ENABLE_BTB_FLUSH)
 	JUMP_X512
 	JUMP_X512
 	JUMP_X512
@@ -273,25 +273,25 @@ static RTM_FORCE_NOINLINE uint32_t execute_jumps(uint32_t num_loops)
 	JUMP_X512
 	JUMP_X512
 #endif
-#endif
 
 	return counter;
 }
+#endif	// defined(ACL_IMPL_BENCHMARK_ENABLE_BTB_FLUSH)
 
 static RTM_FORCE_NOINLINE uint32_t flush_branch_prediction()
 {
 	// Dummy counter to prevent the compiler from stripping out dummy jumps
 	volatile uint32_t counter = 0;
 
+#if defined(ACL_IMPL_BENCHMARK_ENABLE_BTB_FLUSH)
 	uint32_t num_loops = 3;
-	//uint32_t num_loops = 1000;
 	do
 	{
 		counter = execute_jumps(num_loops);
-		//counter = execute_jumps(3);
 		num_loops--;
 	}
 	while (num_loops != 0);
+#endif
 
 	return counter;
 }
