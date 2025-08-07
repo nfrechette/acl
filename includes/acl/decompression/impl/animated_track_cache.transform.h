@@ -102,6 +102,15 @@ namespace acl
 			const __m128i segment_range_extent_yyyy_zzzz_u8 = _mm_loadu_si128((const __m128i*)(segment_range_data + 16));
 
 			// Convert from u8 to u32
+		#if defined(RTM_SSE4_INTRINSICS) && 0	// TODO: Profile and test this
+			__m128i segment_range_min_xxxx_u32 = _mm_cvtepu8_epi32(segment_range_min_xxxx_yyyy_zzzz_extent_xxxx_u8);
+			__m128i segment_range_min_yyyy_u32 = _mm_cvtepu8_epi32(_mm_bslli_si128(segment_range_min_xxxx_yyyy_zzzz_extent_xxxx_u8, 4));
+			__m128i segment_range_min_zzzz_u32 = _mm_cvtepu8_epi32(_mm_bslli_si128(segment_range_min_xxxx_yyyy_zzzz_extent_xxxx_u8, 8));
+
+			const __m128i segment_range_extent_xxxx_u32 = _mm_cvtepu8_epi32(_mm_bslli_si128(segment_range_min_xxxx_yyyy_zzzz_extent_xxxx_u8, 12));
+			const __m128i segment_range_extent_yyyy_u32 = _mm_cvtepu8_epi32(segment_range_extent_yyyy_zzzz_u8);
+			const __m128i segment_range_extent_zzzz_u32 = _mm_cvtepu8_epi32(_mm_bslli_si128(segment_range_extent_yyyy_zzzz_u8, 4));
+		#else
 			const __m128i segment_range_min_xxxx_yyyy_u16 = _mm_unpacklo_epi8(segment_range_min_xxxx_yyyy_zzzz_extent_xxxx_u8, zero);
 			const __m128i segment_range_min_zzzz_extent_xxxx_u16 = _mm_unpackhi_epi8(segment_range_min_xxxx_yyyy_zzzz_extent_xxxx_u8, zero);
 			const __m128i segment_range_extent_yyyy_zzzz_u16 = _mm_unpacklo_epi8(segment_range_extent_yyyy_zzzz_u8, zero);
@@ -113,6 +122,7 @@ namespace acl
 			const __m128i segment_range_extent_xxxx_u32 = _mm_unpackhi_epi16(segment_range_min_zzzz_extent_xxxx_u16, zero);
 			const __m128i segment_range_extent_yyyy_u32 = _mm_unpacklo_epi16(segment_range_extent_yyyy_zzzz_u16, zero);
 			const __m128i segment_range_extent_zzzz_u32 = _mm_unpackhi_epi16(segment_range_extent_yyyy_zzzz_u16, zero);
+		#endif
 
 			__m128 segment_range_min_xxxx = _mm_cvtepi32_ps(segment_range_min_xxxx_u32);
 			__m128 segment_range_min_yyyy = _mm_cvtepi32_ps(segment_range_min_yyyy_u32);

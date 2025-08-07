@@ -794,10 +794,16 @@ namespace acl
 		__m128i segment_extent_i32 = _mm_or_si128(_mm_slli_epi32(x32y32z32, 23 - 8), exponent);
 		return _mm_sub_ps(_mm_castsi128_ps(segment_extent_i32), _mm_castsi128_ps(exponent));
 #elif defined(RTM_SSE2_INTRINSICS)
-		__m128i zero = _mm_setzero_si128();
 		__m128i x8y8z8 = _mm_loadu_si128((const __m128i*)vector_data);
+
+	#if defined(RTM_SSE4_INTRINSICS) && 0	// TODO: Profile and test this
+		__m128i x32y32z32 = _mm_cvtepu8_epi32(x8y8z8);
+	#else
+		__m128i zero = _mm_setzero_si128();
 		__m128i x16y16z16 = _mm_unpacklo_epi8(x8y8z8, zero);
 		__m128i x32y32z32 = _mm_unpacklo_epi16(x16y16z16, zero);
+	#endif
+
 		__m128 value = _mm_cvtepi32_ps(x32y32z32);
 		return _mm_mul_ps(value, _mm_set_ps1(1.0F / 255.0F));
 #elif defined(RTM_NEON_INTRINSICS)
