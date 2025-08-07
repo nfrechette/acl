@@ -67,10 +67,20 @@ static constexpr uint32_t k_flush_buffer_size = k_cpu_cache_size * 4;
 static constexpr uint32_t k_vmem_padding = 16 * 1024 * 1024;
 static constexpr uint32_t k_padded_flush_buffer_size = k_vmem_padding + k_flush_buffer_size + k_vmem_padding;
 
-// We allocate 220 copies of the compressed clip and align them to reduce the flush cost
-// by flushing only when we loop around. We pad each copy to 16 MB to ensure no VMEM entry sharing in level 2.
-// A compressed clip that takes 60 MB would end up using round_up_to_multiple_of(60 MB, 16 MB) * 220 = 13.75 GB
-static constexpr uint32_t k_num_copies = 220;
+#if defined(ACL_IMPL_BENCHMARK_ENABLE_BTB_FLUSH)
+	// When we flush the BTB cache to measure branch performance sensitive code, we cannot run multiple copies
+	// because each one would need its own copy of the code (e.g. multiple versions of identical code with unique
+	// branch targets). This is impractical and it would mean that we would have to prevent the linker from merging
+	// identical symbols/functions which other parts of the code might rely on for performance.
+	// As such, we have no choice but to flush in between each measurement.
+	// We keep two copies: one to warm up the code cache, and the other to measure with a cold cache
+	static constexpr uint32_t k_num_copies = 2;
+#else
+	// We allocate 220 copies of the compressed clip and align them to reduce the flush cost
+	// by flushing only when we loop around. We pad each copy to 16 MB to ensure no VMEM entry sharing in level 2.
+	// A compressed clip that takes 60 MB would end up using round_up_to_multiple_of(60 MB, 16 MB) * 220 = 13.75 GB
+	static constexpr uint32_t k_num_copies = 220;
+#endif
 
 // Align our clip copy buffer to a 2 MB boundary to reduce VMEM noise
 static constexpr uint32_t k_clip_buffer_alignment = 2 * 1024 * 1024;
@@ -93,7 +103,10 @@ enum class DecompressionFunction
 
 enum class CPUCacheTemperature
 {
+	// A single clip is used and decompression runs in a tight loop
 	Warm,
+
+	// Two clips are used, one to prime the code cache, the other to measure
 	Cold,
 };
 
@@ -331,11 +344,9 @@ void benchmark_decompression(benchmark::State& state)
 
 	if (cpu_cache_temperature == CPUCacheTemperature::Cold)
 	{
-		// Flush the CPU cache
-		memset_impl(flush_buffer + k_vmem_padding, k_flush_buffer_size, 1);
 
-		// Flush the CPU BTB
-		flush_branch_prediction();
+		// Flush the CPU code & data caches
+		memset_impl(flush_buffer + k_vmem_padding, k_flush_buffer_size, 1);
 
 		// Warm up the code cache and output pose
 		// It is rare to decompress a single clip in a short space of time
@@ -368,6 +379,9 @@ void benchmark_decompression(benchmark::State& state)
 
 			current_context_index++;
 		}
+
+		// Flush the CPU BTB cache
+		flush_branch_prediction();
 	}
 
 	for (auto _ : state)
@@ -416,11 +430,9 @@ void benchmark_decompression(benchmark::State& state)
 				if (current_sample_index >= k_num_decompression_samples)
 					current_sample_index = 0;
 
-				// Flush the CPU cache
-				memset_impl(flush_buffer + k_vmem_padding, k_flush_buffer_size, flush_value++);
 
-				// Flush the CPU BTB
-				flush_branch_prediction();
+				// Flush the CPU code & data caches
+				memset_impl(flush_buffer + k_vmem_padding, k_flush_buffer_size, flush_value++);
 
 				// Warm up the code cache and output pose
 				// See above
@@ -442,6 +454,9 @@ void benchmark_decompression(benchmark::State& state)
 						break;
 					}
 				}
+
+				// Flush the CPU BTB cache
+				flush_branch_prediction();
 			}
 		}
 	}
