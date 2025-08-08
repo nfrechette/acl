@@ -631,7 +631,7 @@ namespace acl
 #if defined(RTM_SSE2_INTRINSICS)
 		__m128i x16y16z16 = _mm_loadu_si128((const __m128i*)vector_data);
 
-	#if defined(RTM_SSE4_INTRINSICS) && 0	// TODO: Profile and test this
+	#if defined(RTM_SSE4_INTRINSICS)
 		__m128i x32y32z32 = _mm_cvtepu16_epi32(x16y16z16);
 	#else
 		__m128i zero = _mm_setzero_si128();
