@@ -617,16 +617,16 @@ bool prepare_clip(const std::string& clip_name, const acl::compressed_tracks& ra
 	// Dynamically register our benchmark
 	benchmark::internal::Benchmark* bench = benchmark::internal::RegisterBenchmarkInternal(new benchmark::internal::FunctionBenchmark(clip_name.c_str(), benchmark_decompression));
 
-	bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Forward, (int64_t)DecompressionFunction::DecompressPose });
-	bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Forward, (int64_t)DecompressionFunction::DecompressBone });
+	bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Forward, (int64_t)DecompressionFunction::DecompressPose, (int64_t)CPUCacheTemperature::Cold });
+	bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Forward, (int64_t)DecompressionFunction::DecompressBone, (int64_t)CPUCacheTemperature::Cold });
 
 	// These are for debugging purposes and aren't measured as often
 	// By design, ACL's performance should be consistent regardless of the playback direction
-	//bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Forward, (int64_t)DecompressionFunction::Memcpy });
-	//bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Backward, (int64_t)DecompressionFunction::DecompressPose });
-	//bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Backward, (int64_t)DecompressionFunction::DecompressBone });
-	//bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Random, (int64_t)DecompressionFunction::DecompressPose });
-	//bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Random, (int64_t)DecompressionFunction::DecompressBone });
+	//bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Forward, (int64_t)DecompressionFunction::Memcpy, (int64_t)CPUCacheTemperature::Cold });
+	//bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Backward, (int64_t)DecompressionFunction::DecompressPose, (int64_t)CPUCacheTemperature::Cold });
+	//bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Backward, (int64_t)DecompressionFunction::DecompressBone, (int64_t)CPUCacheTemperature::Cold });
+	//bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Random, (int64_t)DecompressionFunction::DecompressPose, (int64_t)CPUCacheTemperature::Cold });
+	//bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Random, (int64_t)DecompressionFunction::DecompressBone, (int64_t)CPUCacheTemperature::Cold });
 
 	// With Warm CPU Cache
 	//bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Forward, (int64_t)DecompressionFunction::DecompressPose, (int64_t)CPUCacheTemperature::Warm });
