@@ -28,6 +28,7 @@
 #include "acl/version.h"
 
 #include <rtm/impl/compiler_utils.h>
+#include <rtm/impl/detect_cpp_version.h>
 
 #include <cstdlib>
 #include <type_traits>
