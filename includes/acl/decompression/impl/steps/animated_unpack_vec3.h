@@ -71,6 +71,8 @@ namespace acl
 
 			const uint8_t* clip_range_data = clip_sampling_context.clip_range_data;
 
+			rtm::vector4f* output_scratch_ptr = &output_scratch[0];
+
 			for (uint32_t unpack_index = 0; unpack_index < num_to_unpack; ++unpack_index)
 			{
 				// Range ignore flags are used to skip range normalization at the clip and/or segment levels
@@ -156,7 +158,7 @@ namespace acl
 				// TODO: Fill in W component with something sensible?
 
 				// Cache
-				output_scratch[unpack_index] = sample;
+				*output_scratch_ptr++ = sample;
 			}
 
 			// Update our pointers
@@ -199,6 +201,8 @@ namespace acl
 			uint32_t animated_track_data_bit_offset = segment_sampling_context.animated_track_data_bit_offset;
 
 			const uint8_t* clip_range_data = clip_sampling_context.clip_range_data;
+
+			rtm::vector4f* output_scratch_ptr = &output_scratch[0];
 
 			for (uint32_t unpack_index = 0; unpack_index < num_to_unpack; ++unpack_index)
 			{
@@ -288,7 +292,7 @@ namespace acl
 				// TODO: Fill in W component with something sensible?
 
 				// Cache
-				output_scratch[unpack_index] = sample;
+				*output_scratch_ptr++ = sample;
 			}
 
 			// Update our pointers
@@ -331,6 +335,8 @@ namespace acl
 			uint32_t animated_track_data_bit_offset = segment_sampling_context.animated_track_data_bit_offset;
 
 			const uint8_t* clip_range_data = clip_sampling_context.clip_range_data;
+
+			rtm::vector4f* output_scratch_ptr = &output_scratch[0];
 
 			for (uint32_t unpack_index = 0; unpack_index < num_to_unpack; ++unpack_index)
 			{
@@ -412,7 +418,7 @@ namespace acl
 				// TODO: Fill in W component with something sensible?
 
 				// Cache
-				output_scratch[unpack_index] = sample;
+				*output_scratch_ptr++ = sample;
 			}
 
 			// Update our pointers
