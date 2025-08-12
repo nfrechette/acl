@@ -39,6 +39,20 @@
 // 2: Branchless raw/variable unpacking
 #define ACL_IMPL_STEP_CURRENT_GROUP_VARIANT 2
 
+// TODO: Unpack segment ranges in bulk
+// Similar to what we do for rotations, we could swizzle the data for ranges and store in SoA form
+// when we have a full group of 4 (TBD if its worth it for partial groups)
+// We almost always unpack segment range data when we have segments since we are rarely constant or raw
+// This would make it easy to unpack with AVX
+// AVX2 adds support for _mm256_cvtepi8_epi32 which could fold the load+cvt into a single instruction
+// We could interleave range unpacking for both segments
+// Store unpacked range on the stack in AoS form
+// Range remap would then be cheap, mul+add loading directly from memory with SSE with 2 extra loads on NEON
+// We could remove the need to branch to apply it if we can somehow fixup the load ptr to point to constants
+// perhaps with a cmp+cmov but I suspect the branch might still win since it'll be predicted
+// For clip ranges, we almost always apply them as well meaning the branch is predicted but we could benefit
+// from moving the loads earlier. They might cache miss like the sample loads and we could hide their latency.
+
 ACL_IMPL_FILE_PRAGMA_PUSH
 
 namespace acl
