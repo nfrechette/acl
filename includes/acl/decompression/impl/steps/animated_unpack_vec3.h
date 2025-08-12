@@ -141,16 +141,18 @@ namespace acl
 					if ((range_ignore_flags & 0x02) == 0)
 					{
 						// Apply clip range remapping
-						const uint32_t range_entry_size = 3 * sizeof(float);
-						const uint32_t sub_track_offset = range_entry_size * 2 * unpack_index;
-						const uint8_t* clip_range_min_ptr = clip_range_data + sub_track_offset;
-						const uint8_t* clip_range_extent_ptr = clip_range_min_ptr + range_entry_size;
+						const uint32_t clip_range_min_size = 3 * sizeof(float);
+						const uint8_t* clip_range_min_ptr = clip_range_data;
+						const uint8_t* clip_range_extent_ptr = clip_range_data + clip_range_min_size;
 
 						const rtm::vector4f clip_range_min = rtm::vector_load(clip_range_min_ptr);
 						const rtm::vector4f clip_range_extent = rtm::vector_load(clip_range_extent_ptr);
 
 						sample = rtm::vector_mul_add(sample, clip_range_extent, clip_range_min);
 					}
+
+					const uint32_t clip_range_data_size = 6 * sizeof(float);
+					clip_range_data += clip_range_data_size;
 				}
 
 				ACL_ASSERT(rtm::vector_is_finite3(sample), "Vector3 is not valid!");
@@ -264,16 +266,18 @@ namespace acl
 					if ((num_bits_at_bit_rate & 0x20) == 0)
 					{
 						// Apply clip range remapping
-						const uint32_t range_entry_size = 3 * sizeof(float);
-						const uint32_t sub_track_offset = range_entry_size * 2 * unpack_index;
-						const uint8_t* clip_range_min_ptr = clip_range_data + sub_track_offset;
-						const uint8_t* clip_range_extent_ptr = clip_range_min_ptr + range_entry_size;
+						const uint32_t clip_range_min_size = 3 * sizeof(float);
+						const uint8_t* clip_range_min_ptr = clip_range_data;
+						const uint8_t* clip_range_extent_ptr = clip_range_data + clip_range_min_size;
 
 						const rtm::vector4f clip_range_min = rtm::vector_load(clip_range_min_ptr);
 						const rtm::vector4f clip_range_extent = rtm::vector_load(clip_range_extent_ptr);
 
 						sample = rtm::vector_mul_add(sample, clip_range_extent, clip_range_min);
 					}
+
+					const uint32_t clip_range_data_size = 6 * sizeof(float);
+					clip_range_data += clip_range_data_size;
 				}
 				else if (decompression_settings_adapter_type::is_vector_format_supported(vector_format8::vector3f_full))
 				{
@@ -390,16 +394,18 @@ namespace acl
 					if ((num_bits_at_bit_rate & 0x20) == 0)
 					{
 						// Apply clip range remapping
-						const uint32_t range_entry_size = 3 * sizeof(float);
-						const uint32_t sub_track_offset = range_entry_size * 2 * unpack_index;
-						const uint8_t* clip_range_min_ptr = clip_range_data + sub_track_offset;
-						const uint8_t* clip_range_extent_ptr = clip_range_min_ptr + range_entry_size;
+						const uint32_t clip_range_min_size = 3 * sizeof(float);
+						const uint8_t* clip_range_min_ptr = clip_range_data;
+						const uint8_t* clip_range_extent_ptr = clip_range_data + clip_range_min_size;
 
 						const rtm::vector4f clip_range_min = rtm::vector_load(clip_range_min_ptr);
 						const rtm::vector4f clip_range_extent = rtm::vector_load(clip_range_extent_ptr);
 
 						sample = rtm::vector_mul_add(sample, clip_range_extent, clip_range_min);
 					}
+
+					const uint32_t clip_range_data_size = 6 * sizeof(float);
+					clip_range_data += clip_range_data_size;
 				}
 				else if (decompression_settings_adapter_type::is_vector_format_supported(vector_format8::vector3f_full))
 				{
