@@ -173,8 +173,19 @@ namespace acl
 #if defined(ACL_USE_POPCOUNT)
 		return _lzcnt_u64(value);
 #elif defined(RTM_COMPILER_MSVC)
+	#if defined(RTM_ARCH_X86)
+		unsigned long first_set_bit_index;
+		if (_BitScanReverse(&first_set_bit_index, static_cast<uint32_t>(value >> 32)))
+			return 31 - first_set_bit_index;
+
+		if (_BitScanReverse(&first_set_bit_index, static_cast<uint32_t>(value)))
+			return 63 - first_set_bit_index;
+
+		return 64;
+	#else
 		unsigned long first_set_bit_index;
 		return _BitScanReverse64(&first_set_bit_index, value) ? (63 - first_set_bit_index) : 64;
+	#endif
 #elif defined(RTM_COMPILER_GCC) || defined(RTM_COMPILER_CLANG)
 		return value != 0 ? __builtin_clzll(value) : 64;
 #else
@@ -211,8 +222,19 @@ namespace acl
 #if defined(ACL_BMI_INTRINSICS)
 		return _tzcnt_u64(value);
 #elif defined(RTM_COMPILER_MSVC)
+	#if defined(RTM_ARCH_X86)
+		unsigned long first_set_bit_index;
+		if (_BitScanForward(&first_set_bit_index, static_cast<uint32_t>(value)))
+			return first_set_bit_index;
+
+		if (_BitScanForward(&first_set_bit_index, static_cast<uint32_t>(value >> 32)))
+			return 32 + first_set_bit_index;
+
+		return 64;
+	#else
 		unsigned long first_set_bit_index;
 		return _BitScanForward64(&first_set_bit_index, value) ? first_set_bit_index : 64;
+	#endif
 #elif defined(RTM_COMPILER_GCC) || defined(RTM_COMPILER_CLANG)
 		return value != 0 ? __builtin_ctzll(value) : 64;
 #else
