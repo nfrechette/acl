@@ -1794,9 +1794,10 @@ namespace acl
 		{
 			ACL_ASSERT((num_bits != 0 && num_bits <= 23) || num_bits == 32, "This function does not support reading more than 23 (or 32) bits per component");
 
-			rtm::vector4f raw_sample = unpack_vector3_96_unsafe(vector_data, bit_offset);
-			rtm::vector4f lossy_sample = unpack_vector3_uXX_unsafe(num_bits, vector_data, bit_offset);
-			return num_bits >= 31 ? raw_sample : lossy_sample;
+			if (num_bits >= 31)
+				return unpack_vector3_96_unsafe(vector_data, bit_offset);
+			else
+				return unpack_vector3_uXX_unsafe(num_bits, vector_data, bit_offset);
 		}
 #endif
 	}
