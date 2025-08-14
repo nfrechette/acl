@@ -500,9 +500,9 @@ namespace acl
 
 						// TODO: We could swizzle the data ahead of time during compression, even without AVX
 						// we can just re-order the load offsets, not a big deal, and we save the blend/permute
-						const __m256 xxxx0_yyyy0 = _mm256_load_ps(bit_cast<const float*>(constant_track_data + sizeof(rtm::float4f) * 0));
-						const __m256 zzzz0_xxxx1 = _mm256_load_ps(bit_cast<const float*>(constant_track_data + sizeof(rtm::float4f) * 2));
-						const __m256 yyyy1_zzzz1 = _mm256_load_ps(bit_cast<const float*>(constant_track_data + sizeof(rtm::float4f) * 4));
+						const __m256 xxxx0_yyyy0 = _mm256_loadu_ps(bit_cast<const float*>(constant_track_data + sizeof(rtm::float4f) * 0));
+						const __m256 zzzz0_xxxx1 = _mm256_loadu_ps(bit_cast<const float*>(constant_track_data + sizeof(rtm::float4f) * 2));
+						const __m256 yyyy1_zzzz1 = _mm256_loadu_ps(bit_cast<const float*>(constant_track_data + sizeof(rtm::float4f) * 4));
 
 						__m256 xxxx0_xxxx1 = _mm256_blend_ps(xxxx0_yyyy0, zzzz0_xxxx1, 0xF0);
 						__m256 yyyy0_yyyy1 = _mm256_permute2f128_ps(xxxx0_yyyy0, yyyy1_zzzz1, 0x21);
@@ -521,14 +521,14 @@ namespace acl
 							// The last group contains no padding so we have to make to align our loads properly
 							const uint32_t load_size = (unpack_count - 12) * sizeof(float);
 
-							const __m256 xxxx2_yyyy2 = _mm256_load_ps(bit_cast<const float*>(constant_track_data + sizeof(rtm::float4f) * 0));
-							const __m256 zzzz2_xxxx3 = _mm256_load_ps(bit_cast<const float*>(constant_track_data + sizeof(rtm::float4f) * 2));
+							const __m256 xxxx2_yyyy2 = _mm256_loadu_ps(bit_cast<const float*>(constant_track_data + sizeof(rtm::float4f) * 0));
+							const __m256 zzzz2_xxxx3 = _mm256_loadu_ps(bit_cast<const float*>(constant_track_data + sizeof(rtm::float4f) * 2));
 
 							constant_track_data += sizeof(rtm::float4f) * 3;
 							constant_track_data += load_size;
 
-							const __m128 yyyy3 = _mm_load_ps(bit_cast<const float*>(constant_track_data + load_size * 0));
-							const __m128 zzzz3 = _mm_load_ps(bit_cast<const float*>(constant_track_data + load_size * 1));
+							const __m128 yyyy3 = _mm_loadu_ps(bit_cast<const float*>(constant_track_data + load_size * 0));
+							const __m128 zzzz3 = _mm_loadu_ps(bit_cast<const float*>(constant_track_data + load_size * 1));
 
 							constant_track_data += load_size * 2;
 
@@ -542,9 +542,9 @@ namespace acl
 							// The last group contains no padding so we have to make to align our loads properly
 							const uint32_t load_size = (unpack_count - 8) * sizeof(float);
 
-							const __m128 xxxx2 = _mm_load_ps(bit_cast<const float*>(constant_track_data + load_size * 0));
-							const __m128 yyyy2 = _mm_load_ps(bit_cast<const float*>(constant_track_data + load_size * 1));
-							const __m128 zzzz2 = _mm_load_ps(bit_cast<const float*>(constant_track_data + load_size * 2));
+							const __m128 xxxx2 = _mm_loadu_ps(bit_cast<const float*>(constant_track_data + load_size * 0));
+							const __m128 yyyy2 = _mm_loadu_ps(bit_cast<const float*>(constant_track_data + load_size * 1));
+							const __m128 zzzz2 = _mm_loadu_ps(bit_cast<const float*>(constant_track_data + load_size * 2));
 
 							constant_track_data += load_size * 3;
 
@@ -645,14 +645,14 @@ namespace acl
 						// The last group contains no padding so we have to make to align our loads properly
 						const uint32_t load_size = (unpack_count - 4) * sizeof(float);
 
-						const __m256 xxxx0_yyyy0 = _mm256_load_ps(bit_cast<const float*>(constant_track_data + sizeof(rtm::float4f) * 0));
-						const __m256 zzzz0_xxxx1 = _mm256_load_ps(bit_cast<const float*>(constant_track_data + sizeof(rtm::float4f) * 2));
+						const __m256 xxxx0_yyyy0 = _mm256_loadu_ps(bit_cast<const float*>(constant_track_data + sizeof(rtm::float4f) * 0));
+						const __m256 zzzz0_xxxx1 = _mm256_loadu_ps(bit_cast<const float*>(constant_track_data + sizeof(rtm::float4f) * 2));
 
 						constant_track_data += sizeof(rtm::float4f) * 3;
 						constant_track_data += load_size;
 
-						const __m128 yyyy1 = _mm_load_ps(bit_cast<const float*>(constant_track_data + load_size * 0));
-						const __m128 zzzz1 = _mm_load_ps(bit_cast<const float*>(constant_track_data + load_size * 1));
+						const __m128 yyyy1 = _mm_loadu_ps(bit_cast<const float*>(constant_track_data + load_size * 0));
+						const __m128 zzzz1 = _mm_loadu_ps(bit_cast<const float*>(constant_track_data + load_size * 1));
 
 						constant_track_data += load_size * 2;
 						num_to_unpack -= unpack_count;
