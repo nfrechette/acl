@@ -94,7 +94,12 @@ namespace acl
 	inline uint64_t count_set_bits(uint64_t value)
 	{
 #if defined(ACL_USE_POPCOUNT)
+	#if defined(RTM_ARCH_X86)
+		uint32_t count = _mm_popcnt_u32(static_cast<uint32_t>(value >> 32));
+		return count + _mm_popcnt_u32(static_cast<uint32_t>(value));
+	#else
 		return _mm_popcnt_u64(value);
+	#endif
 #elif defined(RTM_NEON_INTRINSICS)
 		return vget_lane_u64(vpaddl_u32(vpaddl_u16(vpaddl_u8(vcnt_u8(vcreate_u8(value))))), 0);
 #else
@@ -171,7 +176,15 @@ namespace acl
 	inline uint64_t count_leading_zeros(uint64_t value)
 	{
 #if defined(ACL_USE_POPCOUNT)
+	#if defined(RTM_ARCH_X86)
+		uint32_t count = _lzcnt_u32(static_cast<uint32_t>(value >> 32));
+		if (count != 32)
+			return count;
+
+		return 32 + _lzcnt_u32(static_cast<uint32_t>(value));
+	#else
 		return _lzcnt_u64(value);
+	#endif
 #elif defined(RTM_COMPILER_MSVC)
 	#if defined(RTM_ARCH_X86)
 		unsigned long first_set_bit_index;
@@ -220,7 +233,15 @@ namespace acl
 	inline uint64_t count_trailing_zeros(uint64_t value)
 	{
 #if defined(ACL_BMI_INTRINSICS)
+	#if defined(RTM_ARCH_X86)
+		uint32_t count = _tzcnt_u32(static_cast<uint32_t>(value));
+		if (count != 32)
+			return count;
+
+		return 32 + _tzcnt_u32(static_cast<uint32_t>(value >> 32));
+	#else
 		return _tzcnt_u64(value);
+	#endif
 #elif defined(RTM_COMPILER_MSVC)
 	#if defined(RTM_ARCH_X86)
 		unsigned long first_set_bit_index;
