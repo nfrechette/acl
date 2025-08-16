@@ -1,4 +1,3 @@
-cmake_minimum_required (VERSION 3.2)
 project(acl_decompressor CXX)
 
 # Google Benchmark
@@ -38,6 +37,9 @@ if(MSVC)
 		# Exceptions are not enabled by default for ARM targets, enable them
 		target_compile_options(${PROJECT_NAME} PRIVATE /EHsc)
 	endif()
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "AppleClang")
+	# Align all functions to a 64 byte boundary (2^6) to reduce variance
+	target_compile_options(${PROJECT_NAME} PRIVATE -mllvm -align-all-functions=6)
 endif()
 
 # Disable allocation tracking

@@ -1,5 +1,3 @@
-cmake_minimum_required (VERSION 3.2)
-
 set(CMAKE_SYSTEM_NAME Darwin)
 
 # Set here instead of CMakePlatforms.cmake since we can't distinguis otherwise

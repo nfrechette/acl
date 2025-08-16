@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required (VERSION 3.6)
 project(acl_decompressor CXX)
 
 # Project root is <acl-dir>\tools\decompressor\main_android

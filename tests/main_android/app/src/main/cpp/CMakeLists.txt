@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required (VERSION 3.6)
 project(acl_unit_tests CXX)
 
 # Project root is <acl-dir>\tests\main_android

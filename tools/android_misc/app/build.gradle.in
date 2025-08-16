@@ -6,7 +6,7 @@ android {
     defaultConfig {
         applicationId "@ACL_ANDROID_PROJECT_PACKAGE_NAME@"
         minSdkVersion 24
-        targetSdkVersion 26
+        targetSdkVersion 34
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"

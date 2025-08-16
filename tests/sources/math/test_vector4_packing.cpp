@@ -503,6 +503,95 @@ TEST_CASE("decay_vector3_XX", "[math][vector4][decay]")
 	CHECK(num_errors == 0);
 }
 
+inline void RTM_SIMD_CALL pack_vector3_96_BE(rtm::vector4f_arg0 vector, uint8_t* out_vector_data)
+{
+	rtm::vector_store3(vector, out_vector_data);
+
+	uint32_t x = unaligned_load<uint32_t>(out_vector_data + 0);
+	x = byte_swap(x);
+	unaligned_write(x, out_vector_data + 0);
+
+	uint32_t y = unaligned_load<uint32_t>(out_vector_data + 4);
+	y = byte_swap(y);
+	unaligned_write(y, out_vector_data + 4);
+
+	uint32_t z = unaligned_load<uint32_t>(out_vector_data + 8);
+	z = byte_swap(z);
+	unaligned_write(z, out_vector_data + 8);
+}
+
+static uint32_t test_unpack_vector3_mixed(uint32_t start_bit_rate, uint32_t end_bit_rate)
+{
+	const float error_threshold = 1.0E-6F;
+	const uint32_t offsets[] = { 0, 1, 5, 31, 32, 33, 63, 64, 65, 93 };
+
+	const vector4f vzero = vector_set(0.0F);
+	const vector4f vone = vector_set(1.0F);
+
+	UnalignedBuffer tmp0;
+	alignas(16) uint8_t buffer[64];
+
+	uint32_t num_errors = 0;
+
+	for (uint32_t bit_rate = start_bit_rate; bit_rate < end_bit_rate; ++bit_rate)
+	{
+		uint32_t num_bits = acl_impl::get_num_bits_at_bit_rate(bit_rate);
+
+		uint32_t quantization_num_bits = std::min(num_bits, acl_impl::get_num_bits_at_bit_rate(acl_impl::k_highest_bit_rate - 1));
+		uint32_t max_value = (1U << quantization_num_bits) - 1;
+
+		// 3 values at a time to speed things up
+		for (uint32_t value = 0; value <= max_value; value += 3)
+		{
+			vector4f vec0 = vector_clamp(vector_set(
+				unpack_scalar_unsigned(value, quantization_num_bits),
+				unpack_scalar_unsigned(std::min(value + 1, max_value), quantization_num_bits),
+				unpack_scalar_unsigned(std::min(value + 2, max_value), quantization_num_bits)), vzero, vone);
+
+			std::memset(&tmp0.buffer[0], 0xFF, sizeof(tmp0.buffer));
+			if (bit_rate == acl_impl::k_highest_bit_rate)
+				pack_vector3_96_BE(vec0, &buffer[0]);
+			else
+				pack_vector3_uXX_unsafe(vec0, num_bits, &buffer[0]);
+
+			vector4f vec1 = acl_impl::unpack_vector3_mixed_unsafe(num_bits, &buffer[0], 0);
+			if (!vector_all_near_equal3(vec0, vec1, error_threshold))
+				num_errors++;
+
+			for (size_t offset_idx = 0; offset_idx < get_array_size(offsets); ++offset_idx)
+			{
+				const uint32_t offset = offsets[offset_idx];
+
+				std::memset(&tmp0.buffer[0], 0xFF, sizeof(tmp0.buffer));
+				memcpy_bits(&tmp0.buffer[0], offset, &buffer[0], 0, size_t(num_bits) * 3);
+				vec1 = acl_impl::unpack_vector3_mixed_unsafe(num_bits, &tmp0.buffer[0], offset);
+				if (!vector_all_near_equal3(vec0, vec1, error_threshold))
+					num_errors++;
+			}
+
+			// TODO no signed support, do we need it?
+		}
+	}
+
+	return num_errors;
+}
+
+// Test is slow, split it into two parts, second highest bit rate on its own
+// Highest bit rate is full precision float32, it uses a different function
+TEST_CASE("unpack_vector3_mixed part0", "[math][vector4][packing]")
+{
+	// Test every possible input up to second highest bit rate
+	uint32_t num_errors = test_unpack_vector3_mixed(1, acl_impl::k_highest_bit_rate - 1);
+	CHECK(num_errors == 0);
+}
+
+TEST_CASE("unpack_vector3_mixed part1", "[math][vector4][packing]")
+{
+	// Test every possible input for top 3 highest bit rates
+	uint32_t num_errors = test_unpack_vector3_mixed(acl_impl::k_highest_bit_rate - 1, acl_impl::k_num_bit_rates);
+	CHECK(num_errors == 0);
+}
+
 TEST_CASE("pack_vector2_64", "[math][vector4][packing]")
 {
 	{

@@ -94,7 +94,12 @@ namespace acl
 	inline uint64_t count_set_bits(uint64_t value)
 	{
 #if defined(ACL_USE_POPCOUNT)
+	#if defined(RTM_ARCH_X86)
+		uint32_t count = _mm_popcnt_u32(static_cast<uint32_t>(value >> 32));
+		return count + _mm_popcnt_u32(static_cast<uint32_t>(value));
+	#else
 		return _mm_popcnt_u64(value);
+	#endif
 #elif defined(RTM_NEON_INTRINSICS)
 		return vget_lane_u64(vpaddl_u32(vpaddl_u16(vpaddl_u8(vcnt_u8(vcreate_u8(value))))), 0);
 #else
@@ -167,6 +172,47 @@ namespace acl
 	}
 
 	//////////////////////////////////////////////////////////////////////////
+	// Starting at the MSB, counts the number of leading zeros
+	inline uint64_t count_leading_zeros(uint64_t value)
+	{
+#if defined(ACL_USE_POPCOUNT)
+	#if defined(RTM_ARCH_X86)
+		uint32_t count = _lzcnt_u32(static_cast<uint32_t>(value >> 32));
+		if (count != 32)
+			return count;
+
+		return 32 + _lzcnt_u32(static_cast<uint32_t>(value));
+	#else
+		return _lzcnt_u64(value);
+	#endif
+#elif defined(RTM_COMPILER_MSVC)
+	#if defined(RTM_ARCH_X86)
+		unsigned long first_set_bit_index;
+		if (_BitScanReverse(&first_set_bit_index, static_cast<uint32_t>(value >> 32)))
+			return 31 - first_set_bit_index;
+
+		if (_BitScanReverse(&first_set_bit_index, static_cast<uint32_t>(value)))
+			return 63 - first_set_bit_index;
+
+		return 64;
+	#else
+		unsigned long first_set_bit_index;
+		return _BitScanReverse64(&first_set_bit_index, value) ? (63 - first_set_bit_index) : 64;
+	#endif
+#elif defined(RTM_COMPILER_GCC) || defined(RTM_COMPILER_CLANG)
+		return value != 0 ? __builtin_clzll(value) : 64;
+#else
+		value = value | (value >> 1);
+		value = value | (value >> 2);
+		value = value | (value >> 4);
+		value = value | (value >> 8);
+		value = value | (value >> 16);
+		value = value | (value >> 32);
+		return count_set_bits(~value);
+#endif
+	}
+
+	//////////////////////////////////////////////////////////////////////////
 	// Starting at the LSB, counts the number of trailing zeros
 	inline uint32_t count_trailing_zeros(uint32_t value)
 	{
@@ -183,6 +229,41 @@ namespace acl
 	}
 
 	//////////////////////////////////////////////////////////////////////////
+	// Starting at the LSB, counts the number of trailing zeros
+	inline uint64_t count_trailing_zeros(uint64_t value)
+	{
+#if defined(ACL_BMI_INTRINSICS)
+	#if defined(RTM_ARCH_X86)
+		uint32_t count = _tzcnt_u32(static_cast<uint32_t>(value));
+		if (count != 32)
+			return count;
+
+		return 32 + _tzcnt_u32(static_cast<uint32_t>(value >> 32));
+	#else
+		return _tzcnt_u64(value);
+	#endif
+#elif defined(RTM_COMPILER_MSVC)
+	#if defined(RTM_ARCH_X86)
+		unsigned long first_set_bit_index;
+		if (_BitScanForward(&first_set_bit_index, static_cast<uint32_t>(value)))
+			return first_set_bit_index;
+
+		if (_BitScanForward(&first_set_bit_index, static_cast<uint32_t>(value >> 32)))
+			return 32 + first_set_bit_index;
+
+		return 64;
+	#else
+		unsigned long first_set_bit_index;
+		return _BitScanForward64(&first_set_bit_index, value) ? first_set_bit_index : 64;
+	#endif
+#elif defined(RTM_COMPILER_GCC) || defined(RTM_COMPILER_CLANG)
+		return value != 0 ? __builtin_ctzll(value) : 64;
+#else
+		return value != 0 ? (63 - count_leading_zeros(value & -value)) : 64;
+#endif
+	}
+
+	//////////////////////////////////////////////////////////////////////////
 	// Rotate the bits left by some amount
 	inline uint32_t rotate_bits_left(uint32_t value, int32_t num_bits)
 	{
@@ -191,6 +272,17 @@ namespace acl
 		const uint32_t mask = 32 - 1;
 		num_bits &= mask;
 		return (value << num_bits) | (value >> ((-num_bits) & mask));
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Rotate the bits right by some amount
+	inline uint32_t rotate_bits_right(uint32_t value, int32_t num_bits)
+	{
+		ACL_ASSERT(num_bits >= 0, "Attempting to rotate by negative bits");
+		ACL_ASSERT(num_bits < 32, "Attempting to rotate by too many bits");
+		const uint32_t mask = 32 - 1;
+		num_bits &= mask;
+		return (value >> num_bits) | (value << ((-num_bits) & mask));
 	}
 
 	//////////////////////////////////////////////////////////////////////////

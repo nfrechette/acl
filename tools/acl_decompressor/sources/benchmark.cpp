@@ -67,10 +67,20 @@ static constexpr uint32_t k_flush_buffer_size = k_cpu_cache_size * 4;
 static constexpr uint32_t k_vmem_padding = 16 * 1024 * 1024;
 static constexpr uint32_t k_padded_flush_buffer_size = k_vmem_padding + k_flush_buffer_size + k_vmem_padding;
 
-// We allocate 220 copies of the compressed clip and align them to reduce the flush cost
-// by flushing only when we loop around. We pad each copy to 16 MB to ensure no VMEM entry sharing in level 2.
-// A compressed clip that takes 60 MB would end up using round_up_to_multiple_of(60 MB, 16 MB) * 220 = 13.75 GB
-static constexpr uint32_t k_num_copies = 220;
+#if defined(ACL_IMPL_BENCHMARK_ENABLE_BTB_FLUSH)
+	// When we flush the BTB cache to measure branch performance sensitive code, we cannot run multiple copies
+	// because each one would need its own copy of the code (e.g. multiple versions of identical code with unique
+	// branch targets). This is impractical and it would mean that we would have to prevent the linker from merging
+	// identical symbols/functions which other parts of the code might rely on for performance.
+	// As such, we have no choice but to flush in between each measurement.
+	// We keep two copies: one to warm up the code cache, and the other to measure with a cold cache
+	static constexpr uint32_t k_num_copies = 2;
+#else
+	// We allocate 220 copies of the compressed clip and align them to reduce the flush cost
+	// by flushing only when we loop around. We pad each copy to 16 MB to ensure no VMEM entry sharing in level 2.
+	// A compressed clip that takes 60 MB would end up using round_up_to_multiple_of(60 MB, 16 MB) * 220 = 13.75 GB
+	static constexpr uint32_t k_num_copies = 220;
+#endif
 
 // Align our clip copy buffer to a 2 MB boundary to reduce VMEM noise
 static constexpr uint32_t k_clip_buffer_alignment = 2 * 1024 * 1024;
@@ -89,6 +99,15 @@ enum class DecompressionFunction
 	DecompressPose,
 	DecompressBone,
 	Memcpy,
+};
+
+enum class CPUCacheTemperature
+{
+	// A single clip is used and decompression runs in a tight loop
+	Warm,
+
+	// Two clips are used, one to prime the code cache, the other to measure
+	Cold,
 };
 
 struct benchmark_transform_decompression_settings final : public acl::default_transform_decompression_settings
@@ -188,11 +207,101 @@ static void memset_impl(uint8_t* buffer, size_t buffer_size, uint8_t value)
 		*ptr = value;
 }
 
-static void benchmark_decompression(benchmark::State& state)
+#if defined(ACL_IMPL_BENCHMARK_ENABLE_BTB_FLUSH)
+#define JUMP_X1 \
+	{ \
+		uint32_t test_count = num_loops; \
+		do \
+		{ \
+			/* Volatile store to prevent stripping */ \
+			counter = test_count--; \
+		} \
+		while (test_count != 0); \
+	}
+
+#define JUMP_X8 \
+	JUMP_X1 \
+	JUMP_X1 \
+	JUMP_X1 \
+	JUMP_X1 \
+	JUMP_X1 \
+	JUMP_X1 \
+	JUMP_X1 \
+	JUMP_X1
+
+#define JUMP_X64 \
+	JUMP_X8 \
+	JUMP_X8 \
+	JUMP_X8 \
+	JUMP_X8 \
+	JUMP_X8 \
+	JUMP_X8 \
+	JUMP_X8 \
+	JUMP_X8
+
+#define JUMP_X512 \
+	JUMP_X64 \
+	JUMP_X64 \
+	JUMP_X64 \
+	JUMP_X64 \
+	JUMP_X64 \
+	JUMP_X64 \
+	JUMP_X64 \
+	JUMP_X64
+
+static RTM_FORCE_NOINLINE uint32_t execute_jumps(uint32_t num_loops)
+{
+	// Dummy counter to prevent the compiler from stripping out dummy jumps
+	volatile uint32_t counter = 0;
+
+	JUMP_X512
+	JUMP_X512
+	JUMP_X512
+	JUMP_X512
+	JUMP_X512
+	JUMP_X512
+	JUMP_X512
+	JUMP_X512
+
+#if 0
+	JUMP_X512
+	JUMP_X512
+	JUMP_X512
+	JUMP_X512
+	JUMP_X512
+	JUMP_X512
+	JUMP_X512
+	JUMP_X512
+#endif
+
+	return counter;
+}
+#endif	// defined(ACL_IMPL_BENCHMARK_ENABLE_BTB_FLUSH)
+
+static RTM_FORCE_NOINLINE uint32_t flush_branch_prediction()
+{
+	// Dummy counter to prevent the compiler from stripping out dummy jumps
+	volatile uint32_t counter = 0;
+
+#if defined(ACL_IMPL_BENCHMARK_ENABLE_BTB_FLUSH)
+	uint32_t num_loops = 3;
+	do
+	{
+		counter = execute_jumps(num_loops);
+		num_loops--;
+	}
+	while (num_loops != 0);
+#endif
+
+	return counter;
+}
+
+void benchmark_decompression(benchmark::State& state)
 {
 	acl::compressed_tracks& compressed_tracks = *acl::acl_impl::bit_cast<acl::compressed_tracks*>(state.range(0));
 	const PlaybackDirection playback_direction = static_cast<PlaybackDirection>(state.range(1));
 	const DecompressionFunction decompression_function = static_cast<DecompressionFunction>(state.range(2));
+	const CPUCacheTemperature cpu_cache_temperature = static_cast<CPUCacheTemperature>(state.range(3));
 
 	if (s_benchmark_state.compressed_tracks != &compressed_tracks)
 		setup_benchmark_state(compressed_tracks);	// We have a new clip, setup everything
@@ -229,12 +338,52 @@ static void benchmark_decompression(benchmark::State& state)
 	const uint32_t num_tracks = compressed_tracks.get_num_tracks();
 	acl::acl_impl::debug_track_writer pose_writer(s_allocator, acl::track_type8::qvvf, num_tracks);
 
-	// Flush the CPU cache
-	memset_impl(flush_buffer + k_vmem_padding, k_flush_buffer_size, 1);
-
 	uint32_t current_context_index = 0;
 	uint32_t current_sample_index = 0;
 	uint8_t flush_value = 2;
+
+	if (cpu_cache_temperature == CPUCacheTemperature::Cold)
+	{
+
+		// Flush the CPU code & data caches
+		memset_impl(flush_buffer + k_vmem_padding, k_flush_buffer_size, 1);
+
+		// Warm up the code cache and output pose
+		// It is rare to decompress a single clip in a short space of time
+		// Typically, multiple clips are decompressed and blended together
+		// and so while it is common for the decompressed data to be cold
+		// each clip, the code typically lives in L2
+		// Similarly, the output pose is likely warm on the CPU L1 or L2
+		// Output poses are often re-used and recycled since they have the
+		// same size for multiple clips blended together. Even when that
+		// isn't the case, the bind pose is often pre-filled in it just
+		// before decompression. Either way, the output pose is generally
+		// warm in the CPU cache.
+		{
+			// We use the first context to warm things up
+			acl::decompression_context<benchmark_transform_decompression_settings>& context = decompression_contexts[0];
+			context.seek(0.0F, acl::sample_rounding_policy::none);
+
+			switch (decompression_function)
+			{
+			case DecompressionFunction::DecompressPose:
+				context.decompress_tracks(pose_writer);
+				break;
+			case DecompressionFunction::DecompressBone:
+				context.decompress_track(0, pose_writer);
+				break;
+			case DecompressionFunction::Memcpy:
+				std::memcpy(pose_writer.tracks_typed.qvvf, decompression_instances[0], pose_size);
+				break;
+			}
+
+			current_context_index++;
+		}
+
+		// Flush the CPU BTB cache
+		flush_branch_prediction();
+	}
+
 	for (auto _ : state)
 	{
 		(void)_;
@@ -243,42 +392,72 @@ static void benchmark_decompression(benchmark::State& state)
 
 		const float sample_time = sample_times[current_sample_index];
 
-		acl::decompression_context<benchmark_transform_decompression_settings>& context = decompression_contexts[current_context_index];
-
-		// Interpolate as this is the most common scenario
-		context.seek(sample_time, acl::sample_rounding_policy::none);
-
-		switch (decompression_function)
 		{
-		case DecompressionFunction::DecompressPose:
-			context.decompress_tracks(pose_writer);
-			break;
-		case DecompressionFunction::DecompressBone:
-			for (uint32_t bone_index = 0; bone_index < num_tracks; ++bone_index)
-				context.decompress_track(bone_index, pose_writer);
-			break;
-		case DecompressionFunction::Memcpy:
-			std::memcpy(pose_writer.tracks_typed.qvvf, decompression_instances[current_context_index], pose_size);
-			break;
+			acl::decompression_context<benchmark_transform_decompression_settings>& context = decompression_contexts[current_context_index];
+
+			// Interpolate as this is the most common scenario
+			context.seek(sample_time, acl::sample_rounding_policy::none);
+
+			switch (decompression_function)
+			{
+			case DecompressionFunction::DecompressPose:
+				context.decompress_tracks(pose_writer);
+				break;
+			case DecompressionFunction::DecompressBone:
+				for (uint32_t bone_index = 0; bone_index < num_tracks; ++bone_index)
+					context.decompress_track(bone_index, pose_writer);
+				break;
+			case DecompressionFunction::Memcpy:
+				std::memcpy(pose_writer.tracks_typed.qvvf, decompression_instances[current_context_index], pose_size);
+				break;
+			}
 		}
 
 		const auto end = std::chrono::high_resolution_clock::now();
 		const auto elapsed_seconds = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
 		state.SetIterationTime(elapsed_seconds.count());
 
-		// Move on to the next context and sample
-		// We only move on to the next sample once every context has been touched
-		current_context_index++;
-		if (current_context_index >= k_num_copies)
+		if (cpu_cache_temperature == CPUCacheTemperature::Cold)
 		{
-			current_context_index = 0;
-			current_sample_index++;
+			// Move on to the next context and sample
+			// We only move on to the next sample once every context has been touched
+			current_context_index++;
+			if (current_context_index >= k_num_copies)
+			{
+				current_context_index = 1;
+				current_sample_index++;
 
-			if (current_sample_index >= k_num_decompression_samples)
-				current_sample_index = 0;
+				if (current_sample_index >= k_num_decompression_samples)
+					current_sample_index = 0;
 
-			// Flush the CPU cache
-			memset_impl(flush_buffer + k_vmem_padding, k_flush_buffer_size, flush_value++);
+
+				// Flush the CPU code & data caches
+				memset_impl(flush_buffer + k_vmem_padding, k_flush_buffer_size, flush_value++);
+
+				// Warm up the code cache and output pose
+				// See above
+				{
+					// We use the first context to warm things up
+					acl::decompression_context<benchmark_transform_decompression_settings>& context = decompression_contexts[0];
+					context.seek(0.0F, acl::sample_rounding_policy::none);
+
+					switch (decompression_function)
+					{
+					case DecompressionFunction::DecompressPose:
+						context.decompress_tracks(pose_writer);
+						break;
+					case DecompressionFunction::DecompressBone:
+						context.decompress_track(0, pose_writer);
+						break;
+					case DecompressionFunction::Memcpy:
+						std::memcpy(pose_writer.tracks_typed.qvvf, decompression_instances[0], pose_size);
+						break;
+					}
+				}
+
+				// Flush the CPU BTB cache
+				flush_branch_prediction();
+			}
 		}
 	}
 
@@ -379,6 +558,7 @@ bool read_clip(const std::string& clip_dir, const std::string& clip, acl::ialloc
 
 bool prepare_clip(const std::string& clip_name, const acl::compressed_tracks& raw_tracks, std::vector<acl::compressed_tracks*>& out_compressed_clips)
 {
+#if defined(ACL_IMPL_BENCHMARK_DECOMPRESSION)
 	printf("Preparing clip %s ...\n", clip_name.c_str());
 
 	acl::error_result result = raw_tracks.is_valid(false);
@@ -437,19 +617,22 @@ bool prepare_clip(const std::string& clip_name, const acl::compressed_tracks& ra
 	// Dynamically register our benchmark
 	benchmark::internal::Benchmark* bench = benchmark::internal::RegisterBenchmarkInternal(new benchmark::internal::FunctionBenchmark(clip_name.c_str(), benchmark_decompression));
 
-	bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Forward, (int64_t)DecompressionFunction::DecompressPose });
-	bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Forward, (int64_t)DecompressionFunction::DecompressBone });
+	bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Forward, (int64_t)DecompressionFunction::DecompressPose, (int64_t)CPUCacheTemperature::Cold });
+	bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Forward, (int64_t)DecompressionFunction::DecompressBone, (int64_t)CPUCacheTemperature::Cold });
 
 	// These are for debugging purposes and aren't measured as often
 	// By design, ACL's performance should be consistent regardless of the playback direction
-	//bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Forward, (int64_t)DecompressionFunction::Memcpy });
-	//bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Backward, (int64_t)DecompressionFunction::DecompressPose });
-	//bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Backward, (int64_t)DecompressionFunction::DecompressBone });
-	//bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Random, (int64_t)DecompressionFunction::DecompressPose });
-	//bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Random, (int64_t)DecompressionFunction::DecompressBone });
+	//bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Forward, (int64_t)DecompressionFunction::Memcpy, (int64_t)CPUCacheTemperature::Cold });
+	//bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Backward, (int64_t)DecompressionFunction::DecompressPose, (int64_t)CPUCacheTemperature::Cold });
+	//bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Backward, (int64_t)DecompressionFunction::DecompressBone, (int64_t)CPUCacheTemperature::Cold });
+	//bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Random, (int64_t)DecompressionFunction::DecompressPose, (int64_t)CPUCacheTemperature::Cold });
+	//bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Random, (int64_t)DecompressionFunction::DecompressBone, (int64_t)CPUCacheTemperature::Cold });
+
+	// With Warm CPU Cache
+	//bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Forward, (int64_t)DecompressionFunction::DecompressPose, (int64_t)CPUCacheTemperature::Warm });
 
 	// Name our arguments
-	bench->ArgNames({ "", "Dir", "Func" });
+	bench->ArgNames({ "", "Dir", "Func", "Temp" });
 
 	// Sometimes the numbers are slightly different from run to run, we'll run a few times
 	bench->Repetitions(3);
@@ -465,5 +648,11 @@ bool prepare_clip(const std::string& clip_name, const acl::compressed_tracks& ra
 	bench->ComputeStatistics("max", [](const std::vector<double>& v) { return *std::max_element(std::begin(v), std::end(v)); });
 
 	out_compressed_clips.push_back(compressed_tracks);
+#else
+	(void)clip_name;
+	(void)raw_tracks;
+	(void)out_compressed_clips;
+#endif
+
 	return true;
 }

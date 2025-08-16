@@ -29,7 +29,7 @@
 #include <string>
 #include <vector>
 
-#ifdef _WIN32
+#if defined(_WIN32)
 // The below excludes some other unused services from the windows headers -- see windows.h for details.
 #define NOGDICAPMASKS            // CC_*, LC_*, PC_*, CP_*, TC_*, RC_
 #define NOVIRTUALKEYCODES        // VK_*
@@ -82,13 +82,17 @@
 extern "C" __declspec(dllimport) int __stdcall IsDebuggerPresent();
 #endif
 
+#if defined(__linux__)
+#include <sched.h>
+#endif
+
 static bool is_sjson_file(const char* filename)
 {
 	const size_t filename_len = std::strlen(filename);
 	return filename_len >= 6 && strncmp(filename + filename_len - 6, ".sjson", 6) == 0;
 }
 
-static bool parse_options(int argc, char* argv[], const char*& out_metadata_filename)
+bool parse_options(int argc, char* argv[], const char*& out_metadata_filename)
 {
 	out_metadata_filename = nullptr;
 
@@ -114,7 +118,7 @@ static bool parse_options(int argc, char* argv[], const char*& out_metadata_file
 	return out_metadata_filename != nullptr;
 }
 
-static bool read_metadata_file(const char* metadata_filename, const char*& out_metadata_buffer, size_t& out_metadata_buffer_size)
+bool read_metadata_file(const char* metadata_filename, const char*& out_metadata_buffer, size_t& out_metadata_buffer_size)
 {
 	out_metadata_buffer = nullptr;
 	out_metadata_buffer_size = 0;
@@ -177,8 +181,20 @@ int main(int argc, char* argv[])
 	const DWORD_PTR physical_core_index = 5;
 	const DWORD_PTR logical_core_index = physical_core_index * 2;
 	SetProcessAffinityMask(GetCurrentProcess(), 1 << logical_core_index);
+#elif defined(__linux__)
+	// Use an arbitrary core that isn't 0
+	const int core_index = 5;
+
+	cpu_set_t mask;
+	CPU_ZERO(&mask);
+	CPU_SET(core_index, &mask);
+
+	const int status = sched_setaffinity(0, sizeof(mask), &mask);
+	if (status != 0)
+		return -1;
 #endif
 
+#if defined(ACL_IMPL_BENCHMARK_DECOMPRESSION)
 	const char* metadata_filename = nullptr;
 	if (!parse_options(argc, argv, metadata_filename))
 		return -1;
@@ -206,21 +222,28 @@ int main(int argc, char* argv[])
 			continue;
 		}
 
-		prepare_clip(clip, *raw_tracks, compressed_clips);
+		if (!prepare_clip(clip, *raw_tracks, compressed_clips))
+		{
+			printf("Failed to prepare clip %s!\n", clip.c_str());
+			continue;
+		}
 
 		s_allocator.deallocate(raw_tracks, raw_tracks->get_size());
 	}
+#endif
 
 	benchmark::Initialize(&argc, argv);
 
 	// Run benchmarks
 	benchmark::RunSpecifiedBenchmarks();
 
+#if defined(ACL_IMPL_BENCHMARK_DECOMPRESSION)
 	// Clean up
 	clear_benchmark_state();
 
 	for (acl::compressed_tracks* compressed_tracks : compressed_clips)
 		s_allocator.deallocate(compressed_tracks, compressed_tracks->get_size());
+#endif
 
 #ifdef _WIN32
 	if (IsDebuggerPresent())

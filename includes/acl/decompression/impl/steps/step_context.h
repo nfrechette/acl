@@ -1,7 +1,9 @@
+#pragma once
+
 ////////////////////////////////////////////////////////////////////////////////
 // The MIT License (MIT)
 //
-// Copyright (c) 2020 Nicholas Frechette & Animation Compression Library contributors
+// Copyright (c) 2025 Nicholas Frechette & Animation Compression Library contributors
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,32 +24,43 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include <acl/core/ansi_allocator.h>
-#include <acl/core/compressed_tracks.h>
+#include "acl/version.h"
+#include "acl/core/impl/compiler_utils.h"
 
-#include <benchmark/benchmark.h>
+#include <rtm/math.h>
 
-#include <string>
-#include <vector>
+#include <cstdint>
 
-// Whether or not to enable the decompression benchmarks
-#define ACL_IMPL_BENCHMARK_DECOMPRESSION
+ACL_IMPL_FILE_PRAGMA_PUSH
 
-// Whether or not to enable the bit set iteration benchmarks
-//#define ACL_IMPL_BENCHMARK_BIT_SET_ITERATION
+namespace acl
+{
+	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-// Whether or not to enable the unpacking benchmarks
-//#define ACL_IMPL_BENCHMARK_UNPACKING
+	namespace acl_impl
+	{
+		struct packed_sub_track_types;
 
-// Whether or not to enable BTB flushing (slow to compile)
-//#define ACL_IMPL_BENCHMARK_ENABLE_BTB_FLUSH
+		struct step_context_t
+		{
+			const packed_sub_track_types* rotation_sub_track_types = nullptr;
+			const packed_sub_track_types* translation_sub_track_types = nullptr;
+			const packed_sub_track_types* scale_sub_track_types = nullptr;
 
-extern acl::ansi_allocator s_allocator;
+			const uint8_t* constant_data_rotations = nullptr;
+			const uint8_t* constant_data_translations = nullptr;
+			const uint8_t* constant_data_scales = nullptr;
 
-void clear_benchmark_state();
+			uint32_t last_entry_index = 0;
+			uint32_t padding_mask = 0;
+			uint32_t num_tracks = 0;
 
-bool parse_metadata(const char* buffer, size_t buffer_size, std::string& out_clip_dir, std::vector<std::string>& out_clips);
+			const void* prefetch_queue[32];
+			const void** prefetch_queue_ptr = nullptr;
+		};
+	}
 
-bool read_clip(const std::string& clip_dir, const std::string& clip, acl::iallocator& allocator, acl::compressed_tracks*& out_compressed_tracks);
+	ACL_IMPL_VERSION_NAMESPACE_END
+}
 
-bool prepare_clip(const std::string& clip_name, const acl::compressed_tracks& raw_tracks, std::vector<acl::compressed_tracks*>& out_compressed_clips);
+ACL_IMPL_FILE_PRAGMA_POP

@@ -93,6 +93,7 @@
 #endif    // _WIN32
 
 #include "acl_compressor.h"
+#include "acl/config.h"
 #include "acl/core/impl/bit_cast.impl.h"
 
 // Used to debug and validate that we compile without sjson-cpp
@@ -1102,6 +1103,14 @@ static int safe_main_impl(int argc, char* argv[])
 	}
 
 	transform_tracks = std::move(new_transforms);
+#endif
+
+#if defined(ACL_IMPL_DISABLE_BIND_POSE_STRIPPING)
+	for (uint32_t track_index = 0; track_index < transform_tracks.get_num_tracks(); ++track_index)
+	{
+		track_qvvf& track = transform_tracks[track_index];
+		track.get_description().default_value = rtm::qvv_identity();
+	}
 #endif
 
 	double regression_error_threshold = 0.1;

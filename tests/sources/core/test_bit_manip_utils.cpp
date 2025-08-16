@@ -59,17 +59,37 @@ TEST_CASE("bit_manip_utils", "[core][utils]")
 	CHECK(count_leading_zeros(uint32_t(0x80000000)) == 0);
 	CHECK(count_leading_zeros(uint32_t(0x40000000)) == 1);
 
+	CHECK(count_leading_zeros(uint64_t(0x0000000000000000ULL)) == 64);
+	CHECK(count_leading_zeros(uint64_t(0x0000000000000001ULL)) == 63);
+	CHECK(count_leading_zeros(uint64_t(0x0000000000000002ULL)) == 62);
+	CHECK(count_leading_zeros(uint64_t(0x8000000000000000ULL)) == 0);
+	CHECK(count_leading_zeros(uint64_t(0x4000000000000000ULL)) == 1);
+
 	CHECK(count_trailing_zeros(uint32_t(0x00000000)) == 32);
 	CHECK(count_trailing_zeros(uint32_t(0x00000001)) == 0);
 	CHECK(count_trailing_zeros(uint32_t(0x00000002)) == 1);
 	CHECK(count_trailing_zeros(uint32_t(0x80000000)) == 31);
 	CHECK(count_trailing_zeros(uint32_t(0x40000000)) == 30);
 
+	CHECK(count_trailing_zeros(uint64_t(0x0000000000000000ULL)) == 64);
+	CHECK(count_trailing_zeros(uint64_t(0x0000000000000001ULL)) == 0);
+	CHECK(count_trailing_zeros(uint64_t(0x0000000000000002ULL)) == 1);
+	CHECK(count_trailing_zeros(uint64_t(0x8000000000000000ULL)) == 63);
+	CHECK(count_trailing_zeros(uint64_t(0x4000000000000000ULL)) == 62);
+
 	CHECK(rotate_bits_left(0x00000010, 0) == 0x00000010);
 	CHECK(rotate_bits_left(0x10000010, 1) == 0x20000020);
 	CHECK(rotate_bits_left(0x10000010, 2) == 0x40000040);
 	CHECK(rotate_bits_left(0x10000010, 3) == 0x80000080);
 	CHECK(rotate_bits_left(0x10000010, 4) == 0x00000101);
+
+	CHECK(rotate_bits_right(0x00000010, 0) == 0x00000010);
+	CHECK(rotate_bits_right(0x10000010, 1) == 0x08000008);
+	CHECK(rotate_bits_right(0x10000010, 2) == 0x04000004);
+	CHECK(rotate_bits_right(0x10000010, 3) == 0x02000002);
+	CHECK(rotate_bits_right(0x10000010, 4) == 0x01000001);
+	CHECK(rotate_bits_right(0x10000010, 12) == 0x01010000);
+	CHECK(rotate_bits_right(0x10000010, 18) == 0x00040400);
 
 	CHECK(and_not(0x00000010, 0x10101011) == 0x10101001);
 }

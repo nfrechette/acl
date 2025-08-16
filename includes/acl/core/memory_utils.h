@@ -368,6 +368,37 @@ namespace acl
 #endif
 	}
 
+	RTM_FORCE_INLINE void memory_prefetch_into_L1(const void* ptr)
+	{
+#if defined(RTM_SSE2_INTRINSICS)
+		_mm_prefetch(acl_impl::bit_cast<const char*>(ptr), _MM_HINT_T0);
+#elif defined(RTM_COMPILER_GCC) || defined(RTM_COMPILER_CLANG)
+		__builtin_prefetch(ptr, 0, 3);
+#elif defined(RTM_NEON64_INTRINSICS) && defined(RTM_COMPILER_MSVC)
+		__prefetch(ptr);
+#else
+		(void)ptr;
+#endif
+	}
+
+	RTM_FORCE_INLINE void memory_prefetch_into_L2(const void* ptr)
+	{
+#if defined(RTM_SSE2_INTRINSICS)
+		_mm_prefetch(acl_impl::bit_cast<const char*>(ptr), _MM_HINT_T1);
+#elif defined(RTM_COMPILER_GCC) || defined(RTM_COMPILER_CLANG)
+		__builtin_prefetch(ptr, 0, 2);
+#elif defined(RTM_NEON64_INTRINSICS) && defined(RTM_COMPILER_MSVC)
+		__prefetch2(ptr, 2);
+#else
+		(void)ptr;
+#endif
+	}
+
+	RTM_FORCE_INLINE void memory_fetch_into_L1(const void* ptr)
+	{
+		(void)*acl_impl::bit_cast<const volatile uint8_t*>(ptr);
+	}
+
 	ACL_IMPL_VERSION_NAMESPACE_END
 }
 

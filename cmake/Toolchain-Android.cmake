@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.2)
-
 # For Android, we just set the platform name as we won't be using CMake to build anything.
 # Instead Gradle is used through CMake.
 

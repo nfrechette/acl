@@ -50,6 +50,7 @@ def parse_argv():
 
 	misc = parser.add_argument_group(title='Miscellaneous')
 	misc.add_argument('-avx', dest='use_avx', action='store_true', help='Compile using AVX instructions on Windows, OS X, and Linux')
+	misc.add_argument('-avx2', dest='use_avx2', action='store_true', help='Compile using AVX2 instructions on Windows and Linux')
 	misc.add_argument('-pop', dest='use_popcnt', action='store_true', help='Compile using the POPCNT instruction')
 	misc.add_argument('-nosimd', dest='use_simd', action='store_false', help='Compile without SIMD instructions')
 	misc.add_argument('-simd', dest='use_simd', action='store_true', help='Compile with default SIMD instructions')
@@ -67,7 +68,7 @@ def parse_argv():
 		num_threads = 4
 
 	parser.set_defaults(build=False, clean=False, clean_only=False, unit_test=False, regression_test=False, bench=False, run_bench=False, pull_bench=False,
-		compiler=None, config='Release', cpu=None, cpp_version='11', use_avx=False, use_popcnt=False, use_simd=True, use_sjson=True, allwarnings=False,
+		compiler=None, config='Release', cpu=None, cpp_version='11', use_avx=False, use_avx2=False, use_popcnt=False, use_simd=True, use_sjson=True, allwarnings=False,
 		num_threads=num_threads, tests_matching='')
 
 	args = parser.parse_args()
@@ -75,9 +76,10 @@ def parse_argv():
 	is_arm64_cpu = is_host_cpu_arm64()
 
 	# Sanitize and validate our options
-	if args.use_avx and not args.use_simd:
-		print('SIMD is disabled; AVX cannot be used')
+	if (args.use_avx or args.use_avx2) and not args.use_simd:
+		print('SIMD is explicitly disabled, AVX and AVX2 will not be used')
 		args.use_avx = False
+		args.use_avx2 = False
 
 	if args.compiler == 'android':
 		if not args.cpu:
@@ -87,8 +89,8 @@ def parse_argv():
 			print('Android is only supported on Windows')
 			sys.exit(1)
 
-		if args.use_avx:
-			print('AVX is not supported on Android')
+		if args.use_avx or args.use_avx2:
+			print('AVX and AVX2 are not supported on Android')
 			sys.exit(1)
 
 		if not args.cpu in ['armv7', 'arm64']:
@@ -102,8 +104,8 @@ def parse_argv():
 			print('iOS is only supported on OS X')
 			sys.exit(1)
 
-		if args.use_avx:
-			print('AVX is not supported on iOS')
+		if args.use_avx or args.use_avx2:
+			print('AVX and AVX2 are not supported on iOS')
 			sys.exit(1)
 
 		if args.unit_test:
@@ -125,8 +127,8 @@ def parse_argv():
 			print('Emscripten is only supported on OS X and Linux')
 			sys.exit(1)
 
-		if args.use_avx:
-			print('AVX is not supported with Emscripten')
+		if args.use_avx or args.use_avx2:
+			print('AVX and AVX2 are not supported on Emscripten')
 			sys.exit(1)
 
 		if not args.cpu in ['wasm']:
@@ -348,6 +350,10 @@ def do_generate_solution(build_dir, cmake_script_dir, regression_test_data_dir, 
 	if args.use_avx:
 		print('Enabling AVX usage')
 		extra_switches.append('-DUSE_AVX_INSTRUCTIONS:BOOL=true')
+
+	if args.use_avx2:
+		print('Enabling AVX2 usage')
+		extra_switches.append('-DUSE_AVX2_INSTRUCTIONS:BOOL=true')
 
 	if args.use_popcnt:
 		print('Enabling POPCOUNT usage')
