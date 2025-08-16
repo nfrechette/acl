@@ -141,7 +141,7 @@ namespace acl
 
 //////////////////////////////////////////////////////////////////////////
 // Silence compiler warnings within switch cases that fall through
-// Note: C++17 has [[fallthrough]];
+// Note: C++17 has [[fallthrough]]
 //////////////////////////////////////////////////////////////////////////
 #if ACL_HAS_ATTRIBUTE(fallthrough)
 	#define ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL __attribute__ ((fallthrough))
