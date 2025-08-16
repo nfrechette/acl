@@ -130,10 +130,12 @@ namespace acl
 }
 
 //////////////////////////////////////////////////////////////////////////
-// Wraps the __has_attribute pre-processor macro to handle non-clang and early
-// GCC compilers
+// Wraps the __has_attribute and __has_cpp_attribute pre-processor macros
+// to allow for C++ language feature detection
 //////////////////////////////////////////////////////////////////////////
-#if defined(__has_attribute)
+#if defined(__has_cpp_attribute)
+	#define ACL_HAS_ATTRIBUTE(x) __has_cpp_attribute(x)
+#elif defined(__has_attribute)
 	#define ACL_HAS_ATTRIBUTE(x) __has_attribute(x)
 #else
 	#define ACL_HAS_ATTRIBUTE(x) 0
