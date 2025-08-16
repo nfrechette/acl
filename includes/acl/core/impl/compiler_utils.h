@@ -163,10 +163,11 @@ namespace acl
 //////////////////////////////////////////////////////////////////////////
 // Allows us to specify branch hints
 //////////////////////////////////////////////////////////////////////////
-#if defined(RTM_COMPILER_CLANG) && ACL_HAS_ATTRIBUTE(likely) && ACL_HAS_ATTRIBUTE(unlikely)
+#if RTM_CPP_VERSION >= RTM_CPP_VERSION_20
 	#define ACL_BRANCH_LIKELY [[likely]]
 	#define ACL_BRANCH_UNLIKELY [[unlikely]]
-#elif RTM_CPP_VERSION >= RTM_CPP_VERSION_20
+#elif defined(RTM_COMPILER_CLANG) && ACL_HAS_ATTRIBUTE(likely) && ACL_HAS_ATTRIBUTE(unlikely)
+	// Clang supported the same syntax as C++20 much earlier
 	#define ACL_BRANCH_LIKELY [[likely]]
 	#define ACL_BRANCH_UNLIKELY [[unlikely]]
 #else
