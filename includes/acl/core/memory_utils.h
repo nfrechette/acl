@@ -396,7 +396,7 @@ namespace acl
 
 	RTM_FORCE_INLINE void memory_fetch_into_L1(const void* ptr)
 	{
-		*acl_impl::bit_cast<const volatile uint8_t*>(ptr);
+		(void)*acl_impl::bit_cast<const volatile uint8_t*>(ptr);
 	}
 
 	ACL_IMPL_VERSION_NAMESPACE_END
