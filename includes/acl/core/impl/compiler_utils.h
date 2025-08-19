@@ -146,7 +146,7 @@ namespace acl
 //////////////////////////////////////////////////////////////////////////
 #if RTM_CPP_VERSION >= RTM_CPP_VERSION_17
 	#define ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL [[fallthrough]]
-#elif ACL_HAS_ATTRIBUTE(fallthrough)
+#elif ACL_HAS_ATTRIBUTE(fallthrough) && (defined(RTM_COMPILER_GCC) || defined(RTM_COMPILER_CLANG))
 	// For pre-C++17 support in GCC/Clang
 	#define ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL __attribute__ ((fallthrough))
 #else
