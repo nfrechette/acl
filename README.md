@@ -43,20 +43,17 @@ Much thought was put into designing the library for it to be as flexible and pow
 
 ## Supported platforms
 
-*  Windows VS2015 x86 and x64
-*  Windows (VS2017 to VS2022) x86, x64, and ARM64
-*  Windows (VS2017 to VS2022) with clang x86 and x64
-*  Linux (gcc 5 to 13) x86 and x64
-*  Linux (clang 4 to 15) x86 and x64
-*  OS X (12.5, 13.2, 14.2) x64 and ARM64
-*  Android (NDK 21) ARMv7-A and ARM64
-*  iOS (Xcode 10.3, 11.7, 12.5, 13.2, 14.2) ARM64
-*  Emscripten (1.39.11) WASM
-*  MSYS2 x64
+Continuous integration tests a variety of platforms and configurations but it generally runs as-is anywhere where C++11 (or later) is supported. CI currently tests:
 
-The above supported platform list is only what is tested every release but if it compiles, it should run just fine.
+*  Windows VS2022: x86, x64, ARM64
+*  Linux GCC 12+: x86, x64
+*  Linux Clang 15+: x86, x64
+*  OS X XCode 15+: ARM64
+*  Emscripten 1.39.11: WASM
 
-The [Unreal Engine](https://www.unrealengine.com/en-US/blog) is supported through a plugin found [here](https://github.com/nfrechette/acl-ue4-plugin).
+Each releases is also manually tested on iOS and Android.
+
+The [Unreal Engine](https://www.unrealengine.com/en-US/blog) is supported through a plugin originally found [here](https://github.com/nfrechette/acl-ue4-plugin) although it is now distributed with a more recent version as part of each engine release since UE 5.13.
 
 ## Getting started
 
