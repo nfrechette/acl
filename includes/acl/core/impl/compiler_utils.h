@@ -130,10 +130,12 @@ namespace acl
 }
 
 //////////////////////////////////////////////////////////////////////////
-// Wraps the __has_attribute pre-processor macro to handle non-clang and early
-// GCC compilers
+// Wraps the __has_attribute and __has_cpp_attribute pre-processor macros
+// to allow for C++ language feature detection
 //////////////////////////////////////////////////////////////////////////
-#if defined(__has_attribute)
+#if defined(__has_cpp_attribute)
+	#define ACL_HAS_ATTRIBUTE(x) __has_cpp_attribute(x)
+#elif defined(__has_attribute)
 	#define ACL_HAS_ATTRIBUTE(x) __has_attribute(x)
 #else
 	#define ACL_HAS_ATTRIBUTE(x) 0
@@ -141,9 +143,11 @@ namespace acl
 
 //////////////////////////////////////////////////////////////////////////
 // Silence compiler warnings within switch cases that fall through
-// Note: C++17 has [[fallthrough]];
 //////////////////////////////////////////////////////////////////////////
-#if ACL_HAS_ATTRIBUTE(fallthrough)
+#if RTM_CPP_VERSION >= RTM_CPP_VERSION_17
+	#define ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL [[fallthrough]]
+#elif ACL_HAS_ATTRIBUTE(fallthrough) && (defined(RTM_COMPILER_GCC) || defined(RTM_COMPILER_CLANG))
+	// For pre-C++17 support in GCC/Clang
 	#define ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL __attribute__ ((fallthrough))
 #else
 	#define ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL (void)0
@@ -161,7 +165,11 @@ namespace acl
 //////////////////////////////////////////////////////////////////////////
 // Allows us to specify branch hints
 //////////////////////////////////////////////////////////////////////////
-#if defined(RTM_COMPILER_CLANG) || RTM_CPP_VERSION >= RTM_CPP_VERSION_20
+#if RTM_CPP_VERSION >= RTM_CPP_VERSION_20
+	#define ACL_BRANCH_LIKELY [[likely]]
+	#define ACL_BRANCH_UNLIKELY [[unlikely]]
+#elif defined(RTM_COMPILER_CLANG) && ACL_HAS_ATTRIBUTE(likely) && ACL_HAS_ATTRIBUTE(unlikely)
+	// Clang supported the same syntax as C++20 much earlier
 	#define ACL_BRANCH_LIKELY [[likely]]
 	#define ACL_BRANCH_UNLIKELY [[unlikely]]
 #else
