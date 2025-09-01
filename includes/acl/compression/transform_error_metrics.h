@@ -453,15 +453,15 @@ namespace acl
 			const rtm::vector4f lossy_vtx1 = rtm::qvv_mul_point3(vtx1, lossy_transform_);
 			const rtm::vector4f lossy_vtx2 = rtm::qvv_mul_point3(vtx2, lossy_transform_);
 
-			const rtm::scalarf vtx0_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx0, lossy_vtx0);
-			const rtm::scalarf vtx1_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx1, lossy_vtx1);
-			const rtm::scalarf vtx2_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx2, lossy_vtx2);
+			const rtm::scalarf vtx0_error = rtm::vector_distance_squared3_as_scalar(raw_vtx0, lossy_vtx0);
+			const rtm::scalarf vtx1_error = rtm::vector_distance_squared3_as_scalar(raw_vtx1, lossy_vtx1);
+			const rtm::scalarf vtx2_error = rtm::vector_distance_squared3_as_scalar(raw_vtx2, lossy_vtx2);
 
 	#if defined(ACL_IMPL_USE_4_POINTS)
 			const rtm::vector4f vtx3 = args.shell_point_mid;
 			const rtm::vector4f raw_vtx3 = rtm::qvv_mul_point3(vtx3, raw_transform_);
 			const rtm::vector4f lossy_vtx3 = rtm::qvv_mul_point3(vtx3, lossy_transform_);
-			const rtm::scalarf vtx3_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx3, lossy_vtx3);
+			const rtm::scalarf vtx3_error = rtm::vector_distance_squared3_as_scalar(raw_vtx3, lossy_vtx3);
 			return rtm::scalar_max(rtm::scalar_max(vtx0_error, vtx1_error), rtm::scalar_max(vtx2_error, vtx3_error));
 	#else
 			return rtm::scalar_max(rtm::scalar_max(vtx0_error, vtx1_error), vtx2_error);
@@ -516,8 +516,8 @@ namespace acl
 			const rtm::vector4f lossy_vtx0 = rtm::qvv_mul_point3_no_scale(vtx0, lossy_transform_);
 			const rtm::vector4f lossy_vtx1 = rtm::qvv_mul_point3_no_scale(vtx1, lossy_transform_);
 
-			const rtm::scalarf vtx0_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx0, lossy_vtx0);
-			const rtm::scalarf vtx1_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx1, lossy_vtx1);
+			const rtm::scalarf vtx0_error = rtm::vector_distance_squared3_as_scalar(raw_vtx0, lossy_vtx0);
+			const rtm::scalarf vtx1_error = rtm::vector_distance_squared3_as_scalar(raw_vtx1, lossy_vtx1);
 
 	#if defined(ACL_IMPL_USE_4_POINTS)
 			const rtm::vector4f vtx2 = args.shell_point_z;
@@ -526,14 +526,14 @@ namespace acl
 			const rtm::vector4f raw_vtx3 = rtm::qvv_mul_point3_no_scale(vtx3, raw_transform_);
 			const rtm::vector4f lossy_vtx2 = rtm::qvv_mul_point3_no_scale(vtx2, lossy_transform_);
 			const rtm::vector4f lossy_vtx3 = rtm::qvv_mul_point3_no_scale(vtx3, lossy_transform_);
-			const rtm::scalarf vtx2_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx2, lossy_vtx2);
-			const rtm::scalarf vtx3_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx3, lossy_vtx3);
+			const rtm::scalarf vtx2_error = rtm::vector_distance_squared3_as_scalar(raw_vtx2, lossy_vtx2);
+			const rtm::scalarf vtx3_error = rtm::vector_distance_squared3_as_scalar(raw_vtx3, lossy_vtx3);
 			return rtm::scalar_max(rtm::scalar_max(vtx0_error, vtx1_error), rtm::scalar_max(vtx2_error, vtx3_error));
 	#elif defined(ACL_IMPL_USE_3_POINTS_WITHOUT_SCALE)
 			const rtm::vector4f vtx2 = args.shell_point_z;
 			const rtm::vector4f raw_vtx2 = rtm::qvv_mul_point3_no_scale(vtx2, raw_transform_);
 			const rtm::vector4f lossy_vtx2 = rtm::qvv_mul_point3_no_scale(vtx2, lossy_transform_);
-			const rtm::scalarf vtx2_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx2, lossy_vtx2);
+			const rtm::scalarf vtx2_error = rtm::vector_distance_squared3_as_scalar(raw_vtx2, lossy_vtx2);
 			return rtm::scalar_max(rtm::scalar_max(vtx0_error, vtx1_error), vtx2_error);
 	#else
 			return rtm::scalar_max(vtx0_error, vtx1_error);
@@ -606,7 +606,7 @@ namespace acl
 			else
 			{
 				// If we have no rotation delta, then the transform error is just the translation error: the delta length
-				max_delta_transform_error_sq = rtm::scalar_cast(acl_impl::vector_distance_squared3_as_scalar(raw_transform_d.translation, lossy_transform_d.translation));
+				max_delta_transform_error_sq = rtm::scalar_cast(rtm::vector_distance_squared3_as_scalar(raw_transform_d.translation, lossy_transform_d.translation));
 			}
 
 			return rtm::scalar_set((float)max_delta_transform_error_sq);
@@ -689,15 +689,15 @@ namespace acl
 			const rtm::vector4f lossy_vtx1 = rtm::matrix_mul_point3(vtx1, lossy_transform_);
 			const rtm::vector4f lossy_vtx2 = rtm::matrix_mul_point3(vtx2, lossy_transform_);
 
-			const rtm::scalarf vtx0_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx0, lossy_vtx0);
-			const rtm::scalarf vtx1_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx1, lossy_vtx1);
-			const rtm::scalarf vtx2_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx2, lossy_vtx2);
+			const rtm::scalarf vtx0_error = rtm::vector_distance_squared3_as_scalar(raw_vtx0, lossy_vtx0);
+			const rtm::scalarf vtx1_error = rtm::vector_distance_squared3_as_scalar(raw_vtx1, lossy_vtx1);
+			const rtm::scalarf vtx2_error = rtm::vector_distance_squared3_as_scalar(raw_vtx2, lossy_vtx2);
 
 #if defined(ACL_IMPL_USE_4_POINTS)
 			const rtm::vector4f vtx3 = args.shell_point_mid;
 			const rtm::vector4f raw_vtx3 = rtm::matrix_mul_point3(vtx3, raw_transform_);
 			const rtm::vector4f lossy_vtx3 = rtm::matrix_mul_point3(vtx3, lossy_transform_);
-			const rtm::scalarf vtx3_error = acl_impl::vector_distance_squared3_as_scalar(raw_vtx3, lossy_vtx3);
+			const rtm::scalarf vtx3_error = rtm::vector_distance_squared3_as_scalar(raw_vtx3, lossy_vtx3);
 			return rtm::scalar_max(rtm::scalar_max(vtx0_error, vtx1_error), rtm::scalar_max(vtx2_error, vtx3_error));
 #else
 			return rtm::scalar_max(rtm::scalar_max(vtx0_error, vtx1_error), vtx2_error);

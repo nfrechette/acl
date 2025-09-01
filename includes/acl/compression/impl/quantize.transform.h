@@ -2052,30 +2052,6 @@ namespace acl
 			deallocate_type_array(context.allocator, best_bit_rates, num_bones);
 		}
 
-		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE rtm::mask4f RTM_SIMD_CALL mask_not(rtm::mask4f_arg0 input) RTM_NO_EXCEPT
-		{
-		#if defined(RTM_SSE2_INTRINSICS)
-			return _mm_andnot_ps(input, _mm_castsi128_ps(_mm_set_epi32(0xFFFFFFFFU, 0xFFFFFFFFU, 0xFFFFFFFFU, 0xFFFFFFFFU)));
-		#elif defined(RTM_NEON_INTRINSICS)
-			return vmvnq_u32(input);
-		#else
-			const uint32_t* input_ = rtm::rtm_impl::bit_cast<const uint32_t*>(&input);
-
-			union
-			{
-				rtm::mask4f vector;
-				uint32_t scalar[4];
-			} result;
-
-			result.scalar[0] = ~input_[0];
-			result.scalar[1] = ~input_[1];
-			result.scalar[2] = ~input_[2];
-			result.scalar[3] = ~input_[3];
-
-			return result.vector;
-		#endif
-		}
-
 		//////////////////////////////////////////////////////////////////////////
 		// [Bit Rate Optimization Algorithm]
 		//
@@ -2257,7 +2233,7 @@ namespace acl
 			}
 
 			// If we have non-uniform 3D scale, we cannot rely on associativity, fall back to the transform chain
-			const bool has_scale = rtm::mask_any_true3(mask_not(has_default_scale));
+			const bool has_scale = rtm::mask_any_true3(rtm::mask_not(has_default_scale));
 
 			if (has_scale)
 				context.initialize_v2_scale();
