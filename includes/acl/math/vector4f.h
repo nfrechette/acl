@@ -41,24 +41,6 @@ namespace acl
 	// Temporary put here until they are included in RTM
 	namespace acl_impl
 	{
-		//////////////////////////////////////////////////////////////////////////
-		// Returns the squared distance between two 3D points.
-		//////////////////////////////////////////////////////////////////////////
-		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE rtm::scalarf RTM_SIMD_CALL vector_distance_squared3_as_scalar(rtm::vector4f_arg0 lhs, rtm::vector4f_arg1 rhs) RTM_NO_EXCEPT
-		{
-			const rtm::vector4f difference = rtm::vector_sub(lhs, rhs);
-			return rtm::vector_length_squared3_as_scalar(difference);
-		}
-
-		//////////////////////////////////////////////////////////////////////////
-		// Returns the squared distance between two 3D points.
-		//////////////////////////////////////////////////////////////////////////
-		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE rtm::scalard RTM_SIMD_CALL vector_distance_squared3_as_scalar(rtm::vector4d_arg0 lhs, rtm::vector4d_arg1 rhs) RTM_NO_EXCEPT
-		{
-			const rtm::vector4d difference = rtm::vector_sub(lhs, rhs);
-			return rtm::vector_length_squared3_as_scalar(difference);
-		}
-
 		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL vector_dot3_x4(
 			rtm::vector4f_arg0 lhs_xxxx, rtm::vector4f_arg1 lhs_yyyy, rtm::vector4f_arg2 lhs_zzzz,
 			rtm::vector4f_arg3 rhs_xxxx, rtm::vector4f_arg4 rhs_yyyy, rtm::vector4f_arg5 rhs_zzzz) RTM_NO_EXCEPT
