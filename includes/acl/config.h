@@ -81,14 +81,18 @@
 // You can disable deprecation warnings by defining ACL_NO_DEPRECATION
 //#define ACL_NO_DEPRECATION
 
-// Popcount intrinsic support can be enabled by defining ACL_USE_POPCOUNT
+// x86 popcount/leading zero count intrinsic support can be enabled by defining ACL_USE_POPCOUNT
 // Note that this is a hardware feature and if the CPU does not support it, the
 // behavior is undefined. Make sure your platform supports it before enabling this.
+// XboxOne and PlayStation 4 are both based on AMD Jaguar which supports this. New generations support it as well.
+// popcnt/lzcnt are a minimum requirement for Windows 11.
 //#define ACL_USE_POPCOUNT
 
-// BMI intrinsic support can be enabled by defining ACL_BMI_INTRINSICS
+// x86 BMI intrinsic support can be enabled by defining ACL_BMI_INTRINSICS
 // Note that this is a hardware feature and if the CPU does not support it, the
 // behavior is undefined. Make sure your platform supports it before enabling this.
+// XboxOne and PlayStation 4 are both based on AMD Jaguar which supports this. New generations support it as well.
+// BMI is a minimum requirement for Windows 11.
 //#define ACL_BMI_INTRINSICS
 
 // Disables usage of 8-wide AVX when AVX is enabled
@@ -119,3 +123,7 @@
 // This is handy to debug the code and to more easily view
 // the generated assembly for each piece
 //#define ACL_IMPL_ENABLE_DEBUG_FORCE_INLINE
+
+////////////////////////////////////////////////////////////////////////////////
+// Macro feature validation and auto-detection is implemented in its own header
+#include "acl/core/impl/config.impl.h"
