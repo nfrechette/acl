@@ -35,34 +35,9 @@
 
 // See config.h for details on how to configure the hardware bitscan features for your project
 
-#if !defined(ACL_USE_POPCOUNT) && !defined(RTM_NO_INTRINSICS)
-	// TODO: Enable this for other publicly available console defines as well
-	#if defined(_DURANGO) || defined(_XBOX_ONE)
-		// Enable pop-count type instructions on Xbox One
-		#define ACL_USE_POPCOUNT
-	#endif
-#endif
-
 #if defined(ACL_USE_POPCOUNT)
 	// The popcount intrinsic is enabled
 	#include <nmmintrin.h>
-#endif
-
-// BMI intrinsic support
-#if !defined(ACL_BMI_INTRINSICS) && !defined(RTM_NO_INTRINSICS)
-	// TODO: Enable this for other publicly available console defines as well
-	#if defined(_DURANGO) || defined(_XBOX_ONE)
-		// Enable BMI type instructions on Xbox One
-		#define ACL_BMI_INTRINSICS
-	#elif defined(__BMI__)
-		// Clang and GCC define __BMI__ when -mbmi is used
-		#define ACL_BMI_INTRINSICS
-	#elif defined(RTM_AVX_INTRINSICS) && defined(RTM_COMPILER_MSVC)
-		// Enable BMI when AVX is enabled except with clang under Windows
-		// Note: It seems that the Clang toolchain with MSVC enables BMI only with AVX2 unlike
-		// MSVC which enables it with AVX
-		#define ACL_BMI_INTRINSICS
-	#endif
 #endif
 
 #if defined(ACL_BMI_INTRINSICS)
