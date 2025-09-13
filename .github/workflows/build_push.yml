@@ -141,14 +141,20 @@ jobs:
       matrix:
         compiler: [vs2022, vs2022-clang]
         build_config: [debug, release]
-        cpu: [x86, x64, arm64]
+        cpu: [x86, x64, arm64, arm64ec]
         simd: [-simd, -nosimd, -avx]
         exclude:
           # Don't run arm64 with clang
           - compiler: vs2022-clang
             cpu: arm64
+          # Don't run arm64ec with clang
+          - compiler: vs2022-clang
+            cpu: arm64ec
           # Don't run AVX with arm64
           - cpu: arm64
+            simd: -avx
+          # Don't run AVX with arm64ec
+          - cpu: arm64ec
             simd: -avx
     steps:
       - name: Git checkout
