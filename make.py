@@ -1011,7 +1011,7 @@ if __name__ == "__main__":
 		is_cross_compiling = True
 	elif args.cpu == 'x86' or args.cpu == 'x64':
 		is_cross_compiling = is_host_cpu_arm64()
-	elif args.cpu == 'armv7' or args.cpu == 'arm64':
+	elif args.cpu == 'armv7' or args.cpu == 'arm64' or args.cpu == 'arm64ec':
 		is_cross_compiling = not is_host_cpu_arm64()
 
 	# We always prepare this since for Android/iOS the data is included as part of the executable
