@@ -344,12 +344,20 @@ def do_generate_solution(build_dir, cmake_script_dir, regression_test_data_dir, 
 	cpu = args.cpu
 	config = args.config
 
+	is_arm64_cpu = False
+	if platform.machine() == 'arm64' or platform.machine() == 'aarch64':
+		is_arm64_cpu = True
+
 	if compiler:
 		set_compiler_env(compiler, args)
 
 	extra_switches = ['--no-warn-unused-cli']
 	extra_switches.append('-DCPU_INSTRUCTION_SET:STRING={}'.format(cpu))
 	extra_switches.append('-DCMAKE_CXX_STANDARD:STRING={}'.format(args.cpp_version))
+
+	if platform.system() == 'Windows' and not is_arm64_cpu:
+		if cpu == 'arm64' or cpu == 'arm64ec':
+			extra_switches.append('-DIS_CROSS_COMPILING:BOOL=true')
 
 	if args.use_avx:
 		print('Enabling AVX usage')

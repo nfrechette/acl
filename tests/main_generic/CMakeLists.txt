@@ -21,10 +21,13 @@ create_source_groups("${ALL_MAIN_SOURCE_FILES}" ${PROJECT_SOURCE_DIR})
 
 add_executable(${PROJECT_NAME} ${ALL_TEST_SOURCE_FILES} ${ALL_MAIN_SOURCE_FILES})
 
-list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/../../external/catch2/contrib")
-include(CTest)
-include(Catch)
-catch_discover_tests(${PROJECT_NAME})
+if(NOT IS_CROSS_COMPILING)
+	# Don't attempt to detect unit tests if we are cross-compiling
+	list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/../../external/catch2/contrib")
+	include(CTest)
+	include(Catch)
+	catch_discover_tests(${PROJECT_NAME})
+endif()
 
 setup_default_compiler_flags(${PROJECT_NAME})
 
