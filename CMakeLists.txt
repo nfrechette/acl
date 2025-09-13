@@ -14,6 +14,7 @@ set(USE_SJSON true CACHE BOOL "Use SJSON")
 set(CPU_INSTRUCTION_SET false CACHE STRING "CPU instruction set")
 set(BUILD_BENCHMARK_EXE false CACHE BOOL "Enable the benchmark projects")
 set(ENABLE_ALL_WARNINGS false CACHE BOOL "Enable all warnings")
+set(IS_CROSS_COMPILING false CACHE BOOL "Whether or not we are cross-compiling")
 
 set(TEST_DATA_DIR "" CACHE STRING "The full path of the regression test data directory")
 set(DECOMP_DATA_DIR "" CACHE STRING "The full path of the decompression data directory")
