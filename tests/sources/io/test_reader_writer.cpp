@@ -103,9 +103,14 @@
 #include <cstdlib>
 #include <thread>
 
+// Only test the reader/writer on non-mobile platforms
+#if defined(RTM_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
+	#define ACL_IMPL_ENABLE_IO_UNIT_TESTS
+#endif
+
 using namespace acl;
 
-#if defined(RTM_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
+#if defined(ACL_IMPL_ENABLE_IO_UNIT_TESTS)
 #ifdef _WIN32
 	constexpr uint32_t k_max_filename_size = MAX_PATH;
 #else
@@ -126,7 +131,7 @@ static void get_temporary_filename(char* filename, uint32_t filename_size, const
 	strcat_s(filename, filename_size, ".acl.sjson");
 #else
 	(void)filename_size;
-	
+
 	char id[1024];
 	snprintf(id, get_array_size(id), "%u", std::rand());
 
@@ -146,8 +151,7 @@ static void get_temporary_filename(char* filename, uint32_t filename_size, const
 
 TEST_CASE("sjson_clip_reader_writer", "[io]")
 {
-	// Only test the reader/writer on non-mobile platforms
-#if defined(RTM_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
+#if defined(ACL_IMPL_ENABLE_IO_UNIT_TESTS)
 	ansi_allocator allocator;
 
 	const uint32_t num_tracks = 3;
@@ -302,8 +306,7 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 
 TEST_CASE("sjson_track_list_reader_writer float1f", "[io]")
 {
-	// Only test the reader/writer on non-mobile platforms
-#if defined(RTM_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
+#if defined(ACL_IMPL_ENABLE_IO_UNIT_TESTS)
 	ansi_allocator allocator;
 
 	const uint32_t num_tracks = 3;
@@ -412,8 +415,7 @@ TEST_CASE("sjson_track_list_reader_writer float1f", "[io]")
 
 TEST_CASE("sjson_track_list_reader_writer float2f", "[io]")
 {
-	// Only test the reader/writer on non-mobile platforms
-#if defined(RTM_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
+#if defined(ACL_IMPL_ENABLE_IO_UNIT_TESTS)
 	ansi_allocator allocator;
 
 	const uint32_t num_tracks = 3;
@@ -522,8 +524,7 @@ TEST_CASE("sjson_track_list_reader_writer float2f", "[io]")
 
 TEST_CASE("sjson_track_list_reader_writer float3f", "[io]")
 {
-	// Only test the reader/writer on non-mobile platforms
-#if defined(RTM_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
+#if defined(ACL_IMPL_ENABLE_IO_UNIT_TESTS)
 	ansi_allocator allocator;
 
 	const uint32_t num_tracks = 3;
@@ -632,8 +633,7 @@ TEST_CASE("sjson_track_list_reader_writer float3f", "[io]")
 
 TEST_CASE("sjson_track_list_reader_writer float4f", "[io]")
 {
-	// Only test the reader/writer on non-mobile platforms
-#if defined(RTM_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
+#if defined(ACL_IMPL_ENABLE_IO_UNIT_TESTS)
 	ansi_allocator allocator;
 
 	const uint32_t num_tracks = 3;
@@ -742,8 +742,7 @@ TEST_CASE("sjson_track_list_reader_writer float4f", "[io]")
 
 TEST_CASE("sjson_track_list_reader_writer vector4f", "[io]")
 {
-	// Only test the reader/writer on non-mobile platforms
-#if defined(RTM_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
+#if defined(ACL_IMPL_ENABLE_IO_UNIT_TESTS)
 	ansi_allocator allocator;
 
 	const uint32_t num_tracks = 3;
