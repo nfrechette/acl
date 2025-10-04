@@ -339,7 +339,8 @@ def set_compiler_env(compiler, args):
 			print('See help with: python make.py -help')
 			sys.exit(1)
 
-def do_generate_solution(build_dir, cmake_script_dir, regression_test_data_dir, decomp_data_dir, args):
+def do_generate_solution(build_dir, cmake_script_dir, regression_test_data_dir, decomp_data_dir,
+						 is_cross_compiling, args):
 	compiler = args.compiler
 	cpu = args.cpu
 	config = args.config
@@ -355,9 +356,8 @@ def do_generate_solution(build_dir, cmake_script_dir, regression_test_data_dir, 
 	extra_switches.append('-DCPU_INSTRUCTION_SET:STRING={}'.format(cpu))
 	extra_switches.append('-DCMAKE_CXX_STANDARD:STRING={}'.format(args.cpp_version))
 
-	if platform.system() == 'Windows' and not is_arm64_cpu:
-		if cpu == 'arm64' or cpu == 'arm64ec':
-			extra_switches.append('-DIS_CROSS_COMPILING:BOOL=true')
+	if is_cross_compiling:
+		extra_switches.append('-DIS_CROSS_COMPILING:BOOL=true')
 
 	if args.use_avx:
 		print('Enabling AVX usage')
@@ -1021,7 +1021,7 @@ if __name__ == "__main__":
 	# Make sure 'make' runs with all available cores
 	os.environ['MAKEFLAGS'] = '-j{}'.format(args.num_threads)
 
-	do_generate_solution(build_dir, cmake_script_dir, regression_test_data_dir, decomp_data_dir, args)
+	do_generate_solution(build_dir, cmake_script_dir, regression_test_data_dir, decomp_data_dir, is_cross_compiling, args)
 
 	if args.build:
 		do_build(args)
