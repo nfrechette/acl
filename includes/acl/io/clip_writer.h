@@ -90,7 +90,7 @@ namespace acl
 				header_writer["sample_rate"] = track_list.get_sample_rate();
 				header_writer["is_binary_exact"] = true;
 
-#if 0	// TODO
+			#if 0	// TODO
 				clip_writer["additive_format"] = get_additive_clip_format_name(clip.get_additive_format());
 
 				const AnimationClip* base_clip = clip.get_additive_base();
@@ -100,7 +100,7 @@ namespace acl
 					clip_writer["additive_base_num_samples"] = base_clip->get_num_samples();
 					clip_writer["additive_base_sample_rate"] = base_clip->get_sample_rate();
 				}
-#endif
+			#endif
 			};
 			writer.insert_newline();
 		}
