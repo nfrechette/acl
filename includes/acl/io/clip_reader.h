@@ -334,13 +334,13 @@ namespace acl
 		bool read_raw_track_list_header()
 		{
 			if (!m_parser.object_begins("track_list"))
-				goto error;
+				goto parsing_error;
 
 			m_parser.try_read("name", m_clip_name, "");
 
 			double num_samples;
 			if (!m_parser.read("num_samples", num_samples))
-				goto error;
+				goto parsing_error;
 
 			m_num_samples = static_cast<uint32_t>(num_samples);
 			if (static_cast<double>(m_num_samples) != num_samples)
@@ -351,7 +351,7 @@ namespace acl
 
 			double sample_rate;
 			if (!m_parser.read("sample_rate", sample_rate))
-				goto error;
+				goto parsing_error;
 
 			m_sample_rate = static_cast<float>(sample_rate);
 			if (m_sample_rate <= 0.0F)
@@ -360,15 +360,15 @@ namespace acl
 				return false;
 			}
 
-			// Optional value
+			// Optional values
 			m_parser.try_read("is_binary_exact", m_is_binary_exact, false);
 
 			if (!m_parser.object_ends())
-				goto error;
+				goto parsing_error;
 
 			return true;
 
-		error:
+		parsing_error:
 			m_error = m_parser.get_error();
 			return false;
 		}
