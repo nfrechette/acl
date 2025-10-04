@@ -27,6 +27,7 @@
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/track_desc.h"
+#include "acl/core/track_extended_sample.h"
 #include "acl/core/track_types.h"
 
 #include <rtm/types.h>
@@ -34,6 +35,7 @@
 #include <rtm/vector4f.h>
 
 #include <cstdint>
+#include <type_traits>
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
@@ -48,70 +50,92 @@ namespace acl
 	//    - The type of each sample in the track
 	//    - The type of the track description
 	//////////////////////////////////////////////////////////////////////////
-	template<track_type8 track_type>
+	template<track_type8 track_type, track_interpolator_t track_interpolator = track_interpolator_t::linear>
 	struct track_traits {};
 
 	//////////////////////////////////////////////////////////////////////////
 	// Specializations for each track type.
 
-	template<>
-	struct track_traits<track_type8::float1f>
+	template<track_interpolator_t track_interpolator>
+	struct track_traits<track_type8::float1f, track_interpolator>
 	{
 		static constexpr track_category8 category = track_category8::scalarf;
 
-		using sample_type = float;
+		using sample_type = typename std::conditional<
+			track_interpolator == track_interpolator_t::linear,
+			float,
+			track_extended_sample_t<float>>::type;
+
 		using desc_type = track_desc_scalarf;
 
 		static rtm::vector4f RTM_SIMD_CALL load_as_vector(const sample_type* ptr) { return rtm::vector_set(*ptr, 0.0F, 0.0F, 0.0F); }
 	};
 
-	template<>
-	struct track_traits<track_type8::float2f>
+	template<track_interpolator_t track_interpolator>
+	struct track_traits<track_type8::float2f, track_interpolator>
 	{
 		static constexpr track_category8 category = track_category8::scalarf;
 
-		using sample_type = rtm::float2f;
+		using sample_type = typename std::conditional<
+			track_interpolator == track_interpolator_t::linear,
+			rtm::float2f,
+			track_extended_sample_t<rtm::float2f>>::type;
+
 		using desc_type = track_desc_scalarf;
 
 		static rtm::vector4f RTM_SIMD_CALL load_as_vector(const sample_type* ptr) { return rtm::vector_load2(ptr); }
 	};
 
-	template<>
-	struct track_traits<track_type8::float3f>
+	template<track_interpolator_t track_interpolator>
+	struct track_traits<track_type8::float3f, track_interpolator>
 	{
 		static constexpr track_category8 category = track_category8::scalarf;
 
-		using sample_type = rtm::float3f;
+		using sample_type = typename std::conditional<
+			track_interpolator == track_interpolator_t::linear,
+			rtm::float3f,
+			track_extended_sample_t<rtm::float3f>>::type;
+
 		using desc_type = track_desc_scalarf;
 
 		static rtm::vector4f RTM_SIMD_CALL load_as_vector(const sample_type* ptr) { return rtm::vector_load3(ptr); }
 	};
 
-	template<>
-	struct track_traits<track_type8::float4f>
+	template<track_interpolator_t track_interpolator>
+	struct track_traits<track_type8::float4f, track_interpolator>
 	{
 		static constexpr track_category8 category = track_category8::scalarf;
 
-		using sample_type = rtm::float4f;
+		using sample_type = typename std::conditional<
+			track_interpolator == track_interpolator_t::linear,
+			rtm::float4f,
+			track_extended_sample_t<rtm::float4f>>::type;
+
 		using desc_type = track_desc_scalarf;
 
 		static rtm::vector4f RTM_SIMD_CALL load_as_vector(const sample_type* ptr) { return rtm::vector_load(ptr); }
 	};
 
-	template<>
-	struct track_traits<track_type8::vector4f>
+	template<track_interpolator_t track_interpolator>
+	struct track_traits<track_type8::vector4f, track_interpolator>
 	{
 		static constexpr track_category8 category = track_category8::scalarf;
 
-		using sample_type = rtm::vector4f;
+		using sample_type = typename std::conditional<
+			track_interpolator == track_interpolator_t::linear,
+			rtm::vector4f,
+			track_extended_sample_t<rtm::vector4f>>::type;
+
 		using desc_type = track_desc_scalarf;
 
 		static rtm::vector4f RTM_SIMD_CALL load_as_vector(const sample_type* ptr) { return *ptr; }
 	};
 
-	template<>
-	struct track_traits<track_type8::qvvf>
+	template<track_interpolator_t track_interpolator>
+	struct track_traits<track_type8::qvvf, track_interpolator>
 	{
+		static_assert(track_interpolator == track_interpolator_t::linear, "Extended interpolator is not supported for this type");
+
 		static constexpr track_category8 category = track_category8::transformf;
 
 		using sample_type = rtm::qvvf;

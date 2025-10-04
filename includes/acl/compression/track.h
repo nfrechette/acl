@@ -117,6 +117,10 @@ namespace acl
 		uint32_t get_stride() const { return m_stride; }
 
 		//////////////////////////////////////////////////////////////////////////
+		// Returns the track interpolator type.
+		track_interpolator_t get_interpolator() const { return m_interpolator; }
+
+		//////////////////////////////////////////////////////////////////////////
 		// Returns the track type.
 		track_type8 get_type() const { return m_type; }
 
@@ -182,12 +186,12 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Internal constructor.
-		// Creates an empty, untyped track.
-		track(track_type8 type, track_category8 category) noexcept;
+		// Creates an empty track.
+		track(track_type8 type, track_category8 category, track_interpolator_t interpolator) noexcept;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Internal constructor.
-		track(iallocator* allocator, uint8_t* data, uint32_t num_samples, uint32_t stride, size_t data_size, float sample_rate, track_type8 type, track_category8 category, uint8_t sample_size) noexcept;
+		track(iallocator* allocator, uint8_t* data, uint32_t num_samples, uint32_t stride, size_t data_size, float sample_rate, track_type8 type, track_category8 category, track_interpolator_t interpolator, uint8_t sample_size) noexcept;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Internal helper.
@@ -206,6 +210,7 @@ namespace acl
 
 		float					m_sample_rate;		// The track sample rate
 
+		track_interpolator_t 	m_interpolator;		// The track interpolator
 		track_type8				m_type;				// The track type
 		track_category8			m_category;			// The track category
 		uint16_t				m_sample_size;		// The size in bytes of each sample
@@ -231,7 +236,10 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// A typed track of data. See `track` for details.
 	//////////////////////////////////////////////////////////////////////////
-	template<track_type8 track_type_>
+	template<
+		track_type8 track_type_,
+		track_interpolator_t track_interpolator_ = track_interpolator_t::linear
+	>
 	class track_typed final : public track
 	{
 	public:
@@ -240,20 +248,24 @@ namespace acl
 		static constexpr track_type8 type = track_type_;
 
 		//////////////////////////////////////////////////////////////////////////
+		// The interpolation mode.
+		static constexpr track_interpolator_t interpolator = track_interpolator_;
+
+		//////////////////////////////////////////////////////////////////////////
 		// The track category.
-		static constexpr track_category8 category = track_traits<track_type_>::category;
+		static constexpr track_category8 category = track_traits<track_type_, track_interpolator_>::category;
 
 		//////////////////////////////////////////////////////////////////////////
 		// The type of each sample in this track.
-		using sample_type = typename track_traits<track_type_>::sample_type;
+		using sample_type = typename track_traits<track_type_, track_interpolator_>::sample_type;
 
 		//////////////////////////////////////////////////////////////////////////
 		// The type of the track description.
-		using desc_type = typename track_traits<track_type_>::desc_type;
+		using desc_type = typename track_traits<track_type_, track_interpolator_>::desc_type;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Constructs an empty typed track.
-		track_typed() noexcept : track(type, category) { static_assert(sizeof(track_typed) == sizeof(track), "You cannot add member variables to this class"); }
+		track_typed() noexcept : track(type, category, interpolator) { static_assert(sizeof(track_typed) == sizeof(track), "You cannot add member variables to this class"); }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Destroys the track and potentially frees any memory it might own.
@@ -314,19 +326,19 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Creates a track that copies the data and owns the memory.
-		static track_typed<track_type_> make_copy(const desc_type& desc, iallocator& allocator, const sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride = sizeof(sample_type));
+		static track_typed<track_type_, track_interpolator_> make_copy(const desc_type& desc, iallocator& allocator, const sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride = sizeof(sample_type));
 
 		//////////////////////////////////////////////////////////////////////////
 		// Creates a track and preallocates but does not initialize the memory that it owns.
-		static track_typed<track_type_> make_reserve(const desc_type& desc, iallocator& allocator, uint32_t num_samples, float sample_rate);
+		static track_typed<track_type_, track_interpolator_> make_reserve(const desc_type& desc, iallocator& allocator, uint32_t num_samples, float sample_rate);
 
 		//////////////////////////////////////////////////////////////////////////
 		// Creates a track and takes ownership of the already allocated memory.
-		static track_typed<track_type_> make_owner(const desc_type& desc, iallocator& allocator, sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride = sizeof(sample_type));
+		static track_typed<track_type_, track_interpolator_> make_owner(const desc_type& desc, iallocator& allocator, sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride = sizeof(sample_type));
 
 		//////////////////////////////////////////////////////////////////////////
 		// Creates a track that just references the data without owning it.
-		static track_typed<track_type_> make_ref(const desc_type& desc, sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride = sizeof(sample_type));
+		static track_typed<track_type_, track_interpolator_> make_ref(const desc_type& desc, sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride = sizeof(sample_type));
 
 	private:
 		//////////////////////////////////////////////////////////////////////////
@@ -364,12 +376,19 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// Create aliases for the various typed track types.
 
-	using track_float1f			= track_typed<track_type8::float1f>;
-	using track_float2f			= track_typed<track_type8::float2f>;
-	using track_float3f			= track_typed<track_type8::float3f>;
-	using track_float4f			= track_typed<track_type8::float4f>;
-	using track_vector4f		= track_typed<track_type8::vector4f>;
-	using track_qvvf			= track_typed<track_type8::qvvf>;
+	using track_float1f			= track_typed<track_type8::float1f, track_interpolator_t::linear>;
+	using track_float2f			= track_typed<track_type8::float2f, track_interpolator_t::linear>;
+	using track_float3f			= track_typed<track_type8::float3f, track_interpolator_t::linear>;
+	using track_float4f			= track_typed<track_type8::float4f, track_interpolator_t::linear>;
+	using track_vector4f		= track_typed<track_type8::vector4f, track_interpolator_t::linear>;
+	using track_qvvf			= track_typed<track_type8::qvvf, track_interpolator_t::linear>;
+
+	using track_float1f_ex		= track_typed<track_type8::float1f, track_interpolator_t::extended>;
+	using track_float2f_ex		= track_typed<track_type8::float2f, track_interpolator_t::extended>;
+	using track_float3f_ex		= track_typed<track_type8::float3f, track_interpolator_t::extended>;
+	using track_float4f_ex		= track_typed<track_type8::float4f, track_interpolator_t::extended>;
+	using track_vector4f_ex		= track_typed<track_type8::vector4f, track_interpolator_t::extended>;
+	using track_qvvf_ex			= track_typed<track_type8::qvvf, track_interpolator_t::extended>;
 
 	ACL_IMPL_VERSION_NAMESPACE_END
 }

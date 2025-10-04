@@ -94,6 +94,17 @@ namespace acl
 	};
 
 	//////////////////////////////////////////////////////////////////////////
+	// The interpolator function used by a track.
+	enum class track_interpolator_t : uint8_t
+	{
+		// Simple linear interpolation means we have a single value per sample
+		linear		= 0,
+
+		// Extended interpolation means each sample can be customized independently
+		extended	= 1,
+	};
+
+	//////////////////////////////////////////////////////////////////////////
 
 	//////////////////////////////////////////////////////////////////////////
 	// Returns the string representation for the provided track type.
@@ -186,6 +197,50 @@ namespace acl
 
 		ACL_ASSERT(type <= track_type8::qvvf, "Unexpected track type");
 		return type <= track_type8::qvvf ? k_track_type_to_category[static_cast<uint32_t>(type)] : track_category8::scalarf;
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Returns the string representation for the provided track interpolator type.
+	// TODO: constexpr
+	inline const char* get_track_interpolator_name(track_interpolator_t interpolator)
+	{
+		switch (interpolator)
+		{
+		case track_interpolator_t::linear:		return "linear";
+		case track_interpolator_t::extended:	return "extended";
+		default:								return "<Invalid>";
+		}
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Returns the track interpolator from its string representation.
+	// Returns true on success, false otherwise.
+	inline bool get_track_interpolator(const char* interpolator, track_interpolator_t& out_interpolator)
+	{
+		// Entries in the same order as the enum integral value
+		static const char* k_track_interpolator_names[] =
+		{
+			"linear",
+			"extended",
+		};
+
+		static_assert(get_array_size(k_track_interpolator_names) == (size_t)track_interpolator_t::extended + 1, "Unexpected array size");
+
+		ACL_ASSERT(interpolator != nullptr, "Track interpolator name cannot be null");
+		if (interpolator == nullptr)
+			return false;
+
+		for (size_t index = 0; index < get_array_size(k_track_interpolator_names); ++index)
+		{
+			const char* name = k_track_interpolator_names[index];
+			if (std::strncmp(interpolator, name, std::strlen(name)) == 0)
+			{
+				out_interpolator = safe_static_cast<track_interpolator_t>(index);
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	//////////////////////////////////////////////////////////////////////////

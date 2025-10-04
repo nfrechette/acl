@@ -354,7 +354,7 @@ namespace acl
 					translation = rtm::vector_lerp(value0.translation, value1.translation, alpha);
 					scale = rtm::vector_lerp(value0.scale, value1.scale, alpha);
 				}
-				
+
 				writer.write_rotation(track_index, rotation);
 				writer.write_translation(track_index, translation);
 				writer.write_scale(track_index, scale);
@@ -503,15 +503,15 @@ namespace acl
 		return total_size;
 	}
 
-	template<track_type8 track_type_>
-	inline typename track_array_typed<track_type_>::track_member_type& track_array_typed<track_type_>::operator[](uint32_t index)
+	template<track_type8 track_type_, track_interpolator_t track_interpolator_>
+	inline typename track_array_typed<track_type_, track_interpolator_>::track_member_type& track_array_typed<track_type_, track_interpolator_>::operator[](uint32_t index)
 	{
 		ACL_ASSERT(index < m_num_tracks, "Invalid track index. %u >= %u", index, m_num_tracks);
 		return track_cast<track_member_type>(m_tracks[index]);
 	}
 
-	template<track_type8 track_type_>
-	inline const typename track_array_typed<track_type_>::track_member_type& track_array_typed<track_type_>::operator[](uint32_t index) const
+	template<track_type8 track_type_, track_interpolator_t track_interpolator_>
+	inline const typename track_array_typed<track_type_, track_interpolator_>::track_member_type& track_array_typed<track_type_, track_interpolator_>::operator[](uint32_t index) const
 	{
 		ACL_ASSERT(index < m_num_tracks, "Invalid track index. %u >= %u", index, m_num_tracks);
 		return track_cast<track_member_type>(m_tracks[index]);
