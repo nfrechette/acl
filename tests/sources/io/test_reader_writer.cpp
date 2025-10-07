@@ -274,7 +274,7 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 
 	for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 	{
-		const track_qvvf& ref_track = track_cast<track_qvvf>(track_list[track_index]);
+		const track_qvvf& ref_track = track_list[track_index];
 		const track_qvvf& file_track = track_cast<track_qvvf>(file_clip.track_list[track_index]);
 
 		CHECK(file_track.get_description().output_index == ref_track.get_description().output_index);
@@ -392,7 +392,7 @@ TEST_CASE("sjson_track_list_reader_writer float1f", "[io]")
 
 	for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 	{
-		const track_float1f& ref_track = track_cast<track_float1f>(track_list[track_index]);
+		const track_float1f& ref_track = track_list[track_index];
 		const track_float1f& file_track = track_cast<track_float1f>(file_track_list.track_list[track_index]);
 
 		CHECK(file_track.get_description().output_index == ref_track.get_description().output_index);
@@ -501,7 +501,7 @@ TEST_CASE("sjson_track_list_reader_writer float2f", "[io]")
 
 	for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 	{
-		const track_float2f& ref_track = track_cast<track_float2f>(track_list[track_index]);
+		const track_float2f& ref_track = track_list[track_index];
 		const track_float2f& file_track = track_cast<track_float2f>(file_track_list.track_list[track_index]);
 
 		CHECK(file_track.get_description().output_index == ref_track.get_description().output_index);
@@ -610,7 +610,7 @@ TEST_CASE("sjson_track_list_reader_writer float3f", "[io]")
 
 	for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 	{
-		const track_float3f& ref_track = track_cast<track_float3f>(track_list[track_index]);
+		const track_float3f& ref_track = track_list[track_index];
 		const track_float3f& file_track = track_cast<track_float3f>(file_track_list.track_list[track_index]);
 
 		CHECK(file_track.get_description().output_index == ref_track.get_description().output_index);
@@ -719,7 +719,7 @@ TEST_CASE("sjson_track_list_reader_writer float4f", "[io]")
 
 	for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 	{
-		const track_float4f& ref_track = track_cast<track_float4f>(track_list[track_index]);
+		const track_float4f& ref_track = track_list[track_index];
 		const track_float4f& file_track = track_cast<track_float4f>(file_track_list.track_list[track_index]);
 
 		CHECK(file_track.get_description().output_index == ref_track.get_description().output_index);
@@ -828,7 +828,7 @@ TEST_CASE("sjson_track_list_reader_writer vector4f", "[io]")
 
 	for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 	{
-		const track_vector4f& ref_track = track_cast<track_vector4f>(track_list[track_index]);
+		const track_vector4f& ref_track = track_list[track_index];
 		const track_vector4f& file_track = track_cast<track_vector4f>(file_track_list.track_list[track_index]);
 
 		CHECK(file_track.get_description().output_index == ref_track.get_description().output_index);
