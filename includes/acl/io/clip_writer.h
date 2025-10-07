@@ -80,7 +80,7 @@ namespace acl
 
 		inline void write_sjson_header(const track_array& track_list, sjson::Writer& writer)
 		{
-			writer["version"] = 5;
+			writer["version"] = 6;
 			writer.insert_newline();
 
 			writer["track_list"] = [&](sjson::ObjectWriter& header_writer)
@@ -105,7 +105,7 @@ namespace acl
 			writer.insert_newline();
 		}
 
-		inline void write_sjson_scalar_desc(const track_desc_scalarf& desc, sjson::ObjectWriter& writer)
+		inline void write_sjson_track_desc(const track_desc_scalarf& desc, sjson::ObjectWriter& writer)
 		{
 			char buffer[32] = { 0 };
 
@@ -113,7 +113,7 @@ namespace acl
 			writer["output_index"] = desc.output_index;
 		}
 
-		inline void write_sjson_transform_desc(const track_desc_transformf& desc, sjson::ObjectWriter& writer)
+		inline void write_sjson_track_desc(const track_desc_transformf& desc, sjson::ObjectWriter& writer)
 		{
 			char buffer[32] = { 0 };
 
@@ -142,6 +142,133 @@ namespace acl
 			};
 		}
 
+		inline void write_sjson_scalar_track_sample_value(float sample, char (&buffer)[32], sjson::ArrayWriter& sample_writer)
+		{
+			sample_writer.push(acl_impl::format_hex_float(sample, buffer, sizeof(buffer)));
+		}
+
+		inline void write_sjson_scalar_track_sample_value(const rtm::float2f& sample, char (&buffer)[32], sjson::ArrayWriter& sample_writer)
+		{
+			sample_writer.push(acl_impl::format_hex_float(sample.x, buffer, sizeof(buffer)));
+			sample_writer.push(acl_impl::format_hex_float(sample.y, buffer, sizeof(buffer)));
+		}
+
+		inline void write_sjson_scalar_track_sample_value(const rtm::float3f& sample, char (&buffer)[32], sjson::ArrayWriter& sample_writer)
+		{
+			sample_writer.push(acl_impl::format_hex_float(sample.x, buffer, sizeof(buffer)));
+			sample_writer.push(acl_impl::format_hex_float(sample.y, buffer, sizeof(buffer)));
+			sample_writer.push(acl_impl::format_hex_float(sample.z, buffer, sizeof(buffer)));
+		}
+
+		inline void write_sjson_scalar_track_sample_value(const rtm::float4f& sample, char (&buffer)[32], sjson::ArrayWriter& sample_writer)
+		{
+			sample_writer.push(acl_impl::format_hex_float(sample.x, buffer, sizeof(buffer)));
+			sample_writer.push(acl_impl::format_hex_float(sample.y, buffer, sizeof(buffer)));
+			sample_writer.push(acl_impl::format_hex_float(sample.z, buffer, sizeof(buffer)));
+			sample_writer.push(acl_impl::format_hex_float(sample.w, buffer, sizeof(buffer)));
+		}
+
+		inline void write_sjson_scalar_track_sample_value(const rtm::vector4f& sample, char (&buffer)[32], sjson::ArrayWriter& sample_writer)
+		{
+			sample_writer.push(acl_impl::format_hex_float(rtm::vector_get_x(sample), buffer, sizeof(buffer)));
+			sample_writer.push(acl_impl::format_hex_float(rtm::vector_get_y(sample), buffer, sizeof(buffer)));
+			sample_writer.push(acl_impl::format_hex_float(rtm::vector_get_z(sample), buffer, sizeof(buffer)));
+			sample_writer.push(acl_impl::format_hex_float(rtm::vector_get_w(sample), buffer, sizeof(buffer)));
+		}
+
+		inline void write_sjson_scalar_track_sample_value(const rtm::qvvf& sample, char (&buffer)[32], sjson::ArrayWriter& sample_writer)
+		{
+			sample_writer.push([&](sjson::ArrayWriter& rotation_writer)
+				{
+					rotation_writer.push(acl_impl::format_hex_float(rtm::quat_get_x(sample.rotation), buffer, sizeof(buffer)));
+					rotation_writer.push(acl_impl::format_hex_float(rtm::quat_get_y(sample.rotation), buffer, sizeof(buffer)));
+					rotation_writer.push(acl_impl::format_hex_float(rtm::quat_get_z(sample.rotation), buffer, sizeof(buffer)));
+					rotation_writer.push(acl_impl::format_hex_float(rtm::quat_get_w(sample.rotation), buffer, sizeof(buffer)));
+				});
+			sample_writer.push([&](sjson::ArrayWriter& translation_writer)
+				{
+					translation_writer.push(acl_impl::format_hex_float(rtm::vector_get_x(sample.translation), buffer, sizeof(buffer)));
+					translation_writer.push(acl_impl::format_hex_float(rtm::vector_get_y(sample.translation), buffer, sizeof(buffer)));
+					translation_writer.push(acl_impl::format_hex_float(rtm::vector_get_z(sample.translation), buffer, sizeof(buffer)));
+				});
+			sample_writer.push([&](sjson::ArrayWriter& scale_writer)
+				{
+					scale_writer.push(acl_impl::format_hex_float(rtm::vector_get_x(sample.scale), buffer, sizeof(buffer)));
+					scale_writer.push(acl_impl::format_hex_float(rtm::vector_get_y(sample.scale), buffer, sizeof(buffer)));
+					scale_writer.push(acl_impl::format_hex_float(rtm::vector_get_z(sample.scale), buffer, sizeof(buffer)));
+				});
+		}
+
+		template<typename sample_type>
+		inline void write_sjson_scalar_track_sample_ex(const sample_constant_data_t<sample_type>& sample, char (&buffer)[32], sjson::ArrayWriter& value_writer)
+		{
+			write_sjson_scalar_track_sample_value(sample.value, buffer, value_writer);
+		}
+
+		template<typename sample_type>
+		inline void write_sjson_scalar_track_sample_ex(const sample_linear_data_t<sample_type>& sample, char (&buffer)[32], sjson::ArrayWriter& value_writer)
+		{
+			write_sjson_scalar_track_sample_value(sample.value, buffer, value_writer);
+		}
+
+		// Scalar sample
+		template<typename sample_type>
+		inline void write_sjson_scalar_track_sample(const sample_type& sample, char (&buffer)[32], sjson::ArrayWriter& data_writer)
+		{
+			data_writer.push([&](sjson::ArrayWriter& sample_writer)
+				{
+					write_sjson_scalar_track_sample_value(sample, buffer, sample_writer);
+				});
+		}
+
+		// Extended sample
+		template<typename sample_type>
+		inline void write_sjson_scalar_track_sample(const track_extended_sample_t<sample_type>& sample, char (&buffer)[32], sjson::ArrayWriter& data_writer)
+		{
+			data_writer.push([&](sjson::ObjectWriter& sample_writer)
+				{
+					sample_writer["interpolator"] = get_sample_interpolator_name(sample.interpolator);
+
+					sample_writer["value"] = [&](sjson::ArrayWriter& value_writer)
+						{
+							switch (sample.interpolator)
+							{
+							case sample_interpolator_t::constant:
+								write_sjson_scalar_track_sample_ex(sample.data.constant, buffer, value_writer);
+								break;
+							case sample_interpolator_t::linear:
+								write_sjson_scalar_track_sample_ex(sample.data.linear, buffer, value_writer);
+								break;
+							default:
+								ACL_ASSERT(false, "Unknown sample interpolator type");
+								break;
+							}
+						};
+				});
+		}
+
+		template<class scalar_track_t>
+		inline void write_sjson_scalar_track(const track& track_, char (&buffer)[32], sjson::ObjectWriter& track_writer)
+		{
+			const scalar_track_t& track__ = track_cast<scalar_track_t>(track_);
+			write_sjson_track_desc(track__.get_description(), track_writer);
+
+			track_writer["data"] = [&](sjson::ArrayWriter& data_writer)
+			{
+				const uint32_t num_samples = track__.get_num_samples();
+				if (num_samples > 0)
+					data_writer.push_newline();
+
+				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+				{
+					const auto& sample = track__[sample_index];
+					write_sjson_scalar_track_sample(sample, buffer, data_writer);
+
+					data_writer.push_newline();
+				}
+			};
+		}
+
 		inline void write_sjson_tracks(const track_array& track_list, sjson::Writer& writer)
 		{
 			char buffer[32] = { 0 };
@@ -158,172 +285,54 @@ namespace acl
 						{
 							track_writer["name"] = track_.get_name().c_str();
 							track_writer["type"] = get_track_type_name(track_.get_type());
+							track_writer["interpolator"] = get_track_interpolator_name(track_.get_interpolator());
 
 							switch (track_.get_type())
 							{
 							case track_type8::float1f:
 							{
-								const track_float1f& track__ = track_cast<track_float1f>(track_);
-								write_sjson_scalar_desc(track__.get_description(), track_writer);
-
-								track_writer["data"] = [&](sjson::ArrayWriter& data_writer)
-								{
-									const uint32_t num_samples = track__.get_num_samples();
-									if (num_samples > 0)
-										data_writer.push_newline();
-
-									for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-									{
-										data_writer.push([&](sjson::ArrayWriter& sample_writer)
-											{
-												const float sample = track__[sample_index];
-												sample_writer.push(acl_impl::format_hex_float(sample, buffer, sizeof(buffer)));
-											});
-										data_writer.push_newline();
-									}
-								};
+								if (track_.get_interpolator() == track_interpolator_t::linear)
+									write_sjson_scalar_track<track_float1f>(track_, buffer, track_writer);
+								else
+									write_sjson_scalar_track<track_float1f_ex>(track_, buffer, track_writer);
 								break;
 							}
 							case track_type8::float2f:
 							{
-								const track_float2f& track__ = track_cast<track_float2f>(track_);
-								write_sjson_scalar_desc(track__.get_description(), track_writer);
-
-								track_writer["data"] = [&](sjson::ArrayWriter& data_writer)
-								{
-									const uint32_t num_samples = track__.get_num_samples();
-									if (num_samples > 0)
-										data_writer.push_newline();
-
-									for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-									{
-										data_writer.push([&](sjson::ArrayWriter& sample_writer)
-											{
-												const rtm::float2f& sample = track__[sample_index];
-												sample_writer.push(acl_impl::format_hex_float(sample.x, buffer, sizeof(buffer)));
-												sample_writer.push(acl_impl::format_hex_float(sample.y, buffer, sizeof(buffer)));
-											});
-										data_writer.push_newline();
-									}
-								};
+								if (track_.get_interpolator() == track_interpolator_t::linear)
+									write_sjson_scalar_track<track_float2f>(track_, buffer, track_writer);
+								else
+									write_sjson_scalar_track<track_float2f_ex>(track_, buffer, track_writer);
 								break;
 							}
 							case track_type8::float3f:
 							{
-								const track_float3f& track__ = track_cast<track_float3f>(track_);
-								write_sjson_scalar_desc(track__.get_description(), track_writer);
-
-								track_writer["data"] = [&](sjson::ArrayWriter& data_writer)
-								{
-									const uint32_t num_samples = track__.get_num_samples();
-									if (num_samples > 0)
-										data_writer.push_newline();
-
-									for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-									{
-										data_writer.push([&](sjson::ArrayWriter& sample_writer)
-											{
-												const rtm::float3f& sample = track__[sample_index];
-												sample_writer.push(acl_impl::format_hex_float(sample.x, buffer, sizeof(buffer)));
-												sample_writer.push(acl_impl::format_hex_float(sample.y, buffer, sizeof(buffer)));
-												sample_writer.push(acl_impl::format_hex_float(sample.z, buffer, sizeof(buffer)));
-											});
-										data_writer.push_newline();
-									}
-								};
+								if (track_.get_interpolator() == track_interpolator_t::linear)
+									write_sjson_scalar_track<track_float3f>(track_, buffer, track_writer);
+								else
+									write_sjson_scalar_track<track_float3f_ex>(track_, buffer, track_writer);
 								break;
 							}
 							case track_type8::float4f:
 							{
-								const track_float4f& track__ = track_cast<track_float4f>(track_);
-								write_sjson_scalar_desc(track__.get_description(), track_writer);
-
-								track_writer["data"] = [&](sjson::ArrayWriter& data_writer)
-								{
-									const uint32_t num_samples = track__.get_num_samples();
-									if (num_samples > 0)
-										data_writer.push_newline();
-
-									for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-									{
-										data_writer.push([&](sjson::ArrayWriter& sample_writer)
-											{
-												const rtm::float4f& sample = track__[sample_index];
-												sample_writer.push(acl_impl::format_hex_float(sample.x, buffer, sizeof(buffer)));
-												sample_writer.push(acl_impl::format_hex_float(sample.y, buffer, sizeof(buffer)));
-												sample_writer.push(acl_impl::format_hex_float(sample.z, buffer, sizeof(buffer)));
-												sample_writer.push(acl_impl::format_hex_float(sample.w, buffer, sizeof(buffer)));
-											});
-										data_writer.push_newline();
-									}
-								};
+								if (track_.get_interpolator() == track_interpolator_t::linear)
+									write_sjson_scalar_track<track_float4f>(track_, buffer, track_writer);
+								else
+									write_sjson_scalar_track<track_float4f_ex>(track_, buffer, track_writer);
 								break;
 							}
 							case track_type8::vector4f:
 							{
-								const track_vector4f& track__ = track_cast<track_vector4f>(track_);
-								write_sjson_scalar_desc(track__.get_description(), track_writer);
-
-								track_writer["data"] = [&](sjson::ArrayWriter& data_writer)
-								{
-									const uint32_t num_samples = track__.get_num_samples();
-									if (num_samples > 0)
-										data_writer.push_newline();
-
-									for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-									{
-										data_writer.push([&](sjson::ArrayWriter& sample_writer)
-											{
-												const rtm::vector4f& sample = track__[sample_index];
-												sample_writer.push(acl_impl::format_hex_float(rtm::vector_get_x(sample), buffer, sizeof(buffer)));
-												sample_writer.push(acl_impl::format_hex_float(rtm::vector_get_y(sample), buffer, sizeof(buffer)));
-												sample_writer.push(acl_impl::format_hex_float(rtm::vector_get_z(sample), buffer, sizeof(buffer)));
-												sample_writer.push(acl_impl::format_hex_float(rtm::vector_get_w(sample), buffer, sizeof(buffer)));
-											});
-										data_writer.push_newline();
-									}
-								};
+								if (track_.get_interpolator() == track_interpolator_t::linear)
+									write_sjson_scalar_track<track_vector4f>(track_, buffer, track_writer);
+								else
+									write_sjson_scalar_track<track_vector4f_ex>(track_, buffer, track_writer);
 								break;
 							}
 							case track_type8::qvvf:
 							{
-								const track_qvvf& track__ = track_cast<track_qvvf>(track_);
-								write_sjson_transform_desc(track__.get_description(), track_writer);
-
-								track_writer["data"] = [&](sjson::ArrayWriter& data_writer)
-								{
-									const uint32_t num_samples = track__.get_num_samples();
-									if (num_samples > 0)
-										data_writer.push_newline();
-
-									for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-									{
-										data_writer.push([&](sjson::ArrayWriter& sample_writer)
-											{
-												const rtm::qvvf& sample = track__[sample_index];
-												sample_writer.push([&](sjson::ArrayWriter& rotation_writer)
-													{
-														rotation_writer.push(acl_impl::format_hex_float(rtm::quat_get_x(sample.rotation), buffer, sizeof(buffer)));
-														rotation_writer.push(acl_impl::format_hex_float(rtm::quat_get_y(sample.rotation), buffer, sizeof(buffer)));
-														rotation_writer.push(acl_impl::format_hex_float(rtm::quat_get_z(sample.rotation), buffer, sizeof(buffer)));
-														rotation_writer.push(acl_impl::format_hex_float(rtm::quat_get_w(sample.rotation), buffer, sizeof(buffer)));
-													});
-												sample_writer.push([&](sjson::ArrayWriter& translation_writer)
-													{
-														translation_writer.push(acl_impl::format_hex_float(rtm::vector_get_x(sample.translation), buffer, sizeof(buffer)));
-														translation_writer.push(acl_impl::format_hex_float(rtm::vector_get_y(sample.translation), buffer, sizeof(buffer)));
-														translation_writer.push(acl_impl::format_hex_float(rtm::vector_get_z(sample.translation), buffer, sizeof(buffer)));
-													});
-												sample_writer.push([&](sjson::ArrayWriter& scale_writer)
-													{
-														scale_writer.push(acl_impl::format_hex_float(rtm::vector_get_x(sample.scale), buffer, sizeof(buffer)));
-														scale_writer.push(acl_impl::format_hex_float(rtm::vector_get_y(sample.scale), buffer, sizeof(buffer)));
-														scale_writer.push(acl_impl::format_hex_float(rtm::vector_get_z(sample.scale), buffer, sizeof(buffer)));
-													});
-											});
-										data_writer.push_newline();
-									}
-								};
+								ACL_ASSERT(track_.get_interpolator() == track_interpolator_t::linear, "Unsupported track interpolator for qvvf track type");
+								write_sjson_scalar_track<track_qvvf>(track_, buffer, track_writer);
 								break;
 							}
 							default:

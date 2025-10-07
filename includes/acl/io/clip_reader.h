@@ -33,6 +33,7 @@
 #include "acl/core/algorithm_types.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/iallocator.h"
+#include "acl/core/sample_interpolator.h"
 #include "acl/core/string.h"
 #include "acl/core/track_desc.h"
 #include "acl/core/unique_ptr.h"
@@ -249,7 +250,7 @@ namespace acl
 				return false;
 			}
 
-			if (m_version > 5)
+			if (m_version > 6)
 			{
 				set_error(clip_reader_error::UnsupportedVersion);
 				return false;
@@ -778,11 +779,202 @@ namespace acl
 			return true;
 		}
 
+		// Returns whether we have any errors or not
+		template<typename sample_type_t, typename sample_type_ex_t>
+		bool read_binary_scalar_sample(
+			track_interpolator_t track_interpolator,
+			sample_type_t* out_sample,
+			sample_type_ex_t* out_sample_ex)
+		{
+			const uint32_t num_components = sizeof(sample_type_t) / sizeof(float);
+
+			sjson::StringView values[4];
+			rtm::float4f value;
+
+			if (track_interpolator == track_interpolator_t::linear)
+			{
+				// sample array
+				if (!m_parser.array_begins())
+					return true;
+
+				if (!m_parser.read(values, num_components))
+					return true;
+
+				value = hex_to_float4f(values, num_components);
+				std::memcpy(out_sample, &value, sizeof(float) * num_components);
+
+				// sample array
+				if (!m_parser.array_ends())
+					return true;
+			}
+			else
+			{
+				// sample object
+				if (!m_parser.object_begins())
+					return true;
+
+				sjson::StringView interpolator_name;
+				if (!m_parser.read("interpolator", interpolator_name))
+					return true;
+
+				sample_interpolator_t sample_interpolator;
+				if (!get_sample_interpolator(interpolator_name.c_str(), sample_interpolator))
+					return true;
+
+				if (!m_parser.array_begins("value"))
+					return true;
+
+				switch (sample_interpolator)
+				{
+				case sample_interpolator_t::constant:
+					if (!m_parser.read(values, num_components))
+						return true;
+
+					out_sample_ex->interpolator = sample_interpolator;
+
+					value = hex_to_float4f(values, num_components);
+					std::memcpy(&out_sample_ex->data.constant.value, &value, sizeof(float) * num_components);
+					break;
+				case sample_interpolator_t::linear:
+					if (!m_parser.read(values, num_components))
+						return true;
+
+					out_sample_ex->interpolator = sample_interpolator;
+
+					value = hex_to_float4f(values, num_components);
+					std::memcpy(&out_sample_ex->data.linear.value, &value, sizeof(float) * num_components);
+					break;
+				default:
+					ACL_ASSERT(false, "Unknown sample interpolator type");
+					return true;
+				}
+
+				// value array
+				if (!m_parser.array_ends())
+					return true;
+
+				// sample object
+				if (!m_parser.object_ends())
+					return true;
+			}
+
+			// No errors
+			return false;
+		}
+
+		// Returns whether we have any errors or not
+		template<typename sample_type_t, typename sample_type_ex_t>
+		bool read_text_scalar_sample(
+			track_interpolator_t track_interpolator,
+			sample_type_t* out_sample,
+			sample_type_ex_t* out_sample_ex)
+		{
+			const uint32_t num_components = sizeof(sample_type_t) / sizeof(float);
+
+			double values[4] = { 0.0, 0.0, 0.0, 0.0 };
+			rtm::float4f value;
+
+			if (track_interpolator == track_interpolator_t::linear)
+			{
+				// sample array
+				if (!m_parser.array_begins())
+					return true;
+
+				if (!m_parser.read(values, num_components))
+					return true;
+
+				value = { static_cast<float>(values[0]), static_cast<float>(values[1]), static_cast<float>(values[2]), static_cast<float>(values[3]) };
+				std::memcpy(out_sample, &value, sizeof(float) * num_components);
+
+				// sample array
+				if (!m_parser.array_ends())
+					return true;
+			}
+			else
+			{
+				// sample object
+				if (!m_parser.object_begins())
+					return true;
+
+				sjson::StringView interpolator_name;
+				if (!m_parser.read("interpolator", interpolator_name))
+					return true;
+
+				sample_interpolator_t sample_interpolator;
+				if (!get_sample_interpolator(interpolator_name.c_str(), sample_interpolator))
+					return true;
+
+				if (!m_parser.array_begins("value"))
+					return true;
+
+				switch (sample_interpolator)
+				{
+				case sample_interpolator_t::constant:
+					if (!m_parser.read(values, num_components))
+						return true;
+
+					out_sample_ex->interpolator = sample_interpolator;
+
+					value = { static_cast<float>(values[0]), static_cast<float>(values[1]), static_cast<float>(values[2]), static_cast<float>(values[3]) };
+					std::memcpy(&out_sample_ex->data.constant.value, &value, sizeof(float) * num_components);
+					break;
+				case sample_interpolator_t::linear:
+					if (!m_parser.read(values, num_components))
+						return true;
+
+					out_sample_ex->interpolator = sample_interpolator;
+
+					value = { static_cast<float>(values[0]), static_cast<float>(values[1]), static_cast<float>(values[2]), static_cast<float>(values[3]) };
+					std::memcpy(&out_sample_ex->data.linear.value, &value, sizeof(float) * num_components);
+					break;
+				default:
+					ACL_ASSERT(false, "Unknown sample interpolator type");
+					return true;
+				}
+
+				// value array
+				if (!m_parser.array_ends())
+					return true;
+
+				// sample object
+				if (!m_parser.object_ends())
+					return true;
+			}
+
+			// No errors
+			return false;
+		}
+
+		// Returns whether we have any errors or not
+		bool read_qvv_sample(
+			track_interpolator_t track_interpolator,
+			rtm::qvvf* out_sample)
+		{
+			ACL_ASSERT(track_interpolator == track_interpolator_t::linear, "Unsupported interpolator with qvvf");
+
+			if (!m_parser.array_begins())
+				return true;
+
+			rtm::qvvf value;
+			if (!read_qvv_sample(value))
+				return true;
+
+			std::memcpy(out_sample, &value, sizeof(rtm::qvvf));
+
+			if (!m_parser.array_ends())
+				return true;
+
+			// No errors
+			return false;
+		}
+
 		bool process_track_list(track* tracks, uint32_t& num_tracks)
 		{
 			const bool counting = tracks == nullptr;
 			track dummy;
 			track_type8 track_list_type = track_type8::float1f;
+			track_interpolator_t track_list_interpolator = track_interpolator_t::linear;
+			sjson::StringView interpolator_name;
 
 			num_tracks = 0;
 
@@ -803,6 +995,8 @@ namespace acl
 				if (!m_parser.read("type", type))
 					goto error;
 
+				m_parser.try_read("interpolator", interpolator_name, get_track_interpolator_name(track_interpolator_t::linear));
+
 				track_type8 track_type;
 				if (!get_track_type(type.c_str(), track_type))
 				{
@@ -810,10 +1004,18 @@ namespace acl
 					return false;
 				}
 
+				track_interpolator_t track_interpolator;
+				if (!get_track_interpolator(interpolator_name.c_str(), track_interpolator))
+				{
+					m_error.error = clip_reader_error::InvalidTrackInterpolator;
+					return false;
+				}
+
 				if (num_tracks == 0)
 				{
 					// Found our first track, this is the type we'll use for every track
 					track_list_type = track_type;
+					track_list_interpolator = track_interpolator;
 				}
 				else if (track_type != track_list_type)
 				{
@@ -821,9 +1023,12 @@ namespace acl
 					m_error.error = clip_reader_error::InvalidTrackType;
 					return false;
 				}
-
-				const uint32_t num_components = get_track_num_sample_elements(track_type);
-				ACL_ASSERT((num_components > 0 && num_components <= 4) || num_components == 12, "Must have between 1 and 4 components or 12");
+				else if (track_interpolator != track_list_interpolator)
+				{
+					// Track interpolator doesn't match the interpolator of the first track
+					m_error.error = clip_reader_error::InvalidTrackInterpolator;
+					return false;
+				}
 
 				track_desc_scalarf scalar_desc;
 				track_desc_transformf transform_desc;
@@ -900,33 +1105,58 @@ namespace acl
 				union track_samples_ptr_union
 				{
 					void*			any;
+
+					// Linear interpolators
 					float*			float1f;
 					rtm::float2f*	float2f;
 					rtm::float3f*	float3f;
 					rtm::float4f*	float4f;
 					rtm::vector4f*	vector4f;
 					rtm::qvvf*		qvvf;
+
+					// Extended interpolators
+					track_extended_sample_t<float>* 		float1f_ex;
+					track_extended_sample_t<rtm::float2f>* 	float2f_ex;
+					track_extended_sample_t<rtm::float3f>* 	float3f_ex;
+					track_extended_sample_t<rtm::float4f>* 	float4f_ex;
+					track_extended_sample_t<rtm::vector4f>* vector4f_ex;
 				};
 				track_samples_ptr_union track_samples_typed = { nullptr };
 
 				switch (track_type)
 				{
 				case track_type8::float1f:
-					track_samples_typed.float1f = allocate_type_array<float>(m_allocator, m_num_samples);
+					if (track_interpolator == track_interpolator_t::linear)
+						track_samples_typed.float1f = allocate_type_array<float>(m_allocator, m_num_samples);
+					else
+						track_samples_typed.float1f_ex = allocate_type_array<track_extended_sample_t<float>>(m_allocator, m_num_samples);
 					break;
 				case track_type8::float2f:
-					track_samples_typed.float2f = allocate_type_array<rtm::float2f>(m_allocator, m_num_samples);
+					if (track_interpolator == track_interpolator_t::linear)
+						track_samples_typed.float2f = allocate_type_array<rtm::float2f>(m_allocator, m_num_samples);
+					else
+						track_samples_typed.float2f_ex = allocate_type_array<track_extended_sample_t<rtm::float2f>>(m_allocator, m_num_samples);
 					break;
 				case track_type8::float3f:
-					track_samples_typed.float3f = allocate_type_array<rtm::float3f>(m_allocator, m_num_samples);
+					if (track_interpolator == track_interpolator_t::linear)
+						track_samples_typed.float3f = allocate_type_array<rtm::float3f>(m_allocator, m_num_samples);
+					else
+						track_samples_typed.float3f_ex = allocate_type_array<track_extended_sample_t<rtm::float3f>>(m_allocator, m_num_samples);
 					break;
 				case track_type8::float4f:
-					track_samples_typed.float4f = allocate_type_array<rtm::float4f>(m_allocator, m_num_samples);
+					if (track_interpolator == track_interpolator_t::linear)
+						track_samples_typed.float4f = allocate_type_array<rtm::float4f>(m_allocator, m_num_samples);
+					else
+						track_samples_typed.float4f_ex = allocate_type_array<track_extended_sample_t<rtm::float4f>>(m_allocator, m_num_samples);
 					break;
 				case track_type8::vector4f:
-					track_samples_typed.vector4f = allocate_type_array<rtm::vector4f>(m_allocator, m_num_samples);
+					if (track_interpolator == track_interpolator_t::linear)
+						track_samples_typed.vector4f = allocate_type_array<rtm::vector4f>(m_allocator, m_num_samples);
+					else
+						track_samples_typed.vector4f_ex = allocate_type_array<track_extended_sample_t<rtm::vector4f>>(m_allocator, m_num_samples);
 					break;
 				case track_type8::qvvf:
+					ACL_ASSERT(track_interpolator == track_interpolator_t::linear, "Unsupported interpolator with qvvf");
 					track_samples_typed.qvvf = allocate_type_array<rtm::qvvf>(m_allocator, m_num_samples);
 					break;
 				default:
@@ -940,41 +1170,28 @@ namespace acl
 				bool has_error = false;
 				for (uint32_t sample_index = 0; sample_index < m_num_samples; ++sample_index)
 				{
-					if (!m_parser.array_begins())
-					{
-						has_error = true;
-						break;
-					}
-
 					if (m_is_binary_exact)
 					{
 						switch (track_type)
 						{
 						case track_type8::float1f:
+							has_error = read_binary_scalar_sample(track_interpolator, track_samples_typed.float1f + sample_index, track_samples_typed.float1f_ex + sample_index);
+							break;
 						case track_type8::float2f:
+							has_error = read_binary_scalar_sample(track_interpolator, track_samples_typed.float2f + sample_index, track_samples_typed.float2f_ex + sample_index);
+							break;
 						case track_type8::float3f:
+							has_error = read_binary_scalar_sample(track_interpolator, track_samples_typed.float3f + sample_index, track_samples_typed.float3f_ex + sample_index);
+							break;
 						case track_type8::float4f:
+							has_error = read_binary_scalar_sample(track_interpolator, track_samples_typed.float4f + sample_index, track_samples_typed.float4f_ex + sample_index);
+							break;
 						case track_type8::vector4f:
-						{
-							sjson::StringView values[4];
-							if (m_parser.read(values, num_components))
-							{
-								const rtm::float4f value = hex_to_float4f(values, num_components);
-								std::memcpy(track_samples_typed.float1f + (size_t(sample_index) * num_components), &value, sizeof(float) * num_components);
-							}
-							else
-								has_error = true;
+							has_error = read_binary_scalar_sample(track_interpolator, track_samples_typed.vector4f + sample_index, track_samples_typed.vector4f_ex + sample_index);
 							break;
-						}
 						case track_type8::qvvf:
-						{
-							rtm::qvvf sample;
-							if (!read_qvv_sample(sample))
-								has_error = true;
-							else
-								std::memcpy(track_samples_typed.qvvf + sample_index, &sample, sizeof(rtm::qvvf));
+							has_error = read_qvv_sample(track_interpolator, track_samples_typed.qvvf + sample_index);
 							break;
-						}
 						default:
 							ACL_ASSERT(false, "Unsupported track type");
 							break;
@@ -988,30 +1205,23 @@ namespace acl
 						switch (track_type)
 						{
 						case track_type8::float1f:
+							has_error = read_text_scalar_sample(track_interpolator, track_samples_typed.float1f + sample_index, track_samples_typed.float1f_ex + sample_index);
+							break;
 						case track_type8::float2f:
+							has_error = read_text_scalar_sample(track_interpolator, track_samples_typed.float2f + sample_index, track_samples_typed.float2f_ex + sample_index);
+							break;
 						case track_type8::float3f:
+							has_error = read_text_scalar_sample(track_interpolator, track_samples_typed.float3f + sample_index, track_samples_typed.float3f_ex + sample_index);
+							break;
 						case track_type8::float4f:
+							has_error = read_text_scalar_sample(track_interpolator, track_samples_typed.float4f + sample_index, track_samples_typed.float4f_ex + sample_index);
+							break;
 						case track_type8::vector4f:
-						{
-							double values[4] = { 0.0, 0.0, 0.0, 0.0 };
-							if (m_parser.read(values, num_components))
-							{
-								const rtm::float4f value = { static_cast<float>(values[0]), static_cast<float>(values[1]), static_cast<float>(values[2]), static_cast<float>(values[3]) };
-								std::memcpy(track_samples_typed.float1f + (size_t(sample_index) * num_components), &value, sizeof(float) * num_components);
-							}
-							else
-								has_error = true;
+							has_error = read_text_scalar_sample(track_interpolator, track_samples_typed.vector4f + sample_index, track_samples_typed.vector4f_ex + sample_index);
 							break;
-						}
 						case track_type8::qvvf:
-						{
-							rtm::qvvf sample;
-							if (!read_qvv_sample(sample))
-								has_error = true;
-							else
-								std::memcpy(track_samples_typed.qvvf + sample_index, &sample, sizeof(rtm::qvvf));
+							has_error = read_qvv_sample(track_interpolator, track_samples_typed.qvvf + sample_index);
 							break;
-						}
 						default:
 							ACL_ASSERT(false, "Unsupported track type");
 							break;
@@ -1020,17 +1230,13 @@ namespace acl
 						if (has_error)
 							break;
 					}
-
-					if (!has_error && !m_parser.array_ends())
-					{
-						has_error = true;
-						break;
-					}
 				}
 
+				// data array
 				if (!has_error && !m_parser.array_ends())
 					has_error = true;
 
+				// track object
 				if (!has_error && !m_parser.object_ends())
 					has_error = true;
 
@@ -1039,21 +1245,37 @@ namespace acl
 					switch (track_type)
 					{
 					case track_type8::float1f:
-						deallocate_type_array<float>(m_allocator, track_samples_typed.float1f, m_num_samples);
+						if (track_interpolator == track_interpolator_t::linear)
+							deallocate_type_array<float>(m_allocator, track_samples_typed.float1f, m_num_samples);
+						else
+							deallocate_type_array<track_extended_sample_t<float>>(m_allocator, track_samples_typed.float1f_ex, m_num_samples);
 						break;
 					case track_type8::float2f:
-						deallocate_type_array<rtm::float2f>(m_allocator, track_samples_typed.float2f, m_num_samples);
+						if (track_interpolator == track_interpolator_t::linear)
+							deallocate_type_array<rtm::float2f>(m_allocator, track_samples_typed.float2f, m_num_samples);
+						else
+							deallocate_type_array<track_extended_sample_t<rtm::float2f>>(m_allocator, track_samples_typed.float2f_ex, m_num_samples);
 						break;
 					case track_type8::float3f:
-						deallocate_type_array<rtm::float3f>(m_allocator, track_samples_typed.float3f, m_num_samples);
+						if (track_interpolator == track_interpolator_t::linear)
+							deallocate_type_array<rtm::float3f>(m_allocator, track_samples_typed.float3f, m_num_samples);
+						else
+							deallocate_type_array<track_extended_sample_t<rtm::float3f>>(m_allocator, track_samples_typed.float3f_ex, m_num_samples);
 						break;
 					case track_type8::float4f:
-						deallocate_type_array<rtm::float4f>(m_allocator, track_samples_typed.float4f, m_num_samples);
+						if (track_interpolator == track_interpolator_t::linear)
+							deallocate_type_array<rtm::float4f>(m_allocator, track_samples_typed.float4f, m_num_samples);
+						else
+							deallocate_type_array<track_extended_sample_t<rtm::float4f>>(m_allocator, track_samples_typed.float4f_ex, m_num_samples);
 						break;
 					case track_type8::vector4f:
-						deallocate_type_array<rtm::vector4f>(m_allocator, track_samples_typed.vector4f, m_num_samples);
+						if (track_interpolator == track_interpolator_t::linear)
+							deallocate_type_array<rtm::vector4f>(m_allocator, track_samples_typed.vector4f, m_num_samples);
+						else
+							deallocate_type_array<track_extended_sample_t<rtm::vector4f>>(m_allocator, track_samples_typed.vector4f_ex, m_num_samples);
 						break;
 					case track_type8::qvvf:
+						ACL_ASSERT(track_interpolator == track_interpolator_t::linear, "Unsupported interpolator with qvvf");
 						deallocate_type_array<rtm::qvvf>(m_allocator, track_samples_typed.qvvf, m_num_samples);
 						break;
 					default:
@@ -1068,21 +1290,37 @@ namespace acl
 					switch (track_type)
 					{
 					case track_type8::float1f:
-						track_ = track_float1f::make_owner(scalar_desc, m_allocator, track_samples_typed.float1f, m_num_samples, m_sample_rate);
+						if (track_interpolator == track_interpolator_t::linear)
+							track_ = track_float1f::make_owner(scalar_desc, m_allocator, track_samples_typed.float1f, m_num_samples, m_sample_rate);
+						else
+							track_ = track_float1f_ex::make_owner(scalar_desc, m_allocator, track_samples_typed.float1f_ex, m_num_samples, m_sample_rate);
 						break;
 					case track_type8::float2f:
-						track_ = track_float2f::make_owner(scalar_desc, m_allocator, track_samples_typed.float2f, m_num_samples, m_sample_rate);
+						if (track_interpolator == track_interpolator_t::linear)
+							track_ = track_float2f::make_owner(scalar_desc, m_allocator, track_samples_typed.float2f, m_num_samples, m_sample_rate);
+						else
+							track_ = track_float2f_ex::make_owner(scalar_desc, m_allocator, track_samples_typed.float2f_ex, m_num_samples, m_sample_rate);
 						break;
 					case track_type8::float3f:
-						track_ = track_float3f::make_owner(scalar_desc, m_allocator, track_samples_typed.float3f, m_num_samples, m_sample_rate);
+						if (track_interpolator == track_interpolator_t::linear)
+							track_ = track_float3f::make_owner(scalar_desc, m_allocator, track_samples_typed.float3f, m_num_samples, m_sample_rate);
+						else
+							track_ = track_float3f_ex::make_owner(scalar_desc, m_allocator, track_samples_typed.float3f_ex, m_num_samples, m_sample_rate);
 						break;
 					case track_type8::float4f:
-						track_ = track_float4f::make_owner(scalar_desc, m_allocator, track_samples_typed.float4f, m_num_samples, m_sample_rate);
+						if (track_interpolator == track_interpolator_t::linear)
+							track_ = track_float4f::make_owner(scalar_desc, m_allocator, track_samples_typed.float4f, m_num_samples, m_sample_rate);
+						else
+							track_ = track_float4f_ex::make_owner(scalar_desc, m_allocator, track_samples_typed.float4f_ex, m_num_samples, m_sample_rate);
 						break;
 					case track_type8::vector4f:
-						track_ = track_vector4f::make_owner(scalar_desc, m_allocator, track_samples_typed.vector4f, m_num_samples, m_sample_rate);
+						if (track_interpolator == track_interpolator_t::linear)
+							track_ = track_vector4f::make_owner(scalar_desc, m_allocator, track_samples_typed.vector4f, m_num_samples, m_sample_rate);
+						else
+							track_ = track_vector4f_ex::make_owner(scalar_desc, m_allocator, track_samples_typed.vector4f_ex, m_num_samples, m_sample_rate);
 						break;
 					case track_type8::qvvf:
+						ACL_ASSERT(track_interpolator == track_interpolator_t::linear, "Unsupported interpolator with qvvf");
 						track_ = track_qvvf::make_owner(transform_desc, m_allocator, track_samples_typed.qvvf, m_num_samples, m_sample_rate);
 						break;
 					default:
