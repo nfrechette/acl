@@ -646,7 +646,7 @@ def do_prepare_regression_test_data(test_data_dir, args):
 	regression_clips = []
 	for (dirpath, dirnames, filenames) in os.walk(regression_test_data_dir):
 		for filename in filenames:
-			if not filename.endswith('.acl'):
+			if not filename.endswith('.acl') and not filename.endswith('.acl.sjson'):
 				continue
 
 			clip_filename = os.path.join(dirpath, filename)
@@ -798,7 +798,7 @@ def do_regression_tests_cmake(test_data_dir, regression_test_data_dir, args):
 	regression_clips = []
 	for (dirpath, dirnames, filenames) in os.walk(regression_test_data_dir):
 		for filename in filenames:
-			if not filename.endswith('.acl'):
+			if not filename.endswith('.acl') and not filename.endswith('.acl.sjson'):
 				continue
 
 			clip_filename = os.path.join(dirpath, filename)
