@@ -58,24 +58,24 @@ namespace acl
 	struct track_error;
 
 	class track_array;
-	template<track_type8 track_type_> class track_array_typed;
+	template<track_type8 track_type_, track_interpolator_t track_interpolator_> class track_array_typed;
 
-	using track_array_float1f	= track_array_typed<track_type8::float1f>;
-	using track_array_float2f	= track_array_typed<track_type8::float2f>;
-	using track_array_float3f	= track_array_typed<track_type8::float3f>;
-	using track_array_float4f	= track_array_typed<track_type8::float4f>;
-	using track_array_vector4f	= track_array_typed<track_type8::vector4f>;
-	using track_array_qvvf		= track_array_typed<track_type8::qvvf>;
+	using track_array_float1f	= track_array_typed<track_type8::float1f, track_interpolator_t::linear>;
+	using track_array_float2f	= track_array_typed<track_type8::float2f, track_interpolator_t::linear>;
+	using track_array_float3f	= track_array_typed<track_type8::float3f, track_interpolator_t::linear>;
+	using track_array_float4f	= track_array_typed<track_type8::float4f, track_interpolator_t::linear>;
+	using track_array_vector4f	= track_array_typed<track_type8::vector4f, track_interpolator_t::linear>;
+	using track_array_qvvf		= track_array_typed<track_type8::qvvf, track_interpolator_t::linear>;
 
 	class track;
-	template<track_type8 track_type_> class track_typed;
+	template<track_type8 track_type_, track_interpolator_t track_interpolator_> class track_typed;
 
-	using track_float1f			= track_typed<track_type8::float1f>;
-	using track_float2f			= track_typed<track_type8::float2f>;
-	using track_float3f			= track_typed<track_type8::float3f>;
-	using track_float4f			= track_typed<track_type8::float4f>;
-	using track_vector4f		= track_typed<track_type8::vector4f>;
-	using track_qvvf			= track_typed<track_type8::qvvf>;
+	using track_float1f			= track_typed<track_type8::float1f, track_interpolator_t::linear>;
+	using track_float2f			= track_typed<track_type8::float2f, track_interpolator_t::linear>;
+	using track_float3f			= track_typed<track_type8::float3f, track_interpolator_t::linear>;
+	using track_float4f			= track_typed<track_type8::float4f, track_interpolator_t::linear>;
+	using track_vector4f		= track_typed<track_type8::vector4f, track_interpolator_t::linear>;
+	using track_qvvf			= track_typed<track_type8::qvvf, track_interpolator_t::linear>;
 
 	enum class additive_clip_format8 : uint8_t;
 
