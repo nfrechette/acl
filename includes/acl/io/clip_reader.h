@@ -1102,6 +1102,18 @@ namespace acl
 				if (!m_parser.array_begins("data"))
 					goto error;
 
+				// Suppress GCC warning about may-alias warning being ignored due to type being used as template argument
+			#if defined(RTM_COMPILER_GCC)
+				#pragma GCC diagnostic push
+				#pragma GCC diagnostic ignored "-Wignored-attributes"
+			#endif
+
+				using track_extended_sample_vec4f_t = track_extended_sample_t<rtm::vector4f>;
+
+			#if defined(RTM_COMPILER_GCC)
+				#pragma GCC diagnostic pop
+			#endif
+
 				union track_samples_ptr_union
 				{
 					void*			any;
@@ -1119,7 +1131,7 @@ namespace acl
 					track_extended_sample_t<rtm::float2f>* 	float2f_ex;
 					track_extended_sample_t<rtm::float3f>* 	float3f_ex;
 					track_extended_sample_t<rtm::float4f>* 	float4f_ex;
-					track_extended_sample_t<rtm::vector4f>* vector4f_ex;
+					track_extended_sample_vec4f_t* 			vector4f_ex;
 				};
 				track_samples_ptr_union track_samples_typed = { nullptr };
 
@@ -1153,7 +1165,7 @@ namespace acl
 					if (track_interpolator == track_interpolator_t::linear)
 						track_samples_typed.vector4f = allocate_type_array<rtm::vector4f>(m_allocator, m_num_samples);
 					else
-						track_samples_typed.vector4f_ex = allocate_type_array<track_extended_sample_t<rtm::vector4f>>(m_allocator, m_num_samples);
+						track_samples_typed.vector4f_ex = allocate_type_array<track_extended_sample_vec4f_t>(m_allocator, m_num_samples);
 					break;
 				case track_type8::qvvf:
 					ACL_ASSERT(track_interpolator == track_interpolator_t::linear, "Unsupported interpolator with qvvf");
@@ -1272,7 +1284,7 @@ namespace acl
 						if (track_interpolator == track_interpolator_t::linear)
 							deallocate_type_array<rtm::vector4f>(m_allocator, track_samples_typed.vector4f, m_num_samples);
 						else
-							deallocate_type_array<track_extended_sample_t<rtm::vector4f>>(m_allocator, track_samples_typed.vector4f_ex, m_num_samples);
+							deallocate_type_array<track_extended_sample_vec4f_t>(m_allocator, track_samples_typed.vector4f_ex, m_num_samples);
 						break;
 					case track_type8::qvvf:
 						ACL_ASSERT(track_interpolator == track_interpolator_t::linear, "Unsupported interpolator with qvvf");

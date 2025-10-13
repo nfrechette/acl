@@ -1351,6 +1351,18 @@ TEST_CASE("sjson_track_list_reader_writer vector4f", "[io]")
 TEST_CASE("sjson_track_list_reader_writer vector4f_ex", "[io]")
 {
 #if defined(ACL_IMPL_ENABLE_IO_UNIT_TESTS)
+	// Suppress GCC warning about may-alias warning being ignored due to type being used as template argument
+	#if defined(RTM_COMPILER_GCC)
+		#pragma GCC diagnostic push
+		#pragma GCC diagnostic ignored "-Wignored-attributes"
+	#endif
+
+	using track_extended_sample_vec4f_t = track_extended_sample_t<rtm::vector4f>;
+
+	#if defined(RTM_COMPILER_GCC)
+		#pragma GCC diagnostic pop
+	#endif
+
 	ansi_allocator allocator;
 
 	const uint32_t num_tracks = 3;
@@ -1449,8 +1461,8 @@ TEST_CASE("sjson_track_list_reader_writer vector4f_ex", "[io]")
 
 		for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 		{
-			const track_extended_sample_t<rtm::vector4f> ref_sample = ref_track[sample_index];
-			const track_extended_sample_t<rtm::vector4f> file_sample = file_track[sample_index];
+			const track_extended_sample_vec4f_t& ref_sample = ref_track[sample_index];
+			const track_extended_sample_vec4f_t& file_sample = file_track[sample_index];
 
 			switch (ref_sample.interpolator)
 			{

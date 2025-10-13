@@ -121,10 +121,20 @@ namespace acl
 	{
 		static constexpr track_category8 category = track_category8::scalarf;
 
+		// Suppress GCC warning about may-alias warning being ignored due to type being used as template argument
+	#if defined(RTM_COMPILER_GCC)
+		#pragma GCC diagnostic push
+		#pragma GCC diagnostic ignored "-Wignored-attributes"
+	#endif
+
 		using sample_type = typename std::conditional<
 			track_interpolator == track_interpolator_t::linear,
 			rtm::vector4f,
 			track_extended_sample_t<rtm::vector4f>>::type;
+
+	#if defined(RTM_COMPILER_GCC)
+		#pragma GCC diagnostic pop
+	#endif
 
 		using desc_type = track_desc_scalarf;
 
