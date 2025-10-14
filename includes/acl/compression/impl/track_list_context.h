@@ -106,9 +106,7 @@ namespace acl
 			bool is_constant(uint32_t track_index) const { return bitset_test(constant_tracks_bitset, bitset_description::make_from_num_bits(num_tracks), track_index); }
 
 			track_list_context(const track_list_context&) = delete;
-			track_list_context(track_list_context&&) = delete;
 			track_list_context& operator=(const track_list_context&) = delete;
-			track_list_context& operator=(track_list_context&&) = delete;
 		};
 
 		// Promote scalar tracks to vector tracks for SIMD alignment and padding
