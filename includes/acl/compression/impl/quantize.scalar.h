@@ -62,46 +62,40 @@ namespace acl
 		// Decays the input value through quantization by packing and unpacking a normalized input value
 		inline rtm::vector4f RTM_SIMD_CALL decay_vector4_uXX(rtm::vector4f_arg0 value, const quantization_scales& scales)
 		{
-			using namespace rtm;
+			ACL_ASSERT(rtm::vector_all_greater_equal(value, rtm::vector_zero()) && rtm::vector_all_less_equal(value, rtm::vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f, %f", (float)rtm::vector_get_x(value), (float)rtm::vector_get_y(value), (float)rtm::vector_get_z(value), (float)rtm::vector_get_w(value));
 
-			ACL_ASSERT(vector_all_greater_equal(value, vector_zero()) && vector_all_less_equal(value, rtm::vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f, %f", (float)vector_get_x(value), (float)vector_get_y(value), (float)vector_get_z(value), (float)vector_get_w(value));
-
-			const vector4f packed_value = vector_round_symmetric(vector_mul(value, scales.max_value));
-			const vector4f decayed_value = vector_mul(packed_value, scales.inv_max_value);
+			const rtm::vector4f packed_value = rtm::vector_round_symmetric(rtm::vector_mul(value, scales.max_value));
+			const rtm::vector4f decayed_value = rtm::vector_mul(packed_value, scales.inv_max_value);
 			return decayed_value;
 		}
 
 		// Packs a normalized input value through quantization
 		inline rtm::vector4f RTM_SIMD_CALL pack_vector4_uXX(rtm::vector4f_arg0 value, const quantization_scales& scales)
 		{
-			using namespace rtm;
+			ACL_ASSERT(rtm::vector_all_greater_equal(value, rtm::vector_zero()) && rtm::vector_all_less_equal(value, rtm::vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f, %f", (float)rtm::vector_get_x(value), (float)rtm::vector_get_y(value), (float)rtm::vector_get_z(value), (float)rtm::vector_get_w(value));
 
-			ACL_ASSERT(vector_all_greater_equal(value, vector_zero()) && vector_all_less_equal(value, rtm::vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f, %f", (float)vector_get_x(value), (float)vector_get_y(value), (float)vector_get_z(value), (float)vector_get_w(value));
-
-			return vector_round_symmetric(vector_mul(value, scales.max_value));
+			return rtm::vector_round_symmetric(rtm::vector_mul(value, scales.max_value));
 		}
 
 		inline void quantize_scalarf_track(track_list_context& context, uint32_t track_index)
 		{
-			using namespace rtm;
-
 			const track& ref_track = (*context.reference_list)[track_index];
 			track_vector4f& mut_track = track_cast<track_vector4f>(context.track_list[track_index]);
 
-			const vector4f precision = vector_load1(&mut_track.get_description().precision);
+			const rtm::vector4f precision = rtm::vector_load1(&mut_track.get_description().precision);
 			const uint32_t ref_element_size = ref_track.get_sample_size();
 			const uint32_t num_samples = mut_track.get_num_samples();
 
 			const scalarf_range& range = context.range_list[track_index].range.scalarf;
-			const vector4f range_min = range.get_min();
-			const vector4f range_extent = range.get_extent();
+			const rtm::vector4f range_min = range.get_min();
+			const rtm::vector4f range_extent = range.get_extent();
 
-			const vector4f zero = vector_zero();
-			const mask4f all_true_mask = mask_set(true, true, true, true);
-			mask4f sample_mask = mask_set(false, false, false, false);
+			const rtm::vector4f zero = rtm::vector_zero();
+			const rtm::mask4f all_true_mask = rtm::mask_set(true, true, true, true);
+			rtm::mask4f sample_mask = rtm::mask_set(false, false, false, false);
 			std::memcpy(&sample_mask, &all_true_mask, ref_element_size);
 
-			vector4f raw_sample = zero;
+			rtm::vector4f raw_sample = zero;
 			uint8_t best_bit_rate = k_highest_bit_rate;	// Default to raw if we fail to find something better
 
 			// First we look for the best bit rate possible that keeps us within our precision target
@@ -115,17 +109,17 @@ namespace acl
 				{
 					std::memcpy(&raw_sample, ref_track[sample_index], ref_element_size);
 
-					const vector4f normalized_sample = mut_track[sample_index];
+					const rtm::vector4f normalized_sample = mut_track[sample_index];
 
 					// Decay our value through quantization
-					const vector4f decayed_normalized_sample = decay_vector4_uXX(normalized_sample, scales);
+					const rtm::vector4f decayed_normalized_sample = decay_vector4_uXX(normalized_sample, scales);
 
 					// Undo normalization
-					const vector4f decayed_sample = vector_mul_add(decayed_normalized_sample, range_extent, range_min);
+					const rtm::vector4f decayed_sample = rtm::vector_mul_add(decayed_normalized_sample, range_extent, range_min);
 
-					const vector4f delta = vector_abs(vector_sub(raw_sample, decayed_sample));
-					const vector4f masked_delta = vector_select(sample_mask, delta, zero);
-					if (!vector_all_less_equal(masked_delta, precision))
+					const rtm::vector4f delta = rtm::vector_abs(rtm::vector_sub(raw_sample, decayed_sample));
+					const rtm::vector4f masked_delta = rtm::vector_select(sample_mask, delta, zero);
+					if (!rtm::vector_all_less_equal(masked_delta, precision))
 					{
 						is_error_to_high = true;
 						break;

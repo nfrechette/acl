@@ -43,20 +43,18 @@ namespace acl
 	{
 		inline scalarf_range extract_scalarf_range(const track& track)
 		{
-			using namespace rtm;
-
-			vector4f min = rtm::vector_set(1e10F);
-			vector4f max = rtm::vector_set(-1e10F);
+			rtm::vector4f min = rtm::vector_set(1e10F);
+			rtm::vector4f max = rtm::vector_set(-1e10F);
 
 			const uint32_t num_samples = track.get_num_samples();
 			const track_vector4f& typed_track = track_cast<const track_vector4f>(track);
 			
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
-				const vector4f sample = typed_track[sample_index];
+				const rtm::vector4f sample = typed_track[sample_index];
 
-				min = vector_min(min, sample);
-				max = vector_max(max, sample);
+				min = rtm::vector_min(min, sample);
+				max = rtm::vector_max(max, sample);
 			}
 
 			return scalarf_range::from_min_max(min, max);

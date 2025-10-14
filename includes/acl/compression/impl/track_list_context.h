@@ -112,8 +112,6 @@ namespace acl
 		// Promote scalar tracks to vector tracks for SIMD alignment and padding
 		inline track_array copy_and_promote_track_list(iallocator& allocator, const track_array& ref_track_list, bool& out_are_samples_valid)
 		{
-			using namespace rtm;
-
 			const uint32_t num_tracks = ref_track_list.get_num_tracks();
 			const uint32_t num_samples = ref_track_list.get_num_samples_per_track();
 			const float sample_rate = ref_track_list.get_sample_rate();
@@ -134,8 +132,8 @@ namespace acl
 					track_vector4f track = track_vector4f::make_reserve(ref_track.get_description<track_desc_scalarf>(), allocator, num_samples, sample_rate);
 					for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 					{
-						const vector4f sample = vector_load1(&typed_ref_track[sample_index]);
-						are_samples_valid &= scalar_is_finite(vector_get_x_as_scalar(sample));
+						const rtm::vector4f sample = rtm::vector_load1(&typed_ref_track[sample_index]);
+						are_samples_valid &= rtm::scalar_is_finite(rtm::vector_get_x_as_scalar(sample));
 						track[sample_index] = sample;
 					}
 					out_track = std::move(track);
@@ -147,8 +145,8 @@ namespace acl
 					track_vector4f track = track_vector4f::make_reserve(ref_track.get_description<track_desc_scalarf>(), allocator, num_samples, sample_rate);
 					for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 					{
-						const vector4f sample = vector_load2(&typed_ref_track[sample_index]);
-						are_samples_valid &= vector_is_finite2(sample);
+						const rtm::vector4f sample = rtm::vector_load2(&typed_ref_track[sample_index]);
+						are_samples_valid &= rtm::vector_is_finite2(sample);
 						track[sample_index] = sample;
 					}
 					out_track = std::move(track);
@@ -160,8 +158,8 @@ namespace acl
 					track_vector4f track = track_vector4f::make_reserve(ref_track.get_description<track_desc_scalarf>(), allocator, num_samples, sample_rate);
 					for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 					{
-						const vector4f sample = vector_load3(&typed_ref_track[sample_index]);
-						are_samples_valid &= vector_is_finite3(sample);
+						const rtm::vector4f sample = rtm::vector_load3(&typed_ref_track[sample_index]);
+						are_samples_valid &= rtm::vector_is_finite3(sample);
 						track[sample_index] = sample;
 					}
 					out_track = std::move(track);
@@ -173,8 +171,8 @@ namespace acl
 					track_vector4f track = track_vector4f::make_reserve(ref_track.get_description<track_desc_scalarf>(), allocator, num_samples, sample_rate);
 					for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 					{
-						const vector4f sample = vector_load(&typed_ref_track[sample_index]);
-						are_samples_valid &= vector_is_finite(sample);
+						const rtm::vector4f sample = rtm::vector_load(&typed_ref_track[sample_index]);
+						are_samples_valid &= rtm::vector_is_finite(sample);
 						track[sample_index] = sample;
 					}
 					out_track = std::move(track);
@@ -186,8 +184,8 @@ namespace acl
 					track_vector4f track = track_vector4f::make_reserve(ref_track.get_description<track_desc_scalarf>(), allocator, num_samples, sample_rate);
 					for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 					{
-						const vector4f sample = typed_ref_track[sample_index];
-						are_samples_valid &= vector_is_finite(sample);
+						const rtm::vector4f sample = typed_ref_track[sample_index];
+						are_samples_valid &= rtm::vector_is_finite(sample);
 						track[sample_index] = sample;
 					}
 					out_track = std::move(track);
