@@ -58,6 +58,9 @@ namespace acl
 	template<typename sample_type_t>
 	struct track_extended_sample_t
 	{
+		// The size in bytes of a sample value
+		static constexpr size_t sample_size = sizeof(sample_type_t);
+
 		// The sample interpolator function
 		sample_interpolator_t interpolator = sample_interpolator_t::linear;
 
