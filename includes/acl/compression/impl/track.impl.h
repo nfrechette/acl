@@ -313,10 +313,11 @@ namespace acl
 	{
 		const size_t num_samples_ = num_samples;
 		const size_t data_size = num_samples_ * sizeof(sample_type);
+		const size_t data_alignment = alignof(sample_type);
 		const uint8_t* data_raw = acl_impl::bit_cast<const uint8_t*>(data);
 
 		// Copy the data manually to avoid preserving the stride
-		sample_type* data_copy = acl_impl::bit_cast<sample_type*>(allocator.allocate(data_size));
+		sample_type* data_copy = acl_impl::bit_cast<sample_type*>(allocator.allocate(data_size, data_alignment));
 		for (size_t index = 0; index < num_samples_; ++index)
 			data_copy[index] = *acl_impl::bit_cast<const sample_type*>(data_raw + (index * stride));
 
@@ -327,7 +328,9 @@ namespace acl
 	inline track_typed<track_type_, track_interpolator_> track_typed<track_type_, track_interpolator_>::make_reserve(const typename track_typed<track_type_, track_interpolator_>::desc_type& desc, iallocator& allocator, uint32_t num_samples, float sample_rate)
 	{
 		const size_t data_size = size_t(num_samples) * sizeof(sample_type);
-		return track_typed<track_type_, track_interpolator_>(&allocator, acl_impl::bit_cast<uint8_t*>(allocator.allocate(data_size)), num_samples, sizeof(sample_type), data_size, sample_rate, desc);
+		const size_t data_alignment = alignof(sample_type);
+
+		return track_typed<track_type_, track_interpolator_>(&allocator, acl_impl::bit_cast<uint8_t*>(allocator.allocate(data_size, data_alignment)), num_samples, sizeof(sample_type), data_size, sample_rate, desc);
 	}
 
 	template<track_type8 track_type_, track_interpolator_t track_interpolator_>
