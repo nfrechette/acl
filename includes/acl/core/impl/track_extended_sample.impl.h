@@ -67,6 +67,21 @@ namespace acl
 		return data.linear;
 	}
 
+	template<typename sample_type_t>
+	inline sample_type_t track_extended_sample_t<sample_type_t>::get_value() const
+	{
+		switch (interpolator)
+		{
+		case sample_interpolator_t::linear:
+			return data.linear.value;
+		case sample_interpolator_t::constant:
+			return data.constant.value;
+		default:
+			ACL_ASSERT(false, "Invalid interpolator");
+			return sample_type_t{};
+		}
+	}
+
 	ACL_IMPL_VERSION_NAMESPACE_END
 }
 

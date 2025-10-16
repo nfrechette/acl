@@ -83,6 +83,8 @@ namespace acl
 
 		void set_linear(const sample_linear_data_t<sample_type_t>& data);
 		const sample_linear_data_t<sample_type_t>& get_linear() const;
+
+		sample_type_t get_value() const;
 	};
 
 	ACL_IMPL_VERSION_NAMESPACE_END
