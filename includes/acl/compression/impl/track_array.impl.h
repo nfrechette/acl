@@ -207,6 +207,276 @@ namespace acl
 		return error_result();
 	}
 
+	namespace acl_impl
+	{
+		template<class track_writer_type>
+		inline void sample_tracks_linear(
+			const track_array& array,
+			uint32_t key_frame0,
+			uint32_t key_frame1,
+			const float* interpolation_alpha_per_policy,
+			sample_rounding_policy rounding_policy,
+			track_writer_type& writer)
+		{
+			const track_type8 track_type = array.get_track_type();
+			const uint32_t num_tracks = array.get_num_tracks();
+
+			switch (track_type)
+			{
+			case track_type8::float1f:
+				for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+				{
+					const track_float1f& track_ = track_cast<track_float1f>(array[track_index]);
+
+					const sample_rounding_policy rounding_policy_ = writer.get_rounding_policy(rounding_policy, track_index);
+					ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
+					const float alpha = interpolation_alpha_per_policy[static_cast<int>(rounding_policy_)];
+
+					const rtm::scalarf value0 = rtm::scalar_load_as_scalar(&track_[key_frame0]);
+					const rtm::scalarf value1 = rtm::scalar_load_as_scalar(&track_[key_frame1]);
+					const rtm::scalarf value = rtm::scalar_lerp(value0, value1, rtm::scalar_set(alpha));
+					writer.write_float1(track_index, value);
+				}
+				break;
+			case track_type8::float2f:
+				for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+				{
+					const track_float2f& track_ = track_cast<track_float2f>(array[track_index]);
+
+					const sample_rounding_policy rounding_policy_ = writer.get_rounding_policy(rounding_policy, track_index);
+					ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
+					const float alpha = interpolation_alpha_per_policy[static_cast<int>(rounding_policy_)];
+
+					const rtm::vector4f value0 = rtm::vector_load2(&track_[key_frame0]);
+					const rtm::vector4f value1 = rtm::vector_load2(&track_[key_frame1]);
+					const rtm::vector4f value = rtm::vector_lerp(value0, value1, alpha);
+					writer.write_float2(track_index, value);
+				}
+				break;
+			case track_type8::float3f:
+				for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+				{
+					const track_float3f& track_ = track_cast<track_float3f>(array[track_index]);
+
+					const sample_rounding_policy rounding_policy_ = writer.get_rounding_policy(rounding_policy, track_index);
+					ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
+					const float alpha = interpolation_alpha_per_policy[static_cast<int>(rounding_policy_)];
+
+					const rtm::vector4f value0 = rtm::vector_load3(&track_[key_frame0]);
+					const rtm::vector4f value1 = rtm::vector_load3(&track_[key_frame1]);
+					const rtm::vector4f value = rtm::vector_lerp(value0, value1, alpha);
+					writer.write_float3(track_index, value);
+				}
+				break;
+			case track_type8::float4f:
+				for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+				{
+					const track_float4f& track_ = track_cast<track_float4f>(array[track_index]);
+
+					const sample_rounding_policy rounding_policy_ = writer.get_rounding_policy(rounding_policy, track_index);
+					ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
+					const float alpha = interpolation_alpha_per_policy[static_cast<int>(rounding_policy_)];
+
+					const rtm::vector4f value0 = rtm::vector_load(&track_[key_frame0]);
+					const rtm::vector4f value1 = rtm::vector_load(&track_[key_frame1]);
+					const rtm::vector4f value = rtm::vector_lerp(value0, value1, alpha);
+					writer.write_float4(track_index, value);
+				}
+				break;
+			case track_type8::vector4f:
+				for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+				{
+					const track_vector4f& track_ = track_cast<track_vector4f>(array[track_index]);
+
+					const sample_rounding_policy rounding_policy_ = writer.get_rounding_policy(rounding_policy, track_index);
+					ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
+					const float alpha = interpolation_alpha_per_policy[static_cast<int>(rounding_policy_)];
+
+					const rtm::vector4f value0 = track_[key_frame0];
+					const rtm::vector4f value1 = track_[key_frame1];
+					const rtm::vector4f value = rtm::vector_lerp(value0, value1, alpha);
+					writer.write_vector4(track_index, value);
+				}
+				break;
+			case track_type8::qvvf:
+				for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+				{
+					const track_qvvf& track_ = track_cast<track_qvvf>(array[track_index]);
+
+					const sample_rounding_policy rounding_policy_ = writer.get_rounding_policy(rounding_policy, track_index);
+					ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
+					const float alpha = interpolation_alpha_per_policy[static_cast<int>(rounding_policy_)];
+
+					// True if interpolation alpha is 0.0, false otherwise
+					const rtm::mask4f no_rounding_mask = rtm::vector_equal(rtm::vector_set(alpha), rtm::vector_zero());
+
+					const rtm::qvvf& value0 = track_[key_frame0];
+					const rtm::qvvf& value1 = track_[key_frame1];
+
+					// We normalize rotations for safety, just like we do during compression when building the raw context
+					const rtm::quatf rotation0 = acl_impl::quat_normalize_stable(value0.rotation);
+					const rtm::quatf rotation1 = acl_impl::quat_normalize_stable(value1.rotation);
+
+					rtm::quatf rotation;
+					rtm::vector4f translation;
+					rtm::vector4f scale;
+
+					// Quat lerp isn't truly stable since we normalize, ensure we return a stable value explicitly
+					if (rounding_policy_ != sample_rounding_policy::none)
+					{
+						rotation = rtm::vector_to_quat(rtm::vector_select(no_rounding_mask, rtm::quat_to_vector(rotation0), rtm::quat_to_vector(rotation1)));
+						translation = rtm::vector_select(no_rounding_mask, value0.translation, value1.translation);
+						scale = rtm::vector_select(no_rounding_mask, value0.scale, value1.scale);
+					}
+					else
+					{
+						rotation = acl_impl::quat_lerp_stable(rotation0, rotation1, alpha);
+						translation = rtm::vector_lerp(value0.translation, value1.translation, alpha);
+						scale = rtm::vector_lerp(value0.scale, value1.scale, alpha);
+					}
+
+					writer.write_rotation(track_index, rotation);
+					writer.write_translation(track_index, translation);
+					writer.write_scale(track_index, scale);
+				}
+				break;
+			default:
+				ACL_ASSERT(false, "Invalid track type");
+				break;
+			}
+		}
+
+		template<class track_writer_type>
+		inline void sample_tracks_extended(
+			const track_array& array,
+			uint32_t key_frame0,
+			uint32_t key_frame1,
+			const float* interpolation_alpha_per_policy,
+			sample_rounding_policy rounding_policy,
+			track_writer_type& writer)
+		{
+			const track_type8 track_type = array.get_track_type();
+			const uint32_t num_tracks = array.get_num_tracks();
+
+			switch (track_type)
+			{
+			case track_type8::float1f:
+				for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+				{
+					const track_float1f_ex& track_ = track_cast<track_float1f_ex>(array[track_index]);
+					const sample_interpolator_t interpolator = track_[key_frame0].interpolator;
+
+					const sample_rounding_policy rounding_policy_ = writer.get_rounding_policy(rounding_policy, track_index);
+					ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
+					const float alpha = interpolation_alpha_per_policy[static_cast<int>(rounding_policy_)];
+
+					const rtm::scalarf value0 = rtm::scalar_load_as_scalar(&track_[key_frame0].value);
+					const rtm::scalarf value1 = rtm::scalar_load_as_scalar(&track_[key_frame1].value);
+
+					rtm::scalarf value;
+					if (interpolator == sample_interpolator_t::constant)
+						value = value0;
+					else
+						value = rtm::scalar_lerp(value0, value1, rtm::scalar_set(alpha));
+
+					writer.write_float1(track_index, value);
+				}
+				break;
+			case track_type8::float2f:
+				for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+				{
+					const track_float2f_ex& track_ = track_cast<track_float2f_ex>(array[track_index]);
+					const sample_interpolator_t interpolator = track_[key_frame0].interpolator;
+
+					const sample_rounding_policy rounding_policy_ = writer.get_rounding_policy(rounding_policy, track_index);
+					ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
+					const float alpha = interpolation_alpha_per_policy[static_cast<int>(rounding_policy_)];
+
+					const rtm::vector4f value0 = rtm::vector_load2(&track_[key_frame0].value);
+					const rtm::vector4f value1 = rtm::vector_load2(&track_[key_frame1].value);
+
+					rtm::vector4f value;
+					if (interpolator == sample_interpolator_t::constant)
+						value = value0;
+					else
+						value = rtm::vector_lerp(value0, value1, alpha);
+
+					writer.write_float2(track_index, value);
+				}
+				break;
+			case track_type8::float3f:
+				for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+				{
+					const track_float3f_ex& track_ = track_cast<track_float3f_ex>(array[track_index]);
+					const sample_interpolator_t interpolator = track_[key_frame0].interpolator;
+
+					const sample_rounding_policy rounding_policy_ = writer.get_rounding_policy(rounding_policy, track_index);
+					ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
+					const float alpha = interpolation_alpha_per_policy[static_cast<int>(rounding_policy_)];
+
+					const rtm::vector4f value0 = rtm::vector_load3(&track_[key_frame0].value);
+					const rtm::vector4f value1 = rtm::vector_load3(&track_[key_frame1].value);
+
+					rtm::vector4f value;
+					if (interpolator == sample_interpolator_t::constant)
+						value = value0;
+					else
+						value = rtm::vector_lerp(value0, value1, alpha);
+
+					writer.write_float3(track_index, value);
+				}
+				break;
+			case track_type8::float4f:
+				for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+				{
+					const track_float4f_ex& track_ = track_cast<track_float4f_ex>(array[track_index]);
+					const sample_interpolator_t interpolator = track_[key_frame0].interpolator;
+
+					const sample_rounding_policy rounding_policy_ = writer.get_rounding_policy(rounding_policy, track_index);
+					ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
+					const float alpha = interpolation_alpha_per_policy[static_cast<int>(rounding_policy_)];
+
+					const rtm::vector4f value0 = rtm::vector_load(&track_[key_frame0].value);
+					const rtm::vector4f value1 = rtm::vector_load(&track_[key_frame1].value);
+
+					rtm::vector4f value;
+					if (interpolator == sample_interpolator_t::constant)
+						value = value0;
+					else
+						value = rtm::vector_lerp(value0, value1, alpha);
+
+					writer.write_float4(track_index, value);
+				}
+				break;
+			case track_type8::vector4f:
+				for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+				{
+					const track_vector4f_ex& track_ = track_cast<track_vector4f_ex>(array[track_index]);
+					const sample_interpolator_t interpolator = track_[key_frame0].interpolator;
+
+					const sample_rounding_policy rounding_policy_ = writer.get_rounding_policy(rounding_policy, track_index);
+					ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
+					const float alpha = interpolation_alpha_per_policy[static_cast<int>(rounding_policy_)];
+
+					const rtm::vector4f value0 = track_[key_frame0].value;
+					const rtm::vector4f value1 = track_[key_frame1].value;
+
+					rtm::vector4f value;
+					if (interpolator == sample_interpolator_t::constant)
+						value = value0;
+					else
+						value = rtm::vector_lerp(value0, value1, alpha);
+
+					writer.write_vector4(track_index, value);
+				}
+				break;
+			default:
+				ACL_ASSERT(false, "Invalid track type");
+				break;
+			}
+		}
+	}
+
 	template<class track_writer_type>
 	inline void track_array::sample_tracks(float sample_time, sample_rounding_policy rounding_policy, track_writer_type& writer) const
 	{
@@ -215,7 +485,6 @@ namespace acl
 
 		const uint32_t num_samples = get_num_samples_per_track();
 		const float sample_rate = get_sample_rate();
-		const track_type8 track_type = get_track_type();
 
 		// Clamp for safety, the caller should normally handle this but in practice, it often isn't the case
 		const float duration = get_finite_duration();
@@ -241,94 +510,79 @@ namespace acl
 			no_rounding_alpha,	// per_track
 		};
 
-		switch (track_type)
-		{
-		case track_type8::float1f:
-			for (uint32_t track_index = 0; track_index < m_num_tracks; ++track_index)
-			{
-				const track_float1f& track__ = track_cast<track_float1f>(m_tracks[track_index]);
+		if (get_track_interpolator() == track_interpolator_t::linear)
+			acl_impl::sample_tracks_linear(*this, key_frame0, key_frame1, interpolation_alpha_per_policy, rounding_policy, writer);
+		else
+			acl_impl::sample_tracks_extended(*this, key_frame0, key_frame1, interpolation_alpha_per_policy, rounding_policy, writer);
+	}
 
-				const sample_rounding_policy rounding_policy_ = writer.get_rounding_policy(rounding_policy, track_index);
-				ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
-				const float alpha = interpolation_alpha_per_policy[static_cast<int>(rounding_policy_)];
+	namespace acl_impl
+	{
+		template<class track_writer_type>
+		inline void sample_track_linear(
+			const track& track_,
+			uint32_t key_frame0,
+			uint32_t key_frame1,
+			float interpolation_alpha,
+			sample_rounding_policy rounding_policy,
+			uint32_t track_index,
+			track_writer_type& writer)
+		{
+			switch (track_.get_type())
+			{
+			case track_type8::float1f:
+			{
+				const track_float1f& track__ = track_cast<track_float1f>(track_);
 
 				const rtm::scalarf value0 = rtm::scalar_load_as_scalar(&track__[key_frame0]);
 				const rtm::scalarf value1 = rtm::scalar_load_as_scalar(&track__[key_frame1]);
-				const rtm::scalarf value = rtm::scalar_lerp(value0, value1, rtm::scalar_set(alpha));
+				const rtm::scalarf value = rtm::scalar_lerp(value0, value1, rtm::scalar_set(interpolation_alpha));
 				writer.write_float1(track_index, value);
+				break;
 			}
-			break;
-		case track_type8::float2f:
-			for (uint32_t track_index = 0; track_index < m_num_tracks; ++track_index)
+			case track_type8::float2f:
 			{
-				const track_float2f& track__ = track_cast<track_float2f>(m_tracks[track_index]);
-
-				const sample_rounding_policy rounding_policy_ = writer.get_rounding_policy(rounding_policy, track_index);
-				ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
-				const float alpha = interpolation_alpha_per_policy[static_cast<int>(rounding_policy_)];
+				const track_float2f& track__ = track_cast<track_float2f>(track_);
 
 				const rtm::vector4f value0 = rtm::vector_load2(&track__[key_frame0]);
 				const rtm::vector4f value1 = rtm::vector_load2(&track__[key_frame1]);
-				const rtm::vector4f value = rtm::vector_lerp(value0, value1, alpha);
+				const rtm::vector4f value = rtm::vector_lerp(value0, value1, interpolation_alpha);
 				writer.write_float2(track_index, value);
+				break;
 			}
-			break;
-		case track_type8::float3f:
-			for (uint32_t track_index = 0; track_index < m_num_tracks; ++track_index)
+			case track_type8::float3f:
 			{
-				const track_float3f& track__ = track_cast<track_float3f>(m_tracks[track_index]);
-
-				const sample_rounding_policy rounding_policy_ = writer.get_rounding_policy(rounding_policy, track_index);
-				ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
-				const float alpha = interpolation_alpha_per_policy[static_cast<int>(rounding_policy_)];
+				const track_float3f& track__ = track_cast<track_float3f>(track_);
 
 				const rtm::vector4f value0 = rtm::vector_load3(&track__[key_frame0]);
 				const rtm::vector4f value1 = rtm::vector_load3(&track__[key_frame1]);
-				const rtm::vector4f value = rtm::vector_lerp(value0, value1, alpha);
+				const rtm::vector4f value = rtm::vector_lerp(value0, value1, interpolation_alpha);
 				writer.write_float3(track_index, value);
+				break;
 			}
-			break;
-		case track_type8::float4f:
-			for (uint32_t track_index = 0; track_index < m_num_tracks; ++track_index)
+			case track_type8::float4f:
 			{
-				const track_float4f& track__ = track_cast<track_float4f>(m_tracks[track_index]);
-
-				const sample_rounding_policy rounding_policy_ = writer.get_rounding_policy(rounding_policy, track_index);
-				ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
-				const float alpha = interpolation_alpha_per_policy[static_cast<int>(rounding_policy_)];
+				const track_float4f& track__ = track_cast<track_float4f>(track_);
 
 				const rtm::vector4f value0 = rtm::vector_load(&track__[key_frame0]);
 				const rtm::vector4f value1 = rtm::vector_load(&track__[key_frame1]);
-				const rtm::vector4f value = rtm::vector_lerp(value0, value1, alpha);
+				const rtm::vector4f value = rtm::vector_lerp(value0, value1, interpolation_alpha);
 				writer.write_float4(track_index, value);
+				break;
 			}
-			break;
-		case track_type8::vector4f:
-			for (uint32_t track_index = 0; track_index < m_num_tracks; ++track_index)
+			case track_type8::vector4f:
 			{
-				const track_vector4f& track__ = track_cast<track_vector4f>(m_tracks[track_index]);
-
-				const sample_rounding_policy rounding_policy_ = writer.get_rounding_policy(rounding_policy, track_index);
-				ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
-				const float alpha = interpolation_alpha_per_policy[static_cast<int>(rounding_policy_)];
+				const track_vector4f& track__ = track_cast<track_vector4f>(track_);
 
 				const rtm::vector4f value0 = track__[key_frame0];
 				const rtm::vector4f value1 = track__[key_frame1];
-				const rtm::vector4f value = rtm::vector_lerp(value0, value1, alpha);
+				const rtm::vector4f value = rtm::vector_lerp(value0, value1, interpolation_alpha);
 				writer.write_vector4(track_index, value);
+				break;
 			}
-			break;
-		case track_type8::qvvf:
-			for (uint32_t track_index = 0; track_index < m_num_tracks; ++track_index)
+			case track_type8::qvvf:
 			{
-				const track_qvvf& track__ = track_cast<track_qvvf>(m_tracks[track_index]);
-
-				const sample_rounding_policy rounding_policy_ = writer.get_rounding_policy(rounding_policy, track_index);
-				ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
-				const float alpha = interpolation_alpha_per_policy[static_cast<int>(rounding_policy_)];
-
-				// True if interpolation alpha is 0.0, false otherwise
-				const rtm::mask4f no_rounding_mask = rtm::vector_equal(rtm::vector_set(alpha), rtm::vector_zero());
+				const track_qvvf& track__ = track_cast<track_qvvf>(track_);
 
 				const rtm::qvvf& value0 = track__[key_frame0];
 				const rtm::qvvf& value1 = track__[key_frame1];
@@ -342,27 +596,133 @@ namespace acl
 				rtm::vector4f scale;
 
 				// Quat lerp isn't truly stable since we normalize, ensure we return a stable value explicitly
-				if (rounding_policy_ != sample_rounding_policy::none)
+				if (rounding_policy != sample_rounding_policy::none)
 				{
+					// True if interpolation alpha is 0.0, false otherwise
+					const rtm::mask4f no_rounding_mask = rtm::vector_equal(rtm::vector_set(interpolation_alpha), rtm::vector_zero());
+
 					rotation = rtm::vector_to_quat(rtm::vector_select(no_rounding_mask, rtm::quat_to_vector(rotation0), rtm::quat_to_vector(rotation1)));
 					translation = rtm::vector_select(no_rounding_mask, value0.translation, value1.translation);
 					scale = rtm::vector_select(no_rounding_mask, value0.scale, value1.scale);
 				}
 				else
 				{
-					rotation = acl_impl::quat_lerp_stable(rotation0, rotation1, alpha);
-					translation = rtm::vector_lerp(value0.translation, value1.translation, alpha);
-					scale = rtm::vector_lerp(value0.scale, value1.scale, alpha);
+					rotation = acl_impl::quat_lerp_stable(rotation0, rotation1, interpolation_alpha);
+					translation = rtm::vector_lerp(value0.translation, value1.translation, interpolation_alpha);
+					scale = rtm::vector_lerp(value0.scale, value1.scale, interpolation_alpha);
 				}
 
 				writer.write_rotation(track_index, rotation);
 				writer.write_translation(track_index, translation);
 				writer.write_scale(track_index, scale);
+				break;
 			}
-			break;
-		default:
-			ACL_ASSERT(false, "Invalid track type");
-			break;
+			default:
+				ACL_ASSERT(false, "Invalid track type");
+				break;
+			}
+		}
+
+		template<class track_writer_type>
+		inline void sample_track_extended(
+			const track& track_,
+			uint32_t key_frame0,
+			uint32_t key_frame1,
+			float interpolation_alpha,
+			uint32_t track_index,
+			track_writer_type& writer)
+		{
+			switch (track_.get_type())
+			{
+			case track_type8::float1f:
+			{
+				const track_float1f_ex& track__ = track_cast<track_float1f_ex>(track_);
+				const sample_interpolator_t interpolator = track__[key_frame0].interpolator;
+
+				const rtm::scalarf value0 = rtm::scalar_load_as_scalar(&track__[key_frame0].value);
+				const rtm::scalarf value1 = rtm::scalar_load_as_scalar(&track__[key_frame1].value);
+
+				rtm::scalarf value;
+				if (interpolator == sample_interpolator_t::constant)
+					value = value0;
+				else
+					value = rtm::scalar_lerp(value0, value1, rtm::scalar_set(interpolation_alpha));
+
+				writer.write_float1(track_index, value);
+				break;
+			}
+			case track_type8::float2f:
+			{
+				const track_float2f_ex& track__ = track_cast<track_float2f_ex>(track_);
+				const sample_interpolator_t interpolator = track__[key_frame0].interpolator;
+
+				const rtm::vector4f value0 = rtm::vector_load2(&track__[key_frame0].value);
+				const rtm::vector4f value1 = rtm::vector_load2(&track__[key_frame1].value);
+
+				rtm::vector4f value;
+				if (interpolator == sample_interpolator_t::constant)
+					value = value0;
+				else
+					value = rtm::vector_lerp(value0, value1, interpolation_alpha);
+
+				writer.write_float2(track_index, value);
+				break;
+			}
+			case track_type8::float3f:
+			{
+				const track_float3f_ex& track__ = track_cast<track_float3f_ex>(track_);
+				const sample_interpolator_t interpolator = track__[key_frame0].interpolator;
+
+				const rtm::vector4f value0 = rtm::vector_load3(&track__[key_frame0].value);
+				const rtm::vector4f value1 = rtm::vector_load3(&track__[key_frame1].value);
+
+				rtm::vector4f value;
+				if (interpolator == sample_interpolator_t::constant)
+					value = value0;
+				else
+					value = rtm::vector_lerp(value0, value1, interpolation_alpha);
+
+				writer.write_float3(track_index, value);
+				break;
+			}
+			case track_type8::float4f:
+			{
+				const track_float4f_ex& track__ = track_cast<track_float4f_ex>(track_);
+				const sample_interpolator_t interpolator = track__[key_frame0].interpolator;
+
+				const rtm::vector4f value0 = rtm::vector_load(&track__[key_frame0].value);
+				const rtm::vector4f value1 = rtm::vector_load(&track__[key_frame1].value);
+
+				rtm::vector4f value;
+				if (interpolator == sample_interpolator_t::constant)
+					value = value0;
+				else
+					value = rtm::vector_lerp(value0, value1, interpolation_alpha);
+
+				writer.write_float4(track_index, value);
+				break;
+			}
+			case track_type8::vector4f:
+			{
+				const track_vector4f_ex& track__ = track_cast<track_vector4f_ex>(track_);
+				const sample_interpolator_t interpolator = track__[key_frame0].interpolator;
+
+				const rtm::vector4f value0 = track__[key_frame0].value;
+				const rtm::vector4f value1 = track__[key_frame1].value;
+
+				rtm::vector4f value;
+				if (interpolator == sample_interpolator_t::constant)
+					value = value0;
+				else
+					value = rtm::vector_lerp(value0, value1, interpolation_alpha);
+
+				writer.write_vector4(track_index, value);
+				break;
+			}
+			default:
+				ACL_ASSERT(false, "Invalid track type");
+				break;
+			}
 		}
 	}
 
@@ -389,99 +749,10 @@ namespace acl
 		float interpolation_alpha;
 		find_linear_interpolation_samples_with_sample_rate(num_samples, sample_rate, sample_time, rounding_policy_, m_looping_policy, key_frame0, key_frame1, interpolation_alpha);
 
-		// True if interpolation alpha is 0.0, false otherwise
-		const rtm::mask4f no_rounding_mask = rtm::vector_equal(rtm::vector_set(interpolation_alpha), rtm::vector_zero());
-
-		switch (track_.get_type())
-		{
-		case track_type8::float1f:
-		{
-			const track_float1f& track__ = track_cast<track_float1f>(track_);
-
-			const rtm::scalarf value0 = rtm::scalar_load_as_scalar(&track__[key_frame0]);
-			const rtm::scalarf value1 = rtm::scalar_load_as_scalar(&track__[key_frame1]);
-			const rtm::scalarf value = rtm::scalar_lerp(value0, value1, rtm::scalar_set(interpolation_alpha));
-			writer.write_float1(track_index, value);
-			break;
-		}
-		case track_type8::float2f:
-		{
-			const track_float2f& track__ = track_cast<track_float2f>(track_);
-
-			const rtm::vector4f value0 = rtm::vector_load2(&track__[key_frame0]);
-			const rtm::vector4f value1 = rtm::vector_load2(&track__[key_frame1]);
-			const rtm::vector4f value = rtm::vector_lerp(value0, value1, interpolation_alpha);
-			writer.write_float2(track_index, value);
-			break;
-		}
-		case track_type8::float3f:
-		{
-			const track_float3f& track__ = track_cast<track_float3f>(track_);
-
-			const rtm::vector4f value0 = rtm::vector_load3(&track__[key_frame0]);
-			const rtm::vector4f value1 = rtm::vector_load3(&track__[key_frame1]);
-			const rtm::vector4f value = rtm::vector_lerp(value0, value1, interpolation_alpha);
-			writer.write_float3(track_index, value);
-			break;
-		}
-		case track_type8::float4f:
-		{
-			const track_float4f& track__ = track_cast<track_float4f>(track_);
-
-			const rtm::vector4f value0 = rtm::vector_load(&track__[key_frame0]);
-			const rtm::vector4f value1 = rtm::vector_load(&track__[key_frame1]);
-			const rtm::vector4f value = rtm::vector_lerp(value0, value1, interpolation_alpha);
-			writer.write_float4(track_index, value);
-			break;
-		}
-		case track_type8::vector4f:
-		{
-			const track_vector4f& track__ = track_cast<track_vector4f>(track_);
-
-			const rtm::vector4f value0 = track__[key_frame0];
-			const rtm::vector4f value1 = track__[key_frame1];
-			const rtm::vector4f value = rtm::vector_lerp(value0, value1, interpolation_alpha);
-			writer.write_vector4(track_index, value);
-			break;
-		}
-		case track_type8::qvvf:
-		{
-			const track_qvvf& track__ = track_cast<track_qvvf>(track_);
-
-			const rtm::qvvf& value0 = track__[key_frame0];
-			const rtm::qvvf& value1 = track__[key_frame1];
-
-			// We normalize rotations for safety, just like we do during compression when building the raw context
-			const rtm::quatf rotation0 = acl_impl::quat_normalize_stable(value0.rotation);
-			const rtm::quatf rotation1 = acl_impl::quat_normalize_stable(value1.rotation);
-
-			rtm::quatf rotation;
-			rtm::vector4f translation;
-			rtm::vector4f scale;
-
-			// Quat lerp isn't truly stable since we normalize, ensure we return a stable value explicitly
-			if (rounding_policy_ != sample_rounding_policy::none)
-			{
-				rotation = rtm::vector_to_quat(rtm::vector_select(no_rounding_mask, rtm::quat_to_vector(rotation0), rtm::quat_to_vector(rotation1)));
-				translation = rtm::vector_select(no_rounding_mask, value0.translation, value1.translation);
-				scale = rtm::vector_select(no_rounding_mask, value0.scale, value1.scale);
-			}
-			else
-			{
-				rotation = acl_impl::quat_lerp_stable(rotation0, rotation1, interpolation_alpha);
-				translation = rtm::vector_lerp(value0.translation, value1.translation, interpolation_alpha);
-				scale = rtm::vector_lerp(value0.scale, value1.scale, interpolation_alpha);
-			}
-
-			writer.write_rotation(track_index, rotation);
-			writer.write_translation(track_index, translation);
-			writer.write_scale(track_index, scale);
-			break;
-		}
-		default:
-			ACL_ASSERT(false, "Invalid track type");
-			break;
-		}
+		if (get_track_interpolator() == track_interpolator_t::linear)
+			acl_impl::sample_track_linear(track_, key_frame0, key_frame1, interpolation_alpha, rounding_policy_, track_index, writer);
+		else
+			acl_impl::sample_track_extended(track_, key_frame0, key_frame1, interpolation_alpha, track_index, writer);
 	}
 
 	inline uint32_t track_array::get_raw_size() const
