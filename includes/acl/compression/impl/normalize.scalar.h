@@ -41,12 +41,31 @@ namespace acl
 
 	namespace acl_impl
 	{
+		RTM_FORCE_INLINE rtm::vector4f RTM_SIMD_CALL normalize_scalarf_value(
+			rtm::vector4f_arg0 value, rtm::vector4f_arg1 range_min, rtm::vector4f_arg2 range_extent,
+			rtm::vector4f_arg3 zero, rtm::vector4f_arg4 one, rtm::mask4f_arg5 is_range_zero_mask
+			)
+		{
+			// normalized value is between [0.0 .. 1.0]
+			// value = (normalized value * range extent) + range min
+			// normalized value = (value - range min) / range extent
+			rtm::vector4f normalized_sample = rtm::vector_div(rtm::vector_sub(value, range_min), range_extent);
+
+			// Clamp because the division might be imprecise
+			normalized_sample = rtm::vector_min(normalized_sample, one);
+			normalized_sample = rtm::vector_select(is_range_zero_mask, zero, normalized_sample);
+
+			ACL_ASSERT(rtm::vector_all_greater_equal(normalized_sample, zero) && rtm::vector_all_less_equal(normalized_sample, one), "Invalid normalized value. 0.0 <= [%f, %f, %f, %f] <= 1.0", (float)rtm::vector_get_x(normalized_sample), (float)rtm::vector_get_y(normalized_sample), (float)rtm::vector_get_z(normalized_sample), (float)rtm::vector_get_w(normalized_sample));
+
+			return normalized_sample;
+		}
+
 		inline void normalize_scalarf_track(track& mut_track, const scalarf_range& range)
 		{
 			const rtm::vector4f one = rtm::vector_set(1.0F);
 			const rtm::vector4f zero = rtm::vector_zero();
 
-			track_vector4f& typed_track = track_cast<track_vector4f>(mut_track);
+			track_vector4f_ex& typed_track = track_cast<track_vector4f_ex>(mut_track);
 
 			const uint32_t num_samples = mut_track.get_num_samples();
 
@@ -56,20 +75,9 @@ namespace acl
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
-				// normalized value is between [0.0 .. 1.0]
-				// value = (normalized value * range extent) + range min
-				// normalized value = (value - range min) / range extent
-				const rtm::vector4f sample = typed_track[sample_index];
+				track_extended_sample_t<rtm::vector4f>& sample = typed_track[sample_index];
 
-				rtm::vector4f normalized_sample = rtm::vector_div(rtm::vector_sub(sample, range_min), range_extent);
-
-				// Clamp because the division might be imprecise
-				normalized_sample = rtm::vector_min(normalized_sample, one);
-				normalized_sample = rtm::vector_select(is_range_zero_mask, zero, normalized_sample);
-
-				ACL_ASSERT(rtm::vector_all_greater_equal(normalized_sample, zero) && rtm::vector_all_less_equal(normalized_sample, one), "Invalid normalized value. 0.0 <= [%f, %f, %f, %f] <= 1.0", (float)rtm::vector_get_x(normalized_sample), (float)rtm::vector_get_y(normalized_sample), (float)rtm::vector_get_z(normalized_sample), (float)rtm::vector_get_w(normalized_sample));
-
-				typed_track[sample_index] = normalized_sample;
+				sample.value = normalize_scalarf_value(sample.value, range_min, range_extent, zero, one, is_range_zero_mask);
 			}
 		}
 

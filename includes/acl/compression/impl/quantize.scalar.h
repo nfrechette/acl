@@ -80,7 +80,7 @@ namespace acl
 		inline void quantize_scalarf_track(track_list_context& context, uint32_t track_index)
 		{
 			const track& ref_track = (*context.reference_list)[track_index];
-			track_vector4f& mut_track = track_cast<track_vector4f>(context.track_list[track_index]);
+			track_vector4f_ex& mut_track = track_cast<track_vector4f_ex>(context.track_list[track_index]);
 
 			const rtm::vector4f precision = rtm::vector_load1(&mut_track.get_description().precision);
 			const uint32_t ref_element_size = ref_track.get_sample_size();
@@ -107,9 +107,9 @@ namespace acl
 				bool is_error_to_high = false;
 				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 				{
-					std::memcpy(&raw_sample, ref_track[sample_index], ref_element_size);
+					std::memcpy(&raw_sample, get_sample_value_ptr(ref_track, sample_index), ref_element_size);
 
-					const rtm::vector4f normalized_sample = mut_track[sample_index];
+					const rtm::vector4f normalized_sample = mut_track[sample_index].value;
 
 					// Decay our value through quantization
 					const rtm::vector4f decayed_normalized_sample = decay_vector4_uXX(normalized_sample, scales);
@@ -140,7 +140,7 @@ namespace acl
 			{
 				// We can't quantize this track, keep it raw
 				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-					std::memcpy(&mut_track[sample_index], ref_track[sample_index], ref_element_size);
+					std::memcpy(&mut_track[sample_index].value, get_sample_value_ptr(ref_track, sample_index), ref_element_size);
 			}
 			else
 			{
@@ -149,7 +149,7 @@ namespace acl
 				const quantization_scales scales(num_bits_at_bit_rate);
 
 				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-					mut_track[sample_index] = pack_vector4_uXX(mut_track[sample_index], scales);
+					mut_track[sample_index].value = pack_vector4_uXX(mut_track[sample_index].value, scales);
 			}
 		}
 

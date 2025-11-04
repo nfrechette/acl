@@ -81,7 +81,7 @@ namespace acl
 				const uint32_t element_size = ref_track.get_sample_size();
 
 				if (constant_values != nullptr)
-					std::memcpy(output_buffer, ref_track[0], element_size);
+					std::memcpy(output_buffer, get_sample_value_ptr(ref_track, 0), element_size);
 
 				output_buffer += element_size;
 			}
@@ -159,8 +159,8 @@ namespace acl
 
 					const track& src_track = is_raw_bit_rate(bit_rate.value) ? ref_track : mut_track;
 
-					const uint32_t* sample_u32 = safe_ptr_cast<const uint32_t>(src_track[sample_index]);
-					const float* sample_f32 = safe_ptr_cast<const float>(src_track[sample_index]);
+					const uint32_t* sample_u32 = safe_ptr_cast<const uint32_t>(get_sample_value_ptr(src_track, sample_index));
+					const float* sample_f32 = safe_ptr_cast<const float>(get_sample_value_ptr(src_track, sample_index));
 					for (uint32_t component_index = 0; component_index < num_components; ++component_index)
 					{
 						if (animated_values != nullptr)

@@ -113,6 +113,75 @@ namespace acl
 			track_list_context& operator=(const track_list_context&) = delete;
 		};
 
+		// Copies the samples from the src track to the dst track
+		// Returns whether or not all samples are valid
+		inline bool copy_samples_as_linear_interpolation(const track& src_track, track_vector4f_ex& dst_track)
+		{
+			const uint32_t ref_sample_size = src_track.get_sample_size();
+			const uint32_t num_samples = src_track.get_num_samples();
+
+			bool are_samples_valid = true;
+			rtm::vector4f sample = rtm::vector_zero();
+
+			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+			{
+				std::memcpy(&sample, src_track[sample_index], ref_sample_size);
+				are_samples_valid &= rtm::scalar_is_finite(rtm::vector_get_x_as_scalar(sample));
+				dst_track[sample_index].set_linear({ sample });
+			}
+
+			return are_samples_valid;
+		}
+
+		template<class sample_type>
+		inline track_extended_sample_t<rtm::vector4f> promote_sample(const sample_type& src_sample)
+		{
+			const size_t sample_size = sample_type::sample_size;
+
+			track_extended_sample_t<rtm::vector4f> result;
+			result.interpolator = src_sample.interpolator;
+			std::memcpy(&result.value, &src_sample.value, sample_size);
+
+			return result;
+		}
+
+		inline track_extended_sample_t<rtm::vector4f> promote_sample(const track& src_track, uint32_t sample_index)
+		{
+			switch (src_track.get_type())
+			{
+			case track_type8::float1f:
+				return promote_sample(track_cast<track_float1f_ex>(src_track)[sample_index]);
+			case track_type8::float2f:
+				return promote_sample(track_cast<track_float2f_ex>(src_track)[sample_index]);
+			case track_type8::float3f:
+				return promote_sample(track_cast<track_float3f_ex>(src_track)[sample_index]);
+			case track_type8::float4f:
+				return promote_sample(track_cast<track_float4f_ex>(src_track)[sample_index]);
+			case track_type8::vector4f:
+				return promote_sample(track_cast<track_vector4f_ex>(src_track)[sample_index]);
+			default:
+				ACL_ASSERT(false, "Unsupported track type");
+				return track_extended_sample_t<rtm::vector4f>{};
+			}
+		}
+
+		inline bool copy_samples(const track& src_track, track_vector4f_ex& dst_track)
+		{
+			bool are_samples_valid = true;
+
+			const uint32_t num_samples = src_track.get_num_samples();
+			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+			{
+				const track_extended_sample_t<rtm::vector4f> sample = promote_sample(src_track, sample_index);
+
+				are_samples_valid &= rtm::scalar_is_finite(rtm::vector_get_x_as_scalar(sample.value));
+
+				dst_track[sample_index] = sample;
+			}
+
+			return are_samples_valid;
+		}
+
 		// Promote scalar tracks to vector tracks for SIMD alignment and padding
 		inline track_array copy_and_promote_track_list(iallocator& allocator, const track_array& ref_track_list, bool& out_are_samples_valid)
 		{
@@ -128,79 +197,21 @@ namespace acl
 				const track& ref_track = ref_track_list[track_index];
 				track& out_track = out_track_list[track_index];
 
-				switch (ref_track.get_type())
+				if (ref_track.get_type() == track_type8::qvvf)
 				{
-				case track_type8::float1f:
-				{
-					const track_float1f& typed_ref_track = track_cast<const track_float1f>(ref_track);
-					track_vector4f track = track_vector4f::make_reserve(ref_track.get_description<track_desc_scalarf>(), allocator, num_samples, sample_rate);
-					for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-					{
-						const rtm::vector4f sample = rtm::vector_load1(&typed_ref_track[sample_index]);
-						are_samples_valid &= rtm::scalar_is_finite(rtm::vector_get_x_as_scalar(sample));
-						track[sample_index] = sample;
-					}
-					out_track = std::move(track);
-					break;
-				}
-				case track_type8::float2f:
-				{
-					const track_float2f& typed_ref_track = track_cast<const track_float2f>(ref_track);
-					track_vector4f track = track_vector4f::make_reserve(ref_track.get_description<track_desc_scalarf>(), allocator, num_samples, sample_rate);
-					for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-					{
-						const rtm::vector4f sample = rtm::vector_load2(&typed_ref_track[sample_index]);
-						are_samples_valid &= rtm::vector_is_finite2(sample);
-						track[sample_index] = sample;
-					}
-					out_track = std::move(track);
-					break;
-				}
-				case track_type8::float3f:
-				{
-					const track_float3f& typed_ref_track = track_cast<const track_float3f>(ref_track);
-					track_vector4f track = track_vector4f::make_reserve(ref_track.get_description<track_desc_scalarf>(), allocator, num_samples, sample_rate);
-					for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-					{
-						const rtm::vector4f sample = rtm::vector_load3(&typed_ref_track[sample_index]);
-						are_samples_valid &= rtm::vector_is_finite3(sample);
-						track[sample_index] = sample;
-					}
-					out_track = std::move(track);
-					break;
-				}
-				case track_type8::float4f:
-				{
-					const track_float4f& typed_ref_track = track_cast<const track_float4f>(ref_track);
-					track_vector4f track = track_vector4f::make_reserve(ref_track.get_description<track_desc_scalarf>(), allocator, num_samples, sample_rate);
-					for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-					{
-						const rtm::vector4f sample = rtm::vector_load(&typed_ref_track[sample_index]);
-						are_samples_valid &= rtm::vector_is_finite(sample);
-						track[sample_index] = sample;
-					}
-					out_track = std::move(track);
-					break;
-				}
-				case track_type8::vector4f:
-				{
-					const track_vector4f& typed_ref_track = track_cast<const track_vector4f>(ref_track);
-					track_vector4f track = track_vector4f::make_reserve(ref_track.get_description<track_desc_scalarf>(), allocator, num_samples, sample_rate);
-					for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-					{
-						const rtm::vector4f sample = typed_ref_track[sample_index];
-						are_samples_valid &= rtm::vector_is_finite(sample);
-						track[sample_index] = sample;
-					}
-					out_track = std::move(track);
-					break;
-				}
-				case track_type8::qvvf:
-				default:
 					ACL_ASSERT(false, "Unexpected track type");
 					are_samples_valid = false;
-					break;
+					continue;
 				}
+
+				track_vector4f_ex track = track_vector4f_ex::make_reserve(ref_track.get_description<track_desc_scalarf>(), allocator, num_samples, sample_rate);
+
+				if (ref_track.get_interpolator() == track_interpolator_t::linear)
+					are_samples_valid &= copy_samples_as_linear_interpolation(ref_track, track);
+				else
+					are_samples_valid &= copy_samples(ref_track, track);
+
+				out_track = std::move(track);
 			}
 
 			out_are_samples_valid = are_samples_valid;
@@ -253,6 +264,31 @@ namespace acl
 			context.track_output_indices = create_output_track_mapping(allocator, track_list, context.num_output_tracks);
 
 			return are_samples_valid;
+		}
+
+		inline const void* get_sample_value_ptr(const track& track_, uint32_t sample_index)
+		{
+			if (track_.get_interpolator() == track_interpolator_t::linear)
+			{
+				return track_[sample_index];
+			}
+
+			switch (track_.get_type())
+			{
+				case track_type8::float1f:
+					return &track_cast<track_float1f_ex>(track_)[sample_index].value;
+				case track_type8::float2f:
+					return &track_cast<track_float2f_ex>(track_)[sample_index].value;
+				case track_type8::float3f:
+					return &track_cast<track_float3f_ex>(track_)[sample_index].value;
+				case track_type8::float4f:
+					return &track_cast<track_float4f_ex>(track_)[sample_index].value;
+				case track_type8::vector4f:
+					return &track_cast<track_vector4f_ex>(track_)[sample_index].value;
+				default:
+					ACL_ASSERT(false, "Unsupported track type");
+					return nullptr;
+			}
 		}
 	}
 
