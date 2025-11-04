@@ -421,13 +421,20 @@ void validate_accuracy(
 	}
 
 	// Regression test
-	for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+	// Sample every sample and in between each sample
+	const uint32_t num_sample_points = (num_samples * 2) - 1;
+	for (uint32_t sample_point = 0; sample_point < num_sample_points; ++sample_point)
 	{
-		const float sample_time = rtm::scalar_min(float(sample_index) / sample_rate, duration);
+		const float sample_index = float(sample_point) * 0.5F;
+		const float sample_time = rtm::scalar_min(sample_index / sample_rate, duration);
 
-		raw_tracks.sample_tracks(sample_time, rounding_policy, raw_tracks_writer);
+		// We use the nearest sample to accurately measure the loss that happened, if any
+		// But only if we land on a sample, otherwise we interpolate
+		const sample_rounding_policy current_rounding_policy = (sample_point % 2) == 0 ? sample_rounding_policy::nearest : sample_rounding_policy::none;
 
-		context.seek(sample_time, rounding_policy);
+		raw_tracks.sample_tracks(sample_time, current_rounding_policy, raw_tracks_writer);
+
+		context.seek(sample_time, current_rounding_policy);
 		context.decompress_tracks(lossy_tracks_writer);
 
 		// Validate decompress_tracks
@@ -441,7 +448,7 @@ void validate_accuracy(
 			if (output_index == k_invalid_track_index)
 				continue;	// Track is being stripped, ignore it
 
-			raw_tracks.sample_track(track_index, sample_time, rounding_policy, raw_track_writer);
+			raw_tracks.sample_track(track_index, sample_time, current_rounding_policy, raw_track_writer);
 			context.decompress_track(output_index, lossy_track_writer);
 
 			switch (track_type)
