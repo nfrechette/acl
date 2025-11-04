@@ -37,20 +37,6 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-	// A constant interpolator sample
-	template<typename sample_type_t>
-	struct sample_constant_data_t
-	{
-		sample_type_t value;
-	};
-
-	// A linear interpolator sample
-	template<typename sample_type_t>
-	struct sample_linear_data_t
-	{
-		sample_type_t value;
-	};
-
 	// A type to encapsulate an extended track sample.
 	// Basic tracks always linearly interpolate while extended tracks can specify
 	// the behavior per sample. Each track sample is uniformly distributed according
@@ -64,27 +50,17 @@ namespace acl
 		// The sample interpolator function
 		sample_interpolator_t interpolator = sample_interpolator_t::linear;
 
-		// A union of all interpolator sample types
-		union sample_data_t
-		{
-			sample_constant_data_t<sample_type_t> constant;
-			sample_linear_data_t<sample_type_t> linear;
+		// The sample value
+		sample_type_t value = {};
 
-			// TODO: Add bezier/hermite/etc support
-		};
-
-		// Our sample data
-		sample_data_t data;
+		// The sample tangents, TODO bezier/hermite/etc
+		//sample_type_t tangent_in = {};
+		//sample_type_t tangent_out = {};
 
 		// Utility helpers to get/set data safely
 
-		void set_constant(const sample_constant_data_t<sample_type_t>& data);
-		const sample_constant_data_t<sample_type_t>& get_constant() const;
-
-		void set_linear(const sample_linear_data_t<sample_type_t>& data);
-		const sample_linear_data_t<sample_type_t>& get_linear() const;
-
-		sample_type_t get_value() const;
+		void set_constant(const sample_type_t& new_value);
+		void set_linear(const sample_type_t& new_value);
 	};
 
 	ACL_IMPL_VERSION_NAMESPACE_END

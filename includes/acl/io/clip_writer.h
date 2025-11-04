@@ -199,18 +199,6 @@ namespace acl
 				});
 		}
 
-		template<typename sample_type>
-		inline void write_sjson_scalar_track_sample_ex(const sample_constant_data_t<sample_type>& sample, char (&buffer)[32], sjson::ArrayWriter& value_writer)
-		{
-			write_sjson_scalar_track_sample_value(sample.value, buffer, value_writer);
-		}
-
-		template<typename sample_type>
-		inline void write_sjson_scalar_track_sample_ex(const sample_linear_data_t<sample_type>& sample, char (&buffer)[32], sjson::ArrayWriter& value_writer)
-		{
-			write_sjson_scalar_track_sample_value(sample.value, buffer, value_writer);
-		}
-
 		// Scalar sample
 		template<typename sample_type>
 		inline void write_sjson_scalar_track_sample(const sample_type& sample, char (&buffer)[32], sjson::ArrayWriter& data_writer)
@@ -231,18 +219,7 @@ namespace acl
 
 					sample_writer["value"] = [&](sjson::ArrayWriter& value_writer)
 						{
-							switch (sample.interpolator)
-							{
-							case sample_interpolator_t::constant:
-								write_sjson_scalar_track_sample_ex(sample.data.constant, buffer, value_writer);
-								break;
-							case sample_interpolator_t::linear:
-								write_sjson_scalar_track_sample_ex(sample.data.linear, buffer, value_writer);
-								break;
-							default:
-								ACL_ASSERT(false, "Unknown sample interpolator type");
-								break;
-							}
+							write_sjson_scalar_track_sample_value(sample.value, buffer, value_writer);
 						};
 				});
 		}

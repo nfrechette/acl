@@ -824,30 +824,13 @@ namespace acl
 				if (!m_parser.array_begins("value"))
 					return true;
 
-				switch (sample_interpolator)
-				{
-				case sample_interpolator_t::constant:
-					if (!m_parser.read(values, num_components))
-						return true;
-
-					out_sample_ex->interpolator = sample_interpolator;
-
-					value = hex_to_float4f(values, num_components);
-					std::memcpy(&out_sample_ex->data.constant.value, &value, sizeof(float) * num_components);
-					break;
-				case sample_interpolator_t::linear:
-					if (!m_parser.read(values, num_components))
-						return true;
-
-					out_sample_ex->interpolator = sample_interpolator;
-
-					value = hex_to_float4f(values, num_components);
-					std::memcpy(&out_sample_ex->data.linear.value, &value, sizeof(float) * num_components);
-					break;
-				default:
-					ACL_ASSERT(false, "Unknown sample interpolator type");
+				if (!m_parser.read(values, num_components))
 					return true;
-				}
+
+				out_sample_ex->interpolator = sample_interpolator;
+
+				value = hex_to_float4f(values, num_components);
+				std::memcpy(&out_sample_ex->value, &value, sizeof(float) * num_components);
 
 				// value array
 				if (!m_parser.array_ends())
@@ -907,30 +890,13 @@ namespace acl
 				if (!m_parser.array_begins("value"))
 					return true;
 
-				switch (sample_interpolator)
-				{
-				case sample_interpolator_t::constant:
-					if (!m_parser.read(values, num_components))
-						return true;
-
-					out_sample_ex->interpolator = sample_interpolator;
-
-					value = { static_cast<float>(values[0]), static_cast<float>(values[1]), static_cast<float>(values[2]), static_cast<float>(values[3]) };
-					std::memcpy(&out_sample_ex->data.constant.value, &value, sizeof(float) * num_components);
-					break;
-				case sample_interpolator_t::linear:
-					if (!m_parser.read(values, num_components))
-						return true;
-
-					out_sample_ex->interpolator = sample_interpolator;
-
-					value = { static_cast<float>(values[0]), static_cast<float>(values[1]), static_cast<float>(values[2]), static_cast<float>(values[3]) };
-					std::memcpy(&out_sample_ex->data.linear.value, &value, sizeof(float) * num_components);
-					break;
-				default:
-					ACL_ASSERT(false, "Unknown sample interpolator type");
+				if (!m_parser.read(values, num_components))
 					return true;
-				}
+
+				out_sample_ex->interpolator = sample_interpolator;
+
+				value = { static_cast<float>(values[0]), static_cast<float>(values[1]), static_cast<float>(values[2]), static_cast<float>(values[3]) };
+				std::memcpy(&out_sample_ex->value, &value, sizeof(float) * num_components);
 
 				// value array
 				if (!m_parser.array_ends())

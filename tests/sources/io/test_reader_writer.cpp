@@ -524,20 +524,8 @@ TEST_CASE("sjson_track_list_reader_writer float1f_ex", "[io]")
 			const track_extended_sample_t<float> ref_sample = ref_track[sample_index];
 			const track_extended_sample_t<float> file_sample = file_track[sample_index];
 
-			switch (ref_sample.interpolator)
-			{
-			case sample_interpolator_t::constant:
-				CHECK(ref_sample.interpolator == file_sample.interpolator);
-				CHECK(rtm::scalar_near_equal(ref_sample.data.constant.value, file_sample.data.constant.value, 0.0F));
-				break;
-			case sample_interpolator_t::linear:
-				CHECK(ref_sample.interpolator == file_sample.interpolator);
-				CHECK(rtm::scalar_near_equal(ref_sample.data.linear.value, file_sample.data.linear.value, 0.0F));
-				break;
-			default:
-				CHECK(false);
-				break;
-			}
+			CHECK(ref_sample.interpolator == file_sample.interpolator);
+			CHECK(rtm::scalar_near_equal(ref_sample.value, file_sample.value, 0.0F));
 		}
 	}
 #endif
@@ -756,20 +744,8 @@ TEST_CASE("sjson_track_list_reader_writer float2f_ex", "[io]")
 			const track_extended_sample_t<rtm::float2f> ref_sample = ref_track[sample_index];
 			const track_extended_sample_t<rtm::float2f> file_sample = file_track[sample_index];
 
-			switch (ref_sample.interpolator)
-			{
-			case sample_interpolator_t::constant:
-				CHECK(ref_sample.interpolator == file_sample.interpolator);
-				CHECK(rtm::vector_all_near_equal2(rtm::vector_load2(&ref_sample.data.constant.value), rtm::vector_load2(&file_sample.data.constant.value), 0.0F));
-				break;
-			case sample_interpolator_t::linear:
-				CHECK(ref_sample.interpolator == file_sample.interpolator);
-				CHECK(rtm::vector_all_near_equal2(rtm::vector_load2(&ref_sample.data.linear.value), rtm::vector_load2(&file_sample.data.linear.value), 0.0F));
-				break;
-			default:
-				CHECK(false);
-				break;
-			}
+			CHECK(ref_sample.interpolator == file_sample.interpolator);
+			CHECK(rtm::vector_all_near_equal2(rtm::vector_load2(&ref_sample.value), rtm::vector_load2(&file_sample.value), 0.0F));
 		}
 	}
 #endif
@@ -988,20 +964,8 @@ TEST_CASE("sjson_track_list_reader_writer float3f_ex", "[io]")
 			const track_extended_sample_t<rtm::float3f> ref_sample = ref_track[sample_index];
 			const track_extended_sample_t<rtm::float3f> file_sample = file_track[sample_index];
 
-			switch (ref_sample.interpolator)
-			{
-			case sample_interpolator_t::constant:
-				CHECK(ref_sample.interpolator == file_sample.interpolator);
-				CHECK(rtm::vector_all_near_equal3(rtm::vector_load3(&ref_sample.data.constant.value), rtm::vector_load3(&file_sample.data.constant.value), 0.0F));
-				break;
-			case sample_interpolator_t::linear:
-				CHECK(ref_sample.interpolator == file_sample.interpolator);
-				CHECK(rtm::vector_all_near_equal3(rtm::vector_load3(&ref_sample.data.linear.value), rtm::vector_load3(&file_sample.data.linear.value), 0.0F));
-				break;
-			default:
-				CHECK(false);
-				break;
-			}
+			CHECK(ref_sample.interpolator == file_sample.interpolator);
+			CHECK(rtm::vector_all_near_equal3(rtm::vector_load3(&ref_sample.value), rtm::vector_load3(&file_sample.value), 0.0F));
 		}
 	}
 #endif
@@ -1220,20 +1184,8 @@ TEST_CASE("sjson_track_list_reader_writer float4f_ex", "[io]")
 			const track_extended_sample_t<rtm::float4f> ref_sample = ref_track[sample_index];
 			const track_extended_sample_t<rtm::float4f> file_sample = file_track[sample_index];
 
-			switch (ref_sample.interpolator)
-			{
-			case sample_interpolator_t::constant:
-				CHECK(ref_sample.interpolator == file_sample.interpolator);
-				CHECK(rtm::vector_all_near_equal(rtm::vector_load(&ref_sample.data.constant.value), rtm::vector_load(&file_sample.data.constant.value), 0.0F));
-				break;
-			case sample_interpolator_t::linear:
-				CHECK(ref_sample.interpolator == file_sample.interpolator);
-				CHECK(rtm::vector_all_near_equal(rtm::vector_load(&ref_sample.data.linear.value), rtm::vector_load(&file_sample.data.linear.value), 0.0F));
-				break;
-			default:
-				CHECK(false);
-				break;
-			}
+			CHECK(ref_sample.interpolator == file_sample.interpolator);
+			CHECK(rtm::vector_all_near_equal(rtm::vector_load(&ref_sample.value), rtm::vector_load(&file_sample.value), 0.0F));
 		}
 	}
 #endif
@@ -1464,20 +1416,8 @@ TEST_CASE("sjson_track_list_reader_writer vector4f_ex", "[io]")
 			const track_extended_sample_vec4f_t& ref_sample = ref_track[sample_index];
 			const track_extended_sample_vec4f_t& file_sample = file_track[sample_index];
 
-			switch (ref_sample.interpolator)
-			{
-			case sample_interpolator_t::constant:
-				CHECK(ref_sample.interpolator == file_sample.interpolator);
-				CHECK(rtm::vector_all_near_equal(ref_sample.data.constant.value, file_sample.data.constant.value, 0.0F));
-				break;
-			case sample_interpolator_t::linear:
-				CHECK(ref_sample.interpolator == file_sample.interpolator);
-				CHECK(rtm::vector_all_near_equal(ref_sample.data.linear.value, file_sample.data.linear.value, 0.0F));
-				break;
-			default:
-				CHECK(false);
-				break;
-			}
+			CHECK(ref_sample.interpolator == file_sample.interpolator);
+			CHECK(rtm::vector_all_near_equal(ref_sample.value, file_sample.value, 0.0F));
 		}
 	}
 #endif

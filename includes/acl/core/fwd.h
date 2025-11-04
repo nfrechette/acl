@@ -56,12 +56,6 @@ namespace acl
 	enum class sample_interpolator_t : uint8_t;
 
 	template<typename sample_type_t>
-	struct sample_constant_data_t;
-
-	template<typename sample_type_t>
-	struct sample_linear_data_t;
-
-	template<typename sample_type_t>
 	struct track_extended_sample_t;
 
 	enum class quality_tier;
