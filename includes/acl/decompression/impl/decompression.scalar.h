@@ -253,6 +253,9 @@ namespace acl
 			const float* range_values = scalars_header.get_track_range_values();
 			const uint8_t* animated_values = scalars_header.get_track_animated_values();
 
+			// TODO: We always consume as many bits from both keyframes since every sample has the same size
+			// when we don't use segments. We could compute the bit offset between both and only increment
+			// the base offset within the loop
 			uint32_t track_bit_offset0 = context.key_frame_bit_offsets[0];
 			uint32_t track_bit_offset1 = context.key_frame_bit_offsets[1];
 
