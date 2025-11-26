@@ -107,31 +107,6 @@ namespace acl
 		static constexpr compressed_tracks_version16 version_supported() { return compressed_tracks_version16::any; }
 
 		//////////////////////////////////////////////////////////////////////////
-		// Transform decompression settings
-
-		//////////////////////////////////////////////////////////////////////////
-		// Whether the specified rotation/translation/scale format are supported or not.
-		// Use this to strip code related to formats you do not need.
-		// Must be static constexpr!
-		static constexpr bool is_rotation_format_supported(rotation_format8 /*format*/) { return true; }
-		static constexpr bool is_translation_format_supported(vector_format8 /*format*/) { return true; }
-		static constexpr bool is_scale_format_supported(vector_format8 /*format*/) { return true; }
-
-		//////////////////////////////////////////////////////////////////////////
-		// Whether rotations should be normalized before being output or not. Some animation
-		// runtimes will normalize in a separate step and do not need the explicit normalization.
-		// Enabled by default for safety.
-		// Must be static constexpr!
-		//ACL_DEPRECATED("Override get_rotation_normalization_policy instead; to be removed in v3.0")
-		static constexpr bool normalize_rotations() { return true; }
-
-		//////////////////////////////////////////////////////////////////////////
-		// The rotation normalization policy controls when rotations are normalized by ACL.
-		// By default, we always normalize to ensure safe output no matter what.
-		// Must be static constexpr!
-		static constexpr rotation_normalization_policy_t get_rotation_normalization_policy() { return rotation_normalization_policy_t::always; }
-
-		//////////////////////////////////////////////////////////////////////////
 		// Whether safety checks are performed when we initialize our context.
 		// When safety checks are disabled, initialization never fails even if it is invalid.
 		// This is meant as a performance optimization for shipping executables with all
@@ -158,6 +133,31 @@ namespace acl
 		// Enabled by default.
 		// Must be static constexpr!
 		static constexpr bool is_per_track_rounding_supported() { return true; }
+
+		//////////////////////////////////////////////////////////////////////////
+		// Transform decompression settings
+
+		//////////////////////////////////////////////////////////////////////////
+		// Whether the specified rotation/translation/scale format are supported or not.
+		// Use this to strip code related to formats you do not need.
+		// Must be static constexpr!
+		static constexpr bool is_rotation_format_supported(rotation_format8 /*format*/) { return true; }
+		static constexpr bool is_translation_format_supported(vector_format8 /*format*/) { return true; }
+		static constexpr bool is_scale_format_supported(vector_format8 /*format*/) { return true; }
+
+		//////////////////////////////////////////////////////////////////////////
+		// Whether rotations should be normalized before being output or not. Some animation
+		// runtimes will normalize in a separate step and do not need the explicit normalization.
+		// Enabled by default for safety.
+		// Must be static constexpr!
+		//ACL_DEPRECATED("Override get_rotation_normalization_policy instead; to be removed in v3.0")
+		static constexpr bool normalize_rotations() { return true; }
+
+		//////////////////////////////////////////////////////////////////////////
+		// The rotation normalization policy controls when rotations are normalized by ACL.
+		// By default, we always normalize to ensure safe output no matter what.
+		// Must be static constexpr!
+		static constexpr rotation_normalization_policy_t get_rotation_normalization_policy() { return rotation_normalization_policy_t::always; }
 
 		//////////////////////////////////////////////////////////////////////////
 		// The database settings to use when decompressing.
