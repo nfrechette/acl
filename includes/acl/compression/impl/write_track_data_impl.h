@@ -55,7 +55,13 @@ namespace acl
 				const uint32_t track_index = context.track_output_indices[output_index];
 
 				if (per_track_metadata != nullptr)
-					per_track_metadata[output_index].bit_rate = context.is_constant(track_index) ? static_cast<uint8_t>(0) : context.bit_rate_list[track_index].scalar.value;
+				{
+					const uint8_t bit_rate = context.is_constant(track_index) ? static_cast<uint8_t>(0) : context.bit_rate_list[track_index].scalar.value;
+					const bool has_extended_samples = has_non_linear_samples(context.track_list[track_index]);
+
+					per_track_metadata[output_index].set_bit_rate(bit_rate);
+					per_track_metadata[output_index].set_has_extended_samples(has_extended_samples);
+				}
 
 				output_buffer += sizeof(track_metadata);
 			}
@@ -156,8 +162,32 @@ namespace acl
 
 					const scalar_bit_rate bit_rate = context.bit_rate_list[track_index].scalar;
 					const uint64_t num_bits_per_component = get_num_bits_at_bit_rate(bit_rate.value);
+					const bool has_extended_samples = has_non_linear_samples(mut_track);
 
 					const track& src_track = is_raw_bit_rate(bit_rate.value) ? ref_track : mut_track;
+
+					if (has_extended_samples)
+					{
+						// Reserving 2 bits for sample interpolator
+						constexpr uint32_t interpolator_num_bits = 2;
+
+						if (animated_values != nullptr)
+						{
+							const track_vector4f_ex& mut_track_ex = track_cast<track_vector4f_ex>(mut_track);
+							const sample_interpolator_t interpolator = mut_track_ex[sample_index].interpolator;
+
+							uint32_t interpolator_u32 = static_cast<uint32_t>(interpolator);
+							ACL_ASSERT(interpolator_u32 < 4, "Sample interpolator must fit on 2 bits");
+
+							// Convert to BigEndian to match other values
+							interpolator_u32 = interpolator_u32 << (32 - interpolator_num_bits);
+							interpolator_u32 = byte_swap(interpolator_u32);
+
+							memcpy_bits(output_buffer, output_bit_offset, &interpolator_u32, 0, interpolator_num_bits);
+						}
+
+						output_bit_offset += interpolator_num_bits;
+					}
 
 					const uint32_t* sample_u32 = safe_ptr_cast<const uint32_t>(get_sample_value_ptr(src_track, sample_index));
 					const float* sample_f32 = safe_ptr_cast<const float>(get_sample_value_ptr(src_track, sample_index));

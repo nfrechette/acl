@@ -154,6 +154,7 @@ namespace acl
 			header->num_tracks = context.num_output_tracks;
 			header->num_samples = context.num_output_tracks != 0 ? context.num_samples : 0;
 			header->sample_rate = context.num_output_tracks != 0 ? context.sample_rate : 0.0F;
+			header->set_has_extended_samples(has_non_linear_samples(context.track_list));
 			header->set_is_wrap_optimized(context.looping_policy == sample_looping_policy::wrap);
 			header->set_has_metadata(metadata_size != 0);
 

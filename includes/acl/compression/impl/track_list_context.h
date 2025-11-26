@@ -290,6 +290,33 @@ namespace acl
 					return nullptr;
 			}
 		}
+
+		inline bool has_non_linear_samples(const track& track_)
+		{
+			const track_vector4f_ex& track__ = track_cast<track_vector4f_ex>(track_);
+			const uint32_t num_samples = track__.get_num_samples();
+
+			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+			{
+				if (track__[sample_index].interpolator != sample_interpolator_t::linear)
+					return true;
+			}
+
+			// All samples use linear interpolation
+			return false;
+		}
+
+		inline bool has_non_linear_samples(const track_array& track_list)
+		{
+			for (const track& track_ : track_list)
+			{
+				if (has_non_linear_samples(track_))
+					return true;
+			}
+
+			// All track samples use linear interpolation
+			return false;
+		}
 	}
 
 	ACL_IMPL_VERSION_NAMESPACE_END

@@ -163,6 +163,18 @@ namespace acl
 		// The database settings to use when decompressing.
 		// By default, the database isn't supported.
 		using database_settings_type = null_database_settings;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Scalar decompression settings
+
+		//////////////////////////////////////////////////////////////////////////
+		// Whether or not to enable support for extended samples.
+		// Extended samples can be used to select per sample how to interpolate
+		// (e.g. constant, linear, etc).
+		// See 'track_extended_sample_t' for details.
+		// Enabled by default.
+		// Must be static constexpr!
+		static constexpr bool are_extended_samples_supported() { return true; }
 	};
 
 	//////////////////////////////////////////////////////////////////////////

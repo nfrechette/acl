@@ -88,7 +88,8 @@ namespace acl
 			// Accessors for 'misc_packed'
 
 			// Scalar tracks use it like this (listed from LSB):
-			// Bits [0, 30): unused (30 bits)
+			// Bits [0, 29): unused (29 bits)
+			// Bit 29: has extended samples? See track_extended_sample_t for details.
 			// Bit 30: is wrap optimized? See sample_looping_policy for details.
 			// Bit 31: has metadata?
 
@@ -123,6 +124,10 @@ namespace acl
 			bool get_has_stripped_keyframes() const { ACL_ASSERT(track_type == track_type8::qvvf, "Transform tracks only"); return (misc_packed & (1 << 10)) != 0; }
 			void set_has_stripped_keyframes(bool has_stripped_keyframes) { ACL_ASSERT(track_type == track_type8::qvvf, "Transform tracks only"); misc_packed = (misc_packed & ~(1 << 10)) | (static_cast<uint32_t>(has_stripped_keyframes) << 10); }
 
+			// Scalar only
+			bool get_has_extended_samples() const { return (misc_packed & (1 << 29)) != 0; }
+			void set_has_extended_samples(bool has_extended_samples) { misc_packed = (misc_packed & ~(1 << 29)) | (static_cast<uint8_t>(has_extended_samples) << 29); }
+
 			// Common
 			bool get_is_wrap_optimized() const { return (misc_packed & (1 << 30)) != 0; }
 			void set_is_wrap_optimized(bool is_wrap_optimized) { misc_packed = (misc_packed & ~(1 << 30)) | (static_cast<uint32_t>(is_wrap_optimized) << 30); }
@@ -133,7 +138,16 @@ namespace acl
 		// Scalar track metadata
 		struct track_metadata
 		{
-			uint8_t			bit_rate;
+			// Packing (listed from LSB):
+			// Bits [0, 5): bit rate
+			// Bit 5: uses extended samples
+			// Bits [6, 8): 2 bits unused
+			uint8_t packed;
+
+			uint8_t get_bit_rate() const { return packed & 31; }
+			void set_bit_rate(uint8_t bit_rate) { ACL_ASSERT(bit_rate < 32, "Unexpected bit rate value"); packed = (packed & ~31) | bit_rate; }
+			bool get_has_extended_samples() const { return (packed >> 5) != 0; }
+			void set_has_extended_samples(bool has_extended_samples) { packed = (packed & ~(1 << 5)) | (static_cast<uint8_t>(has_extended_samples) << 5); }
 		};
 
 		// Header for scalar 'compressed_tracks'
