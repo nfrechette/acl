@@ -42,6 +42,8 @@ Note that *iOS* builds have never been tested on an emulator.
 
 Emscripten support currently only has been tested on OS X and Linux. To use it, make sure to install a recent version of Emscripten SDK 1.39.11+.
 
+By default, `make.py` compiles the Emscripten unit tests and the `acl_compressor` tool with WebAssembly SIMD (`-msimd128`). To test the scalar code path, use `-nosimd`. The unit tests run with Node.js, which must support WebAssembly SIMD (version 16.4 or later).
+
 ## Commit message format
 
 This library uses the [angular.js message format](https://github.com/angular/angular.js/blob/master/DEVELOPERS.md#commits) and it is enforced with commit linting through every pull request.
