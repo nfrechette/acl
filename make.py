@@ -28,6 +28,10 @@ def is_host_cpu_arm64():
 		is_arm64_cpu = True
 	return is_arm64_cpu
 
+def is_host_cpu_armv7():
+	# armv8l is a 32-bit ARM user space on a 64-bit ARM processor
+	return platform.machine() == 'armv7l' or platform.machine() == 'armv8l'
+
 def parse_argv():
 	parser = argparse.ArgumentParser(add_help=False)
 
@@ -43,7 +47,7 @@ def parse_argv():
 	actions.add_argument('-convert', help='Input/Output directory to convert')
 
 	target = parser.add_argument_group(title='Target')
-	target.add_argument('-compiler', choices=['vs2015', 'vs2017', 'vs2019', 'vs2022', 'vs2019-clang', 'vs2022-clang', 'android', 'clang4', 'clang5', 'clang6', 'clang7', 'clang8', 'clang9', 'clang10', 'clang11', 'clang12', 'clang13', 'clang14', 'clang15', 'clang16', 'clang17', 'clang18', 'gcc4.9', 'gcc5', 'gcc6', 'gcc7', 'gcc8', 'gcc9', 'gcc10', 'gcc11', 'gcc12', 'gcc13', 'osx', 'ios', 'emscripten'], help='Defaults to the host system\'s default compiler')
+	target.add_argument('-compiler', choices=['vs2015', 'vs2017', 'vs2019', 'vs2022', 'vs2026', 'vs2019-clang', 'vs2022-clang', 'vs2026-clang', 'android', 'clang4', 'clang5', 'clang6', 'clang7', 'clang8', 'clang9', 'clang10', 'clang11', 'clang12', 'clang13', 'clang14', 'clang15', 'clang16', 'clang17', 'clang18', 'clang19', 'clang20', 'clang21', 'clang22', 'clang23', 'gcc4.9', 'gcc5', 'gcc6', 'gcc7', 'gcc8', 'gcc9', 'gcc10', 'gcc11', 'gcc12', 'gcc13', 'gcc14', 'gcc15', 'osx', 'ios', 'emscripten'], help='Defaults to the host system\'s default compiler')
 	target.add_argument('-config', choices=['Debug', 'Release'], type=str.capitalize)
 	target.add_argument('-cpu', choices=['x86', 'x64', 'armv7', 'arm64', 'arm64ec', 'wasm'], help='Defaults to the host system\'s architecture')
 	target.add_argument('-cpp_version', choices=['11', '14', '17', '20'], help='Defaults to C++11')
@@ -74,6 +78,7 @@ def parse_argv():
 	args = parser.parse_args()
 
 	is_arm64_cpu = is_host_cpu_arm64()
+	is_armv7_cpu = is_host_cpu_armv7()
 
 	# Sanitize and validate our options
 	if (args.use_avx or args.use_avx2) and not args.use_simd:
@@ -138,6 +143,8 @@ def parse_argv():
 		if not args.cpu:
 			if is_arm64_cpu:
 				args.cpu = 'arm64'
+			elif is_armv7_cpu:
+				args.cpu = 'armv7'
 			else:
 				args.cpu = 'x64'
 
@@ -145,7 +152,7 @@ def parse_argv():
 		is_arm_supported = False
 
 		# Cross compilation
-		if args.compiler in ['vs2017', 'vs2019', 'vs2022', 'ios', 'android']:
+		if args.compiler in ['vs2017', 'vs2019', 'vs2022', 'vs2026', 'ios', 'android']:
 			is_arm_supported = True
 
 		# Native compilation
@@ -155,15 +162,25 @@ def parse_argv():
 			is_arm_supported = True
 
 		if not is_arm_supported:
-			print('arm64 is only supported with VS2017, VS2019, VS2022, OS X (M* processors), Linux, Android, and iOS')
+			print('arm64 is only supported with VS2017, VS2019, VS2022, VS2026, OS X (M* processors), Linux, Android, and iOS')
 			sys.exit(1)
 	elif args.cpu == 'arm64ec':
-		if not args.compiler in ['vs2019', 'vs2022']:
-			print('arm64ec is only supported with VS2019 and VS2022')
+		if not args.compiler in ['vs2019', 'vs2022', 'vs2026']:
+			print('arm64ec is only supported with VS2019, VS2022, and VS2026')
 			sys.exit(1)
 	elif args.cpu == 'armv7':
-		if not args.compiler == 'android':
-			print('armv7 is only supported with Android')
+		is_armv7_supported = False
+
+		# Cross compilation
+		if args.compiler == 'android':
+			is_armv7_supported = True
+
+		# Native compilation
+		if platform.system() == 'Linux' and is_armv7_cpu:
+			is_armv7_supported = True
+
+		if not is_armv7_supported:
+			print('armv7 is only supported with Linux and Android')
 			sys.exit(1)
 	elif args.cpu == 'wasm':
 		if not args.compiler == 'emscripten':
@@ -201,6 +218,9 @@ def get_generator(compiler, cpu):
 			return 'Visual Studio 16 2019'
 		elif compiler == 'vs2022' or compiler == 'vs2022-clang':
 			return 'Visual Studio 17 2022'
+		elif compiler == 'vs2026' or compiler == 'vs2026-clang':
+			# VS2026 support needs cmake 4.2 and up
+			return 'Visual Studio 18 2026'
 		elif compiler == 'android':
 			# For Android, we use the default generator since we don't build with CMake
 			return None
@@ -234,6 +254,8 @@ def get_architecture(compiler, cpu):
 		if compiler == 'vs2019' or compiler == 'vs2019-clang':
 			is_modern_vs = True
 		elif compiler == 'vs2022' or compiler == 'vs2022-clang':
+			is_modern_vs = True
+		elif compiler == 'vs2026' or compiler == 'vs2026-clang':
 			is_modern_vs = True
 
 		if is_modern_vs:
@@ -301,6 +323,21 @@ def set_compiler_env(compiler, args):
 		elif compiler == 'clang18':
 			os.environ['CC'] = 'clang-18'
 			os.environ['CXX'] = 'clang++-18'
+		elif compiler == 'clang19':
+			os.environ['CC'] = 'clang-19'
+			os.environ['CXX'] = 'clang++-19'
+		elif compiler == 'clang20':
+			os.environ['CC'] = 'clang-20'
+			os.environ['CXX'] = 'clang++-20'
+		elif compiler == 'clang21':
+			os.environ['CC'] = 'clang-21'
+			os.environ['CXX'] = 'clang++-21'
+		elif compiler == 'clang22':
+			os.environ['CC'] = 'clang-22'
+			os.environ['CXX'] = 'clang++-22'
+		elif compiler == 'clang23':
+			os.environ['CC'] = 'clang-23'
+			os.environ['CXX'] = 'clang++-23'
 		elif compiler == 'gcc4.9':
 			os.environ['CC'] = 'gcc-4.9'
 			os.environ['CXX'] = 'g++-4.9'
@@ -331,6 +368,12 @@ def set_compiler_env(compiler, args):
 		elif compiler == 'gcc13':
 			os.environ['CC'] = 'gcc-13'
 			os.environ['CXX'] = 'g++-13'
+		elif compiler == 'gcc14':
+			os.environ['CC'] = 'gcc-14'
+			os.environ['CXX'] = 'g++-14'
+		elif compiler == 'gcc15':
+			os.environ['CC'] = 'gcc-15'
+			os.environ['CXX'] = 'g++-15'
 		elif compiler == 'emscripten':
 			# Nothing to do for Emscripten
 			return
@@ -421,7 +464,7 @@ def do_generate_solution(build_dir, cmake_script_dir, regression_test_data_dir, 
 			print('Using default generator')
 		else:
 			generator_suffix = ''
-			if compiler == 'vs2019-clang' or compiler == 'vs2022-clang':
+			if compiler == 'vs2019-clang' or compiler == 'vs2022-clang' or compiler == 'vs2026-clang':
 				extra_switches.append('-T ClangCL')
 				generator_suffix = 'Clang CL'
 
@@ -938,7 +981,7 @@ def do_run_bench_android(build_dir, args):
 def do_pull_bench_android(build_dir):
 	# Grab the android directory we wrote the results to
 	output = str(subprocess.check_output('adb logcat -s acl -e "Benchmark results will be written to:" -m 1 -d'))
-	matches = re.search('Benchmark results will be written to: ([/\.\w]+)', output)
+	matches = re.search(r'Benchmark results will be written to: ([/\.\w]+)', output)
 	if matches == None:
 		print('Failed to find Android source directory from ADB')
 		android_src_dir = '/storage/emulated/0/Android/data/com.acl.decompressor/files'
@@ -1011,7 +1054,9 @@ if __name__ == "__main__":
 		is_cross_compiling = True
 	elif args.cpu == 'x86' or args.cpu == 'x64':
 		is_cross_compiling = is_host_cpu_arm64()
-	elif args.cpu == 'armv7' or args.cpu == 'arm64' or args.cpu == 'arm64ec':
+	elif args.cpu == 'armv7':
+		is_cross_compiling = not is_host_cpu_armv7()
+	elif args.cpu == 'arm64' or args.cpu == 'arm64ec':
 		is_cross_compiling = not is_host_cpu_arm64()
 
 	# We always prepare this since for Android/iOS the data is included as part of the executable

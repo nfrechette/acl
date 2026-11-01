@@ -20,6 +20,12 @@ On all three platforms, *AVX* support can be enabled by using the `-avx` switch.
 
 For *Windows on ARM64*, the steps are identical to *x86 and x64* but you will need *CMake 3.13 or higher* and you must provide the architecture on the command line: `python make.py -compiler vs2017 -cpu arm64`
 
+### Linux ARMv7
+
+For native *Linux on ARMv7*, the steps are identical to *x86 and x64* and `make.py` selects the `armv7` architecture automatically. You can generate build files with: `python make.py -cpu armv7`
+
+With SIMD enabled, the build adds `-mfpu=neon` because the Linux `armhf` compilers do not enable NEON by default.
+
 ### Android
 
 For *Android*, the steps are identical to *Windows, Linux, and OS X* but you also need to install *Android NDK 21* (or higher). The build uses `gradle` and `-unit_test` as well as `-regression_test` will deploy and run on the device when executed (make sure that the `adb` executable is in your `PATH` for this to work).
