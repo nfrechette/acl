@@ -549,7 +549,7 @@ namespace acl
 
 		// Combine our pairs
 		uint64x2_t xy = vcombine_u64(vget_low_u64(vreinterpretq_u64_u8(xz)), vget_low_u64(vreinterpretq_u64_u8(y_)));
-		uint64x2_t zz = vdupq_lane_u64(vget_high_u64(xz), 0);
+		uint64x2_t zz = vdupq_lane_u64(vget_high_u64(vreinterpretq_u64_u8(xz)), 0);
 
 		// Shift out the extra bits
 		const int64x2_t shift_offset_s64 = vdupq_n_s64(shift_offset);
