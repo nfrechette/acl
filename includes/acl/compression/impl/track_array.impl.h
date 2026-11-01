@@ -310,8 +310,8 @@ namespace acl
 					// True if interpolation alpha is 0.0, false otherwise
 					const rtm::mask4f no_rounding_mask = rtm::vector_equal(rtm::vector_set(alpha), rtm::vector_zero());
 
-					const rtm::qvvf& value0 = track_[key_frame0];
-					const rtm::qvvf& value1 = track_[key_frame1];
+					const rtm::vqvf& value0 = track_[key_frame0];
+					const rtm::vqvf& value1 = track_[key_frame1];
 
 					// We normalize rotations for safety, just like we do during compression when building the raw context
 					const rtm::quatf rotation0 = acl_impl::quat_normalize_stable(value0.rotation);
@@ -584,8 +584,8 @@ namespace acl
 			{
 				const track_qvvf& track__ = track_cast<track_qvvf>(track_);
 
-				const rtm::qvvf& value0 = track__[key_frame0];
-				const rtm::qvvf& value1 = track__[key_frame1];
+				const rtm::vqvf& value0 = track__[key_frame0];
+				const rtm::vqvf& value1 = track__[key_frame1];
 
 				// We normalize rotations for safety, just like we do during compression when building the raw context
 				const rtm::quatf rotation0 = acl_impl::quat_normalize_stable(value0.rotation);

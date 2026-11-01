@@ -6,11 +6,11 @@ Some care must be taken when selecting which error metric to use. If the error i
 
 ## qvvf_transform_error_metric
 
-This implementation will use `rtm::qvvf` (which implements Vector-Quaternion-Vector (*VQV*) arithmetic) to calculate the error both when scale is present and when it isn't and for both local and object space. It is a solid default and it should handle very well most clips in the wild. However take note that because it uses a simple `vector3` to represent the 3D scale component, it cannot properly handle skew and shear that arises as a result of combining multiple transforms in a bone chain. In practice it rarely matters and if you truly need this, an error metric that uses matrices when scale is present might perform better or by using Vector-Quaternion-Matrix (*VQM*) arithmetic.
+This implementation will use `rtm::vqvf` (which implements Vector-Quaternion-Vector (*VQV*) arithmetic) to calculate the error both when scale is present and when it isn't and for both local and object space. It is a solid default and it should handle very well most clips in the wild. However take note that because it uses a simple `vector3` to represent the 3D scale component, it cannot properly handle skew and shear that arises as a result of combining multiple transforms in a bone chain. In practice it rarely matters and if you truly need this, an error metric that uses matrices when scale is present might perform better or by using Vector-Quaternion-Matrix (*VQM*) arithmetic.
 
 ## qvvf_matrix3x4f_transform_error_metric
 
-This implementation uses `rtm::qvvf` when there is no scale in both local and object space and as well as local space when there is scale. This is generally safe because there is no skew or shear present in the transform. However, when scale is present the object space error metric will convert the transforms into `rtm::matrix3x4f` in order to combine them into the final object space transform for the bone. This properly handles 3D scale but due to numerical accuracy constraints the error can accumulate to unacceptable levels when very large or very small scale is present and combined with very large translations.
+This implementation uses `rtm::vqvf` when there is no scale in both local and object space and as well as local space when there is scale. This is generally safe because there is no skew or shear present in the transform. However, when scale is present the object space error metric will convert the transforms into `rtm::matrix3x4f` in order to combine them into the final object space transform for the bone. This properly handles 3D scale but due to numerical accuracy constraints the error can accumulate to unacceptable levels when very large or very small scale is present and combined with very large translations.
 
 ## additive_qvvf_transform_error_metric
 
@@ -26,5 +26,5 @@ In order to implement your own error metric you need to figure out how your host
 
 Fundamentally the interface requires you to implement two versions of the error metric: with or without scale. The variants with no scale are only present as an optimization to avoid unnecessary computation when a clip does not contain any scale. It is common enough to warrant an optimized code path.
 
-If your error metric uses a different type than `rtm::qvvf`, you can implement the other functions as needed. See the interface for details.
+If your error metric uses a different type than `rtm::vqvf`, you can implement the other functions as needed. See the interface for details.
 

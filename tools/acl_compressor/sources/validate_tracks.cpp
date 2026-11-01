@@ -51,8 +51,8 @@ void validate_transform_tracks(const acl::acl_impl::debug_track_writer& referenc
 	const uint32_t num_tracks = reference.num_tracks;
 	for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 	{
-		const rtm::qvvf ref_transform = reference.read_qvv(track_index);
-		const rtm::qvvf transform = tracks.read_qvv(track_index);
+		const rtm::vqvf ref_transform = reference.read_qvv(track_index);
+		const rtm::vqvf transform = tracks.read_qvv(track_index);
 
 		// If our default sub-track mode is skipped or variable, our lossy transform should equal the ref transform
 		// But if the constant mode is used, we must check that as well
@@ -231,11 +231,11 @@ void validate_accuracy(
 		// Validate decompress_track against decompress_tracks
 		for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 		{
-			const rtm::qvvf transform0 = track_writer.read_qvv(track_index);
+			const rtm::vqvf transform0 = track_writer.read_qvv(track_index);
 
 			// Make sure single track decompression matches
 			context.decompress_track(track_index, track_writer);
-			const rtm::qvvf transform1 = track_writer.read_qvv(track_index);
+			const rtm::vqvf transform1 = track_writer.read_qvv(track_index);
 
 			// Rotations can differ a bit due to how we normalize during interpolation
 			ACL_ASSERT(are_rotations_equal(transform0.rotation, transform1.rotation, quat_error_threshold),
@@ -721,8 +721,8 @@ static void compare_raw_with_compressed(iallocator& allocator, const track_array
 			}
 			case track_type8::qvvf:
 			{
-				const rtm::qvvf raw_sample = *acl_impl::bit_cast<const rtm::qvvf*>(raw_track[sample_index]);
-				const rtm::qvvf compressed_sample = writer.read_qvv(track_index);
+				const rtm::vqvf raw_sample = *acl_impl::bit_cast<const rtm::vqvf*>(raw_track[sample_index]);
+				const rtm::vqvf compressed_sample = writer.read_qvv(track_index);
 
 				// Rotations can differ a bit due to how we normalize during interpolation
 				ACL_ASSERT(rtm::quat_near_equal(raw_sample.rotation, compressed_sample.rotation, 0.0001F), "Unexpected sample");

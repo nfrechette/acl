@@ -148,7 +148,7 @@ namespace acl
 
 		static constexpr track_category8 category = track_category8::transformf;
 
-		using sample_type = rtm::qvvf;
+		using sample_type = rtm::vqvf;
 		using desc_type = track_desc_transformf;
 	};
 

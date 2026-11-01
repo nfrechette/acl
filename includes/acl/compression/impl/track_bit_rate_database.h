@@ -34,7 +34,7 @@
 #include "acl/compression/impl/track_stream.h"
 
 #include <rtm/quatf.h>
-#include <rtm/qvvf.h>
+#include <rtm/vqvf.h>
 #include <rtm/vector4f.h>
 
 #include <cstdint>
@@ -191,11 +191,11 @@ namespace acl
 
 			void set_segment(const transform_streams* bone_streams, uint32_t num_transforms, uint32_t num_samples_per_track);
 
-			void sample(const single_track_query& query, float sample_time, rtm::qvvf* out_transforms, uint32_t num_transforms);
-			rtm::qvvf sample(const single_track_query& query, float sample_time);
+			void sample(const single_track_query& query, float sample_time, rtm::vqvf* out_transforms, uint32_t num_transforms);
+			rtm::vqvf sample(const single_track_query& query, float sample_time);
 
-			void sample(const hierarchical_track_query& query, float sample_time, rtm::qvvf* out_transforms, uint32_t num_transforms);
-			void sample(const every_track_query& query, float sample_time, rtm::qvvf* out_transforms, uint32_t num_transforms);
+			void sample(const hierarchical_track_query& query, float sample_time, rtm::vqvf* out_transforms, uint32_t num_transforms);
+			void sample(const every_track_query& query, float sample_time, rtm::vqvf* out_transforms, uint32_t num_transforms);
 
 			size_t get_allocated_size() const;
 
@@ -851,7 +851,7 @@ namespace acl
 			return scale;
 		}
 
-		inline void track_bit_rate_database::sample(const single_track_query& query, float sample_time, rtm::qvvf* out_local_pose, uint32_t num_transforms)
+		inline void track_bit_rate_database::sample(const single_track_query& query, float sample_time, rtm::vqvf* out_local_pose, uint32_t num_transforms)
 		{
 			ACL_ASSERT(query.m_database == this, "Query has not been built for this database");
 			ACL_ASSERT(out_local_pose != nullptr, "Cannot write to null output local pose");
@@ -872,10 +872,10 @@ namespace acl
 			const rtm::vector4f translation = sample_translation(context, query.m_translation_cache_index);
 			const rtm::vector4f scale = sample_scale(context, query.m_scale_cache_index);
 
-			out_local_pose[query.m_track_index] = rtm::qvv_set(rotation, translation, scale);
+			out_local_pose[query.m_track_index] = rtm::vqv_set(rotation, translation, scale);
 		}
 
-		inline rtm::qvvf track_bit_rate_database::sample(const single_track_query& query, float sample_time)
+		inline rtm::vqvf track_bit_rate_database::sample(const single_track_query& query, float sample_time)
 		{
 			ACL_ASSERT(query.m_database == this, "Query has not been built for this database");
 
@@ -893,10 +893,10 @@ namespace acl
 			const rtm::vector4f translation = sample_translation(context, query.m_translation_cache_index);
 			const rtm::vector4f scale = sample_scale(context, query.m_scale_cache_index);
 
-			return rtm::qvv_set(rotation, translation, scale);
+			return rtm::vqv_set(rotation, translation, scale);
 		}
 
-		inline void track_bit_rate_database::sample(const hierarchical_track_query& query, float sample_time, rtm::qvvf* out_local_pose, uint32_t num_transforms)
+		inline void track_bit_rate_database::sample(const hierarchical_track_query& query, float sample_time, rtm::vqvf* out_local_pose, uint32_t num_transforms)
 		{
 			ACL_ASSERT(out_local_pose != nullptr, "Cannot write to null output local pose");
 			ACL_ASSERT(num_transforms > 0, "Cannot write to empty output local pose");
@@ -923,12 +923,12 @@ namespace acl
 				const rtm::vector4f translation = sample_translation(context, indices.translation_cache_index);
 				const rtm::vector4f scale = sample_scale(context, indices.scale_cache_index);
 
-				out_local_pose[current_track_index] = rtm::qvv_set(rotation, translation, scale);
+				out_local_pose[current_track_index] = rtm::vqv_set(rotation, translation, scale);
 				current_track_index = bone_stream.parent_bone_index;
 			}
 		}
 
-		inline void track_bit_rate_database::sample(const every_track_query& query, float sample_time, rtm::qvvf* out_local_pose, uint32_t num_transforms)
+		inline void track_bit_rate_database::sample(const every_track_query& query, float sample_time, rtm::vqvf* out_local_pose, uint32_t num_transforms)
 		{
 			ACL_ASSERT(out_local_pose != nullptr, "Cannot write to null output local pose");
 			ACL_ASSERT(num_transforms > 0, "Cannot write to empty output local pose");
@@ -954,7 +954,7 @@ namespace acl
 				const rtm::vector4f translation = sample_translation(context, indices.translation_cache_index);
 				const rtm::vector4f scale = sample_scale(context, indices.scale_cache_index);
 
-				out_local_pose[transform_index] = rtm::qvv_set(rotation, translation, scale);
+				out_local_pose[transform_index] = rtm::vqv_set(rotation, translation, scale);
 			}
 		}
 

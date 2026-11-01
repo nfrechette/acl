@@ -95,7 +95,7 @@
 #include <acl/io/clip_reader.h>
 #include <acl/io/clip_writer.h>
 
-#include <rtm/qvvd.h>
+#include <rtm/vqvd.h>
 #include <rtm/scalarf.h>
 
 #include <chrono>
@@ -292,8 +292,8 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 
 		for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 		{
-			const rtm::qvvf& ref_sample = ref_track[sample_index];
-			const rtm::qvvf& file_sample = file_track[sample_index];
+			const rtm::vqvf& ref_sample = ref_track[sample_index];
+			const rtm::vqvf& file_sample = file_track[sample_index];
 			CHECK(rtm::quat_near_equal(ref_sample.rotation, file_sample.rotation, 0.0F));
 			CHECK(rtm::vector_all_near_equal3(ref_sample.translation, file_sample.translation, 0.0F));
 			CHECK(rtm::vector_all_near_equal3(ref_sample.scale, file_sample.scale, 0.0F));

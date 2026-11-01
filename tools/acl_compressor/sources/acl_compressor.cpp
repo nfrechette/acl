@@ -959,18 +959,18 @@ static void create_additive_base_clip(const Options& options, track_array_qvvf& 
 	{
 		track_qvvf& track = clip[bone_index];
 
-		const rtm::qvvf bind_transform = track.get_description().default_value;
+		const rtm::vqvf bind_transform = track.get_description().default_value;
 
 		// Reset our default value to the additive identity
-		track.get_description().default_value = rtm::qvv_identity();
+		track.get_description().default_value = rtm::vqv_identity();
 		if (options.is_bind_pose_additive1)
 			track.get_description().default_value.scale = rtm::vector_set(0.0F);
 
 		for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 		{
-			const rtm::qvvf bone_transform = track[sample_index];
+			const rtm::vqvf bone_transform = track[sample_index];
 
-			rtm::qvvf bind_local_transform = bone_transform;
+			rtm::vqvf bind_local_transform = bone_transform;
 			if (options.is_bind_pose_relative)
 				bind_local_transform = convert_to_relative(bind_transform, bone_transform);
 			else if (options.is_bind_pose_additive0)
@@ -1109,7 +1109,7 @@ static int safe_main_impl(int argc, char* argv[])
 	for (uint32_t track_index = 0; track_index < transform_tracks.get_num_tracks(); ++track_index)
 	{
 		track_qvvf& track = transform_tracks[track_index];
-		track.get_description().default_value = rtm::qvv_identity();
+		track.get_description().default_value = rtm::vqv_identity();
 	}
 #endif
 

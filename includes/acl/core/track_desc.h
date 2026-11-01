@@ -30,7 +30,7 @@
 #include "acl/core/track_types.h"
 #include "acl/core/impl/compiler_utils.h"
 
-#include <rtm/qvvf.h>
+#include <rtm/vqvf.h>
 
 #include <cstdint>
 
@@ -100,7 +100,7 @@ namespace acl
 		// Note that if you do not use the identity here, compressed tracks will not contain the required data
 		// to be able to reconstruct the original tracks on their own: the implementation will have to provide
 		// the default sub-track values (whether constant or variable per sub-track).
-		rtm::qvvf default_value = rtm::qvv_identity();
+		rtm::vqvf default_value = rtm::vqv_identity();
 
 		//////////////////////////////////////////////////////////////////////////
 		// The track output index. When writing out the compressed data stream, this index

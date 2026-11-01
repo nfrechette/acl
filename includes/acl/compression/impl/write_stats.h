@@ -139,12 +139,12 @@ namespace acl
 			const auto calculate_error_squared_impl = std::mem_fn(has_scale ? &itransform_error_metric::calculate_error_squared : &itransform_error_metric::calculate_error_squared_no_scale);
 			const auto apply_additive_to_base_impl = std::mem_fn(has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
 
-			rtm::qvvf* raw_local_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
-			rtm::qvvf* base_local_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
-			rtm::qvvf* lossy_local_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
+			rtm::vqvf* raw_local_pose = allocate_type_array<rtm::vqvf>(allocator, num_bones);
+			rtm::vqvf* base_local_pose = allocate_type_array<rtm::vqvf>(allocator, num_bones);
+			rtm::vqvf* lossy_local_pose = allocate_type_array<rtm::vqvf>(allocator, num_bones);
 
-			rtm::qvvf* raw_object_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
-			rtm::qvvf* lossy_object_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
+			rtm::vqvf* raw_object_pose = allocate_type_array<rtm::vqvf>(allocator, num_bones);
+			rtm::vqvf* lossy_object_pose = allocate_type_array<rtm::vqvf>(allocator, num_bones);
 
 			uint32_t* parent_transform_indices = allocate_type_array<uint32_t>(allocator, num_bones);
 			uint32_t* self_transform_indices = allocate_type_array<uint32_t>(allocator, num_bones);

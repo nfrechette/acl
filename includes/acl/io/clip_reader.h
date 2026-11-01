@@ -43,8 +43,8 @@
 #include <rtm/quatf.h>
 #include <rtm/vector4d.h>
 #include <rtm/vector4f.h>
-#include <rtm/qvvd.h>
-#include <rtm/qvvf.h>
+#include <rtm/vqvd.h>
+#include <rtm/vqvf.h>
 
 #include <sjson/parser.h>
 
@@ -591,7 +591,7 @@ namespace acl
 				if (!m_parser.read("vertex_distance", vertex_distance))
 					goto error;
 
-				rtm::qvvd bind_transform = rtm::qvv_identity();
+				rtm::vqvd bind_transform = rtm::vqv_identity();
 				if (m_is_binary_exact)
 				{
 					sjson::StringView rotation[4];
@@ -634,7 +634,7 @@ namespace acl
 					(*tracks)[i] = track_qvvf::make_ref(desc, nullptr, 0, 30.0F);
 					(*tracks)[i].set_name(convert_string(name));
 
-					rtm::qvvf bind_transform_ = rtm::qvv_cast(bind_transform);
+					rtm::vqvf bind_transform_ = rtm::vqv_cast(bind_transform);
 					bind_transform_.rotation = rtm::quat_normalize_deterministic(bind_transform_.rotation);
 
 					(*tracks)[i].get_description().default_value = bind_transform_;
@@ -679,9 +679,9 @@ namespace acl
 			return value;
 		}
 
-		bool read_qvv_sample(rtm::qvvf& out_sample)
+		bool read_qvv_sample(rtm::vqvf& out_sample)
 		{
-			rtm::qvvf sample = rtm::qvv_identity();
+			rtm::vqvf sample = rtm::vqv_identity();
 			sjson::StringView values_str[4];
 			double values[4] = { 0.0, 0.0, 0.0, 0.0 };
 
@@ -914,18 +914,18 @@ namespace acl
 		// Returns whether we have any errors or not
 		bool read_qvv_sample(
 			track_interpolator_t track_interpolator,
-			rtm::qvvf* out_sample)
+			rtm::vqvf* out_sample)
 		{
 			ACL_ASSERT(track_interpolator == track_interpolator_t::linear, "Unsupported interpolator with qvvf");
 
 			if (!m_parser.array_begins())
 				return true;
 
-			rtm::qvvf value;
+			rtm::vqvf value;
 			if (!read_qvv_sample(value))
 				return true;
 
-			std::memcpy(out_sample, &value, sizeof(rtm::qvvf));
+			std::memcpy(out_sample, &value, sizeof(rtm::vqvf));
 
 			if (!m_parser.array_ends())
 				return true;
@@ -1024,7 +1024,7 @@ namespace acl
 				else
 					scalar_desc.precision = precision < 0.0F ? scalar_desc.precision : precision;
 
-				rtm::qvvf bind_transform = rtm::qvv_identity();
+				rtm::vqvf bind_transform = rtm::vqv_identity();
 				if (m_is_binary_exact)
 				{
 					sjson::StringView rotation[4];
@@ -1090,7 +1090,7 @@ namespace acl
 					rtm::float3f*	float3f;
 					rtm::float4f*	float4f;
 					rtm::vector4f*	vector4f;
-					rtm::qvvf*		qvvf;
+					rtm::vqvf*		qvvf;
 
 					// Extended interpolators
 					track_extended_sample_t<float>* 		float1f_ex;
@@ -1135,7 +1135,7 @@ namespace acl
 					break;
 				case track_type8::qvvf:
 					ACL_ASSERT(track_interpolator == track_interpolator_t::linear, "Unsupported interpolator with qvvf");
-					track_samples_typed.qvvf = allocate_type_array<rtm::qvvf>(m_allocator, m_num_samples);
+					track_samples_typed.qvvf = allocate_type_array<rtm::vqvf>(m_allocator, m_num_samples);
 					break;
 				default:
 					ACL_ASSERT(false, "Unsupported track type");
@@ -1254,7 +1254,7 @@ namespace acl
 						break;
 					case track_type8::qvvf:
 						ACL_ASSERT(track_interpolator == track_interpolator_t::linear, "Unsupported interpolator with qvvf");
-						deallocate_type_array<rtm::qvvf>(m_allocator, track_samples_typed.qvvf, m_num_samples);
+						deallocate_type_array<rtm::vqvf>(m_allocator, track_samples_typed.qvvf, m_num_samples);
 						break;
 					default:
 						ACL_ASSERT(false, "Unsupported track type");

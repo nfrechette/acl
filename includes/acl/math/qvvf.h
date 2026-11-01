@@ -28,7 +28,7 @@
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/math/quatf.h"
 
-#include <rtm/qvvf.h>
+#include <rtm/vqvf.h>
 
 #include <cstdint>
 #include <cstring>
@@ -48,7 +48,7 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE void RTM_SIMD_CALL qvv_mul_point3_x4(
 			rtm::vector4f_arg0 point_xxxx, rtm::vector4f_arg1 point_yyyy, rtm::vector4f_arg2 point_zzzz,
-			rtm::qvvf_argn qvv,
+			rtm::vqvf_argn qvv,
 			rtm::vector4f& out_result_xxxx, rtm::vector4f& out_result_yyyy, rtm::vector4f& out_result_zzzz) RTM_NO_EXCEPT
 		{
 			// AoS equivalent
@@ -70,7 +70,7 @@ namespace acl
 
 		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE void RTM_SIMD_CALL qvv_mul_point3_no_scale_x4(
 			rtm::vector4f_arg0 point_xxxx, rtm::vector4f_arg1 point_yyyy, rtm::vector4f_arg2 point_zzzz,
-			rtm::qvvf_argn qvv,
+			rtm::vqvf_argn qvv,
 			rtm::vector4f& out_result_xxxx, rtm::vector4f& out_result_yyyy, rtm::vector4f& out_result_zzzz) RTM_NO_EXCEPT
 		{
 			// AoS equivalent

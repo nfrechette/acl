@@ -35,7 +35,7 @@
 #include "acl/compression/impl/rigid_shell_utils.h"
 #include "acl/compression/transform_error_metrics.h"
 
-#include <rtm/qvvf.h>
+#include <rtm/vqvf.h>
 
 #include <cstdint>
 
@@ -97,8 +97,8 @@ namespace acl
 			const bool needs_conversion = error_metric.needs_conversion(lossy_clip_context.has_scale);
 
 			const uint32_t dirty_transform_indices[2] = { 0, 1 };
-			rtm::qvvf local_transforms[2];
-			rtm::qvvf base_transforms[2];
+			rtm::vqvf local_transforms[2];
+			rtm::vqvf base_transforms[2];
 			alignas(16) uint8_t local_transforms_converted[1024];	// Big enough for 2 transforms for sure
 			alignas(16) uint8_t base_transforms_converted[1024];	// Big enough for 2 transforms for sure
 
@@ -140,8 +140,8 @@ namespace acl
 				const rtm::vector4f raw_translation = raw_transform_stream.translations.get_sample_clamped(sample_index);
 				const rtm::vector4f raw_scale = raw_transform_stream.scales.get_sample_clamped(sample_index);
 
-				rtm::qvvf raw_transform = rtm::qvv_set(raw_rotation, raw_translation, raw_scale);
-				rtm::qvvf lossy_transform = raw_transform;	// Copy the raw transform
+				rtm::vqvf raw_transform = rtm::vqv_set(raw_rotation, raw_translation, raw_scale);
+				rtm::vqvf lossy_transform = raw_transform;	// Copy the raw transform
 
 				// Fix up our lossy transform with the reference value
 				switch (sub_track_type)
@@ -196,7 +196,7 @@ namespace acl
 					const rtm::vector4f base_translation = additive_base_bone_stream.translations.get_sample_clamped(base_sample_index);
 					const rtm::vector4f base_scale = additive_base_bone_stream.scales.get_sample_clamped(base_sample_index);
 
-					const rtm::qvvf base_transform = rtm::qvv_set(base_rotation, base_translation, base_scale);
+					const rtm::vqvf base_transform = rtm::vqv_set(base_rotation, base_translation, base_scale);
 
 					base_transforms[0] = base_transform;
 					base_transforms[1] = base_transform;
@@ -524,15 +524,15 @@ namespace acl
 
 				dirty_state_t any_constant_changed;
 				dirty_state_t* dirty_states = allocate_type_array<dirty_state_t>(allocator, num_transforms);
-				rtm::qvvf* original_object_pose = allocate_type_array<rtm::qvvf>(allocator, num_transforms);
-				rtm::qvvf* adjusted_object_pose = allocate_type_array<rtm::qvvf>(allocator, num_transforms);
+				rtm::vqvf* original_object_pose = allocate_type_array<rtm::vqvf>(allocator, num_transforms);
+				rtm::vqvf* adjusted_object_pose = allocate_type_array<rtm::vqvf>(allocator, num_transforms);
 
 				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 				{
 					// Iterate over parent transforms first
 					for (uint32_t bone_index : context.topology->roots_first_iterator())
 					{
-						rtm::qvvf& original_object_transform = original_object_pose[bone_index];
+						rtm::vqvf& original_object_transform = original_object_pose[bone_index];
 
 						const transform_range& bone_range = context.ranges[bone_index];
 						transform_streams& bone_stream = segment.bone_streams[bone_index];
@@ -540,7 +540,7 @@ namespace acl
 
 						const track_desc_transformf& desc = track_list[bone_index].get_description();
 						const uint32_t parent_bone_index = desc.parent_index;
-						const rtm::qvvf original_local_transform = rtm::qvv_set(
+						const rtm::vqvf original_local_transform = rtm::vqv_set(
 							raw_bone_stream.rotations.get_raw_sample<rtm::quatf>(sample_index),
 							raw_bone_stream.translations.get_raw_sample<rtm::vector4f>(sample_index),
 							raw_bone_stream.scales.get_raw_sample<rtm::vector4f>(sample_index));
@@ -548,11 +548,11 @@ namespace acl
 						if (parent_bone_index == k_invalid_track_index)
 							original_object_transform = original_local_transform;	// Just copy the root as-is, it has no parent and thus local and object space transforms are equal
 						else if (!has_scale)
-							original_object_transform = rtm::qvv_normalize(rtm::qvv_mul_no_scale(original_local_transform, original_object_pose[parent_bone_index]));
+							original_object_transform = rtm::vqv_normalize(rtm::vqv_mul_no_scale(original_local_transform, original_object_pose[parent_bone_index]));
 						else
-							original_object_transform = rtm::qvv_normalize(rtm::qvv_mul(original_local_transform, original_object_pose[parent_bone_index]));
+							original_object_transform = rtm::vqv_normalize(rtm::vqv_mul(original_local_transform, original_object_pose[parent_bone_index]));
 
-						rtm::qvvf adjusted_local_transform = original_local_transform;
+						rtm::vqvf adjusted_local_transform = original_local_transform;
 
 						dirty_state_t& constant_changed = dirty_states[bone_index];
 						constant_changed.rotation = false;
@@ -601,7 +601,7 @@ namespace acl
 							ACL_ASSERT(rtm::vector_all_near_equal3(bone_stream.scales.get_raw_sample<rtm::vector4f>(0), constant_scale, 0.0F), "Constant scale mismatch!");
 						}
 
-						rtm::qvvf& adjusted_object_transform = adjusted_object_pose[bone_index];
+						rtm::vqvf& adjusted_object_transform = adjusted_object_pose[bone_index];
 						if (parent_bone_index == k_invalid_track_index)
 						{
 							adjusted_object_transform = adjusted_local_transform;	// Just copy the root as-is, it has no parent and thus local and object space transforms are equal
@@ -609,7 +609,7 @@ namespace acl
 						else
 						{
 							const dirty_state_t& parent_constant_changed = dirty_states[parent_bone_index];
-							const rtm::qvvf& parent_adjusted_object_transform = adjusted_object_pose[parent_bone_index];
+							const rtm::vqvf& parent_adjusted_object_transform = adjusted_object_pose[parent_bone_index];
 
 							if (bone_stream.is_rotation_constant && !constant_changed.rotation)
 								constant_changed.rotation = parent_constant_changed.rotation;
@@ -647,7 +647,7 @@ namespace acl
 									bone_stream.scales.set_raw_sample(sample_index, adjusted_local_transform.scale);
 								}
 
-								adjusted_object_transform = rtm::qvv_normalize(rtm::qvv_mul(adjusted_local_transform, parent_adjusted_object_transform));
+								adjusted_object_transform = rtm::vqv_normalize(rtm::vqv_mul(adjusted_local_transform, parent_adjusted_object_transform));
 							}
 							else
 							{
@@ -660,7 +660,7 @@ namespace acl
 									bone_stream.translations.set_raw_sample(sample_index, adjusted_local_transform.translation);
 								}
 
-								adjusted_object_transform = rtm::qvv_normalize(rtm::qvv_mul_no_scale(adjusted_local_transform, parent_adjusted_object_transform));
+								adjusted_object_transform = rtm::vqv_normalize(rtm::vqv_mul_no_scale(adjusted_local_transform, parent_adjusted_object_transform));
 							}
 						}
 					}
@@ -836,10 +836,10 @@ namespace acl
 			rtm::vector4f scale_values[k_num_constant_scale_values];
 
 			bool* needed_transforms = allocate_type_array<bool>(allocator, num_transforms);
-			rtm::qvvf* sample_transforms = allocate_type_array<rtm::qvvf>(allocator, num_transforms);
-			rtm::qvvf* child_to_leaf_transforms = allocate_type_array<rtm::qvvf>(allocator, topology->num_max_leaves_per_transform);
-			rtm::qvvf child_to_dominant_transform = rtm::qvv_identity();
-			rtm::qvvf parent_to_root_transform;
+			rtm::vqvf* sample_transforms = allocate_type_array<rtm::vqvf>(allocator, num_transforms);
+			rtm::vqvf* child_to_leaf_transforms = allocate_type_array<rtm::vqvf>(allocator, topology->num_max_leaves_per_transform);
+			rtm::vqvf child_to_dominant_transform = rtm::vqv_identity();
+			rtm::vqvf parent_to_root_transform;
 
 			uint32_t num_default_bone_scales = 0;
 
@@ -1038,7 +1038,7 @@ namespace acl
 						const rtm::vector4f translation = transform_stream.translations.get_sample_clamped(sample_index);
 						const rtm::vector4f scale = transform_stream.scales.get_sample_clamped(sample_index);
 
-						sample_transforms[transform_index] = rtm::qvv_set(rotation, translation, scale);
+						sample_transforms[transform_index] = rtm::vqv_set(rotation, translation, scale);
 					}
 
 					if (has_additive_base)
@@ -1067,19 +1067,19 @@ namespace acl
 							const rtm::quatf base_rotation = base_transform_stream.rotations.get_sample_clamped(base_sample_index);
 							const rtm::vector4f base_translation = base_transform_stream.translations.get_sample_clamped(base_sample_index);
 							const rtm::vector4f base_scale = base_transform_stream.scales.get_sample_clamped(base_sample_index);
-							const rtm::qvvf base_transform = rtm::qvv_set(base_rotation, base_translation, base_scale);
+							const rtm::vqvf base_transform = rtm::vqv_set(base_rotation, base_translation, base_scale);
 
-							sample_transforms[transform_index] = rtm::qvv_normalize(acl::apply_additive_to_base(additive_format, base_transform, sample_transforms[transform_index]));
+							sample_transforms[transform_index] = rtm::vqv_normalize(acl::apply_additive_to_base(additive_format, base_transform, sample_transforms[transform_index]));
 						}
 					}
 
 					// Compute our root-to-parent transform
 					{
 						uint32_t parent_transform_index = topology->transforms[transform_index_to_test].parent_index;
-						parent_to_root_transform = rtm::qvv_identity();
+						parent_to_root_transform = rtm::vqv_identity();
 						while (parent_transform_index != k_invalid_track_index)
 						{
-							parent_to_root_transform = rtm::qvv_normalize(rtm::qvv_mul(parent_to_root_transform, sample_transforms[parent_transform_index]));
+							parent_to_root_transform = rtm::vqv_normalize(rtm::vqv_mul(parent_to_root_transform, sample_transforms[parent_transform_index]));
 							parent_transform_index = topology->transforms[parent_transform_index].parent_index;
 						}
 					}
@@ -1090,10 +1090,10 @@ namespace acl
 						const uint32_t leaf_transform_index = topology->transforms[transform_index_to_test].leaves[leaf_index];
 
 						uint32_t parent_transform_index = topology->transforms[leaf_transform_index].parent_index;
-						rtm::qvvf child_to_leaf_transform = sample_transforms[leaf_transform_index];
+						rtm::vqvf child_to_leaf_transform = sample_transforms[leaf_transform_index];
 						while (parent_transform_index != transform_index_to_test)
 						{
-							child_to_leaf_transform = rtm::qvv_normalize(rtm::qvv_mul(child_to_leaf_transform, sample_transforms[parent_transform_index]));
+							child_to_leaf_transform = rtm::vqv_normalize(rtm::vqv_mul(child_to_leaf_transform, sample_transforms[parent_transform_index]));
 							parent_transform_index = topology->transforms[parent_transform_index].parent_index;
 						}
 
@@ -1104,10 +1104,10 @@ namespace acl
 					if (!is_dominant_transform_a_leaf)
 					{
 						uint32_t parent_transform_index = dominant_transform_index;
-						child_to_dominant_transform = rtm::qvv_identity();
+						child_to_dominant_transform = rtm::vqv_identity();
 						while (parent_transform_index != transform_index_to_test)
 						{
-							child_to_dominant_transform = rtm::qvv_normalize(rtm::qvv_mul(child_to_dominant_transform, sample_transforms[parent_transform_index]));
+							child_to_dominant_transform = rtm::vqv_normalize(rtm::vqv_mul(child_to_dominant_transform, sample_transforms[parent_transform_index]));
 							parent_transform_index = topology->transforms[parent_transform_index].parent_index;
 						}
 					}
@@ -1115,9 +1115,9 @@ namespace acl
 					const rtm::quatf raw_rotation = bone_stream_to_test.rotations.get_sample_clamped(sample_index);
 					const rtm::vector4f raw_translation = bone_stream_to_test.translations.get_sample_clamped(sample_index);
 					const rtm::vector4f raw_scale = bone_stream_to_test.scales.get_sample_clamped(sample_index);
-					const rtm::qvvf raw_transform = rtm::qvv_set(raw_rotation, raw_translation, raw_scale);
+					const rtm::vqvf raw_transform = rtm::vqv_set(raw_rotation, raw_translation, raw_scale);
 
-					const rtm::qvvf transform_to_root_raw = rtm::qvv_normalize(rtm::qvv_mul(raw_transform, parent_to_root_transform));
+					const rtm::vqvf transform_to_root_raw = rtm::vqv_normalize(rtm::vqv_mul(raw_transform, parent_to_root_transform));
 
 					rotation_values[static_cast<uint32_t>(constant_rotation_value8::animated_quatf_full)] = raw_rotation;
 					translation_values[static_cast<uint32_t>(constant_translation_value8::animated_vector3f_full)] = raw_translation;
@@ -1134,9 +1134,9 @@ namespace acl
 						const rtm::quatf& permutation_rotation = rotation_values[static_cast<uint32_t>(permutation.rotation)];
 						const rtm::vector4f& permutation_translation = translation_values[static_cast<uint32_t>(permutation.translation)];
 						const rtm::vector4f& permutation_scale = scale_values[static_cast<uint32_t>(permutation.scale)];
-						const rtm::qvvf lossy_transform = rtm::qvv_set(permutation_rotation, permutation_translation, permutation_scale);
+						const rtm::vqvf lossy_transform = rtm::vqv_set(permutation_rotation, permutation_translation, permutation_scale);
 
-						const rtm::qvvf transform_to_root_lossy = rtm::qvv_normalize(rtm::qvv_mul(lossy_transform, parent_to_root_transform));
+						const rtm::vqvf transform_to_root_lossy = rtm::vqv_normalize(rtm::vqv_mul(lossy_transform, parent_to_root_transform));
 
 						bool is_permutation_valid = true;
 
@@ -1160,8 +1160,8 @@ namespace acl
 						{
 							const transform_metadata& dominant_metadata = lossy_clip_context.metadata[dominant_transform_index];
 
-							const rtm::qvvf root_to_dominant_raw = rtm::qvv_normalize(rtm::qvv_mul(child_to_dominant_transform, transform_to_root_raw));
-							const rtm::qvvf root_to_dominant_lossy = rtm::qvv_normalize(rtm::qvv_mul(child_to_dominant_transform, transform_to_root_lossy));
+							const rtm::vqvf root_to_dominant_raw = rtm::vqv_normalize(rtm::vqv_mul(child_to_dominant_transform, transform_to_root_raw));
+							const rtm::vqvf root_to_dominant_lossy = rtm::vqv_normalize(rtm::vqv_mul(child_to_dominant_transform, transform_to_root_lossy));
 
 							calculate_error_args.construct_sphere_shell(dominant_metadata.shell_distance);
 							calculate_error_args.transform0 = &root_to_dominant_raw;
@@ -1183,8 +1183,8 @@ namespace acl
 								const uint32_t leaf_transform_index = topology->transforms[transform_index_to_test].leaves[leaf_index];
 								const transform_metadata& leaf_metadata = lossy_clip_context.metadata[leaf_transform_index];
 
-								const rtm::qvvf root_to_leaf_raw = rtm::qvv_normalize(rtm::qvv_mul(child_to_leaf_transforms[leaf_index], transform_to_root_raw));
-								const rtm::qvvf root_to_leaf_lossy = rtm::qvv_normalize(rtm::qvv_mul(child_to_leaf_transforms[leaf_index], transform_to_root_lossy));
+								const rtm::vqvf root_to_leaf_raw = rtm::vqv_normalize(rtm::vqv_mul(child_to_leaf_transforms[leaf_index], transform_to_root_raw));
+								const rtm::vqvf root_to_leaf_lossy = rtm::vqv_normalize(rtm::vqv_mul(child_to_leaf_transforms[leaf_index], transform_to_root_lossy));
 
 								calculate_error_args.construct_sphere_shell(leaf_metadata.shell_distance);
 								calculate_error_args.transform0 = &root_to_leaf_raw;

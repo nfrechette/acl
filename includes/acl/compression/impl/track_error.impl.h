@@ -122,7 +122,7 @@ namespace acl
 			virtual void remap_output(debug_track_writer& track_writer0, debug_track_writer& track_writer1, debug_track_writer& track_writer_remapped)
 			{
 				(void)track_writer0;
-				std::memcpy(track_writer_remapped.tracks_typed.qvvf, track_writer1.tracks_typed.qvvf, sizeof(rtm::qvvf) * track_writer1.num_tracks);
+				std::memcpy(track_writer_remapped.tracks_typed.qvvf, track_writer1.tracks_typed.qvvf, sizeof(rtm::vqvf) * track_writer1.num_tracks);
 			}
 
 			// Transform only, optional, additive base support
@@ -534,7 +534,7 @@ namespace acl
 			{
 				// Perform remapping by copying the raw pose first and we overwrite with the decompressed pose if
 				// the data is available
-				std::memcpy(track_writer_remapped.tracks_typed.qvvf, track_writer0.tracks_typed.qvvf, sizeof(rtm::qvvf) * track_writer_remapped.num_tracks);
+				std::memcpy(track_writer_remapped.tracks_typed.qvvf, track_writer0.tracks_typed.qvvf, sizeof(rtm::vqvf) * track_writer_remapped.num_tracks);
 				for (uint32_t output_index = 0; output_index < num_output_bones; ++output_index)
 				{
 					const uint32_t bone_index = output_bone_mapping[output_index];
@@ -638,7 +638,7 @@ namespace acl
 			{
 				// Perform remapping by copying the raw pose first and we overwrite with the decompressed pose if
 				// the data is available
-				std::memcpy(track_writer_remapped.tracks_typed.qvvf, track_writer0.tracks_typed.qvvf, sizeof(rtm::qvvf) * track_writer_remapped.num_tracks);
+				std::memcpy(track_writer_remapped.tracks_typed.qvvf, track_writer0.tracks_typed.qvvf, sizeof(rtm::vqvf) * track_writer_remapped.num_tracks);
 				for (uint32_t output_index = 0; output_index < num_output_bones; ++output_index)
 				{
 					const uint32_t bone_index = output_bone_mapping[output_index];

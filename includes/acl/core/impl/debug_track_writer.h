@@ -32,7 +32,7 @@
 #include "acl/core/track_types.h"
 #include "acl/core/track_writer.h"
 
-#include <rtm/qvvf.h>
+#include <rtm/vqvf.h>
 #include <rtm/scalarf.h>
 #include <rtm/vector4f.h>
 
@@ -59,8 +59,8 @@ namespace acl
 				, type(type_)
 			{
 				// Large enough to accommodate the largest type
-				buffer_size = sizeof(rtm::qvvf) * num_tracks_;
-				tracks_typed.any = allocator_.allocate(buffer_size, alignof(rtm::qvvf));
+				buffer_size = sizeof(rtm::vqvf) * num_tracks_;
+				tracks_typed.any = allocator_.allocate(buffer_size, alignof(rtm::vqvf));
 			}
 
 			~debug_track_writer()
@@ -198,7 +198,7 @@ namespace acl
 				tracks_typed.qvvf[track_index].scale = scale;
 			}
 
-			const rtm::qvvf& RTM_SIMD_CALL read_qvv(uint32_t track_index) const
+			const rtm::vqvf& RTM_SIMD_CALL read_qvv(uint32_t track_index) const
 			{
 				ACL_ASSERT(type == track_type8::qvvf, "Unexpected track type access");
 				return tracks_typed.qvvf[track_index];
@@ -212,7 +212,7 @@ namespace acl
 				rtm::float3f*	float3f;
 				rtm::float4f*	float4f;
 				rtm::vector4f*	vector4f;
-				rtm::qvvf*		qvvf;
+				rtm::vqvf*		qvvf;
 			};
 
 			iallocator& allocator;
@@ -284,7 +284,7 @@ namespace acl
 			rtm::vector4f RTM_SIMD_CALL get_variable_default_translation(uint32_t track_index) const { return default_sub_tracks[track_index].translation; }
 			rtm::vector4f RTM_SIMD_CALL get_variable_default_scale(uint32_t track_index) const { return default_sub_tracks[track_index].scale; }
 
-			const rtm::qvvf* default_sub_tracks;
+			const rtm::vqvf* default_sub_tracks;
 		};
 
 		//////////////////////////////////////////////////////////////////////////

@@ -32,7 +32,7 @@
 #include "acl/math/quatf.h"
 
 #include <rtm/quatf.h>
-#include <rtm/qvvf.h>
+#include <rtm/vqvf.h>
 #include <rtm/scalarf.h>
 #include <rtm/vector4f.h>
 
@@ -58,7 +58,7 @@ namespace acl
 			{
 				for (uint32_t sample_index = 0; sample_index < num_samples_per_track; ++sample_index)
 				{
-					rtm::qvvf& sample = track_[sample_index];
+					rtm::vqvf& sample = track_[sample_index];
 
 					if (!rtm::quat_is_normalized(sample.rotation))
 						sample.rotation = quat_normalize_stable(sample.rotation);
@@ -75,7 +75,7 @@ namespace acl
 			{
 				for (uint32_t sample_index = 0; sample_index < num_samples_per_track; ++sample_index)
 				{
-					rtm::qvvf& sample = track_[sample_index];
+					rtm::vqvf& sample = track_[sample_index];
 					sample.rotation = rtm::quat_ensure_positive_w(sample.rotation);
 				}
 			}
@@ -131,8 +131,8 @@ namespace acl
 			const bool needs_conversion = error_metric.needs_conversion(has_scale);
 
 			const uint32_t dirty_transform_indices[2] = { 0, 1 };
-			rtm::qvvf local_transforms[2];
-			rtm::qvvf base_transforms[2];
+			rtm::vqvf local_transforms[2];
+			rtm::vqvf base_transforms[2];
 			alignas(16) uint8_t local_transforms_converted[1024];	// Big enough for 2 transforms for sure
 			alignas(16) uint8_t base_transforms_converted[1024];	// Big enough for 2 transforms for sure
 
@@ -179,8 +179,8 @@ namespace acl
 				const rtm::vector4f raw_translation = track_[sample_index].translation;
 				const rtm::vector4f raw_scale = track_[sample_index].scale;
 
-				rtm::qvvf raw_transform = rtm::qvv_set(raw_rotation, raw_translation, raw_scale);
-				rtm::qvvf lossy_transform = raw_transform;	// Copy the raw transform
+				rtm::vqvf raw_transform = rtm::vqv_set(raw_rotation, raw_translation, raw_scale);
+				rtm::vqvf lossy_transform = raw_transform;	// Copy the raw transform
 
 				// Fix up our lossy transform with the reference value
 				switch (sub_track_type)
@@ -233,7 +233,7 @@ namespace acl
 					const rtm::vector4f base_translation = base_track[base_sample_index].translation;
 					const rtm::vector4f base_scale = base_track[base_sample_index].scale;
 
-					const rtm::qvvf base_transform = rtm::qvv_set(base_rotation, base_translation, base_scale);
+					const rtm::vqvf base_transform = rtm::vqv_set(base_rotation, base_translation, base_scale);
 
 					base_transforms[0] = base_transform;
 					base_transforms[1] = base_transform;

@@ -269,7 +269,7 @@ namespace acl
 		}
 		else
 		{
-			out_description.default_value = rtm::qvv_identity();
+			out_description.default_value = rtm::vqv_identity();
 		}
 
 		return true;

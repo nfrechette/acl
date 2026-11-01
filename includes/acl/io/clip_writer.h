@@ -176,7 +176,7 @@ namespace acl
 			sample_writer.push(acl_impl::format_hex_float(rtm::vector_get_w(sample), buffer, sizeof(buffer)));
 		}
 
-		inline void write_sjson_scalar_track_sample_value(const rtm::qvvf& sample, char (&buffer)[32], sjson::ArrayWriter& sample_writer)
+		inline void write_sjson_scalar_track_sample_value(const rtm::vqvf& sample, char (&buffer)[32], sjson::ArrayWriter& sample_writer)
 		{
 			sample_writer.push([&](sjson::ArrayWriter& rotation_writer)
 				{

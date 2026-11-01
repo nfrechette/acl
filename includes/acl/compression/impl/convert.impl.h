@@ -189,7 +189,7 @@ namespace acl
 						*acl_impl::bit_cast<rtm::vector4f*>(track_[sample_index]) = writer.read_vector4(track_index);
 						break;
 					case track_type8::qvvf:
-						*acl_impl::bit_cast<rtm::qvvf*>(track_[sample_index]) = writer.read_qvv(track_index);
+						*acl_impl::bit_cast<rtm::vqvf*>(track_[sample_index]) = writer.read_qvv(track_index);
 						break;
 					default:
 						ACL_ASSERT(false, "Unexpected track type");
@@ -239,7 +239,7 @@ namespace acl
 						*acl_impl::bit_cast<rtm::vector4f*>(track_[sample_index]) = writer.read_vector4(track_index);
 						break;
 					case track_type8::qvvf:
-						*acl_impl::bit_cast<rtm::qvvf*>(track_[sample_index]) = writer.read_qvv(track_index);
+						*acl_impl::bit_cast<rtm::vqvf*>(track_[sample_index]) = writer.read_qvv(track_index);
 						break;
 					default:
 						ACL_ASSERT(false, "Unexpected track type");

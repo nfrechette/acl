@@ -487,7 +487,7 @@ static bool has_zero_scale(const track_array_qvvf& raw_tracks)
 	{
 		for (uint32_t sample_index = 0; sample_index < num_samples_per_track; ++sample_index)
 		{
-			const rtm::qvvf& sample = raw_track[sample_index];
+			const rtm::vqvf& sample = raw_track[sample_index];
 			if (rtm::vector_any_near_equal3(sample.scale, zero, threshold))
 				return true;
 		}

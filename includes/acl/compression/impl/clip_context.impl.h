@@ -144,7 +144,7 @@ namespace acl
 
 				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 				{
-					const rtm::qvvf& transform = track[sample_index];
+					const rtm::vqvf& transform = track[sample_index];
 
 					// If we request raw data and we are already normalized, retain the original value
 					// otherwise we normalize for safety

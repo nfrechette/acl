@@ -29,7 +29,7 @@
 #include <acl/core/bit_manip_utils.h>
 
 #include <rtm/quatf.h>
-#include <rtm/qvvf.h>
+#include <rtm/vqvf.h>
 
 // Interesting notes:
 //
@@ -103,7 +103,7 @@ static constexpr double k_bit_set_densities[] =
 // Direct memory access, minimal overhead
 struct track_writer_light
 {
-	rtm::qvvf* output = nullptr;
+	rtm::vqvf* output = nullptr;
 
 	RTM_FORCE_INLINE bool skip_track(uint32_t track_index) const
 	{
@@ -120,7 +120,7 @@ struct track_writer_light
 // Direct memory access, large overhead
 struct track_writer_heavy
 {
-	rtm::qvvf* output = nullptr;
+	rtm::vqvf* output = nullptr;
 
 	RTM_FORCE_INLINE bool skip_track(uint32_t track_index) const
 	{
@@ -278,7 +278,7 @@ static void bm_bitset_iter_ref(benchmark::State& state, args_&&... args)
 
 	setup_bit_set(bit_set_density, packed_entries, k_num_packed_entries);
 
-	rtm::qvvf* output = new rtm::qvvf[k_num_packed_entries * k_num_bits_per_entry];
+	rtm::vqvf* output = new rtm::vqvf[k_num_packed_entries * k_num_bits_per_entry];
 
 	if (writer_cost == writer_cost_t::light)
 	{
@@ -413,7 +413,7 @@ static void bm_bitset_iter_ref_ptr(benchmark::State& state, args_&&... args)
 
 	setup_bit_set(bit_set_density, packed_entries, k_num_packed_entries);
 
-	rtm::qvvf* output = new rtm::qvvf[k_num_packed_entries * k_num_bits_per_entry];
+	rtm::vqvf* output = new rtm::vqvf[k_num_packed_entries * k_num_bits_per_entry];
 
 	if (writer_cost == writer_cost_t::light)
 	{
@@ -516,7 +516,7 @@ static void bm_bitset_iter_naive(benchmark::State& state, args_&&... args)
 
 	setup_bit_set(bit_set_density, packed_entries, k_num_packed_entries);
 
-	rtm::qvvf* output = new rtm::qvvf[k_num_packed_entries * k_num_bits_per_entry];
+	rtm::vqvf* output = new rtm::vqvf[k_num_packed_entries * k_num_bits_per_entry];
 
 	if (writer_cost == writer_cost_t::light)
 	{
@@ -618,7 +618,7 @@ static void bm_bitset_iter_bit_scan_clz(benchmark::State& state, args_&&... args
 
 	setup_bit_set(bit_set_density, packed_entries, k_num_packed_entries);
 
-	rtm::qvvf* output = new rtm::qvvf[k_num_packed_entries * k_num_bits_per_entry];
+	rtm::vqvf* output = new rtm::vqvf[k_num_packed_entries * k_num_bits_per_entry];
 
 	if (writer_cost == writer_cost_t::light)
 	{
@@ -724,7 +724,7 @@ static void bm_bitset_iter_bit_scan_ctz_32(benchmark::State& state, args_&&... a
 
 	setup_bit_set(bit_set_density, packed_entries, k_num_packed_entries);
 
-	rtm::qvvf* output = new rtm::qvvf[k_num_packed_entries * k_num_bits_per_entry];
+	rtm::vqvf* output = new rtm::vqvf[k_num_packed_entries * k_num_bits_per_entry];
 
 	if (writer_cost == writer_cost_t::light)
 	{
@@ -827,7 +827,7 @@ static void bm_bitset_iter_bit_scan_ctz_64(benchmark::State& state, args_&&... a
 
 	setup_bit_set(bit_set_density, packed_entries, k_num_packed_entries);
 
-	rtm::qvvf* output = new rtm::qvvf[k_num_packed_entries * k_num_bits_per_entry];
+	rtm::vqvf* output = new rtm::vqvf[k_num_packed_entries * k_num_bits_per_entry];
 
 	if (writer_cost == writer_cost_t::light)
 	{
@@ -984,7 +984,7 @@ static void bm_bitset_iter_hybrid_clz(benchmark::State& state, args_&&... args)
 
 	setup_bit_set(bit_set_density, packed_entries, k_num_packed_entries);
 
-	rtm::qvvf* output = new rtm::qvvf[k_num_packed_entries * k_num_bits_per_entry];
+	rtm::vqvf* output = new rtm::vqvf[k_num_packed_entries * k_num_bits_per_entry];
 
 	if (writer_cost == writer_cost_t::light)
 	{
@@ -1144,7 +1144,7 @@ static void bm_bitset_iter_hybrid_ctz(benchmark::State& state, args_&&... args)
 
 	setup_bit_set(bit_set_density, packed_entries, k_num_packed_entries);
 
-	rtm::qvvf* output = new rtm::qvvf[k_num_packed_entries * k_num_bits_per_entry];
+	rtm::vqvf* output = new rtm::vqvf[k_num_packed_entries * k_num_bits_per_entry];
 
 	if (writer_cost == writer_cost_t::light)
 	{
@@ -1451,7 +1451,7 @@ static void bm_bitset_iter_batched_switch(benchmark::State& state, args_&&... ar
 
 	setup_bit_set(bit_set_density, packed_entries, k_num_packed_entries);
 
-	rtm::qvvf* output = new rtm::qvvf[k_num_packed_entries * k_num_bits_per_entry];
+	rtm::vqvf* output = new rtm::vqvf[k_num_packed_entries * k_num_bits_per_entry];
 
 	if (writer_cost == writer_cost_t::light)
 	{
@@ -3341,7 +3341,7 @@ static void bm_bitset_iter_lookup_table(benchmark::State& state, args_&&... args
 
 	setup_bit_set(bit_set_density, packed_entries, k_num_packed_entries);
 
-	rtm::qvvf* output = new rtm::qvvf[k_num_packed_entries * k_num_bits_per_entry];
+	rtm::vqvf* output = new rtm::vqvf[k_num_packed_entries * k_num_bits_per_entry];
 
 	if (writer_cost == writer_cost_t::light)
 	{

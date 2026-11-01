@@ -40,7 +40,7 @@
         <ValuePointer Condition="m_type == acl::track_type8::float3f">(rtm::float3f*)m_data</ValuePointer>
         <ValuePointer Condition="m_type == acl::track_type8::float4f">(rtm::float4f*)m_data</ValuePointer>
         <ValuePointer Condition="m_type == acl::track_type8::vector4f">(rtm::vector4f*)m_data</ValuePointer>
-        <ValuePointer Condition="m_type == acl::track_type8::qvvf">(rtm::qvvf*)m_data</ValuePointer>
+        <ValuePointer Condition="m_type == acl::track_type8::qvvf">(rtm::vqvf*)m_data</ValuePointer>
       </ArrayItems>
     </Expand>
   </Type>
