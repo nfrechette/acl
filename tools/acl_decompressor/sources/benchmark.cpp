@@ -615,7 +615,7 @@ bool prepare_clip(const std::string& clip_name, const acl::compressed_tracks& ra
 	}
 
 	// Dynamically register our benchmark
-	benchmark::internal::Benchmark* bench = benchmark::internal::RegisterBenchmarkInternal(new benchmark::internal::FunctionBenchmark(clip_name.c_str(), benchmark_decompression));
+	benchmark::Benchmark* bench = benchmark::RegisterBenchmark(clip_name, benchmark_decompression);
 
 	bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Forward, (int64_t)DecompressionFunction::DecompressPose, (int64_t)CPUCacheTemperature::Cold });
 	bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Forward, (int64_t)DecompressionFunction::DecompressBone, (int64_t)CPUCacheTemperature::Cold });
