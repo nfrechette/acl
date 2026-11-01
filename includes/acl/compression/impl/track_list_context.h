@@ -134,18 +134,18 @@ namespace acl
 		}
 
 		template<class sample_type>
-		inline track_extended_sample_t<rtm::vector4f> promote_sample(const sample_type& src_sample)
+		inline track_vector4f_ex::sample_type promote_sample(const sample_type& src_sample)
 		{
 			const size_t sample_size = sample_type::sample_size;
 
-			track_extended_sample_t<rtm::vector4f> result;
+			track_vector4f_ex::sample_type result;
 			result.interpolator = src_sample.interpolator;
 			std::memcpy(&result.value, &src_sample.value, sample_size);
 
 			return result;
 		}
 
-		inline track_extended_sample_t<rtm::vector4f> promote_sample(const track& src_track, uint32_t sample_index)
+		inline track_vector4f_ex::sample_type promote_sample(const track& src_track, uint32_t sample_index)
 		{
 			switch (src_track.get_type())
 			{
@@ -161,7 +161,7 @@ namespace acl
 				return promote_sample(track_cast<track_vector4f_ex>(src_track)[sample_index]);
 			default:
 				ACL_ASSERT(false, "Unsupported track type");
-				return track_extended_sample_t<rtm::vector4f>{};
+				return track_vector4f_ex::sample_type{};
 			}
 		}
 
@@ -172,7 +172,7 @@ namespace acl
 			const uint32_t num_samples = src_track.get_num_samples();
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
-				const track_extended_sample_t<rtm::vector4f> sample = promote_sample(src_track, sample_index);
+				const track_vector4f_ex::sample_type sample = promote_sample(src_track, sample_index);
 
 				are_samples_valid &= rtm::scalar_is_finite(rtm::vector_get_x_as_scalar(sample.value));
 

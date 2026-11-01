@@ -75,7 +75,7 @@ namespace acl
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
-				track_extended_sample_t<rtm::vector4f>& sample = typed_track[sample_index];
+				track_vector4f_ex::sample_type& sample = typed_track[sample_index];
 
 				sample.value = normalize_scalarf_value(sample.value, range_min, range_extent, zero, one, is_range_zero_mask);
 			}
