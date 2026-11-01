@@ -51,10 +51,10 @@ namespace acl
 			if (context.settings.precision_policy == pre_process_precision_policy::lossless)
 				return;	// This pre-process action is lossy, do nothing
 
-			track_array_qvvf& track_list = track_array_cast<track_array_qvvf>(context.track_list);
+			track_array_vqvf& track_list = track_array_cast<track_array_vqvf>(context.track_list);
 			const uint32_t num_samples_per_track = track_list.get_num_samples_per_track();
 
-			for (track_qvvf& track_ : track_list)
+			for (track_vqvf& track_ : track_list)
 			{
 				for (uint32_t sample_index = 0; sample_index < num_samples_per_track; ++sample_index)
 				{
@@ -68,10 +68,10 @@ namespace acl
 
 		inline void pre_process_ensure_quat_w_positive(pre_process_context_t& context)
 		{
-			track_array_qvvf& track_list = track_array_cast<track_array_qvvf>(context.track_list);
+			track_array_vqvf& track_list = track_array_cast<track_array_vqvf>(context.track_list);
 			const uint32_t num_samples_per_track = track_list.get_num_samples_per_track();
 
-			for (track_qvvf& track_ : track_list)
+			for (track_vqvf& track_ : track_list)
 			{
 				for (uint32_t sample_index = 0; sample_index < num_samples_per_track; ++sample_index)
 				{
@@ -83,7 +83,7 @@ namespace acl
 
 		inline void pre_process_optimize_looping_transform(pre_process_context_t& context)
 		{
-			track_array_qvvf& track_list = track_array_cast<track_array_qvvf>(context.track_list);
+			track_array_vqvf& track_list = track_array_cast<track_array_vqvf>(context.track_list);
 
 			transform_track_array_adapter_t clip_adapter(&track_list, context.settings.additive_format);
 
@@ -99,12 +99,12 @@ namespace acl
 				// we have perfect looping. We do not change the wrapping mode of the track list.
 				const uint32_t last_sample_index = track_list.get_num_samples_per_track() - 1;
 
-				for (track_qvvf& track_ : track_list)
+				for (track_vqvf& track_ : track_list)
 					track_[last_sample_index] = track_[0];
 			}
 		}
 
-		inline uint32_t pre_process_get_uniform_sample_key(const track_array_qvvf& track_list, float sample_time)
+		inline uint32_t pre_process_get_uniform_sample_key(const track_array_vqvf& track_list, float sample_time)
 		{
 			return get_uniform_sample_key(
 				transform_track_array_adapter_t(track_list),
@@ -114,13 +114,13 @@ namespace acl
 
 		inline bool RTM_SIMD_CALL pre_process_are_samples_constant(
 			pre_process_context_t& context,
-			const track_array_qvvf& track_list,
+			const track_array_vqvf& track_list,
 			uint32_t track_index,
 			rtm::vector4f_arg0 reference,
 			animation_track_type8 sub_track_type)
 		{
 			const pre_process_settings_t& settings = context.settings;
-			const track_qvvf& track_ = track_list[track_index];
+			const track_vqvf& track_ = track_list[track_index];
 
 			const rigid_shell_metadata_t& shell = context.get_shell_metadata()[track_index];
 
@@ -228,7 +228,7 @@ namespace acl
 					// With uniform sample distributions, we do not interpolate.
 					const uint32_t base_sample_index = pre_process_get_uniform_sample_key(*settings.additive_base, additive_sample_time);
 
-					const track_qvvf& base_track = (*settings.additive_base)[track_index];
+					const track_vqvf& base_track = (*settings.additive_base)[track_index];
 					const rtm::quatf base_rotation = base_track[base_sample_index].rotation;
 					const rtm::vector4f base_translation = base_track[base_sample_index].translation;
 					const rtm::vector4f base_scale = base_track[base_sample_index].scale;
@@ -262,14 +262,14 @@ namespace acl
 
 		inline void pre_process_sanitize_constant_tracks_transform(pre_process_context_t& context)
 		{
-			track_array_qvvf& track_list = track_array_cast<track_array_qvvf>(context.track_list);
+			track_array_vqvf& track_list = track_array_cast<track_array_vqvf>(context.track_list);
 			const uint32_t num_tracks = track_list.get_num_tracks();
 			const uint32_t num_samples_per_track = track_list.get_num_samples_per_track();
 
 			// Iterate in any order, doesn't matter
 			for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 			{
-				track_qvvf& track_ = track_list[track_index];
+				track_vqvf& track_ = track_list[track_index];
 
 				const rtm::quatf reference_rotation = track_[0].rotation;
 				if (pre_process_are_samples_constant(context, track_list, track_index, rtm::quat_to_vector(reference_rotation), animation_track_type8::rotation))
@@ -296,14 +296,14 @@ namespace acl
 
 		inline void pre_process_sanitize_default_tracks_transform(pre_process_context_t& context)
 		{
-			track_array_qvvf& track_list = track_array_cast<track_array_qvvf>(context.track_list);
+			track_array_vqvf& track_list = track_array_cast<track_array_vqvf>(context.track_list);
 			const uint32_t num_tracks = track_list.get_num_tracks();
 			const uint32_t num_samples_per_track = track_list.get_num_samples_per_track();
 
 			// Iterate in any order, doesn't matter
 			for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 			{
-				track_qvvf& track_ = track_list[track_index];
+				track_vqvf& track_ = track_list[track_index];
 				const track_desc_transformf& desc = track_.get_description();
 
 				const rtm::quatf reference_rotation = desc.default_value.rotation;

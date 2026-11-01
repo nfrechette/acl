@@ -183,7 +183,7 @@ namespace acl
 			|| settings_type::is_track_type_supported(track_type8::vector4f);
 
 		// Whether the decompression context should support transform tracks
-		static constexpr bool k_supports_transform_tracks = settings_type::is_track_type_supported(track_type8::qvvf);
+		static constexpr bool k_supports_transform_tracks = settings_type::is_track_type_supported(track_type8::vqvf);
 
 		// The type of our persistent context based on what track types we support
 		using context_type = typename acl_impl::persistent_decompression_context_selector<k_supports_scalar_tracks, k_supports_transform_tracks>::type;

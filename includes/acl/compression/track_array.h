@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/version.h"
+#include "acl/core/error.h"
 #include "acl/core/error_result.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/sample_looping_policy.h"
@@ -313,14 +314,16 @@ namespace acl
 	using track_array_float3f	= track_array_typed<track_type8::float3f, track_interpolator_t::linear>;
 	using track_array_float4f	= track_array_typed<track_type8::float4f, track_interpolator_t::linear>;
 	using track_array_vector4f	= track_array_typed<track_type8::vector4f, track_interpolator_t::linear>;
-	using track_array_qvvf		= track_array_typed<track_type8::qvvf, track_interpolator_t::linear>;
+	using track_array_vqvf		= track_array_typed<track_type8::vqvf, track_interpolator_t::linear>;
 
 	using track_array_float1f_ex	= track_array_typed<track_type8::float1f, track_interpolator_t::extended>;
 	using track_array_float2f_ex	= track_array_typed<track_type8::float2f, track_interpolator_t::extended>;
 	using track_array_float3f_ex	= track_array_typed<track_type8::float3f, track_interpolator_t::extended>;
 	using track_array_float4f_ex	= track_array_typed<track_type8::float4f, track_interpolator_t::extended>;
 	using track_array_vector4f_ex	= track_array_typed<track_type8::vector4f, track_interpolator_t::extended>;
-	using track_array_qvvf_ex		= track_array_typed<track_type8::qvvf, track_interpolator_t::extended>;
+	using track_array_vqvf_ex		= track_array_typed<track_type8::vqvf, track_interpolator_t::extended>;
+
+	using track_array_qvvf ACL_DEPRECATED("Use 'track_array_vqvf' instead, to be removed in v2.3") = track_array_vqvf;
 
 	ACL_IMPL_VERSION_NAMESPACE_END
 }

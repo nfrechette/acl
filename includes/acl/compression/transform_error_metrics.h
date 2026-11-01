@@ -29,9 +29,10 @@
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/hash.h"
 #include "acl/core/track_types.h"
+#include "acl/compression/fwd.h"
 #include "acl/math/vector4f.h"
 #include "acl/math/quatf.h"
-#include "acl/math/qvvf.h"
+#include "acl/math/vqvf.h"
 
 #include <rtm/matrix3x4f.h>
 #include <rtm/vqvd.h>
@@ -348,10 +349,10 @@ namespace acl
 	// Uses rtm::vqvf arithmetic for local and object space error.
 	// Note that this can cause inaccuracy when dealing with shear/skew.
 	//////////////////////////////////////////////////////////////////////////
-	class qvvf_transform_error_metric : public itransform_error_metric
+	class vqvf_transform_error_metric : public itransform_error_metric
 	{
 	public:
-		virtual const char* get_name() const override { return "qvvf_transform_error_metric"; }
+		virtual const char* get_name() const override { return "vqvf_transform_error_metric"; }
 
 		virtual size_t get_transform_size(bool has_scale) const override { (void)has_scale; return sizeof(rtm::vqvf); }
 		virtual bool needs_conversion(bool has_scale) const override { (void)has_scale; return false; }
@@ -418,7 +419,7 @@ namespace acl
 			rtm::vector4f raw_vtx_xxx_;
 			rtm::vector4f raw_vtx_yyy_;
 			rtm::vector4f raw_vtx_zzz_;
-			acl_impl::qvv_mul_point3_x4(
+			acl_impl::vqv_mul_point3_x4(
 				vtx_xxx_, vtx_yyy_, vtx_zzz_,
 				raw_transform_,
 				raw_vtx_xxx_, raw_vtx_yyy_, raw_vtx_zzz_);
@@ -426,7 +427,7 @@ namespace acl
 			rtm::vector4f lossy_vtx_xxx_;
 			rtm::vector4f lossy_vtx_yyy_;
 			rtm::vector4f lossy_vtx_zzz_;
-			acl_impl::qvv_mul_point3_x4(
+			acl_impl::vqv_mul_point3_x4(
 				vtx_xxx_, vtx_yyy_, vtx_zzz_,
 				lossy_transform_,
 				lossy_vtx_xxx_, lossy_vtx_yyy_, lossy_vtx_zzz_);
@@ -482,7 +483,7 @@ namespace acl
 			rtm::vector4f raw_vtx_xxx_;
 			rtm::vector4f raw_vtx_yyy_;
 			rtm::vector4f raw_vtx_zzz_;
-			acl_impl::qvv_mul_point3_no_scale_x4(
+			acl_impl::vqv_mul_point3_no_scale_x4(
 				vtx_xx__, vtx_yy__, vtx_zz__,
 				raw_transform_,
 				raw_vtx_xxx_, raw_vtx_yyy_, raw_vtx_zzz_);
@@ -490,7 +491,7 @@ namespace acl
 			rtm::vector4f lossy_vtx_xxx_;
 			rtm::vector4f lossy_vtx_yyy_;
 			rtm::vector4f lossy_vtx_zzz_;
-			acl_impl::qvv_mul_point3_no_scale_x4(
+			acl_impl::vqv_mul_point3_no_scale_x4(
 				vtx_xx__, vtx_yy__, vtx_zz__,
 				lossy_transform_,
 				lossy_vtx_xxx_, lossy_vtx_yyy_, lossy_vtx_zzz_);
@@ -545,14 +546,14 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// Uses an analytical computation for the exact error introduced. This is as
 	// precise as it gets when no scale is present. We fallback to the normal
-	// qvvf approximation when scale is present.
+	// vqvf approximation when scale is present.
 	// This computes the error on the point most impacted by the lossy transform
 	// which guarantees that all other points see the same or a lower error.
 	//////////////////////////////////////////////////////////////////////////
-	class qvvf_precise_transform_error_metric : public qvvf_transform_error_metric
+	class vqvf_precise_transform_error_metric : public vqvf_transform_error_metric
 	{
 	public:
-		virtual const char* get_name() const override { return "qvvf_precise_transform_error_metric"; }
+		virtual const char* get_name() const override { return "vqvf_precise_transform_error_metric"; }
 
 		virtual rtm::scalarf RTM_SIMD_CALL calculate_error_squared_no_scale(const calculate_error_args& args) const override
 		{
@@ -621,10 +622,10 @@ namespace acl
 	// Note that this can cause inaccuracy issues if there are very large or very small
 	// scale values.
 	//////////////////////////////////////////////////////////////////////////
-	class qvvf_matrix3x4f_transform_error_metric : public qvvf_transform_error_metric
+	class vqvf_matrix3x4f_transform_error_metric : public vqvf_transform_error_metric
 	{
 	public:
-		virtual const char* get_name() const override { return "qvvf_matrix3x4f_transform_error_metric"; }
+		virtual const char* get_name() const override { return "vqvf_matrix3x4f_transform_error_metric"; }
 
 		virtual size_t get_transform_size(bool has_scale) const override { return has_scale ? sizeof(rtm::matrix3x4f) : sizeof(rtm::vqvf); }
 		virtual bool needs_conversion(bool has_scale) const override { return has_scale; }
@@ -641,8 +642,8 @@ namespace acl
 			{
 				const uint32_t transform_index = dirty_transform_indices[dirty_transform_index];
 
-				const rtm::vqvf& transform_qvv = transforms_[transform_index];
-				rtm::matrix3x4f transform_mtx = rtm::matrix_from_vqv(transform_qvv);
+				const rtm::vqvf& transform_vqv = transforms_[transform_index];
+				rtm::matrix3x4f transform_mtx = rtm::matrix_from_vqv(transform_vqv);
 
 				out_transforms_[transform_index] = transform_mtx;
 			}
@@ -711,7 +712,7 @@ namespace acl
 	// Note that this can cause inaccuracy when dealing with shear/skew.
 	//////////////////////////////////////////////////////////////////////////
 	template<additive_clip_format8 additive_format>
-	class additive_qvvf_transform_error_metric : public qvvf_transform_error_metric
+	class additive_vqvf_transform_error_metric : public vqvf_transform_error_metric
 	{
 	public:
 		virtual const char* get_name() const override
@@ -719,10 +720,10 @@ namespace acl
 			switch (additive_format)
 			{
 			default:
-			case additive_clip_format8::none:			return "additive_qvvf_transform_error_metric<none>";
-			case additive_clip_format8::relative:		return "additive_qvvf_transform_error_metric<relative>";
-			case additive_clip_format8::additive0:		return "additive_qvvf_transform_error_metric<additive0>";
-			case additive_clip_format8::additive1:		return "additive_qvvf_transform_error_metric<additive1>";
+			case additive_clip_format8::none:			return "additive_vqvf_transform_error_metric<none>";
+			case additive_clip_format8::relative:		return "additive_vqvf_transform_error_metric<relative>";
+			case additive_clip_format8::additive0:		return "additive_vqvf_transform_error_metric<additive0>";
+			case additive_clip_format8::additive1:		return "additive_vqvf_transform_error_metric<additive1>";
 			}
 		}
 

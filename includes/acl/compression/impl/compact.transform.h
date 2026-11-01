@@ -77,7 +77,7 @@ namespace acl
 #if ACL_IMPL_CONSTANT_FOLDING_ALGO == ACL_IMPL_CONSTANT_FOLDING_ALGO_ORIGINAL
 
 		// To detect if a sub-track is constant, we grab the first sample as our reference.
-		// We then measure the object space error using the qvv error metric and our
+		// We then measure the object space error using the vqv error metric and our
 		// dominant shell distance. If the error remains within our dominant precision
 		// then the sub-track is constant. We perform the same test using the default
 		// sub-track value to determine if it is a default sub-track.
@@ -368,7 +368,7 @@ namespace acl
 			iallocator& allocator,
 			clip_context& context,
 			const clip_context& additive_base_clip_context,
-			const track_array_qvvf& track_list,
+			const track_array_vqvf& track_list,
 			const compression_settings& settings,
 			compression_stats_t& compression_stats)
 		{
@@ -799,7 +799,7 @@ namespace acl
 			iallocator& allocator,
 			clip_context& lossy_clip_context,
 			const clip_context& additive_base_clip_context,
-			const track_array_qvvf& track_list,
+			const track_array_vqvf& track_list,
 			const compression_settings& settings,
 			compression_stats_t& compression_stats)
 		{

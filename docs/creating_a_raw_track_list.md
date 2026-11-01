@@ -73,7 +73,7 @@ Note that if your additive format does not use a scale of 1.0 as its default val
 
 ## Re-ordering or stripping bones
 
-Sometimes it is desirable to re-order the bones being outputted or strip them altogether. This could be to facilitate LOD support or various forms of skeleton changes without needing to re-import the clips. This is easily achieved by setting the desired `output_index` on each `track_desc_transformf` contained in a `track_qvvf`. The default value is the track index. You can use `k_invalid_track_index` to strip the track from the final compressed output.
+Sometimes it is desirable to re-order the bones being outputted or strip them altogether. This could be to facilitate LOD support or various forms of skeleton changes without needing to re-import the clips. This is easily achieved by setting the desired `output_index` on each `track_desc_transformf` contained in a `track_vqvf`. The default value is the track index. You can use `k_invalid_track_index` to strip the track from the final compressed output.
 
 *Note that each `output_index` needs to be unique and there can be no gaps. If **20** bones are outputted, the indices must run from **[0 .. 20)**.*
 

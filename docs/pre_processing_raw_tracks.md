@@ -22,7 +22,7 @@ settings.actions = pre_process_actions::recommended;
 settings.precision_policy = pre_process_precision_policy::lossy;
 
 // Required for transform track pre-processing
-qvvf_transform_error_metric error_metric;
+vqvf_transform_error_metric error_metric;
 settings.error_metric = &error_metric;
 
 pre_process_track_list(allocator, settings, transform_tracks);

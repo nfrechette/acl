@@ -51,8 +51,8 @@ void validate_transform_tracks(const acl::acl_impl::debug_track_writer& referenc
 	const uint32_t num_tracks = reference.num_tracks;
 	for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 	{
-		const rtm::vqvf ref_transform = reference.read_qvv(track_index);
-		const rtm::vqvf transform = tracks.read_qvv(track_index);
+		const rtm::vqvf ref_transform = reference.read_vqv(track_index);
+		const rtm::vqvf transform = tracks.read_vqv(track_index);
 
 		// If our default sub-track mode is skipped or variable, our lossy transform should equal the ref transform
 		// But if the constant mode is used, we must check that as well
@@ -91,8 +91,8 @@ void validate_transform_tracks(const acl::acl_impl::debug_track_writer& referenc
 
 void validate_accuracy(
 	iallocator& allocator,
-	const track_array_qvvf& raw_tracks,
-	const track_array_qvvf& additive_base_tracks,
+	const track_array_vqvf& raw_tracks,
+	const track_array_vqvf& additive_base_tracks,
 	const itransform_error_metric& error_metric,
 	const compressed_tracks& compressed_tracks_,
 	double regression_error_threshold
@@ -140,17 +140,17 @@ void validate_accuracy(
 	// first frame at the end when wrapping is used
 	const uint32_t num_samples = calculate_num_samples(duration, sample_rate);
 
-	debug_track_writer track_writer(allocator, track_type8::qvvf, num_tracks);
+	debug_track_writer track_writer(allocator, track_type8::vqvf, num_tracks);
 	track_writer.initialize_with_defaults(raw_tracks);
 
-	debug_track_writer_constant_defaults track_writer_constant(allocator, track_type8::qvvf, num_tracks);
+	debug_track_writer_constant_defaults track_writer_constant(allocator, track_type8::vqvf, num_tracks);
 	// todo handle additive1
 
 	// Use the normal debug_track_writer since it skips default sub-tracks, we can use them
-	debug_track_writer_variable_defaults track_writer_variable(allocator, track_type8::qvvf, num_tracks);
-	track_writer_variable.default_sub_tracks = track_writer.tracks_typed.qvvf;
+	debug_track_writer_variable_defaults track_writer_variable(allocator, track_type8::vqvf, num_tracks);
+	track_writer_variable.default_sub_tracks = track_writer.tracks_typed.vqvf;
 
-	debug_track_writer_per_track_rounding track_writer_per_track_rounding(allocator, track_type8::qvvf, num_tracks);
+	debug_track_writer_per_track_rounding track_writer_per_track_rounding(allocator, track_type8::vqvf, num_tracks);
 	track_writer_per_track_rounding.initialize_with_defaults(raw_tracks);
 
 	{
@@ -164,7 +164,7 @@ void validate_accuracy(
 	// Basic sanity checks
 	if (num_samples != 0)
 	{
-		debug_track_writer track_writer_clamped(allocator, track_type8::qvvf, num_tracks);
+		debug_track_writer track_writer_clamped(allocator, track_type8::vqvf, num_tracks);
 		track_writer_clamped.initialize_with_defaults(raw_tracks);
 
 		// Make sure clamping works properly at the start of the clip
@@ -231,11 +231,11 @@ void validate_accuracy(
 		// Validate decompress_track against decompress_tracks
 		for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 		{
-			const rtm::vqvf transform0 = track_writer.read_qvv(track_index);
+			const rtm::vqvf transform0 = track_writer.read_vqv(track_index);
 
 			// Make sure single track decompression matches
 			context.decompress_track(track_index, track_writer);
-			const rtm::vqvf transform1 = track_writer.read_qvv(track_index);
+			const rtm::vqvf transform1 = track_writer.read_vqv(track_index);
 
 			// Rotations can differ a bit due to how we normalize during interpolation
 			ACL_ASSERT(are_rotations_equal(transform0.rotation, transform1.rotation, quat_error_threshold),
@@ -312,7 +312,7 @@ void RTM_SIMD_CALL validate_scalar_tracks(const track_array& raw_tracks, const a
 			error = rtm::vector_abs(rtm::vector_sub(raw_value, lossy_value));
 			break;
 		}
-		case track_type8::qvvf:
+		case track_type8::vqvf:
 		default:
 			ACL_ASSERT(false, "Unsupported track type");
 			error = zero;
@@ -508,7 +508,7 @@ void validate_accuracy(
 				ACL_ASSERT(rtm::vector_all_near_equal(lossy_value_, lossy_value, 0.00001F), "Failed to sample track %u at time %f", track_index, sample_time);
 				break;
 			}
-			case track_type8::qvvf:
+			case track_type8::vqvf:
 			default:
 				ACL_ASSERT(false, "Unsupported track type");
 				break;
@@ -539,14 +539,14 @@ void validate_metadata(const track_array& raw_tracks, const compressed_tracks& t
 		ACL_ASSERT(raw_name == compressed_name, "Unexpected track name");
 	}
 
-	if (raw_tracks.get_track_type() == track_type8::qvvf)
+	if (raw_tracks.get_track_type() == track_type8::vqvf)
 	{
 		// Specific to transform tracks
-		const track_array_qvvf& transform_tracks = track_array_cast<track_array_qvvf>(raw_tracks);
+		const track_array_vqvf& transform_tracks = track_array_cast<track_array_vqvf>(raw_tracks);
 
 		for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 		{
-			const track_qvvf& raw_track = transform_tracks[track_index];
+			const track_vqvf& raw_track = transform_tracks[track_index];
 			const uint32_t output_index = raw_track.get_output_index();
 			if (output_index == k_invalid_track_index)
 				continue;	// Stripped
@@ -719,10 +719,10 @@ static void compare_raw_with_compressed(iallocator& allocator, const track_array
 				ACL_ASSERT(rtm::vector_all_near_equal(raw_sample, compressed_sample, 0.0F), "Unexpected sample");
 				break;
 			}
-			case track_type8::qvvf:
+			case track_type8::vqvf:
 			{
 				const rtm::vqvf raw_sample = *acl_impl::bit_cast<const rtm::vqvf*>(raw_track[sample_index]);
-				const rtm::vqvf compressed_sample = writer.read_qvv(track_index);
+				const rtm::vqvf compressed_sample = writer.read_vqv(track_index);
 
 				// Rotations can differ a bit due to how we normalize during interpolation
 				ACL_ASSERT(rtm::quat_near_equal(raw_sample.rotation, compressed_sample.rotation, 0.0001F), "Unexpected sample");

@@ -306,10 +306,10 @@ namespace acl
 									write_sjson_scalar_track<track_vector4f_ex>(track_, buffer, track_writer);
 								break;
 							}
-							case track_type8::qvvf:
+							case track_type8::vqvf:
 							{
-								ACL_ASSERT(track_.get_interpolator() == track_interpolator_t::linear, "Unsupported track interpolator for qvvf track type");
-								write_sjson_scalar_track<track_qvvf>(track_, buffer, track_writer);
+								ACL_ASSERT(track_.get_interpolator() == track_interpolator_t::linear, "Unsupported track interpolator for vqvf track type");
+								write_sjson_scalar_track<track_vqvf>(track_, buffer, track_writer);
 								break;
 							}
 							default:

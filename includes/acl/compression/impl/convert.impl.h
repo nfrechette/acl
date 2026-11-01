@@ -64,7 +64,7 @@ namespace acl
 	{
 		compression_settings settings = get_raw_compression_settings();
 
-		qvvf_transform_error_metric error_metric;
+		vqvf_transform_error_metric error_metric;
 		settings.error_metric = &error_metric;
 
 		// Include all the metadata
@@ -124,9 +124,9 @@ namespace acl
 				got_description = tracks.get_track_description(track_index, desc_scalar);
 				track_ = track_vector4f::make_reserve(desc_scalar, allocator, num_samples, sample_rate);
 				break;
-			case track_type8::qvvf:
+			case track_type8::vqvf:
 				got_description = tracks.get_track_description(track_index, desc_transform);
-				track_ = track_qvvf::make_reserve(desc_transform, allocator, num_samples, sample_rate);
+				track_ = track_vqvf::make_reserve(desc_transform, allocator, num_samples, sample_rate);
 				break;
 			default:
 				ACL_ASSERT(false, "Unexpected track type");
@@ -146,7 +146,7 @@ namespace acl
 
 		// Decompress and populate our track data
 		const acl_impl::tracks_header& header = acl_impl::get_tracks_header(tracks);
-		if (track_type == track_type8::qvvf &&
+		if (track_type == track_type8::vqvf &&
 			header.get_rotation_format() == rotation_format8::quatf_full &&
 			header.get_translation_format() == vector_format8::vector3f_full &&
 			header.get_scale_format() == vector_format8::vector3f_full)
@@ -188,8 +188,8 @@ namespace acl
 					case track_type8::vector4f:
 						*acl_impl::bit_cast<rtm::vector4f*>(track_[sample_index]) = writer.read_vector4(track_index);
 						break;
-					case track_type8::qvvf:
-						*acl_impl::bit_cast<rtm::vqvf*>(track_[sample_index]) = writer.read_qvv(track_index);
+					case track_type8::vqvf:
+						*acl_impl::bit_cast<rtm::vqvf*>(track_[sample_index]) = writer.read_vqv(track_index);
 						break;
 					default:
 						ACL_ASSERT(false, "Unexpected track type");
@@ -205,7 +205,7 @@ namespace acl
 
 			acl_impl::debug_track_writer writer(allocator, track_type, num_tracks);
 
-			if (track_type == track_type8::qvvf)
+			if (track_type == track_type8::vqvf)
 				writer.initialize_with_defaults(result);
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
@@ -238,8 +238,8 @@ namespace acl
 					case track_type8::vector4f:
 						*acl_impl::bit_cast<rtm::vector4f*>(track_[sample_index]) = writer.read_vector4(track_index);
 						break;
-					case track_type8::qvvf:
-						*acl_impl::bit_cast<rtm::vqvf*>(track_[sample_index]) = writer.read_qvv(track_index);
+					case track_type8::vqvf:
+						*acl_impl::bit_cast<rtm::vqvf*>(track_[sample_index]) = writer.read_vqv(track_index);
 						break;
 					default:
 						ACL_ASSERT(false, "Unexpected track type");

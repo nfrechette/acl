@@ -79,8 +79,8 @@ namespace acl
 	//    out_compressed_tracks:	The resulting compressed tracks. The caller owns the returned memory and must free it.
 	//    out_stats:				Stat output structure.
 	//////////////////////////////////////////////////////////////////////////
-	error_result compress_track_list(iallocator& allocator, const track_array_qvvf& track_list, const compression_settings& settings,
-		const track_array_qvvf& additive_base_track_list, additive_clip_format8 additive_format,
+	error_result compress_track_list(iallocator& allocator, const track_array_vqvf& track_list, const compression_settings& settings,
+		const track_array_vqvf& additive_base_track_list, additive_clip_format8 additive_format,
 		compressed_tracks*& out_compressed_tracks, output_stats& out_stats);
 
 	//////////////////////////////////////////////////////////////////////////

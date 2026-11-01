@@ -82,7 +82,7 @@ namespace acl
 				if (shell_metadata == nullptr)
 				{
 					transform_track_array_adapter_t clip_adapter(
-						&track_array_cast<track_array_qvvf>(track_list),
+						&track_array_cast<track_array_vqvf>(track_list),
 						settings.additive_format);
 					clip_adapter.sorted_transforms_parent_first = get_sorted_transforms_parent_first();
 					clip_adapter.topology = get_topology();
@@ -108,7 +108,7 @@ namespace acl
 						sorted_transforms_parent_first[transform_index] = transform_index;
 
 					sort_transform_indices_parent_first(
-						transform_track_array_adapter_t(track_array_cast<track_array_qvvf>(track_list)),
+						transform_track_array_adapter_t(track_array_cast<track_array_vqvf>(track_list)),
 						sorted_transforms_parent_first,
 						num_transforms);
 				}
@@ -122,7 +122,7 @@ namespace acl
 				{
 					topology = allocate_type<clip_topology_t>(allocator);
 
-					build_clip_topology(allocator, track_array_cast<track_array_qvvf>(track_list), *topology);
+					build_clip_topology(allocator, track_array_cast<track_array_vqvf>(track_list), *topology);
 				}
 
 				return topology;

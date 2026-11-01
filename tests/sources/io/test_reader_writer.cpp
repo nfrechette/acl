@@ -158,12 +158,12 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 
 	const uint32_t num_tracks = 3;
 	const uint32_t num_samples = 4;
-	track_array_qvvf track_list(allocator, num_tracks);
+	track_array_vqvf track_list(allocator, num_tracks);
 
 	track_desc_transformf desc0;
 	desc0.output_index = 0;
 	desc0.precision = 0.001F;
-	track_qvvf track0 = track_qvvf::make_reserve(desc0, allocator, num_samples, 32.0F);
+	track_vqvf track0 = track_vqvf::make_reserve(desc0, allocator, num_samples, 32.0F);
 	track0[0].rotation = rtm::quat_from_euler(0.1F, 0.5F, 1.2F);
 	track0[0].translation = rtm::vector_set(0.0F, 0.6F, 2.3F);
 	track0[0].scale = rtm::vector_set(1.4F, 2.1F, 0.2F);
@@ -181,7 +181,7 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 	desc1.precision = 0.001F;
 	desc1.parent_index = 0;
 	desc1.shell_distance = 0.1241F;
-	track_qvvf track1 = track_qvvf::make_reserve(desc1, allocator, num_samples, 32.0F);
+	track_vqvf track1 = track_vqvf::make_reserve(desc1, allocator, num_samples, 32.0F);
 	track1[0].rotation = rtm::quat_from_euler(1.1F, 1.5F, 1.7F);
 	track1[0].translation = rtm::vector_set(0.0221F, 10.6F, 22.3F);
 	track1[0].scale = rtm::vector_set(1.451F, 24.1F, 10.2F);
@@ -194,7 +194,7 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 	track1.set_name(acl::string(allocator, "track 1"));
 	track_list[1] = track1.get_ref();
 
-	track_qvvf track2 = track_qvvf::make_reserve(desc1, allocator, num_samples, 32.0F);
+	track_vqvf track2 = track_vqvf::make_reserve(desc1, allocator, num_samples, 32.0F);
 	track2[0].rotation = rtm::quat_from_euler(1.11F, 1.5333F, 0.17F);
 	track2[0].translation = rtm::vector_set(30.0221F, 101.6F, 22.3214F);
 	track2[0].scale = rtm::vector_set(21.451F, 244.1F, 100.2F);
@@ -276,8 +276,8 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 
 	for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 	{
-		const track_qvvf& ref_track = track_list[track_index];
-		const track_qvvf& file_track = track_cast<track_qvvf>(file_clip.track_list[track_index]);
+		const track_vqvf& ref_track = track_list[track_index];
+		const track_vqvf& file_track = track_cast<track_vqvf>(file_clip.track_list[track_index]);
 
 		CHECK(file_track.get_description().output_index == ref_track.get_description().output_index);
 		CHECK(file_track.get_description().parent_index == ref_track.get_description().parent_index);

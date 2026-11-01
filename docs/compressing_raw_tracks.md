@@ -44,7 +44,7 @@ settings.rotation_format = rotation_format8::quatf_drop_w_variable;
 settings.translation_format = vector_format8::vector3f_variable;
 settings.scale_format = vector_format8::vector3f_variable;
 
-qvvf_transform_error_metric error_metric;
+vqvf_transform_error_metric error_metric;
 settings.error_metric = &error_metric;
 
 output_stats stats;

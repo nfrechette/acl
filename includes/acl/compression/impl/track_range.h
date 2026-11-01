@@ -94,7 +94,7 @@ namespace acl
 			union range_union
 			{
 				scalarf_range scalarf;
-				// TODO: Add qvv range and scalard/i/q ranges
+				// TODO: Add vqv range and scalard/i/q ranges
 
 				range_union() : scalarf(scalarf_range::from_min_extent(rtm::vector_zero(), rtm::vector_zero())) {}
 				explicit range_union(const scalarf_range& range) : scalarf(range) {}

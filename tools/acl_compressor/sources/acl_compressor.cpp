@@ -430,8 +430,8 @@ static bool parse_options(int argc, char** argv, Options& options)
 
 #if defined(ACL_USE_SJSON)
 
-static void try_algorithm(const Options& options, iallocator& allocator, const track_array_qvvf& transform_tracks,
-	const track_array_qvvf& additive_base, additive_clip_format8 additive_format,
+static void try_algorithm(const Options& options, iallocator& allocator, const track_array_vqvf& transform_tracks,
+	const track_array_vqvf& additive_base, additive_clip_format8 additive_format,
 	compression_settings settings, const compression_database_settings& database_settings,
 	stat_logging logging, sjson::ArrayWriter* runs_writer, double regression_error_threshold)
 {
@@ -478,7 +478,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 			stats_writer->insert("worst_time", error.sample_time);
 			stats_writer->insert("worst_keyframe", error.keyframe_index);
 
-			const qvvf_precise_transform_error_metric error_metric;
+			const vqvf_precise_transform_error_metric error_metric;
 			const track_error error_precise = calculate_compression_error(allocator, transform_tracks, context, error_metric);
 
 			stats_writer->insert("max_error_precise", error_precise.error);
@@ -922,18 +922,18 @@ static itransform_error_metric* create_additive_error_metric(iallocator& allocat
 	switch (format)
 	{
 	case additive_clip_format8::relative:
-		return allocate_type<additive_qvvf_transform_error_metric<additive_clip_format8::relative>>(allocator);
+		return allocate_type<additive_vqvf_transform_error_metric<additive_clip_format8::relative>>(allocator);
 	case additive_clip_format8::additive0:
-		return allocate_type<additive_qvvf_transform_error_metric<additive_clip_format8::additive0>>(allocator);
+		return allocate_type<additive_vqvf_transform_error_metric<additive_clip_format8::additive0>>(allocator);
 	case additive_clip_format8::additive1:
-		return allocate_type<additive_qvvf_transform_error_metric<additive_clip_format8::additive1>>(allocator);
+		return allocate_type<additive_vqvf_transform_error_metric<additive_clip_format8::additive1>>(allocator);
 	case additive_clip_format8::none:
 	default:
 		return nullptr;
 	}
 }
 
-static void create_additive_base_clip(const Options& options, track_array_qvvf& clip, track_array_qvvf& out_base_clip, additive_clip_format8& out_additive_format)
+static void create_additive_base_clip(const Options& options, track_array_vqvf& clip, track_array_vqvf& out_base_clip, additive_clip_format8& out_additive_format)
 {
 	// Disable floating point exceptions since conversion requires it
 	scope_disable_fp_exceptions fp_off;
@@ -944,7 +944,7 @@ static void create_additive_base_clip(const Options& options, track_array_qvvf& 
 	iallocator& allocator = *clip.get_allocator();
 	const track_desc_transformf bind_desc;
 
-	out_base_clip = track_array_qvvf(*clip.get_allocator(), num_bones);
+	out_base_clip = track_array_vqvf(*clip.get_allocator(), num_bones);
 
 	additive_clip_format8 additive_format = additive_clip_format8::none;
 	if (options.is_bind_pose_relative)
@@ -957,7 +957,7 @@ static void create_additive_base_clip(const Options& options, track_array_qvvf& 
 
 	for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 	{
-		track_qvvf& track = clip[bone_index];
+		track_vqvf& track = clip[bone_index];
 
 		const rtm::vqvf bind_transform = track.get_description().default_value;
 
@@ -981,7 +981,7 @@ static void create_additive_base_clip(const Options& options, track_array_qvvf& 
 			track[sample_index] = bind_local_transform;
 		}
 
-		out_base_clip[bone_index] = track_qvvf::make_copy(bind_desc, allocator, &bind_transform, 1, 30.0F);
+		out_base_clip[bone_index] = track_vqvf::make_copy(bind_desc, allocator, &bind_transform, 1, 30.0F);
 	}
 }
 #endif	// defined(ACL_USE_SJSON)
@@ -1001,8 +1001,8 @@ static int safe_main_impl(int argc, char* argv[])
 
 #if defined(ACL_USE_SJSON)
 	ansi_allocator allocator;
-	track_array_qvvf transform_tracks;
-	track_array_qvvf base_clip;
+	track_array_vqvf transform_tracks;
+	track_array_vqvf base_clip;
 	additive_clip_format8 additive_format = additive_clip_format8::none;
 	track_array scalar_tracks;
 
@@ -1026,7 +1026,7 @@ static int safe_main_impl(int argc, char* argv[])
 		if (!read_acl_bin_file(allocator, options, bin_tracks))
 			return -1;
 
-		if (bin_tracks->get_track_type() == track_type8::qvvf)
+		if (bin_tracks->get_track_type() == track_type8::vqvf)
 		{
 			const acl::error_result result = acl::convert_track_list(allocator, *bin_tracks, transform_tracks);
 			if (result.any())
@@ -1061,10 +1061,10 @@ static int safe_main_impl(int argc, char* argv[])
 		use_external_config = sjson_track_list.has_settings;
 		settings = sjson_track_list.settings;
 
-		if (sjson_type == sjson_file_type::raw_track_list && sjson_track_list.track_list.get_track_type() == track_type8::qvvf)
+		if (sjson_type == sjson_file_type::raw_track_list && sjson_track_list.track_list.get_track_type() == track_type8::vqvf)
 		{
 			// Re-interpret things as a raw clip
-			transform_tracks = std::move(track_array_cast<track_array_qvvf>(sjson_track_list.track_list));
+			transform_tracks = std::move(track_array_cast<track_array_vqvf>(sjson_track_list.track_list));
 			sjson_type = sjson_file_type::raw_clip;
 		}
 		else
@@ -1077,16 +1077,16 @@ static int safe_main_impl(int argc, char* argv[])
 	}
 
 #if DEBUG_MEGA_LARGE_CLIP
-	track_array_qvvf new_transforms(allocator, transform_tracks.get_num_tracks());
+	track_array_vqvf new_transforms(allocator, transform_tracks.get_num_tracks());
 	float new_sample_rate = 19200.0F;
 	uint32_t new_num_samples = calculate_num_samples(transform_tracks.get_duration(), new_sample_rate, sample_looping_policy::clamp);
 	float new_duration = calculate_finite_duration(new_num_samples, new_sample_rate);
-	acl_impl::debug_track_writer dummy_writer(allocator, track_type8::qvvf, transform_tracks.get_num_tracks());
+	acl_impl::debug_track_writer dummy_writer(allocator, track_type8::vqvf, transform_tracks.get_num_tracks());
 
 	for (uint32_t track_index = 0; track_index < transform_tracks.get_num_tracks(); ++track_index)
 	{
-		track_qvvf& track = transform_tracks[track_index];
-		new_transforms[track_index] = track_qvvf::make_reserve(track.get_description(), allocator, new_num_samples, new_sample_rate);
+		track_vqvf& track = transform_tracks[track_index];
+		new_transforms[track_index] = track_vqvf::make_reserve(track.get_description(), allocator, new_num_samples, new_sample_rate);
 	}
 
 	for (uint32_t sample_index = 0; sample_index < new_num_samples; ++sample_index)
@@ -1097,8 +1097,8 @@ static int safe_main_impl(int argc, char* argv[])
 
 		for (uint32_t track_index = 0; track_index < new_transforms.get_num_tracks(); ++track_index)
 		{
-			track_qvvf& track = new_transforms[track_index];
-			track[sample_index] = dummy_writer.tracks_typed.qvvf[track_index];
+			track_vqvf& track = new_transforms[track_index];
+			track[sample_index] = dummy_writer.tracks_typed.vqvf[track_index];
 		}
 	}
 
@@ -1108,7 +1108,7 @@ static int safe_main_impl(int argc, char* argv[])
 #if defined(ACL_IMPL_DISABLE_BIND_POSE_STRIPPING)
 	for (uint32_t track_index = 0; track_index < transform_tracks.get_num_tracks(); ++track_index)
 	{
-		track_qvvf& track = transform_tracks[track_index];
+		track_vqvf& track = transform_tracks[track_index];
 		track.get_description().default_value = rtm::vqv_identity();
 	}
 #endif
@@ -1156,11 +1156,11 @@ static int safe_main_impl(int argc, char* argv[])
 		if (error_metric == nullptr)
 		{
 			if (options.use_matrix_error_metric)
-				error_metric = allocate_type<qvvf_matrix3x4f_transform_error_metric>(allocator);
+				error_metric = allocate_type<vqvf_matrix3x4f_transform_error_metric>(allocator);
 			else if (options.use_precise_error_metric)
-				error_metric = allocate_type<qvvf_precise_transform_error_metric>(allocator);
+				error_metric = allocate_type<vqvf_precise_transform_error_metric>(allocator);
 			else
-				error_metric = allocate_type<qvvf_transform_error_metric>(allocator);
+				error_metric = allocate_type<vqvf_transform_error_metric>(allocator);
 		}
 	}
 

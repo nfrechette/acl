@@ -80,7 +80,7 @@ namespace acl
 				case track_type8::vector4f:
 					pre_process_optimize_looping_scalar<track_type8::vector4f>(track_list);
 					break;
-				case track_type8::qvvf:
+				case track_type8::vqvf:
 				default:
 					ACL_ASSERT(false, "Unexpected track type");
 					break;
@@ -88,7 +88,7 @@ namespace acl
 			}
 			else if (track_category == track_category8::transformf)
 			{
-				ACL_ASSERT(track_type == track_type8::qvvf, "Expected qvvf");
+				ACL_ASSERT(track_type == track_type8::vqvf, "Expected vqvf");
 
 				// Transform tracks are looping if replacing the last keyframe with the first satisfies
 				// the error metric.
@@ -137,7 +137,7 @@ namespace acl
 					case track_type8::vector4f:
 						pre_process_sanitize_constant_tracks_scalar<track_type8::vector4f>(track_);
 						break;
-					case track_type8::qvvf:
+					case track_type8::vqvf:
 					default:
 						ACL_ASSERT(false, "Unexpected track type");
 						break;
@@ -146,7 +146,7 @@ namespace acl
 			}
 			else if (track_category == track_category8::transformf)
 			{
-				ACL_ASSERT(track_type == track_type8::qvvf, "Expected qvvf");
+				ACL_ASSERT(track_type == track_type8::vqvf, "Expected vqvf");
 
 				// Transform tracks are constant when the error metric is satisfied when the first
 				// sample is repeated
@@ -170,7 +170,7 @@ namespace acl
 			}
 			else if (track_category == track_category8::transformf)
 			{
-				ACL_ASSERT(track_list.get_track_type() == track_type8::qvvf, "Expected qvvf");
+				ACL_ASSERT(track_list.get_track_type() == track_type8::vqvf, "Expected vqvf");
 
 				// Transform tracks are default when the error metric is satisfied when the default
 				// sample is repeated
@@ -195,7 +195,7 @@ namespace acl
 
 		if (settings.additive_format != additive_clip_format8::none)
 		{
-			if (track_list.get_track_type() != track_type8::qvvf)
+			if (track_list.get_track_type() != track_type8::vqvf)
 				return error_result("'additive_format' is only supported with transform tracks");
 
 			if (settings.additive_base == nullptr)
@@ -215,19 +215,19 @@ namespace acl
 
 		if (are_any_enum_flags_set(settings.actions, pre_process_actions::normalize_rotations))
 		{
-			if (track_type == track_type8::qvvf)
+			if (track_type == track_type8::vqvf)
 				pre_process_normalize_rotations(context);
 		}
 
 		if (are_any_enum_flags_set(settings.actions, pre_process_actions::ensure_quat_w_positive))
 		{
-			if (track_type == track_type8::qvvf)
+			if (track_type == track_type8::vqvf)
 				pre_process_ensure_quat_w_positive(context);
 		}
 
 		if (are_any_enum_flags_set(settings.actions, pre_process_actions::optimize_looping))
 		{
-			if (track_type == track_type8::qvvf &&
+			if (track_type == track_type8::vqvf &&
 				settings.precision_policy == pre_process_precision_policy::lossy &&
 				settings.error_metric == nullptr)
 				return error_result("'error_metric' is required when optimizing looping transform tracks");
@@ -237,7 +237,7 @@ namespace acl
 
 		if (are_any_enum_flags_set(settings.actions, pre_process_actions::sanitize_constant_tracks))
 		{
-			if (track_type == track_type8::qvvf &&
+			if (track_type == track_type8::vqvf &&
 				settings.precision_policy == pre_process_precision_policy::lossy &&
 				settings.error_metric == nullptr)
 				return error_result("'error_metric' is required when sanitizing lossy constant transform tracks");
@@ -247,12 +247,12 @@ namespace acl
 
 		if (are_any_enum_flags_set(settings.actions, pre_process_actions::sanitize_default_tracks))
 		{
-			if (track_type == track_type8::qvvf &&
+			if (track_type == track_type8::vqvf &&
 				settings.precision_policy == pre_process_precision_policy::lossy &&
 				settings.error_metric == nullptr)
 				return error_result("'error_metric' is required when sanitizing lossy default transform tracks");
 
-			if (track_type == track_type8::qvvf)
+			if (track_type == track_type8::vqvf)
 				pre_process_sanitize_default_tracks(context);
 		}
 

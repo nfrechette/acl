@@ -298,10 +298,10 @@ namespace acl
 					writer.write_vector4(track_index, value);
 				}
 				break;
-			case track_type8::qvvf:
+			case track_type8::vqvf:
 				for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 				{
-					const track_qvvf& track_ = track_cast<track_qvvf>(array[track_index]);
+					const track_vqvf& track_ = track_cast<track_vqvf>(array[track_index]);
 
 					const sample_rounding_policy rounding_policy_ = writer.get_rounding_policy(rounding_policy, track_index);
 					ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
@@ -580,9 +580,9 @@ namespace acl
 				writer.write_vector4(track_index, value);
 				break;
 			}
-			case track_type8::qvvf:
+			case track_type8::vqvf:
 			{
-				const track_qvvf& track__ = track_cast<track_qvvf>(track_);
+				const track_vqvf& track__ = track_cast<track_vqvf>(track_);
 
 				const rtm::vqvf& value0 = track__[key_frame0];
 				const rtm::vqvf& value1 = track__[key_frame1];
@@ -765,7 +765,7 @@ namespace acl
 		{
 			const track& track_ = m_tracks[track_index];
 
-			if (track_type == track_type8::qvvf)
+			if (track_type == track_type8::vqvf)
 				total_size += num_samples * 10 * uint32_t(sizeof(float));	// 4 rotation floats, 3 translation floats, 3 scale floats
 			else
 				total_size += num_samples * track_.get_sample_size();

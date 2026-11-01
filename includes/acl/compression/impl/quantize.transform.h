@@ -719,7 +719,7 @@ namespace acl
 					base_transforms += sample_transform_size;
 
 					// TODO: Is this accurate if we have conversion? Our input is in the converted array for base/local
-					//       and we write to the local qvvf buffer? The calculate error below will read from the converted array
+					//       and we write to the local vqvf buffer? The calculate error below will read from the converted array
 					//       if we are converted.
 					apply_additive_to_base_impl(error_metric, apply_additive_to_base_args_lossy, context.lossy_local_pose);
 				}
@@ -833,7 +833,7 @@ namespace acl
 					base_transforms += sample_transform_size;
 
 					// TODO: Is this accurate if we have conversion? Our input is in the converted array for base/local
-					//       and we write to the local qvvf buffer? The calculate error below will read from the converted array
+					//       and we write to the local vqvf buffer? The calculate error below will read from the converted array
 					//       if we are converted.
 					apply_additive_to_base_impl(error_metric, apply_additive_to_base_args_lossy, context.lossy_local_pose);
 				}
@@ -943,7 +943,7 @@ namespace acl
 					base_transforms += sample_transform_size;
 
 					// TODO: Is this accurate if we have conversion? Our input is in the converted array for base/local
-					//       and we write to the local qvvf buffer? The calculate error below will read from the converted array
+					//       and we write to the local vqvf buffer? The calculate error below will read from the converted array
 					//       if we are converted.
 					apply_additive_to_base_impl(error_metric, apply_additive_to_base_args_lossy, context.lossy_local_pose);
 				}
@@ -2129,7 +2129,7 @@ namespace acl
 		// unchanged since they are no longer needed once optimized: their final values are rolled up into the cached critical
 		// transforms as we progress through the optimization process.
 		//
-		// Non-uniform 3D scale throws a wrench in the mix because Realtime Math's qvv type is not associative under multiplication
+		// Non-uniform 3D scale throws a wrench in the mix because Realtime Math's vqv type is not associative under multiplication
 		// when non-uniform scale is present. As such, the multiplication order is important and we cannot leverage caching
 		// as effectively. We have to calculate the object space transforms by traversing the transform chains manually.
 		// This is quite a bit slower, but thankfully, non-uniform 3D scale is uncommon. When it is, we take a slower path

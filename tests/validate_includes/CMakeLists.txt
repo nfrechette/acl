@@ -38,6 +38,10 @@ foreach(HEADER_FILE ${ALL_PUBLIC_HEADER_FILES})
 	if(NOT ${HEADER_IS_DEPRECATED} EQUAL -1)
 		continue()
 	endif()
+	string(FIND ${HEADER_SANITIZED_FILENAME} "acl_math_qvvf.h" HEADER_IS_DEPRECATED)
+	if(NOT ${HEADER_IS_DEPRECATED} EQUAL -1)
+		continue()
+	endif()
 
 	# Configure our cpp file content
 	set(ACL_SINGLE_INCLUDE_NAME ${HEADER_INCLUDE_PATH})

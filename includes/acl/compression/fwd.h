@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/version.h"
+#include "acl/core/error.h"
 
 // track_type8 needs to be fully defined to be able to specialize some templates
 #include "acl/core/track_types.h"
@@ -65,7 +66,9 @@ namespace acl
 	using track_array_float3f	= track_array_typed<track_type8::float3f, track_interpolator_t::linear>;
 	using track_array_float4f	= track_array_typed<track_type8::float4f, track_interpolator_t::linear>;
 	using track_array_vector4f	= track_array_typed<track_type8::vector4f, track_interpolator_t::linear>;
-	using track_array_qvvf		= track_array_typed<track_type8::qvvf, track_interpolator_t::linear>;
+	using track_array_vqvf		= track_array_typed<track_type8::vqvf, track_interpolator_t::linear>;
+
+	using track_array_qvvf ACL_DEPRECATED("Use 'track_array_vqvf' instead, to be removed in v2.3") = track_array_vqvf;
 
 	class track;
 	template<track_type8 track_type_, track_interpolator_t track_interpolator_> class track_typed;
@@ -75,15 +78,23 @@ namespace acl
 	using track_float3f			= track_typed<track_type8::float3f, track_interpolator_t::linear>;
 	using track_float4f			= track_typed<track_type8::float4f, track_interpolator_t::linear>;
 	using track_vector4f		= track_typed<track_type8::vector4f, track_interpolator_t::linear>;
-	using track_qvvf			= track_typed<track_type8::qvvf, track_interpolator_t::linear>;
+	using track_vqvf			= track_typed<track_type8::vqvf, track_interpolator_t::linear>;
+
+	using track_qvvf ACL_DEPRECATED("Use 'track_vqvf' instead, to be removed in v2.3") = track_vqvf;
 
 	enum class additive_clip_format8 : uint8_t;
 
 	class itransform_error_metric;
-	class qvvf_transform_error_metric;
-	class qvvf_precise_transform_error_metric;
-	class qvvf_matrix3x4f_transform_error_metric;
-	template<additive_clip_format8 additive_format> class additive_qvvf_transform_error_metric;
+	class vqvf_transform_error_metric;
+	class vqvf_precise_transform_error_metric;
+	class vqvf_matrix3x4f_transform_error_metric;
+	template<additive_clip_format8 additive_format> class additive_vqvf_transform_error_metric;
+
+	using qvvf_transform_error_metric ACL_DEPRECATED("Use 'vqvf_transform_error_metric' instead, to be removed in v2.3") = vqvf_transform_error_metric;
+	using qvvf_precise_transform_error_metric ACL_DEPRECATED("Use 'vqvf_precise_transform_error_metric' instead, to be removed in v2.3") = vqvf_precise_transform_error_metric;
+	using qvvf_matrix3x4f_transform_error_metric ACL_DEPRECATED("Use 'vqvf_matrix3x4f_transform_error_metric' instead, to be removed in v2.3") = vqvf_matrix3x4f_transform_error_metric;
+	template<additive_clip_format8 additive_format>
+	using additive_qvvf_transform_error_metric ACL_DEPRECATED("Use 'additive_vqvf_transform_error_metric' instead, to be removed in v2.3") = additive_vqvf_transform_error_metric<additive_format>;
 
 	ACL_IMPL_VERSION_NAMESPACE_END
 }

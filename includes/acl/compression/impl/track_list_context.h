@@ -50,7 +50,7 @@ namespace acl
 			uint8_t value;
 		};
 
-		struct qvv_bit_rate
+		struct vqv_bit_rate
 		{
 			uint8_t rotation;
 			uint8_t translation;
@@ -60,9 +60,9 @@ namespace acl
 		union track_bit_rate
 		{
 			scalar_bit_rate		scalar;
-			qvv_bit_rate		qvv;
+			vqv_bit_rate		vqv;
 
-			track_bit_rate() : qvv{k_invalid_bit_rate, k_invalid_bit_rate, k_invalid_bit_rate} {}
+			track_bit_rate() : vqv{k_invalid_bit_rate, k_invalid_bit_rate, k_invalid_bit_rate} {}
 		};
 
 		struct track_list_context
@@ -197,7 +197,7 @@ namespace acl
 				const track& ref_track = ref_track_list[track_index];
 				track& out_track = out_track_list[track_index];
 
-				if (ref_track.get_type() == track_type8::qvvf)
+				if (ref_track.get_type() == track_type8::vqvf)
 				{
 					ACL_ASSERT(false, "Unexpected track type");
 					are_samples_valid = false;

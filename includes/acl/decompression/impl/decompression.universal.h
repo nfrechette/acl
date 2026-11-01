@@ -75,7 +75,7 @@ namespace acl
 				case track_type8::float4f:
 				case track_type8::vector4f:
 					return static_cast<sample_looping_policy>(scalar.looping_policy);
-				case track_type8::qvvf:
+				case track_type8::vqvf:
 					return static_cast<sample_looping_policy>(transform.looping_policy);
 				default:
 					ACL_ASSERT(false, "Invalid track type");
@@ -102,7 +102,7 @@ namespace acl
 			case track_type8::float4f:
 			case track_type8::vector4f:
 				return initialize_v0<decompression_settings_type>(context.scalar, tracks, database);
-			case track_type8::qvvf:
+			case track_type8::vqvf:
 				return initialize_v0<decompression_settings_type>(context.transform, tracks, database);
 			default:
 				ACL_ASSERT(false, "Invalid track type");
@@ -122,7 +122,7 @@ namespace acl
 			case track_type8::float4f:
 			case track_type8::vector4f:
 				return relocated_v0<decompression_settings_type>(context.scalar, tracks, database);
-			case track_type8::qvvf:
+			case track_type8::vqvf:
 				return relocated_v0<decompression_settings_type>(context.transform, tracks, database);
 			default:
 				ACL_ASSERT(false, "Invalid track type");
@@ -145,7 +145,7 @@ namespace acl
 			case track_type8::float4f:
 			case track_type8::vector4f:
 				return is_bound_to_v0<decompression_settings_type>(context.scalar, tracks);
-			case track_type8::qvvf:
+			case track_type8::vqvf:
 				return is_bound_to_v0<decompression_settings_type>(context.transform, tracks);
 			default:
 				ACL_ASSERT(false, "Invalid track type");
@@ -166,7 +166,7 @@ namespace acl
 			case track_type8::vector4f:
 				set_looping_policy_v0<decompression_settings_type>(context.scalar, policy);
 				break;
-			case track_type8::qvvf:
+			case track_type8::vqvf:
 				set_looping_policy_v0<decompression_settings_type>(context.transform, policy);
 				break;
 			default:
@@ -190,7 +190,7 @@ namespace acl
 			case track_type8::vector4f:
 				seek_v0<decompression_settings_type>(context.scalar, sample_time, rounding_policy);
 				break;
-			case track_type8::qvvf:
+			case track_type8::vqvf:
 				seek_v0<decompression_settings_type>(context.transform, sample_time, rounding_policy);
 				break;
 			default:
@@ -214,7 +214,7 @@ namespace acl
 			case track_type8::vector4f:
 				decompress_tracks_v0<decompression_settings_type>(context.scalar, writer);
 				break;
-			case track_type8::qvvf:
+			case track_type8::vqvf:
 				decompress_tracks_v0<decompression_settings_type>(context.transform, writer);
 				break;
 			default:
@@ -238,7 +238,7 @@ namespace acl
 			case track_type8::vector4f:
 				decompress_track_v0<decompression_settings_type>(context.scalar, track_index, writer);
 				break;
-			case track_type8::qvvf:
+			case track_type8::vqvf:
 				decompress_track_v0<decompression_settings_type>(context.transform, track_index, writer);
 				break;
 			default:

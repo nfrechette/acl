@@ -185,7 +185,7 @@ namespace acl
 	{
 		//////////////////////////////////////////////////////////////////////////
 		// Only support scalar tracks
-		static constexpr bool is_track_type_supported(track_type8 type) { return type != track_type8::qvvf; }
+		static constexpr bool is_track_type_supported(track_type8 type) { return type != track_type8::vqvf; }
 	};
 
 	//////////////////////////////////////////////////////////////////////////
@@ -196,7 +196,7 @@ namespace acl
 	{
 		//////////////////////////////////////////////////////////////////////////
 		// Only support transform tracks
-		static constexpr bool is_track_type_supported(track_type8 type) { return type == track_type8::qvvf; }
+		static constexpr bool is_track_type_supported(track_type8 type) { return type == track_type8::vqvf; }
 	};
 
 	//////////////////////////////////////////////////////////////////////////
@@ -208,7 +208,7 @@ namespace acl
 	{
 		//////////////////////////////////////////////////////////////////////////
 		// Only support scalar tracks
-		static constexpr bool is_track_type_supported(track_type8 type) { return type != track_type8::qvvf; }
+		static constexpr bool is_track_type_supported(track_type8 type) { return type != track_type8::vqvf; }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Disabled by default since it is an uncommon feature
@@ -224,7 +224,7 @@ namespace acl
 	{
 		//////////////////////////////////////////////////////////////////////////
 		// Only support transform tracks
-		static constexpr bool is_track_type_supported(track_type8 type) { return type == track_type8::qvvf; }
+		static constexpr bool is_track_type_supported(track_type8 type) { return type == track_type8::vqvf; }
 
 		//////////////////////////////////////////////////////////////////////////
 		// By default, we only support the variable bit rates as they are generally optimal

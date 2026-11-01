@@ -79,13 +79,13 @@ namespace acl
 	// Raw transform tracks
 	struct sjson_raw_clip
 	{
-		track_array_qvvf track_list;
+		track_array_vqvf track_list;
 
-		track_array_qvvf additive_base_track_list;
+		track_array_vqvf additive_base_track_list;
 		additive_clip_format8 additive_format = additive_clip_format8::none;
 
 		ACL_DEPRECATED("No longer used, see track description, to be removed in v3.0")
-		track_qvvf bind_pose;
+		track_vqvf bind_pose;
 
 		bool has_settings = false;
 		compression_settings settings;
@@ -108,7 +108,7 @@ namespace acl
 		track_array track_list;
 
 		ACL_DEPRECATED("No longer used, see track description, to be removed in v3.0")
-		track_qvvf bind_pose;
+		track_vqvf bind_pose;
 
 		bool has_settings = false;
 		compression_settings settings;
@@ -472,7 +472,7 @@ namespace acl
 			return false;
 		}
 
-		bool create_skeleton(track_array_qvvf& track_list)
+		bool create_skeleton(track_array_vqvf& track_list)
 		{
 			sjson::ParserState before_bones = m_parser.save_state();
 
@@ -485,7 +485,7 @@ namespace acl
 			m_num_bones = num_bones;
 			m_bone_names = allocate_type_array<sjson::StringView>(m_allocator, num_bones);
 
-			track_list = track_array_qvvf(m_allocator, num_bones);
+			track_list = track_array_vqvf(m_allocator, num_bones);
 			track_list.set_name(convert_string(m_clip_name));
 
 			const uint32_t num_allocated_bones = num_bones;
@@ -552,7 +552,7 @@ namespace acl
 			return result;
 		}
 
-		bool process_each_bone(track_array_qvvf* tracks, uint32_t& num_bones)
+		bool process_each_bone(track_array_vqvf* tracks, uint32_t& num_bones)
 		{
 			bool counting = tracks == nullptr;
 			num_bones = 0;
@@ -631,7 +631,7 @@ namespace acl
 						desc.precision = m_error_threshold;
 
 					// Create a dummy track for now to hold our arguments
-					(*tracks)[i] = track_qvvf::make_ref(desc, nullptr, 0, 30.0F);
+					(*tracks)[i] = track_vqvf::make_ref(desc, nullptr, 0, 30.0F);
 					(*tracks)[i].set_name(convert_string(name));
 
 					rtm::vqvf bind_transform_ = rtm::vqv_cast(bind_transform);
@@ -679,7 +679,7 @@ namespace acl
 			return value;
 		}
 
-		bool read_qvv_sample(rtm::vqvf& out_sample)
+		bool read_vqv_sample(rtm::vqvf& out_sample)
 		{
 			rtm::vqvf sample = rtm::vqv_identity();
 			sjson::StringView values_str[4];
@@ -912,17 +912,17 @@ namespace acl
 		}
 
 		// Returns whether we have any errors or not
-		bool read_qvv_sample(
+		bool read_vqv_sample(
 			track_interpolator_t track_interpolator,
 			rtm::vqvf* out_sample)
 		{
-			ACL_ASSERT(track_interpolator == track_interpolator_t::linear, "Unsupported interpolator with qvvf");
+			ACL_ASSERT(track_interpolator == track_interpolator_t::linear, "Unsupported interpolator with vqvf");
 
 			if (!m_parser.array_begins())
 				return true;
 
 			rtm::vqvf value;
-			if (!read_qvv_sample(value))
+			if (!read_vqv_sample(value))
 				return true;
 
 			std::memcpy(out_sample, &value, sizeof(rtm::vqvf));
@@ -1019,7 +1019,7 @@ namespace acl
 				scalar_desc.output_index = output_index;
 				transform_desc.output_index = output_index;
 
-				if (track_type == track_type8::qvvf)
+				if (track_type == track_type8::vqvf)
 					transform_desc.precision = precision < 0.0F ? transform_desc.precision : precision;
 				else
 					scalar_desc.precision = precision < 0.0F ? scalar_desc.precision : precision;
@@ -1090,7 +1090,7 @@ namespace acl
 					rtm::float3f*	float3f;
 					rtm::float4f*	float4f;
 					rtm::vector4f*	vector4f;
-					rtm::vqvf*		qvvf;
+					rtm::vqvf*		vqvf;
 
 					// Extended interpolators
 					track_extended_sample_t<float>* 		float1f_ex;
@@ -1133,9 +1133,9 @@ namespace acl
 					else
 						track_samples_typed.vector4f_ex = allocate_type_array<track_extended_sample_vec4f_t>(m_allocator, m_num_samples);
 					break;
-				case track_type8::qvvf:
-					ACL_ASSERT(track_interpolator == track_interpolator_t::linear, "Unsupported interpolator with qvvf");
-					track_samples_typed.qvvf = allocate_type_array<rtm::vqvf>(m_allocator, m_num_samples);
+				case track_type8::vqvf:
+					ACL_ASSERT(track_interpolator == track_interpolator_t::linear, "Unsupported interpolator with vqvf");
+					track_samples_typed.vqvf = allocate_type_array<rtm::vqvf>(m_allocator, m_num_samples);
 					break;
 				default:
 					ACL_ASSERT(false, "Unsupported track type");
@@ -1167,8 +1167,8 @@ namespace acl
 						case track_type8::vector4f:
 							has_error = read_binary_scalar_sample(track_interpolator, track_samples_typed.vector4f + sample_index, track_samples_typed.vector4f_ex + sample_index);
 							break;
-						case track_type8::qvvf:
-							has_error = read_qvv_sample(track_interpolator, track_samples_typed.qvvf + sample_index);
+						case track_type8::vqvf:
+							has_error = read_vqv_sample(track_interpolator, track_samples_typed.vqvf + sample_index);
 							break;
 						default:
 							ACL_ASSERT(false, "Unsupported track type");
@@ -1197,8 +1197,8 @@ namespace acl
 						case track_type8::vector4f:
 							has_error = read_text_scalar_sample(track_interpolator, track_samples_typed.vector4f + sample_index, track_samples_typed.vector4f_ex + sample_index);
 							break;
-						case track_type8::qvvf:
-							has_error = read_qvv_sample(track_interpolator, track_samples_typed.qvvf + sample_index);
+						case track_type8::vqvf:
+							has_error = read_vqv_sample(track_interpolator, track_samples_typed.vqvf + sample_index);
 							break;
 						default:
 							ACL_ASSERT(false, "Unsupported track type");
@@ -1252,9 +1252,9 @@ namespace acl
 						else
 							deallocate_type_array<track_extended_sample_vec4f_t>(m_allocator, track_samples_typed.vector4f_ex, m_num_samples);
 						break;
-					case track_type8::qvvf:
-						ACL_ASSERT(track_interpolator == track_interpolator_t::linear, "Unsupported interpolator with qvvf");
-						deallocate_type_array<rtm::vqvf>(m_allocator, track_samples_typed.qvvf, m_num_samples);
+					case track_type8::vqvf:
+						ACL_ASSERT(track_interpolator == track_interpolator_t::linear, "Unsupported interpolator with vqvf");
+						deallocate_type_array<rtm::vqvf>(m_allocator, track_samples_typed.vqvf, m_num_samples);
 						break;
 					default:
 						ACL_ASSERT(false, "Unsupported track type");
@@ -1297,9 +1297,9 @@ namespace acl
 						else
 							track_ = track_vector4f_ex::make_owner(scalar_desc, m_allocator, track_samples_typed.vector4f_ex, m_num_samples, m_sample_rate);
 						break;
-					case track_type8::qvvf:
-						ACL_ASSERT(track_interpolator == track_interpolator_t::linear, "Unsupported interpolator with qvvf");
-						track_ = track_qvvf::make_owner(transform_desc, m_allocator, track_samples_typed.qvvf, m_num_samples, m_sample_rate);
+					case track_type8::vqvf:
+						ACL_ASSERT(track_interpolator == track_interpolator_t::linear, "Unsupported interpolator with vqvf");
+						track_ = track_vqvf::make_owner(transform_desc, m_allocator, track_samples_typed.vqvf, m_num_samples, m_sample_rate);
 						break;
 					default:
 						ACL_ASSERT(false, "Unsupported track type");
@@ -1340,14 +1340,14 @@ namespace acl
 			return true;
 		}
 
-		bool read_tracks(track_array_qvvf& track_list, track_array_qvvf& additive_base_track_list)
+		bool read_tracks(track_array_vqvf& track_list, track_array_vqvf& additive_base_track_list)
 		{
 			const uint32_t num_transforms = track_list.get_num_tracks();
 
 			if (m_parser.try_array_begins("base_tracks"))
 			{
 				// Copy our metadata from the actual clip
-				additive_base_track_list = track_array_qvvf(m_allocator, num_transforms);
+				additive_base_track_list = track_array_vqvf(m_allocator, num_transforms);
 				additive_base_track_list.set_name(string(m_allocator, "additive base"));
 				for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 					additive_base_track_list[transform_index].get_description() = track_list[transform_index].get_description();
@@ -1371,7 +1371,7 @@ namespace acl
 					track_desc_transformf desc = additive_base_track_list[bone_index].get_description();	// Copy our description
 					desc.output_index = bone_index;
 
-					track_qvvf track = track_qvvf::make_reserve(desc, m_allocator, m_additive_base_num_samples, m_additive_base_sample_rate);
+					track_vqvf track = track_vqvf::make_reserve(desc, m_allocator, m_additive_base_num_samples, m_additive_base_sample_rate);
 					track.set_name(convert_string(name));
 
 					if (m_parser.try_array_begins("rotations"))
@@ -1436,7 +1436,7 @@ namespace acl
 				track_desc_transformf desc = track_list[bone_index].get_description();	// Copy our description
 				desc.output_index = bone_index;
 
-				track_qvvf track = track_qvvf::make_reserve(desc, m_allocator, m_num_samples, m_sample_rate);
+				track_vqvf track = track_vqvf::make_reserve(desc, m_allocator, m_num_samples, m_sample_rate);
 				track.set_name(convert_string(name));
 
 				if (m_parser.try_array_begins("rotations"))
@@ -1485,7 +1485,7 @@ namespace acl
 			return false;
 		}
 
-		bool read_track_rotations(track_qvvf& track, uint32_t num_samples_expected)
+		bool read_track_rotations(track_vqvf& track, uint32_t num_samples_expected)
 		{
 			for (uint32_t i = 0; i < num_samples_expected; ++i)
 			{
@@ -1520,7 +1520,7 @@ namespace acl
 			return true;
 		}
 
-		bool read_track_translations(track_qvvf& track, uint32_t num_samples_expected)
+		bool read_track_translations(track_vqvf& track, uint32_t num_samples_expected)
 		{
 			for (uint32_t i = 0; i < num_samples_expected; ++i)
 			{
@@ -1555,7 +1555,7 @@ namespace acl
 			return true;
 		}
 
-		bool read_track_scales(track_qvvf& track, uint32_t num_samples_expected)
+		bool read_track_scales(track_vqvf& track, uint32_t num_samples_expected)
 		{
 			for (uint32_t i = 0; i < num_samples_expected; ++i)
 			{

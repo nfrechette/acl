@@ -142,7 +142,7 @@ namespace acl
 	};
 
 	template<track_interpolator_t track_interpolator>
-	struct track_traits<track_type8::qvvf, track_interpolator>
+	struct track_traits<track_type8::vqvf, track_interpolator>
 	{
 		static_assert(track_interpolator == track_interpolator_t::linear, "Extended interpolator is not supported for this type");
 
