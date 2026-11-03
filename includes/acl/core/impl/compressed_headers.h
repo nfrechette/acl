@@ -146,7 +146,7 @@ namespace acl
 
 			uint8_t get_bit_rate() const { return packed & 31; }
 			void set_bit_rate(uint8_t bit_rate) { ACL_ASSERT(bit_rate < 32, "Unexpected bit rate value"); packed = (packed & ~31) | bit_rate; }
-			bool get_has_extended_samples() const { return (packed >> 5) != 0; }
+			bool get_has_extended_samples() const { return ((packed >> 5) & 1) != 0; }
 			void set_has_extended_samples(bool has_extended_samples) { packed = (packed & ~(1 << 5)) | (static_cast<uint8_t>(has_extended_samples) << 5); }
 		};
 

@@ -26,6 +26,7 @@
 
 #include "acl/version.h"
 #include "acl/core/error.h"
+#include "acl/core/sample_interpolator.h"
 #include "acl/core/sample_looping_policy.h"
 #include "acl/core/sample_rounding_policy.h"
 #include "acl/core/impl/compiler_utils.h"

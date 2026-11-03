@@ -373,11 +373,7 @@ namespace acl
 					const rtm::scalarf value0 = rtm::scalar_load_as_scalar(&track_[key_frame0].value);
 					const rtm::scalarf value1 = rtm::scalar_load_as_scalar(&track_[key_frame1].value);
 
-					rtm::scalarf value;
-					if (interpolator == sample_interpolator_t::constant)
-						value = value0;
-					else
-						value = rtm::scalar_lerp(value0, value1, rtm::scalar_set(alpha));
+					const rtm::scalarf value = rtm::scalar_lerp(value0, value1, rtm::scalar_set(apply_sample_interpolator(alpha, interpolator)));
 
 					writer.write_float1(track_index, value);
 				}
@@ -395,11 +391,7 @@ namespace acl
 					const rtm::vector4f value0 = rtm::vector_load2(&track_[key_frame0].value);
 					const rtm::vector4f value1 = rtm::vector_load2(&track_[key_frame1].value);
 
-					rtm::vector4f value;
-					if (interpolator == sample_interpolator_t::constant)
-						value = value0;
-					else
-						value = rtm::vector_lerp(value0, value1, alpha);
+					const rtm::vector4f value = rtm::vector_lerp(value0, value1, apply_sample_interpolator(alpha, interpolator));
 
 					writer.write_float2(track_index, value);
 				}
@@ -417,11 +409,7 @@ namespace acl
 					const rtm::vector4f value0 = rtm::vector_load3(&track_[key_frame0].value);
 					const rtm::vector4f value1 = rtm::vector_load3(&track_[key_frame1].value);
 
-					rtm::vector4f value;
-					if (interpolator == sample_interpolator_t::constant)
-						value = value0;
-					else
-						value = rtm::vector_lerp(value0, value1, alpha);
+					const rtm::vector4f value = rtm::vector_lerp(value0, value1, apply_sample_interpolator(alpha, interpolator));
 
 					writer.write_float3(track_index, value);
 				}
@@ -439,11 +427,7 @@ namespace acl
 					const rtm::vector4f value0 = rtm::vector_load(&track_[key_frame0].value);
 					const rtm::vector4f value1 = rtm::vector_load(&track_[key_frame1].value);
 
-					rtm::vector4f value;
-					if (interpolator == sample_interpolator_t::constant)
-						value = value0;
-					else
-						value = rtm::vector_lerp(value0, value1, alpha);
+					const rtm::vector4f value = rtm::vector_lerp(value0, value1, apply_sample_interpolator(alpha, interpolator));
 
 					writer.write_float4(track_index, value);
 				}
@@ -461,11 +445,7 @@ namespace acl
 					const rtm::vector4f value0 = track_[key_frame0].value;
 					const rtm::vector4f value1 = track_[key_frame1].value;
 
-					rtm::vector4f value;
-					if (interpolator == sample_interpolator_t::constant)
-						value = value0;
-					else
-						value = rtm::vector_lerp(value0, value1, alpha);
+					const rtm::vector4f value = rtm::vector_lerp(value0, value1, apply_sample_interpolator(alpha, interpolator));
 
 					writer.write_vector4(track_index, value);
 				}
@@ -642,11 +622,7 @@ namespace acl
 				const rtm::scalarf value0 = rtm::scalar_load_as_scalar(&track__[key_frame0].value);
 				const rtm::scalarf value1 = rtm::scalar_load_as_scalar(&track__[key_frame1].value);
 
-				rtm::scalarf value;
-				if (interpolator == sample_interpolator_t::constant)
-					value = value0;
-				else
-					value = rtm::scalar_lerp(value0, value1, rtm::scalar_set(interpolation_alpha));
+				const rtm::scalarf value = rtm::scalar_lerp(value0, value1, rtm::scalar_set(apply_sample_interpolator(interpolation_alpha, interpolator)));
 
 				writer.write_float1(track_index, value);
 				break;
@@ -659,11 +635,7 @@ namespace acl
 				const rtm::vector4f value0 = rtm::vector_load2(&track__[key_frame0].value);
 				const rtm::vector4f value1 = rtm::vector_load2(&track__[key_frame1].value);
 
-				rtm::vector4f value;
-				if (interpolator == sample_interpolator_t::constant)
-					value = value0;
-				else
-					value = rtm::vector_lerp(value0, value1, interpolation_alpha);
+				const rtm::vector4f value = rtm::vector_lerp(value0, value1, apply_sample_interpolator(interpolation_alpha, interpolator));
 
 				writer.write_float2(track_index, value);
 				break;
@@ -676,11 +648,7 @@ namespace acl
 				const rtm::vector4f value0 = rtm::vector_load3(&track__[key_frame0].value);
 				const rtm::vector4f value1 = rtm::vector_load3(&track__[key_frame1].value);
 
-				rtm::vector4f value;
-				if (interpolator == sample_interpolator_t::constant)
-					value = value0;
-				else
-					value = rtm::vector_lerp(value0, value1, interpolation_alpha);
+				const rtm::vector4f value = rtm::vector_lerp(value0, value1, apply_sample_interpolator(interpolation_alpha, interpolator));
 
 				writer.write_float3(track_index, value);
 				break;
@@ -693,11 +661,7 @@ namespace acl
 				const rtm::vector4f value0 = rtm::vector_load(&track__[key_frame0].value);
 				const rtm::vector4f value1 = rtm::vector_load(&track__[key_frame1].value);
 
-				rtm::vector4f value;
-				if (interpolator == sample_interpolator_t::constant)
-					value = value0;
-				else
-					value = rtm::vector_lerp(value0, value1, interpolation_alpha);
+				const rtm::vector4f value = rtm::vector_lerp(value0, value1, apply_sample_interpolator(interpolation_alpha, interpolator));
 
 				writer.write_float4(track_index, value);
 				break;
@@ -710,11 +674,7 @@ namespace acl
 				const rtm::vector4f value0 = track__[key_frame0].value;
 				const rtm::vector4f value1 = track__[key_frame1].value;
 
-				rtm::vector4f value;
-				if (interpolator == sample_interpolator_t::constant)
-					value = value0;
-				else
-					value = rtm::vector_lerp(value0, value1, interpolation_alpha);
+				const rtm::vector4f value = rtm::vector_lerp(value0, value1, apply_sample_interpolator(interpolation_alpha, interpolator));
 
 				writer.write_vector4(track_index, value);
 				break;
