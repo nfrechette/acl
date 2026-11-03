@@ -203,11 +203,8 @@ namespace
 		CHECK(per_track_metadata[0].get_bit_rate() != 0);
 		CHECK(per_track_metadata[1].get_bit_rate() == 0);
 
-		// The animated float1f track must use a variable bit rate, not the raw bit rate.
-		// A track with more than one component uses the raw bit rate because quantize_scalarf_track
-		// applies the precision only to the [x] component.
-		if (raw_tracks.get_track_type() == track_type8::float1f)
-			CHECK(!is_raw_bit_rate(per_track_metadata[0].get_bit_rate()));
+		// The animated track must use a variable bit rate, not the raw bit rate
+		CHECK(!is_raw_bit_rate(per_track_metadata[0].get_bit_rate()));
 
 		// The default settings do not support a per track rounding policy
 		validate_extended_samples<default_scalar_decompression_settings, debug_track_writer>(allocator, raw_tracks, *tracks, false);

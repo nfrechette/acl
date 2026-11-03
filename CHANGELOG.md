@@ -1,5 +1,9 @@
 # Significant changes per release
 
+## Unreleased
+
+*  Fix scalar tracks with more than one component that always used the raw bit rate
+
 ## 2.1.0
 
 *  Add support for bind pose stripping
