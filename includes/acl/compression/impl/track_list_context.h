@@ -29,6 +29,7 @@
 #include "acl/core/iallocator.h"
 #include "acl/core/bitset.h"
 #include "acl/core/track_desc.h"
+#include "acl/core/impl/compressed_headers.h"
 #include "acl/core/impl/variable_bit_rates.h"
 #include "acl/compression/track_array.h"
 #include "acl/compression/impl/track_range.h"
@@ -79,6 +80,7 @@ namespace acl
 			uint32_t* constant_tracks_bitset = nullptr;
 			track_bit_rate* bit_rate_list = nullptr;
 			uint32_t* track_output_indices = nullptr;
+			sample_interpolation_mode_t* sample_interpolation_mode_list = nullptr;
 
 			uint32_t num_tracks = 0;
 			uint32_t num_output_tracks = 0;
@@ -102,11 +104,26 @@ namespace acl
 					deallocate_type_array(*allocator, bit_rate_list, num_tracks);
 
 					deallocate_type_array(*allocator, track_output_indices, num_output_tracks);
+
+					deallocate_type_array(*allocator, sample_interpolation_mode_list, num_tracks);
 				}
 			}
 
 			bool is_valid() const { return allocator != nullptr; }
 			bool is_constant(uint32_t track_index) const { return bitset_test(constant_tracks_bitset, bitset_description::make_from_num_bits(num_tracks), track_index); }
+			sample_interpolation_mode_t get_sample_interpolation_mode(uint32_t track_index) const { return sample_interpolation_mode_list[track_index]; }
+
+			// Returns true if an output track does not use the linear sample interpolation mode
+			bool has_extended_samples() const
+			{
+				for (uint32_t output_index = 0; output_index < num_output_tracks; ++output_index)
+				{
+					if (get_sample_interpolation_mode(track_output_indices[output_index]) != sample_interpolation_mode_t::linear)
+						return true;
+				}
+
+				return false;
+			}
 
 			// Disallow move/copy
 			track_list_context(const track_list_context&) = delete;
@@ -298,31 +315,45 @@ namespace acl
 			return get_track_num_sample_elements(track_.get_type()) * static_cast<uint32_t>(sizeof(float));
 		}
 
-		inline bool has_non_linear_samples(const track& track_)
+		// Returns how the samples of a mutable track interpolate
+		inline sample_interpolation_mode_t get_sample_interpolation_mode(const track& track_)
 		{
 			const track_vector4f_ex& track__ = track_cast<track_vector4f_ex>(track_);
 			const uint32_t num_samples = track__.get_num_samples();
+			if (num_samples == 0)
+				return sample_interpolation_mode_t::linear;
 
-			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+			const sample_interpolator_t interpolator = track__[0].interpolator;
+			for (uint32_t sample_index = 1; sample_index < num_samples; ++sample_index)
 			{
-				if (track__[sample_index].interpolator != sample_interpolator_t::linear)
-					return true;
+				if (track__[sample_index].interpolator != interpolator)
+					return sample_interpolation_mode_t::mixed;
 			}
 
-			// All samples use linear interpolation
-			return false;
+			// All samples use the same interpolator
+			switch (interpolator)
+			{
+			case sample_interpolator_t::linear:		return sample_interpolation_mode_t::linear;
+			case sample_interpolator_t::constant:	return sample_interpolation_mode_t::constant;
+			default:								return sample_interpolation_mode_t::mixed;	// The animated data stores each interpolator
+			}
 		}
 
-		inline bool has_non_linear_samples(const track_array& track_list)
+		// Finds the sample interpolation mode of each track.
+		// Call this function after the constant tracks are known and after the looping optimization.
+		inline void extract_sample_interpolation_modes(track_list_context& context)
 		{
-			for (const track& track_ : track_list)
-			{
-				if (has_non_linear_samples(track_))
-					return true;
-			}
+			ACL_ASSERT(context.is_valid(), "Invalid context");
 
-			// All track samples use linear interpolation
-			return false;
+			context.sample_interpolation_mode_list = allocate_type_array<sample_interpolation_mode_t>(*context.allocator, context.num_tracks);
+
+			for (uint32_t track_index = 0; track_index < context.num_tracks; ++track_index)
+			{
+				// A constant track has no animated data, thus it does not need sample interpolators
+				context.sample_interpolation_mode_list[track_index] = context.is_constant(track_index)
+					? sample_interpolation_mode_t::linear
+					: get_sample_interpolation_mode(context.track_list[track_index]);
+			}
 		}
 	}
 

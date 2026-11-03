@@ -57,10 +57,9 @@ namespace acl
 				if (per_track_metadata != nullptr)
 				{
 					const uint8_t bit_rate = context.is_constant(track_index) ? static_cast<uint8_t>(0) : context.bit_rate_list[track_index].scalar.value;
-					const bool has_extended_samples = has_non_linear_samples(context.track_list[track_index]);
 
 					per_track_metadata[output_index].set_bit_rate(bit_rate);
-					per_track_metadata[output_index].set_has_extended_samples(has_extended_samples);
+					per_track_metadata[output_index].set_sample_interpolation_mode(context.get_sample_interpolation_mode(track_index));
 				}
 
 				output_buffer += sizeof(track_metadata);
@@ -162,11 +161,11 @@ namespace acl
 
 					const scalar_bit_rate bit_rate = context.bit_rate_list[track_index].scalar;
 					const uint64_t num_bits_per_component = get_num_bits_at_bit_rate(bit_rate.value);
-					const bool has_extended_samples = has_non_linear_samples(mut_track);
+					const bool has_sample_interpolators = context.get_sample_interpolation_mode(track_index) == sample_interpolation_mode_t::mixed;
 
 					const track& src_track = is_raw_bit_rate(bit_rate.value) ? ref_track : mut_track;
 
-					if (has_extended_samples)
+					if (has_sample_interpolators)
 					{
 						// Reserving 2 bits for sample interpolator
 						constexpr uint32_t interpolator_num_bits = 2;

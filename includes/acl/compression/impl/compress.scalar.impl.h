@@ -89,6 +89,9 @@ namespace acl
 			// Find how many bits we need per track and quantize everything
 			quantize_tracks(context);
 
+			// Find how each track interpolates its samples
+			extract_sample_interpolation_modes(context);
+
 			// Done transforming our input tracks, time to pack them into their final form
 			const uint32_t per_track_metadata_size = write_track_metadata(context, nullptr);
 			const uint32_t constant_values_size = write_track_constant_values(context, nullptr);
@@ -154,7 +157,7 @@ namespace acl
 			header->num_tracks = context.num_output_tracks;
 			header->num_samples = context.num_output_tracks != 0 ? context.num_samples : 0;
 			header->sample_rate = context.num_output_tracks != 0 ? context.sample_rate : 0.0F;
-			header->set_has_extended_samples(has_non_linear_samples(context.track_list));
+			header->set_has_extended_samples(context.has_extended_samples());
 			header->set_is_wrap_optimized(context.looping_policy == sample_looping_policy::wrap);
 			header->set_has_metadata(metadata_size != 0);
 

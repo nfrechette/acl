@@ -199,8 +199,12 @@ namespace
 		REQUIRE(tracks != nullptr);
 
 		const track_metadata* per_track_metadata = get_scalar_tracks_header(*tracks).get_track_metadata();
-		CHECK(per_track_metadata[0].get_has_extended_samples());
+		CHECK(get_tracks_header(*tracks).get_has_extended_samples());
+		CHECK(per_track_metadata[0].get_sample_interpolation_mode() == sample_interpolation_mode_t::mixed);
 		CHECK(per_track_metadata[0].get_bit_rate() != 0);
+
+		// A constant track has no animated data, thus it does not need sample interpolators
+		CHECK(per_track_metadata[1].get_sample_interpolation_mode() == sample_interpolation_mode_t::linear);
 		CHECK(per_track_metadata[1].get_bit_rate() == 0);
 
 		// The animated track must use a variable bit rate, not the raw bit rate

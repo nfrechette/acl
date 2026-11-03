@@ -299,7 +299,9 @@ namespace acl
 				const acl_impl::track_metadata& metadata = per_track_metadata[track_index];
 				const uint32_t bit_rate = metadata.get_bit_rate();
 				ACL_ASSERT(bit_rate < max_bit_rate, "Invalid bit rate: %u", bit_rate);
-				const bool has_extended_samples = decompression_settings_type::are_extended_samples_supported() && metadata.get_has_extended_samples();
+				const acl_impl::sample_interpolation_mode_t interpolation_mode = decompression_settings_type::are_extended_samples_supported() ? metadata.get_sample_interpolation_mode() : acl_impl::sample_interpolation_mode_t::linear;
+				const bool has_sample_interpolators = interpolation_mode == acl_impl::sample_interpolation_mode_t::mixed;
+				const sample_interpolator_t track_interpolator = interpolation_mode == acl_impl::sample_interpolation_mode_t::constant ? sample_interpolator_t::constant : sample_interpolator_t::linear;
 				const uint32_t num_bits_per_component = num_bits_at_bit_rate[bit_rate];
 
 				rtm::scalarf alpha = interpolation_alpha;
@@ -321,9 +323,9 @@ namespace acl
 					}
 					else
 					{
-						// By default, we linearly interpolate
-						sample_interpolator_t interpolator = sample_interpolator_t::linear;
-						if (has_extended_samples)
+						// By default, each sample of the track uses the same interpolator
+						sample_interpolator_t interpolator = track_interpolator;
+						if (has_sample_interpolators)
 						{
 							// Our first sample always dictates how we interpolate across to the next sample
 							interpolator = unpack_sample_interpolator(animated_values, track_bit_offset0);
@@ -370,9 +372,9 @@ namespace acl
 					}
 					else
 					{
-						// By default, we linearly interpolate
-						sample_interpolator_t interpolator = sample_interpolator_t::linear;
-						if (has_extended_samples)
+						// By default, each sample of the track uses the same interpolator
+						sample_interpolator_t interpolator = track_interpolator;
+						if (has_sample_interpolators)
 						{
 							// Our first sample always dictates how we interpolate across to the next sample
 							interpolator = unpack_sample_interpolator(animated_values, track_bit_offset0);
@@ -419,9 +421,9 @@ namespace acl
 					}
 					else
 					{
-						// By default, we linearly interpolate
-						sample_interpolator_t interpolator = sample_interpolator_t::linear;
-						if (has_extended_samples)
+						// By default, each sample of the track uses the same interpolator
+						sample_interpolator_t interpolator = track_interpolator;
+						if (has_sample_interpolators)
 						{
 							// Our first sample always dictates how we interpolate across to the next sample
 							interpolator = unpack_sample_interpolator(animated_values, track_bit_offset0);
@@ -468,9 +470,9 @@ namespace acl
 					}
 					else
 					{
-						// By default, we linearly interpolate
-						sample_interpolator_t interpolator = sample_interpolator_t::linear;
-						if (has_extended_samples)
+						// By default, each sample of the track uses the same interpolator
+						sample_interpolator_t interpolator = track_interpolator;
+						if (has_sample_interpolators)
 						{
 							// Our first sample always dictates how we interpolate across to the next sample
 							interpolator = unpack_sample_interpolator(animated_values, track_bit_offset0);
@@ -517,9 +519,9 @@ namespace acl
 					}
 					else
 					{
-						// By default, we linearly interpolate
-						sample_interpolator_t interpolator = sample_interpolator_t::linear;
-						if (has_extended_samples)
+						// By default, each sample of the track uses the same interpolator
+						sample_interpolator_t interpolator = track_interpolator;
+						if (has_sample_interpolators)
 						{
 							// Our first sample always dictates how we interpolate across to the next sample
 							interpolator = unpack_sample_interpolator(animated_values, track_bit_offset0);
@@ -615,10 +617,10 @@ namespace acl
 				const acl_impl::track_metadata& metadata = per_track_metadata[scan_track_index];
 				const uint32_t bit_rate = metadata.get_bit_rate();
 				ACL_ASSERT(bit_rate < max_bit_rate, "Invalid bit rate: %u", bit_rate);
-				const bool has_extended_samples = decompression_settings_type::are_extended_samples_supported() && metadata.get_has_extended_samples();
+				const bool has_sample_interpolators = decompression_settings_type::are_extended_samples_supported() && metadata.get_sample_interpolation_mode() == acl_impl::sample_interpolation_mode_t::mixed;
 				const uint32_t num_bits_per_component = num_bits_at_bit_rate[bit_rate];
 				track_bit_offset += num_bits_per_component * num_element_components;
-				track_bit_offset += has_extended_samples && num_bits_per_component != 0 ? 2 : 0;
+				track_bit_offset += has_sample_interpolators && num_bits_per_component != 0 ? 2 : 0;
 
 				if (num_bits_per_component == 0)	// Constant bit rate
 					constant_values += num_element_components;
@@ -629,7 +631,9 @@ namespace acl
 			const acl_impl::track_metadata& metadata = per_track_metadata[track_index];
 			const uint32_t bit_rate = metadata.get_bit_rate();
 			ACL_ASSERT(bit_rate < max_bit_rate, "Invalid bit rate: %u", bit_rate);
-			const bool has_extended_samples = decompression_settings_type::are_extended_samples_supported() && metadata.get_has_extended_samples();
+			const acl_impl::sample_interpolation_mode_t interpolation_mode = decompression_settings_type::are_extended_samples_supported() ? metadata.get_sample_interpolation_mode() : acl_impl::sample_interpolation_mode_t::linear;
+			const bool has_sample_interpolators = interpolation_mode == acl_impl::sample_interpolation_mode_t::mixed;
+			const sample_interpolator_t track_interpolator = interpolation_mode == acl_impl::sample_interpolation_mode_t::constant ? sample_interpolator_t::constant : sample_interpolator_t::linear;
 			const uint32_t num_bits_per_component = num_bits_at_bit_rate[bit_rate];
 
 			const uint8_t* animated_values = scalars_header.get_track_animated_values();
@@ -641,9 +645,9 @@ namespace acl
 					value = rtm::scalar_load_as_scalar(constant_values);
 				else
 				{
-					// By default, we linearly interpolate
-					sample_interpolator_t interpolator = sample_interpolator_t::linear;
-					if (has_extended_samples)
+					// By default, each sample of the track uses the same interpolator
+					sample_interpolator_t interpolator = track_interpolator;
+					if (has_sample_interpolators)
 					{
 						// Our first sample always dictates how we interpolate across to the next sample
 						interpolator = unpack_sample_interpolator(animated_values, context.key_frame_bit_offsets[0] + track_bit_offset);
@@ -680,9 +684,9 @@ namespace acl
 					value = rtm::vector_load(constant_values);
 				else
 				{
-					// By default, we linearly interpolate
-					sample_interpolator_t interpolator = sample_interpolator_t::linear;
-					if (has_extended_samples)
+					// By default, each sample of the track uses the same interpolator
+					sample_interpolator_t interpolator = track_interpolator;
+					if (has_sample_interpolators)
 					{
 						// Our first sample always dictates how we interpolate across to the next sample
 						interpolator = unpack_sample_interpolator(animated_values, context.key_frame_bit_offsets[0] + track_bit_offset);
@@ -719,9 +723,9 @@ namespace acl
 					value = rtm::vector_load(constant_values);
 				else
 				{
-					// By default, we linearly interpolate
-					sample_interpolator_t interpolator = sample_interpolator_t::linear;
-					if (has_extended_samples)
+					// By default, each sample of the track uses the same interpolator
+					sample_interpolator_t interpolator = track_interpolator;
+					if (has_sample_interpolators)
 					{
 						// Our first sample always dictates how we interpolate across to the next sample
 						interpolator = unpack_sample_interpolator(animated_values, context.key_frame_bit_offsets[0] + track_bit_offset);
@@ -758,9 +762,9 @@ namespace acl
 					value = rtm::vector_load(constant_values);
 				else
 				{
-					// By default, we linearly interpolate
-					sample_interpolator_t interpolator = sample_interpolator_t::linear;
-					if (has_extended_samples)
+					// By default, each sample of the track uses the same interpolator
+					sample_interpolator_t interpolator = track_interpolator;
+					if (has_sample_interpolators)
 					{
 						// Our first sample always dictates how we interpolate across to the next sample
 						interpolator = unpack_sample_interpolator(animated_values, context.key_frame_bit_offsets[0] + track_bit_offset);
@@ -797,9 +801,9 @@ namespace acl
 					value = rtm::vector_load(constant_values);
 				else
 				{
-					// By default, we linearly interpolate
-					sample_interpolator_t interpolator = sample_interpolator_t::linear;
-					if (has_extended_samples)
+					// By default, each sample of the track uses the same interpolator
+					sample_interpolator_t interpolator = track_interpolator;
+					if (has_sample_interpolators)
 					{
 						// Our first sample always dictates how we interpolate across to the next sample
 						interpolator = unpack_sample_interpolator(animated_values, context.key_frame_bit_offsets[0] + track_bit_offset);

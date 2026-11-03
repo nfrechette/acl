@@ -89,7 +89,7 @@ namespace acl
 
 			// Scalar tracks use it like this (listed from LSB):
 			// Bits [0, 29): unused (29 bits)
-			// Bit 29: has extended samples? See track_extended_sample_t for details.
+			// Bit 29: has extended samples? True when a track does not use the linear sample interpolation mode. See sample_interpolation_mode_t for details.
 			// Bit 30: is wrap optimized? See sample_looping_policy for details.
 			// Bit 31: has metadata?
 
@@ -135,19 +135,36 @@ namespace acl
 			void set_has_metadata(bool has_metadata) { misc_packed = (misc_packed & ~(1 << 31)) | (static_cast<uint32_t>(has_metadata) << 31); }
 		};
 
+		// How the samples of a scalar track interpolate.
+		// These values are serialized, do not change them once assigned.
+		enum class sample_interpolation_mode_t : uint8_t
+		{
+			// Each sample uses linear interpolation.
+			// The animated data does not store the sample interpolators.
+			linear		= 0,
+
+			// The samples use different interpolators.
+			// The animated data stores 2 bits for the interpolator of each sample (see sample_interpolator_t).
+			mixed		= 1,
+
+			// Each sample uses constant interpolation.
+			// The animated data does not store the sample interpolators.
+			constant	= 2,
+		};
+
 		// Scalar track metadata
 		struct track_metadata
 		{
 			// Packing (listed from LSB):
 			// Bits [0, 5): bit rate
-			// Bit 5: uses extended samples
-			// Bits [6, 8): 2 bits unused
+			// Bits [5, 7): sample interpolation mode, see sample_interpolation_mode_t
+			// Bit 7: unused
 			uint8_t packed;
 
 			uint8_t get_bit_rate() const { return packed & 31; }
 			void set_bit_rate(uint8_t bit_rate) { ACL_ASSERT(bit_rate < 32, "Unexpected bit rate value"); packed = (packed & ~31) | bit_rate; }
-			bool get_has_extended_samples() const { return ((packed >> 5) & 1) != 0; }
-			void set_has_extended_samples(bool has_extended_samples) { packed = (packed & ~(1 << 5)) | (static_cast<uint8_t>(has_extended_samples) << 5); }
+			sample_interpolation_mode_t get_sample_interpolation_mode() const { return static_cast<sample_interpolation_mode_t>((packed >> 5) & 3); }
+			void set_sample_interpolation_mode(sample_interpolation_mode_t mode) { ACL_ASSERT(static_cast<uint8_t>(mode) < 3, "Unexpected sample interpolation mode"); packed = static_cast<uint8_t>((packed & ~(3 << 5)) | (static_cast<uint8_t>(mode) << 5)); }
 		};
 
 		// Header for scalar 'compressed_tracks'
