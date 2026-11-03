@@ -83,7 +83,7 @@ namespace acl
 			track_vector4f_ex& mut_track = track_cast<track_vector4f_ex>(context.track_list[track_index]);
 
 			const rtm::vector4f precision = rtm::vector_load1(&mut_track.get_description().precision);
-			const uint32_t ref_element_size = ref_track.get_sample_size();
+			const uint32_t ref_element_size = get_sample_value_size(ref_track);
 			const uint32_t num_samples = mut_track.get_num_samples();
 
 			const scalarf_range& range = context.range_list[track_index].range.scalarf;

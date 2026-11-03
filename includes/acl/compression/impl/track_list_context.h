@@ -291,6 +291,13 @@ namespace acl
 			}
 		}
 
+		// Returns the size in bytes of a sample value.
+		// With extended samples, the sample size also includes the interpolator and padding.
+		inline uint32_t get_sample_value_size(const track& track_)
+		{
+			return get_track_num_sample_elements(track_.get_type()) * static_cast<uint32_t>(sizeof(float));
+		}
+
 		inline bool has_non_linear_samples(const track& track_)
 		{
 			const track_vector4f_ex& track__ = track_cast<track_vector4f_ex>(track_);

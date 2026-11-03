@@ -84,7 +84,7 @@ namespace acl
 					continue;
 
 				const track& ref_track = (*context.reference_list)[track_index];
-				const uint32_t element_size = ref_track.get_sample_size();
+				const uint32_t element_size = get_sample_value_size(ref_track);
 
 				if (constant_values != nullptr)
 					std::memcpy(output_buffer, get_sample_value_ptr(ref_track, 0), element_size);
@@ -116,7 +116,7 @@ namespace acl
 				const track& ref_track = (*context.reference_list)[track_index];
 				const track_range& range = context.range_list[track_index];
 
-				const uint32_t element_size = ref_track.get_sample_size();
+				const uint32_t element_size = get_sample_value_size(ref_track);
 
 				if (range_values != nullptr)
 				{
