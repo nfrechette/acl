@@ -144,13 +144,17 @@ namespace acl
 			linear		= 0,
 
 			// The samples use different interpolators.
-			// The animated data stores 2 bits for the interpolator of each sample (see sample_interpolator_t).
+			// The animated data stores the interpolator of each sample (see sample_interpolator_t).
 			mixed		= 1,
 
 			// Each sample uses constant interpolation.
 			// The animated data does not store the sample interpolators.
 			constant	= 2,
 		};
+
+		// The number of bits that the animated data uses for the interpolator of a sample.
+		// This value is serialized, do not change it.
+		constexpr uint32_t k_num_sample_interpolator_bits = 1;
 
 		// Scalar track metadata
 		struct track_metadata

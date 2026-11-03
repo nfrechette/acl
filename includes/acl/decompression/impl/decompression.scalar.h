@@ -230,7 +230,7 @@ namespace acl
 			uint32_t packed_u32 = unaligned_load<uint32_t>(packed_data + byte_offset);
 			packed_u32 = byte_swap(packed_u32);
 
-			constexpr uint32_t num_bits = 2;
+			constexpr uint32_t num_bits = k_num_sample_interpolator_bits;
 			constexpr uint32_t interpolator_mask = (1 << num_bits) - 1;
 			constexpr uint32_t bit_shift = 32 - num_bits;
 			const uint32_t interpolator = (packed_u32 >> (bit_shift - (bit_offset % 8))) & interpolator_mask;
@@ -329,8 +329,8 @@ namespace acl
 						{
 							// Our first sample always dictates how we interpolate across to the next sample
 							interpolator = unpack_sample_interpolator(animated_values, track_bit_offset0);
-							track_bit_offset0 += 2;
-							track_bit_offset1 += 2;
+							track_bit_offset0 += k_num_sample_interpolator_bits;
+							track_bit_offset1 += k_num_sample_interpolator_bits;
 						}
 
 						rtm::scalarf value0;
@@ -378,8 +378,8 @@ namespace acl
 						{
 							// Our first sample always dictates how we interpolate across to the next sample
 							interpolator = unpack_sample_interpolator(animated_values, track_bit_offset0);
-							track_bit_offset0 += 2;
-							track_bit_offset1 += 2;
+							track_bit_offset0 += k_num_sample_interpolator_bits;
+							track_bit_offset1 += k_num_sample_interpolator_bits;
 						}
 
 						rtm::vector4f value0;
@@ -427,8 +427,8 @@ namespace acl
 						{
 							// Our first sample always dictates how we interpolate across to the next sample
 							interpolator = unpack_sample_interpolator(animated_values, track_bit_offset0);
-							track_bit_offset0 += 2;
-							track_bit_offset1 += 2;
+							track_bit_offset0 += k_num_sample_interpolator_bits;
+							track_bit_offset1 += k_num_sample_interpolator_bits;
 						}
 
 						rtm::vector4f value0;
@@ -476,8 +476,8 @@ namespace acl
 						{
 							// Our first sample always dictates how we interpolate across to the next sample
 							interpolator = unpack_sample_interpolator(animated_values, track_bit_offset0);
-							track_bit_offset0 += 2;
-							track_bit_offset1 += 2;
+							track_bit_offset0 += k_num_sample_interpolator_bits;
+							track_bit_offset1 += k_num_sample_interpolator_bits;
 						}
 
 						rtm::vector4f value0;
@@ -525,8 +525,8 @@ namespace acl
 						{
 							// Our first sample always dictates how we interpolate across to the next sample
 							interpolator = unpack_sample_interpolator(animated_values, track_bit_offset0);
-							track_bit_offset0 += 2;
-							track_bit_offset1 += 2;
+							track_bit_offset0 += k_num_sample_interpolator_bits;
+							track_bit_offset1 += k_num_sample_interpolator_bits;
 						}
 
 						rtm::vector4f value0;
@@ -620,7 +620,7 @@ namespace acl
 				const bool has_sample_interpolators = decompression_settings_type::are_extended_samples_supported() && metadata.get_sample_interpolation_mode() == acl_impl::sample_interpolation_mode_t::mixed;
 				const uint32_t num_bits_per_component = num_bits_at_bit_rate[bit_rate];
 				track_bit_offset += num_bits_per_component * num_element_components;
-				track_bit_offset += has_sample_interpolators && num_bits_per_component != 0 ? 2 : 0;
+				track_bit_offset += has_sample_interpolators && num_bits_per_component != 0 ? k_num_sample_interpolator_bits : 0;
 
 				if (num_bits_per_component == 0)	// Constant bit rate
 					constant_values += num_element_components;
@@ -651,7 +651,7 @@ namespace acl
 					{
 						// Our first sample always dictates how we interpolate across to the next sample
 						interpolator = unpack_sample_interpolator(animated_values, context.key_frame_bit_offsets[0] + track_bit_offset);
-						track_bit_offset += 2;
+						track_bit_offset += k_num_sample_interpolator_bits;
 					}
 
 					rtm::scalarf value0;
@@ -690,7 +690,7 @@ namespace acl
 					{
 						// Our first sample always dictates how we interpolate across to the next sample
 						interpolator = unpack_sample_interpolator(animated_values, context.key_frame_bit_offsets[0] + track_bit_offset);
-						track_bit_offset += 2;
+						track_bit_offset += k_num_sample_interpolator_bits;
 					}
 
 					rtm::vector4f value0;
@@ -729,7 +729,7 @@ namespace acl
 					{
 						// Our first sample always dictates how we interpolate across to the next sample
 						interpolator = unpack_sample_interpolator(animated_values, context.key_frame_bit_offsets[0] + track_bit_offset);
-						track_bit_offset += 2;
+						track_bit_offset += k_num_sample_interpolator_bits;
 					}
 
 					rtm::vector4f value0;
@@ -768,7 +768,7 @@ namespace acl
 					{
 						// Our first sample always dictates how we interpolate across to the next sample
 						interpolator = unpack_sample_interpolator(animated_values, context.key_frame_bit_offsets[0] + track_bit_offset);
-						track_bit_offset += 2;
+						track_bit_offset += k_num_sample_interpolator_bits;
 					}
 
 					rtm::vector4f value0;
@@ -807,7 +807,7 @@ namespace acl
 					{
 						// Our first sample always dictates how we interpolate across to the next sample
 						interpolator = unpack_sample_interpolator(animated_values, context.key_frame_bit_offsets[0] + track_bit_offset);
-						track_bit_offset += 2;
+						track_bit_offset += k_num_sample_interpolator_bits;
 					}
 
 					rtm::vector4f value0;

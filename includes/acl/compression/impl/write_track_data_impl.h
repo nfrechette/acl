@@ -167,8 +167,9 @@ namespace acl
 
 					if (has_sample_interpolators)
 					{
-						// Reserving 2 bits for sample interpolator
-						constexpr uint32_t interpolator_num_bits = 2;
+						constexpr uint32_t interpolator_num_bits = k_num_sample_interpolator_bits;
+						static_assert(static_cast<uint32_t>(sample_interpolator_t::constant) < (1U << interpolator_num_bits), "Sample interpolator must fit in the reserved bits");
+						static_assert(static_cast<uint32_t>(sample_interpolator_t::linear) < (1U << interpolator_num_bits), "Sample interpolator must fit in the reserved bits");
 
 						if (animated_values != nullptr)
 						{
@@ -176,7 +177,7 @@ namespace acl
 							const sample_interpolator_t interpolator = mut_track_ex[sample_index].interpolator;
 
 							uint32_t interpolator_u32 = static_cast<uint32_t>(interpolator);
-							ACL_ASSERT(interpolator_u32 < 4, "Sample interpolator must fit on 2 bits");
+							ACL_ASSERT(interpolator_u32 < (1U << interpolator_num_bits), "Sample interpolator must fit in the reserved bits");
 
 							// Convert to BigEndian to match other values
 							interpolator_u32 = interpolator_u32 << (32 - interpolator_num_bits);
