@@ -26,6 +26,7 @@
 
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
+#include "acl/core/track_formats.h"
 #include "acl/core/track_types.h"
 #include "acl/core/impl/variable_bit_rates.h"
 #include "acl/compression/impl/track_list_context.h"
@@ -77,7 +78,7 @@ namespace acl
 			return rtm::vector_round_symmetric(rtm::vector_mul(value, scales.max_value));
 		}
 
-		inline void quantize_scalarf_track(track_list_context& context, uint32_t track_index)
+		inline void quantize_scalarf_track(track_list_context& context, uint32_t track_index, scalar_format8 scalar_format)
 		{
 			const track& ref_track = (*context.reference_list)[track_index];
 			track_vector4f_ex& mut_track = track_cast<track_vector4f_ex>(context.track_list[track_index]);
@@ -99,7 +100,9 @@ namespace acl
 			uint8_t best_bit_rate = k_highest_bit_rate;	// Default to raw if we fail to find something better
 
 			// First we look for the best bit rate possible that keeps us within our precision target
-			for (uint8_t bit_rate = k_highest_bit_rate - 1; bit_rate != 0; --bit_rate)	// Skip the raw bit rate and the constant bit rate
+			// With the full precision format, we keep the raw bit rate and we do not search
+			const bool is_variable_format = scalar_format == scalar_format8::scalarf_variable;
+			for (uint8_t bit_rate = k_highest_bit_rate - 1; is_variable_format && bit_rate != 0; --bit_rate)	// Skip the raw bit rate and the constant bit rate
 			{
 				const uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate);
 				const quantization_scales scales(num_bits_at_bit_rate);
@@ -153,7 +156,7 @@ namespace acl
 			}
 		}
 
-		inline void quantize_tracks(track_list_context& context)
+		inline void quantize_tracks(track_list_context& context, scalar_format8 scalar_format)
 		{
 			ACL_ASSERT(context.is_valid(), "Invalid context");
 
@@ -170,7 +173,7 @@ namespace acl
 				switch (range.category)
 				{
 				case track_category8::scalarf:
-					quantize_scalarf_track(context, track_index);
+					quantize_scalarf_track(context, track_index, scalar_format);
 					break;
 				case track_category8::scalard:
 				case track_category8::transformf:

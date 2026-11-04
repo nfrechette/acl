@@ -557,7 +557,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 		try_algorithm_impl(nullptr);
 }
 
-static void try_algorithm(const Options& options, iallocator& allocator, const track_array& track_list, stat_logging logging, sjson::ArrayWriter* runs_writer, double regression_error_threshold)
+static void try_algorithm(const Options& options, iallocator& allocator, const track_array& track_list, const compression_settings& input_settings, stat_logging logging, sjson::ArrayWriter* runs_writer, double regression_error_threshold)
 {
 	(void)runs_writer;
 	(void)regression_error_threshold;
@@ -567,7 +567,8 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 		if (track_list.is_empty())
 			return;
 
-		compression_settings settings = get_default_compression_settings();
+		// Use the settings from the config file or the default settings, scalar tracks use only some of them
+		compression_settings settings = input_settings;
 
 		// When regression testing or writing to a binary output, we include all the metadata
 		if (options.regression_testing || options.output_bin_filename != nullptr)
@@ -854,6 +855,14 @@ static bool read_config(iallocator& allocator, Options& options, compression_set
 	if (!get_vector_format(scale_format.c_str(), out_settings.scale_format))
 	{
 		printf("Invalid scale format: %s\n", string(allocator, scale_format.c_str(), scale_format.size()).c_str());
+		return false;
+	}
+
+	sjson::StringView scalar_format;
+	parser.try_read("scalar_format", scalar_format, get_scalar_format_name(default_settings.scalar_format));
+	if (!get_scalar_format(scalar_format.c_str(), out_settings.scalar_format))
+	{
+		printf("Invalid scalar format: %s\n", string(allocator, scalar_format.c_str(), scalar_format.size()).c_str());
 		return false;
 	}
 
@@ -1221,7 +1230,7 @@ static int safe_main_impl(int argc, char* argv[])
 		if (sjson_type == sjson_file_type::raw_clip)
 			try_algorithm(options, allocator, transform_tracks, base_clip, additive_format, settings, database_settings, logging, runs_writer, regression_error_threshold);
 		else if (sjson_type == sjson_file_type::raw_track_list)
-			try_algorithm(options, allocator, scalar_tracks, logging, runs_writer, regression_error_threshold);
+			try_algorithm(options, allocator, scalar_tracks, settings, logging, runs_writer, regression_error_threshold);
 	};
 
 #if defined(ACL_USE_SJSON)

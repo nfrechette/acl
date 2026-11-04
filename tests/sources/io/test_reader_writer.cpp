@@ -213,6 +213,7 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 	settings.rotation_format = rotation_format8::quatf_drop_w_variable;
 	settings.scale_format = vector_format8::vector3f_variable;
 	settings.translation_format = vector_format8::vector3f_variable;
+	settings.scalar_format = scalar_format8::scalarf_variable;
 
 	const uint32_t filename_size = k_max_filename_size;
 	char filename[filename_size] = { 0 };

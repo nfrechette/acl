@@ -74,6 +74,7 @@ namespace acl
 				settings_writer["rotation_format"] = get_rotation_format_name(settings.rotation_format);
 				settings_writer["translation_format"] = get_vector_format_name(settings.translation_format);
 				settings_writer["scale_format"] = get_vector_format_name(settings.scale_format);
+				settings_writer["scalar_format"] = get_scalar_format_name(settings.scalar_format);
 			};
 			writer.insert_newline();
 		}

@@ -54,6 +54,7 @@ namespace
 		return rtm::vector_set(value, value * 2.0F, value * 3.0F, value * 4.0F);
 	}
 
+	inline void set_sample(float& sample, rtm::vector4f_arg0 value) { rtm::vector_store1(value, &sample); }
 	inline void set_sample(rtm::float2f& sample, rtm::vector4f_arg0 value) { rtm::vector_store2(value, &sample); }
 	inline void set_sample(rtm::float3f& sample, rtm::vector4f_arg0 value) { rtm::vector_store3(value, &sample); }
 	inline void set_sample(rtm::float4f& sample, rtm::vector4f_arg0 value) { rtm::vector_store(value, &sample); }
@@ -63,6 +64,7 @@ namespace
 	{
 		switch (track_type)
 		{
+		case track_type8::float1f:	return rtm::vector_set(writer.read_float1(0));
 		case track_type8::float2f:	return writer.read_float2(0);
 		case track_type8::float3f:	return writer.read_float3(0);
 		case track_type8::float4f:	return writer.read_float4(0);
@@ -91,43 +93,61 @@ namespace
 		const track_type8 track_type = raw_tracks.get_track_type();
 		const uint32_t num_components = get_track_num_sample_elements(track_type);
 
-		compression_settings settings;
-		output_stats stats;
-		compressed_tracks* tracks = nullptr;
-		const error_result result = compress_track_list(allocator, raw_tracks, settings, tracks, stats);
-		REQUIRE(result.empty());
-		REQUIRE(tracks != nullptr);
-
-		// The precision applies to each component, the track must use a variable bit rate
-		const track_metadata* per_track_metadata = get_scalar_tracks_header(*tracks).get_track_metadata();
-		CHECK(per_track_metadata[0].get_bit_rate() != 0);
-		CHECK(!is_raw_bit_rate(per_track_metadata[0].get_bit_rate()));
-
-		decompression_context<debug_scalar_decompression_settings> context;
-		REQUIRE(context.initialize(*tracks));
-
-		debug_track_writer writer(allocator, track_type, 1);
-
-		// The nearest rounding policy returns each sample without interpolation
-		for (uint32_t sample_index = 0; sample_index < k_num_samples; ++sample_index)
+		// The default settings use the variable format, the raw settings use the full precision format
+		const compression_settings settings_list[] = { get_default_compression_settings(), get_raw_compression_settings() };
+		for (const compression_settings& settings : settings_list)
 		{
-			INFO("sample index: " << sample_index);
+			const bool is_raw = settings.scalar_format == scalar_format8::scalarf_full;
+			INFO("scalar format: " << get_scalar_format_name(settings.scalar_format));
 
-			const float sample_time = float(sample_index) / k_sample_rate;
-			context.seek(sample_time, sample_rounding_policy::nearest);
-			context.decompress_tracks(writer);
+			output_stats stats;
+			compressed_tracks* tracks = nullptr;
+			const error_result result = compress_track_list(allocator, raw_tracks, settings, tracks, stats);
+			REQUIRE(result.empty());
+			REQUIRE(tracks != nullptr);
 
-			float expected[4];
-			float value[4];
-			rtm::vector_store(get_sample_value(sample_index), &expected[0]);
-			rtm::vector_store(read_value(writer, track_type), &value[0]);
+			// The precision applies to each component, a variable format must use a variable bit rate
+			const track_metadata* per_track_metadata = get_scalar_tracks_header(*tracks).get_track_metadata();
+			CHECK(per_track_metadata[0].get_bit_rate() != 0);
+			CHECK(is_raw_bit_rate(per_track_metadata[0].get_bit_rate()) == is_raw);
 
-			for (uint32_t component_index = 0; component_index < num_components; ++component_index)
-				CHECK(rtm::scalar_near_equal(value[component_index], expected[component_index], k_precision));
+			decompression_context<debug_scalar_decompression_settings> context;
+			REQUIRE(context.initialize(*tracks));
+
+			debug_track_writer writer(allocator, track_type, 1);
+
+			// The nearest rounding policy returns each sample without interpolation
+			for (uint32_t sample_index = 0; sample_index < k_num_samples; ++sample_index)
+			{
+				INFO("sample index: " << sample_index);
+
+				const float sample_time = float(sample_index) / k_sample_rate;
+				context.seek(sample_time, sample_rounding_policy::nearest);
+				context.decompress_tracks(writer);
+
+				float expected[4];
+				float value[4];
+				rtm::vector_store(get_sample_value(sample_index), &expected[0]);
+				rtm::vector_store(read_value(writer, track_type), &value[0]);
+
+				// The full precision format must return each value without loss
+				for (uint32_t component_index = 0; component_index < num_components; ++component_index)
+				{
+					if (is_raw)
+						CHECK(value[component_index] == expected[component_index]);
+					else
+						CHECK(rtm::scalar_near_equal(value[component_index], expected[component_index], k_precision));
+				}
+			}
+
+			allocator.deallocate(tracks, tracks->get_size());
 		}
-
-		allocator.deallocate(tracks, tracks->get_size());
 	}
+}
+
+TEST_CASE("quantize scalar float1f", "[compression][quantize]")
+{
+	test_quantize_scalar_track<track_array_float1f>();
 }
 
 TEST_CASE("quantize scalar float2f", "[compression][quantize]")

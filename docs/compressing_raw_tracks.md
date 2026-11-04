@@ -8,7 +8,8 @@ Note that before compression, it is recommended to [pre-process your raw tracks]
 
 ## Compressing raw scalar tracks
 
-*Compression settings are currently required as an argument but not used by scalar tracks. It is a placeholder.*
+Scalar tracks use only some of the compression settings: `scalar_format`, `optimize_loops`, and `metadata`. With the `scalarf_variable` format (see `get_default_compression_settings()`), each animated track uses the lowest bit rate that keeps its precision. With the `scalarf_full` format, each animated track keeps its samples with full precision. Like the transform formats, `compression_settings` defaults to full precision.
+
 *Segmenting is currently not supported by scalar tracks.*
 
 ```c++
@@ -16,7 +17,7 @@ Note that before compression, it is recommended to [pre-process your raw tracks]
 
 using namespace acl;
 
-compression_settings settings;
+compression_settings settings = get_default_compression_settings();
 
 OutputStats stats;
 compressed_tracks* out_compressed_tracks = nullptr;

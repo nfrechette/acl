@@ -394,6 +394,7 @@ namespace acl
 			sjson::StringView rotation_format;
 			sjson::StringView translation_format;
 			sjson::StringView scale_format;
+			sjson::StringView scalar_format;
 			bool rotation_range_reduction;
 			bool translation_range_reduction;
 			bool scale_range_reduction;
@@ -410,6 +411,7 @@ namespace acl
 			m_parser.try_read("rotation_format", rotation_format, get_rotation_format_name(default_settings.rotation_format));
 			m_parser.try_read("translation_format", translation_format, get_vector_format_name(default_settings.translation_format));
 			m_parser.try_read("scale_format", scale_format, get_vector_format_name(default_settings.scale_format));
+			m_parser.try_read("scalar_format", scalar_format, get_scalar_format_name(default_settings.scalar_format));
 			m_parser.try_read("rotation_range_reduction", rotation_range_reduction, false);			// Legacy, no longer used
 			m_parser.try_read("translation_range_reduction", translation_range_reduction, false);	// Legacy, no longer used
 			m_parser.try_read("scale_range_reduction", scale_range_reduction, false);				// Legacy, no longer used
@@ -454,6 +456,9 @@ namespace acl
 					goto invalid_value_error;
 
 				if (!get_vector_format(scale_format.c_str(), out_settings->scale_format))
+					goto invalid_value_error;
+
+				if (!get_scalar_format(scalar_format.c_str(), out_settings->scalar_format))
 					goto invalid_value_error;
 
 				m_error_threshold = float(error_threshold);

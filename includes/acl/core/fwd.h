@@ -46,6 +46,7 @@ namespace acl
 	enum class range_reduction_flags8 : uint8_t;
 	enum class rotation_format8 : uint8_t;
 	enum class vector_format8 : uint8_t;
+	enum class scalar_format8 : uint8_t;
 	union track_format8;
 	enum class animation_track_type8 : uint8_t;
 	enum class rotation_variant8 : uint8_t;

@@ -12,6 +12,10 @@ rotation_format = "quatf_full"
 translation_format = "vector3f_full"
 scale_format = "vector3f_full"
 
+// The format to use for scalar tracks. See function get_scalar_format(..)
+// Defaults to raw: scalarf_full
+scalar_format = "scalarf_full"
+
 // The error threshold used when performing regression testing
 // We will sample the clip at various positions and compare the raw and decompressed poses
 // and fail if the error is above or equal to this threshold

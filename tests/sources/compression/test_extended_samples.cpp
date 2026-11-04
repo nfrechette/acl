@@ -192,7 +192,8 @@ namespace
 		raw_tracks[0] = std::move(track0);
 		raw_tracks[1] = std::move(track1);
 
-		compression_settings settings;
+		// The variable format tests the extended samples with a variable bit rate
+		const compression_settings settings = get_default_compression_settings();
 		output_stats stats;
 		compressed_tracks* tracks = nullptr;
 		const error_result result = compress_track_list(allocator, raw_tracks, settings, tracks, stats);
@@ -221,14 +222,14 @@ namespace
 		allocator.deallocate(tracks, tracks->get_size());
 	}
 
-	inline bool is_sample_value_near(float value, float expected_value)
+	inline bool is_sample_value_equal(float value, float expected_value)
 	{
-		return rtm::scalar_near_equal(value, expected_value, k_value_threshold);
+		return value == expected_value;
 	}
 
-	inline bool is_sample_value_near(const rtm::float4f& value, const rtm::float4f& expected_value)
+	inline bool is_sample_value_equal(const rtm::float4f& value, const rtm::float4f& expected_value)
 	{
-		return rtm::vector_all_near_equal(rtm::vector_load(&value), rtm::vector_load(&expected_value), k_value_threshold);
+		return value.x == expected_value.x && value.y == expected_value.y && value.z == expected_value.z && value.w == expected_value.w;
 	}
 
 	template<class track_array_type>
@@ -271,7 +272,7 @@ namespace
 		CHECK(per_track_metadata[1].get_sample_interpolation_mode() == sample_interpolation_mode_t::constant);
 		CHECK(per_track_metadata[2].get_sample_interpolation_mode() == sample_interpolation_mode_t::mixed);
 
-		// Compressed tracks -> raw tracks, each sample must keep its interpolator and its value
+		// Compressed tracks -> raw tracks, each sample must keep its interpolator and its exact value
 		track_array converted_tracks;
 		REQUIRE(convert_track_list(allocator, *tracks, converted_tracks).empty());
 		REQUIRE(converted_tracks.get_num_tracks() == num_tracks);
@@ -291,7 +292,7 @@ namespace
 				INFO("sample index: " << sample_index);
 
 				CHECK(converted_track[sample_index].interpolator == raw_track[sample_index].interpolator);
-				CHECK(is_sample_value_near(converted_track[sample_index].value, raw_track[sample_index].value));
+				CHECK(is_sample_value_equal(converted_track[sample_index].value, raw_track[sample_index].value));
 			}
 		}
 

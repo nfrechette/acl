@@ -87,7 +87,7 @@ namespace acl
 			normalize_tracks(context);
 
 			// Find how many bits we need per track and quantize everything
-			quantize_tracks(context);
+			quantize_tracks(context, settings.scalar_format);
 
 			// Find how each track interpolates its samples
 			extract_sample_interpolation_modes(context);
