@@ -237,6 +237,44 @@ namespace acl
 			return static_cast<sample_interpolator_t>(interpolator);
 		}
 
+		// Returns the interpolator of a sample of compressed scalar tracks.
+		// The track index is the output index of the track.
+		inline sample_interpolator_t get_compressed_sample_interpolator(const compressed_tracks& tracks, uint32_t track_index, uint32_t sample_index)
+		{
+			const tracks_header& header = get_tracks_header(tracks);
+			ACL_ASSERT(track_index < header.num_tracks, "Invalid track index");
+			ACL_ASSERT(sample_index < header.num_samples, "Invalid sample index");
+
+			const scalar_tracks_header& scalars_header = get_scalar_tracks_header(tracks);
+			const track_metadata* per_track_metadata = scalars_header.get_track_metadata();
+
+			switch (per_track_metadata[track_index].get_sample_interpolation_mode())
+			{
+			case sample_interpolation_mode_t::linear:	return sample_interpolator_t::linear;
+			case sample_interpolation_mode_t::constant:	return sample_interpolator_t::constant;
+			case sample_interpolation_mode_t::mixed:
+			default:									break;
+			}
+
+			// Each sample stores its interpolator before its value, find where the track starts in the frame
+			const uint8_t* num_bits_at_bit_rate = tracks.get_version() == compressed_tracks_version16::v02_00_00 ? k_bit_rate_num_bits_v0 : k_bit_rate_num_bits;
+			const uint32_t num_element_components = get_track_num_sample_elements(header.track_type);
+
+			uint32_t track_bit_offset = 0;
+			for (uint32_t scan_track_index = 0; scan_track_index < track_index; ++scan_track_index)
+			{
+				const track_metadata& metadata = per_track_metadata[scan_track_index];
+				const uint32_t num_bits_per_component = num_bits_at_bit_rate[metadata.get_bit_rate()];
+				const bool has_sample_interpolators = metadata.get_sample_interpolation_mode() == sample_interpolation_mode_t::mixed;
+
+				track_bit_offset += num_bits_per_component * num_element_components;
+				track_bit_offset += has_sample_interpolators && num_bits_per_component != 0 ? k_num_sample_interpolator_bits : 0;
+			}
+
+			const uint32_t bit_offset = (sample_index * scalars_header.num_bits_per_frame) + track_bit_offset;
+			return unpack_sample_interpolator(scalars_header.get_track_animated_values(), bit_offset);
+		}
+
 		template<class decompression_settings_type, class track_writer_type>
 		inline void decompress_tracks_v0(const persistent_scalar_decompression_context_v0& context, track_writer_type& writer)
 		{

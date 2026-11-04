@@ -308,6 +308,11 @@ namespace acl
 			}
 		}
 
+		inline void* get_sample_value_ptr(track& track_, uint32_t sample_index)
+		{
+			return const_cast<void*>(get_sample_value_ptr(static_cast<const track&>(track_), sample_index));
+		}
+
 		// Returns the size in bytes of a sample value.
 		// With extended samples, the sample size also includes the interpolator and padding.
 		inline uint32_t get_sample_value_size(const track& track_)

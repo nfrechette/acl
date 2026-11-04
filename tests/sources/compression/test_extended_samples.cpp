@@ -25,6 +25,7 @@
 #include "catch2.impl.h"
 
 #include <acl/compression/compress.h>
+#include <acl/compression/convert.h>
 #include <acl/compression/track_array.h>
 #include <acl/core/ansi_allocator.h>
 #include <acl/core/impl/debug_track_writer.h>
@@ -219,6 +220,83 @@ namespace
 
 		allocator.deallocate(tracks, tracks->get_size());
 	}
+
+	inline bool is_sample_value_near(float value, float expected_value)
+	{
+		return rtm::scalar_near_equal(value, expected_value, k_value_threshold);
+	}
+
+	inline bool is_sample_value_near(const rtm::float4f& value, const rtm::float4f& expected_value)
+	{
+		return rtm::vector_all_near_equal(rtm::vector_load(&value), rtm::vector_load(&expected_value), k_value_threshold);
+	}
+
+	template<class track_array_type>
+	void test_extended_samples_conversion()
+	{
+		using typed_track = typename track_array_type::track_member_type;
+
+		ansi_allocator allocator;
+
+		// Track 0: each sample is linear, track 1: each sample is constant, track 2: both interpolators
+		constexpr uint32_t num_tracks = 3;
+		const sample_interpolator_t interpolators[num_tracks][k_num_samples] =
+		{
+			{ sample_interpolator_t::linear, sample_interpolator_t::linear, sample_interpolator_t::linear, sample_interpolator_t::linear },
+			{ sample_interpolator_t::constant, sample_interpolator_t::constant, sample_interpolator_t::constant, sample_interpolator_t::constant },
+			{ sample_interpolator_t::constant, sample_interpolator_t::constant, sample_interpolator_t::linear, sample_interpolator_t::linear },
+		};
+
+		track_array_type raw_tracks(allocator, num_tracks);
+		for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+		{
+			track_desc_scalarf desc;
+			desc.output_index = track_index;
+			desc.precision = 0.0001F;
+
+			typed_track track_ = typed_track::make_reserve(desc, allocator, k_num_samples, k_sample_rate);
+			for (uint32_t sample_index = 0; sample_index < k_num_samples; ++sample_index)
+				set_sample(track_[sample_index], interpolators[track_index][sample_index], k_sample_values[sample_index] + float(track_index));
+
+			raw_tracks[track_index] = std::move(track_);
+		}
+
+		// Raw tracks -> compressed tracks
+		compressed_tracks* tracks = nullptr;
+		REQUIRE(convert_track_list(allocator, raw_tracks, tracks).empty());
+		REQUIRE(tracks != nullptr);
+
+		const track_metadata* per_track_metadata = get_scalar_tracks_header(*tracks).get_track_metadata();
+		CHECK(per_track_metadata[0].get_sample_interpolation_mode() == sample_interpolation_mode_t::linear);
+		CHECK(per_track_metadata[1].get_sample_interpolation_mode() == sample_interpolation_mode_t::constant);
+		CHECK(per_track_metadata[2].get_sample_interpolation_mode() == sample_interpolation_mode_t::mixed);
+
+		// Compressed tracks -> raw tracks, each sample must keep its interpolator and its value
+		track_array converted_tracks;
+		REQUIRE(convert_track_list(allocator, *tracks, converted_tracks).empty());
+		REQUIRE(converted_tracks.get_num_tracks() == num_tracks);
+
+		for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+		{
+			INFO("track index: " << track_index);
+
+			REQUIRE(converted_tracks[track_index].get_interpolator() == track_interpolator_t::extended);
+
+			const typed_track& raw_track = raw_tracks[track_index];
+			const typed_track& converted_track = track_cast<typed_track>(converted_tracks[track_index]);
+			REQUIRE(converted_track.get_num_samples() == k_num_samples);
+
+			for (uint32_t sample_index = 0; sample_index < k_num_samples; ++sample_index)
+			{
+				INFO("sample index: " << sample_index);
+
+				CHECK(converted_track[sample_index].interpolator == raw_track[sample_index].interpolator);
+				CHECK(is_sample_value_near(converted_track[sample_index].value, raw_track[sample_index].value));
+			}
+		}
+
+		allocator.deallocate(tracks, tracks->get_size());
+	}
 }
 
 TEST_CASE("extended samples float1f", "[compression][extended_samples]")
@@ -229,4 +307,14 @@ TEST_CASE("extended samples float1f", "[compression][extended_samples]")
 TEST_CASE("extended samples float4f", "[compression][extended_samples]")
 {
 	test_extended_samples<track_array_float4f_ex>();
+}
+
+TEST_CASE("extended samples conversion float1f", "[compression][extended_samples]")
+{
+	test_extended_samples_conversion<track_array_float1f_ex>();
+}
+
+TEST_CASE("extended samples conversion float4f", "[compression][extended_samples]")
+{
+	test_extended_samples_conversion<track_array_float4f_ex>();
 }
