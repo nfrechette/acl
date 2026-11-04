@@ -224,7 +224,8 @@ namespace acl
 			track_desc_scalarf		scalar;
 			track_desc_transformf	transform;
 
-			track_desc_untyped() noexcept {};
+			// Initialize the largest member, the move assignment of a track swaps the description
+			track_desc_untyped() noexcept : transform() {}
 			explicit track_desc_untyped(const track_desc_scalarf& desc) noexcept : scalar(desc) {}
 			explicit track_desc_untyped(const track_desc_transformf& desc) noexcept : transform(desc) {}
 		};
