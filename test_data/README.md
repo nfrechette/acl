@@ -1,17 +1,14 @@
 # Regression testing
 
-This directory is to contain all the relevant data to perform regression testing. Sadly, the setup is manual for now and as a result the continuous integration builds do not run regression testing yet.
+This directory holds the data for the regression tests. The continuous integration builds run the regression tests on each push to a branch.
 
 ## Setup
 
-Find the latest test data zip file located on Google Drive and save it into this directory. If your data ever becomes stale, the python script will indicate as such and you will need to perform this step again. The zip file contains a number of clips from the [Carnegie-Mellon University](../docs/cmu_performance.md) database that were hand selected. A readme file within the zip file details this.
+The [acl-test-data](https://github.com/nfrechette/acl-test-data) repository makes the regression test data. Each version of the data is a zip file in a [release](https://github.com/nfrechette/acl-test-data/releases) of that repository. The zip file contains clips from the [Carnegie-Mellon University](../docs/cmu_performance.md) database that were selected by hand, and scalar track lists. A readme file in the zip file lists the clips.
 
-*  **v1** Test data [link](https://drive.google.com/open?id=1psNO0riJ6RlD5_vsvPh2vPsgEBvLN3Hr)
-*  **v2** Test data [link](https://drive.google.com/open?id=192CWjNRwlskgdqakNI-k8dv-EefXwxtU)
-*  **v3** Test data [link](https://drive.google.com/file/d/1ZxQp1-q_stN2MIgyQm6v6FP2zg6GmNPk/view?usp=sharing)
-*  **v4** Test data [link](https://drive.google.com/file/d/10TQGU15uk2P3QY2DFxuOj5ilCCUjToxj/view?usp=sharing)
-*  **v5** Test data [link](https://drive.google.com/file/d/1rcvd6Uf4p2enZ4hSrP2WUuwGlUWnE0Gs/view?usp=sharing)
-*  **v6** Test data [link](https://drive.google.com/file/d/11VU7iOGz8aD98KIbg9dZ0ZQUsYUBjf5B/view?usp=sharing) (**Latest**)
+The regression tests use the version that [make.py](../make.py) specifies (`CURRENT_REGRESSION_TEST_DATA_FILENAME`). When that zip file is not in this directory, the script downloads it from the release and extracts it into `regression_test_data`. When the version changes, the script removes the old extracted data and downloads the new zip file.
+
+To use a zip file that is not published yet, copy it into this directory with the expected name and remove the `regression_test_data` directory.
 
 ## Running the tests
 
