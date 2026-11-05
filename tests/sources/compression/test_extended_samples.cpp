@@ -298,6 +298,132 @@ namespace
 
 		allocator.deallocate(tracks, tracks->get_size());
 	}
+
+	// With the wrap policy, the last sample interpolates to the first sample.
+	// The interval from the last sample (0.75) to the first sample is [0.75, 1.0).
+	// Track 0: the last sample is constant, track 1: the last sample is linear, track 2: each sample is constant.
+	// The value of track N is (sample value + N * 10.0).
+	constexpr uint32_t k_num_wrap_tracks = 3;
+	constexpr float k_wrap_track_offset = 10.0F;
+
+	const sample_interpolator_t k_wrap_interpolators[k_num_wrap_tracks][k_num_samples] =
+	{
+		{ sample_interpolator_t::constant, sample_interpolator_t::constant, sample_interpolator_t::linear, sample_interpolator_t::constant },
+		{ sample_interpolator_t::constant, sample_interpolator_t::constant, sample_interpolator_t::linear, sample_interpolator_t::linear },
+		{ sample_interpolator_t::constant, sample_interpolator_t::constant, sample_interpolator_t::constant, sample_interpolator_t::constant },
+	};
+
+	struct wrap_test_case
+	{
+		float sample_time;
+		sample_rounding_policy rounding_policy;
+		float expected_values[k_num_wrap_tracks];	// Without the track offset
+	};
+
+	const wrap_test_case k_wrap_test_cases[] =
+	{
+		// Between sample 2 and 3, alpha = 0.4. Only track 2 is constant.
+		{ 0.6F, sample_rounding_policy::none, { 4.4F, 4.4F, 2.0F } },
+		{ 0.6F, sample_rounding_policy::floor, { 2.0F, 2.0F, 2.0F } },
+		{ 0.6F, sample_rounding_policy::ceil, { 8.0F, 8.0F, 8.0F } },
+		{ 0.6F, sample_rounding_policy::nearest, { 2.0F, 2.0F, 2.0F } },
+
+		// Between sample 3 and sample 0, alpha = 0.4
+		{ 0.85F, sample_rounding_policy::none, { 8.0F, 5.2F, 8.0F } },
+		{ 0.85F, sample_rounding_policy::floor, { 8.0F, 8.0F, 8.0F } },
+		{ 0.85F, sample_rounding_policy::ceil, { 1.0F, 1.0F, 1.0F } },
+		{ 0.85F, sample_rounding_policy::nearest, { 8.0F, 8.0F, 8.0F } },
+
+		// Between sample 3 and sample 0, alpha = 0.8
+		{ 0.95F, sample_rounding_policy::none, { 8.0F, 2.4F, 8.0F } },
+		{ 0.95F, sample_rounding_policy::floor, { 8.0F, 8.0F, 8.0F } },
+		{ 0.95F, sample_rounding_policy::ceil, { 1.0F, 1.0F, 1.0F } },
+		{ 0.95F, sample_rounding_policy::nearest, { 1.0F, 1.0F, 1.0F } },
+	};
+
+	template<class decompression_settings_type, class track_writer_type>
+	void validate_extended_samples_wrap(iallocator& allocator, const track_array& raw_tracks, const compressed_tracks& tracks, bool use_per_track_rounding)
+	{
+		const track_type8 track_type = raw_tracks.get_track_type();
+
+		decompression_context<decompression_settings_type> context;
+		REQUIRE(context.initialize(tracks));
+
+		track_writer_type raw_tracks_writer(allocator, track_type, k_num_wrap_tracks);
+		track_writer_type lossy_tracks_writer(allocator, track_type, k_num_wrap_tracks);
+
+		for (const wrap_test_case& test_case : k_wrap_test_cases)
+		{
+			INFO("sample time: " << test_case.sample_time << ", rounding policy: " << static_cast<int>(test_case.rounding_policy));
+
+			// With a per track rounding policy, the seek uses 'per_track' and the writer sets the policy
+			const sample_rounding_policy seek_rounding_policy = use_per_track_rounding ? sample_rounding_policy::per_track : test_case.rounding_policy;
+
+			set_rounding_policy(raw_tracks_writer, test_case.rounding_policy);
+			set_rounding_policy(lossy_tracks_writer, test_case.rounding_policy);
+
+			raw_tracks.sample_tracks(test_case.sample_time, seek_rounding_policy, raw_tracks_writer);
+
+			context.seek(test_case.sample_time, seek_rounding_policy);
+			context.decompress_tracks(lossy_tracks_writer);
+
+			for (uint32_t track_index = 0; track_index < k_num_wrap_tracks; ++track_index)
+			{
+				INFO("track index: " << track_index);
+
+				const float expected_value = test_case.expected_values[track_index] + float(track_index) * k_wrap_track_offset;
+
+				CHECK(is_value_near(raw_tracks_writer, track_type, track_index, expected_value));
+				CHECK(is_value_near(lossy_tracks_writer, track_type, track_index, expected_value));
+			}
+		}
+	}
+
+	template<class track_array_type>
+	void test_extended_samples_wrap()
+	{
+		using typed_track = typename track_array_type::track_member_type;
+
+		ansi_allocator allocator;
+
+		track_array_type raw_tracks(allocator, k_num_wrap_tracks);
+		for (uint32_t track_index = 0; track_index < k_num_wrap_tracks; ++track_index)
+		{
+			track_desc_scalarf desc;
+			desc.output_index = track_index;
+			desc.precision = 0.0001F;
+
+			typed_track track_ = typed_track::make_reserve(desc, allocator, k_num_samples, k_sample_rate);
+			for (uint32_t sample_index = 0; sample_index < k_num_samples; ++sample_index)
+			{
+				const float value = k_sample_values[sample_index] + float(track_index) * k_wrap_track_offset;
+				set_sample(track_[sample_index], k_wrap_interpolators[track_index][sample_index], value);
+			}
+
+			raw_tracks[track_index] = std::move(track_);
+		}
+
+		raw_tracks.set_looping_policy(sample_looping_policy::wrap);
+
+		const compression_settings settings = get_default_compression_settings();
+		output_stats stats;
+		compressed_tracks* tracks = nullptr;
+		const error_result result = compress_track_list(allocator, raw_tracks, settings, tracks, stats);
+		REQUIRE(result.empty());
+		REQUIRE(tracks != nullptr);
+
+		CHECK(tracks->get_looping_policy() == sample_looping_policy::wrap);
+
+		const track_metadata* per_track_metadata = get_scalar_tracks_header(*tracks).get_track_metadata();
+		CHECK(per_track_metadata[0].get_sample_interpolation_mode() == sample_interpolation_mode_t::mixed);
+		CHECK(per_track_metadata[1].get_sample_interpolation_mode() == sample_interpolation_mode_t::mixed);
+		CHECK(per_track_metadata[2].get_sample_interpolation_mode() == sample_interpolation_mode_t::constant);
+
+		validate_extended_samples_wrap<default_scalar_decompression_settings, debug_track_writer>(allocator, raw_tracks, *tracks, false);
+		validate_extended_samples_wrap<debug_scalar_decompression_settings, debug_track_writer_per_track_rounding>(allocator, raw_tracks, *tracks, true);
+
+		allocator.deallocate(tracks, tracks->get_size());
+	}
 }
 
 TEST_CASE("extended samples float1f", "[compression][extended_samples]")
@@ -318,4 +444,14 @@ TEST_CASE("extended samples conversion float1f", "[compression][extended_samples
 TEST_CASE("extended samples conversion float4f", "[compression][extended_samples]")
 {
 	test_extended_samples_conversion<track_array_float4f_ex>();
+}
+
+TEST_CASE("extended samples wrap float1f", "[compression][extended_samples]")
+{
+	test_extended_samples_wrap<track_array_float1f_ex>();
+}
+
+TEST_CASE("extended samples wrap float4f", "[compression][extended_samples]")
+{
+	test_extended_samples_wrap<track_array_float4f_ex>();
 }
