@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+*  Add extended samples to scalar tracks, each sample can use a constant or a linear interpolation, see [extended samples](docs/extended_samples.md)
 *  Fix scalar tracks with more than one component that always used the raw bit rate
 *  Add the `scalar_format` compression setting, it defaults to full precision like the transform formats
 *  Default `compression_settings` now keep scalar tracks with full precision, use `get_default_compression_settings()` for variable bit rates
