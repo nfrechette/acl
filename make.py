@@ -902,7 +902,8 @@ def do_regression_tests_cmake(test_data_dir, regression_test_data_dir, args):
 				if result != 0:
 					failed_queue.put((clip_filename, cmd))
 					failure_lock.acquire()
-					print('Failed to run regression test for clip: {}'.format(clip_filename))
+					# Print the exit code in hexadecimal too. Windows reports a crash with an NTSTATUS value, for example 0xC0000005.
+					print('Failed to run regression test for clip: {} (exit code {}, 0x{:08X})'.format(clip_filename, result, result & 0xFFFFFFFF))
 					print(cmd)
 					failure_lock.release()
 
