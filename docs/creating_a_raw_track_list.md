@@ -61,6 +61,8 @@ raw_track_list[0] = std::move(raw_track0);
 
 Once your raw track list has been populated with data, it is ready for [compression](compressing_raw_tracks.md). The data contained within the `track_array` will be read-only.
 
+Each sample of a scalar track can also select how it interpolates to the next sample, for example to make a step. See [extended samples](extended_samples.md) for details.
+
 You can override the looping policy by calling `raw_track_list.set_looping_policy(policy);`. This is only necessary if you perform your own loop optimization before compressing with ACL. See [how to handle looping playback](handling_looping_playback.md) for details.
 
 ## Additive animation clips
