@@ -424,6 +424,122 @@ namespace
 
 		allocator.deallocate(tracks, tracks->get_size());
 	}
+
+	// Returns true if the two writers have near values for a track
+	inline bool are_values_near(const debug_track_writer& writer0, const debug_track_writer& writer1, track_type8 track_type, uint32_t track_index)
+	{
+		if (track_type == track_type8::float1f)
+			return rtm::scalar_near_equal(writer0.read_float1(track_index), writer1.read_float1(track_index), k_value_threshold);
+
+		return rtm::vector_all_near_equal(writer0.read_float4(track_index), writer1.read_float4(track_index), k_value_threshold);
+	}
+
+	struct mode_test_case
+	{
+		const char* name;
+		sample_looping_policy looping_policy;
+		float values[k_num_samples];
+		sample_interpolator_t interpolators[k_num_samples];
+		sample_interpolation_mode_t expected_mode;
+	};
+
+	constexpr sample_interpolator_t k_c = sample_interpolator_t::constant;
+	constexpr sample_interpolator_t k_l = sample_interpolator_t::linear;
+
+	const mode_test_case k_mode_test_cases[] =
+	{
+		// Without the wrap policy, no interval follows the last sample
+		{ "last sample, clamp", sample_looping_policy::clamp, { 1.0F, 5.0F, 2.0F, 8.0F }, { k_c, k_c, k_c, k_l }, sample_interpolation_mode_t::constant },
+		{ "last sample, non-looping", sample_looping_policy::non_looping, { 1.0F, 5.0F, 2.0F, 8.0F }, { k_l, k_l, k_l, k_c }, sample_interpolation_mode_t::linear },
+
+		// With the wrap policy, the last sample interpolates to the first sample
+		{ "last sample, wrap", sample_looping_policy::wrap, { 1.0F, 5.0F, 2.0F, 8.0F }, { k_c, k_c, k_c, k_l }, sample_interpolation_mode_t::mixed },
+
+		// When the next sample has the same value, the interpolator has no effect
+		{ "equal values, linear sample", sample_looping_policy::clamp, { 1.0F, 5.0F, 5.0F, 8.0F }, { k_c, k_l, k_c, k_c }, sample_interpolation_mode_t::constant },
+		{ "equal values, constant sample", sample_looping_policy::clamp, { 1.0F, 5.0F, 5.0F, 8.0F }, { k_l, k_c, k_l, k_l }, sample_interpolation_mode_t::linear },
+
+		// When we wrap, the last sample and the first sample have the same value
+		{ "equal values, wrap", sample_looping_policy::wrap, { 1.0F, 5.0F, 2.0F, 1.0F }, { k_c, k_c, k_c, k_l }, sample_interpolation_mode_t::constant },
+
+		// Each interpolator has an effect
+		{ "mixed", sample_looping_policy::clamp, { 1.0F, 5.0F, 2.0F, 8.0F }, { k_l, k_c, k_l, k_c }, sample_interpolation_mode_t::mixed },
+	};
+
+	constexpr sample_rounding_policy k_rounding_policies[] =
+	{
+		sample_rounding_policy::none,
+		sample_rounding_policy::floor,
+		sample_rounding_policy::ceil,
+		sample_rounding_policy::nearest,
+	};
+
+	template<class track_array_type>
+	void test_extended_samples_mode()
+	{
+		using typed_track = typename track_array_type::track_member_type;
+
+		ansi_allocator allocator;
+
+		for (const mode_test_case& test_case : k_mode_test_cases)
+		{
+			INFO("test case: " << test_case.name);
+
+			track_desc_scalarf desc;
+			desc.output_index = 0;
+			desc.precision = 0.0001F;
+
+			typed_track track_ = typed_track::make_reserve(desc, allocator, k_num_samples, k_sample_rate);
+			for (uint32_t sample_index = 0; sample_index < k_num_samples; ++sample_index)
+				set_sample(track_[sample_index], test_case.interpolators[sample_index], test_case.values[sample_index]);
+
+			track_array_type raw_tracks(allocator, 1);
+			raw_tracks[0] = std::move(track_);
+			raw_tracks.set_looping_policy(test_case.looping_policy);
+
+			const compression_settings settings = get_default_compression_settings();
+			output_stats stats;
+			compressed_tracks* tracks = nullptr;
+			const error_result result = compress_track_list(allocator, raw_tracks, settings, tracks, stats);
+			REQUIRE(result.empty());
+			REQUIRE(tracks != nullptr);
+
+			const track_metadata* per_track_metadata = get_scalar_tracks_header(*tracks).get_track_metadata();
+			CHECK(per_track_metadata[0].get_sample_interpolation_mode() == test_case.expected_mode);
+
+			// Only a track with a linear mode has no extended samples
+			CHECK(get_tracks_header(*tracks).get_has_extended_samples() == (test_case.expected_mode != sample_interpolation_mode_t::linear));
+
+			// The output must not change: the decompressed values must match the raw values
+			const track_type8 track_type = raw_tracks.get_track_type();
+			debug_track_writer raw_writer(allocator, track_type, 1);
+			debug_track_writer lossy_writer(allocator, track_type, 1);
+
+			decompression_context<default_scalar_decompression_settings> context;
+			REQUIRE(context.initialize(*tracks));
+
+			const float duration = raw_tracks.get_finite_duration();
+			const uint32_t num_sample_times = 41;
+			for (uint32_t sample_time_index = 0; sample_time_index < num_sample_times; ++sample_time_index)
+			{
+				const float sample_time = rtm::scalar_min(duration * float(sample_time_index) / float(num_sample_times - 1), duration);
+
+				for (sample_rounding_policy rounding_policy : k_rounding_policies)
+				{
+					INFO("sample time: " << sample_time << ", rounding policy: " << static_cast<int>(rounding_policy));
+
+					raw_tracks.sample_tracks(sample_time, rounding_policy, raw_writer);
+
+					context.seek(sample_time, rounding_policy);
+					context.decompress_tracks(lossy_writer);
+
+					CHECK(are_values_near(raw_writer, lossy_writer, track_type, 0));
+				}
+			}
+
+			allocator.deallocate(tracks, tracks->get_size());
+		}
+	}
 }
 
 TEST_CASE("extended samples float1f", "[compression][extended_samples]")
@@ -454,4 +570,14 @@ TEST_CASE("extended samples wrap float1f", "[compression][extended_samples]")
 TEST_CASE("extended samples wrap float4f", "[compression][extended_samples]")
 {
 	test_extended_samples_wrap<track_array_float4f_ex>();
+}
+
+TEST_CASE("extended samples mode float1f", "[compression][extended_samples]")
+{
+	test_extended_samples_mode<track_array_float1f_ex>();
+}
+
+TEST_CASE("extended samples mode float4f", "[compression][extended_samples]")
+{
+	test_extended_samples_mode<track_array_float4f_ex>();
 }

@@ -79,6 +79,13 @@ The metadata of each track stores one of three modes:
 
 Only a mixed track stores the interpolators, with 1 bit for each sample. A constant track (one value for all the samples) stores no interpolator. Thus an extended track where all the samples use the same interpolator has the same size as a linear track.
 
+To select the mode, compression ignores each interpolator that has no effect on the output:
+
+*  The interpolator of the last sample, when the track list does not wrap. No interval follows the last sample.
+*  The interpolator of a sample that has the same value as the next sample (binary equality). Each interpolator gives that value.
+
+For example, a track where each sample is constant except the last sample uses the `constant` mode, and it stores no interpolator. In a track with the `linear` mode, a constant sample with the same value as the next sample interpolates linearly. Then the output can be 1 ulp from the sample value. This occurs on x86 without FMA, because RTM uses the stable form of the linear interpolation. A linear track with two equal samples has the same behavior.
+
 The compressed tracks use the version `v02_02_99_0` (see [compressed_tracks_version.h](../includes/acl/core/compressed_tracks_version.h)). ACL 2.1 and earlier cannot decompress this data.
 
 ## Decompression
@@ -91,7 +98,9 @@ The `track_writer` receives only the output values. The decompression API does n
 
 ## Conversion
 
-`convert_track_list(..)` converts compressed tracks that have extended samples into an extended raw track list. Each sample keeps its interpolator. With the `scalarf_full` scalar format, the conversion also keeps the exact values.
+`convert_track_list(..)` converts compressed tracks that have extended samples into an extended raw track list. With the `scalarf_full` scalar format, the conversion also keeps the exact values.
+
+A mixed track keeps the interpolator of each sample. A linear track or a constant track gives the interpolator of its mode to each sample, thus an interpolator that has no effect can change. When each track uses the linear mode, the compressed tracks have no extended samples, and the conversion gives a linear raw track list.
 
 ## The ACL file format
 

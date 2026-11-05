@@ -37,6 +37,7 @@
 #include <rtm/vector4f.h>
 
 #include <cstdint>
+#include <cstring>
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
@@ -320,28 +321,56 @@ namespace acl
 			return get_track_num_sample_elements(track_.get_type()) * static_cast<uint32_t>(sizeof(float));
 		}
 
-		// Returns how the samples of a mutable track interpolate
-		inline sample_interpolation_mode_t get_sample_interpolation_mode(const track& track_)
+		// Returns true if the interpolator of a sample has an effect on the output.
+		// The interpolator of a sample controls the interval from that sample to the next sample.
+		// Two kinds of interpolators have no effect:
+		//    - The interpolator of the last sample, when we do not wrap: no interval follows it.
+		//    - The interpolator of a sample with the same value as the next sample: each interpolator
+		//      gives that value. The linear interpolation can give a value that is 1 ulp from it.
+		inline bool is_sample_interpolator_used(const track& ref_track, uint32_t sample_index, uint32_t num_samples, sample_looping_policy looping_policy)
 		{
-			const track_vector4f_ex& track__ = track_cast<track_vector4f_ex>(track_);
-			const uint32_t num_samples = track__.get_num_samples();
-			if (num_samples == 0)
-				return sample_interpolation_mode_t::linear;
+			const bool is_last_sample = sample_index == (num_samples - 1);
+			if (is_last_sample && looping_policy != sample_looping_policy::wrap)
+				return false;
 
-			const sample_interpolator_t interpolator = track__[0].interpolator;
-			for (uint32_t sample_index = 1; sample_index < num_samples; ++sample_index)
+			// When we wrap, the last sample interpolates to the first sample
+			const uint32_t next_sample_index = is_last_sample ? 0 : (sample_index + 1);
+
+			// Equal raw values give equal quantized values, thus we compare the raw values
+			const void* value = get_sample_value_ptr(ref_track, sample_index);
+			const void* next_value = get_sample_value_ptr(ref_track, next_sample_index);
+			return std::memcmp(value, next_value, get_sample_value_size(ref_track)) != 0;
+		}
+
+		// Returns how the samples of a mutable track interpolate.
+		// The mode ignores each interpolator that has no effect on the output.
+		// Call this function after the looping optimization, because it uses the final number of samples.
+		inline sample_interpolation_mode_t get_sample_interpolation_mode(const track_list_context& context, uint32_t track_index)
+		{
+			const track_vector4f_ex& track_ = track_cast<track_vector4f_ex>(context.track_list[track_index]);
+			const track& ref_track = (*context.reference_list)[track_index];
+			const uint32_t num_samples = context.num_samples;
+
+			bool has_constant_samples = false;
+			bool has_linear_samples = false;
+			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
-				if (track__[sample_index].interpolator != interpolator)
-					return sample_interpolation_mode_t::mixed;
+				if (!is_sample_interpolator_used(ref_track, sample_index, num_samples, context.looping_policy))
+					continue;
+
+				switch (track_[sample_index].interpolator)
+				{
+				case sample_interpolator_t::constant:	has_constant_samples = true; break;
+				case sample_interpolator_t::linear:		has_linear_samples = true; break;
+				default:								return sample_interpolation_mode_t::mixed;	// The animated data stores each interpolator
+				}
 			}
 
-			// All samples use the same interpolator
-			switch (interpolator)
-			{
-			case sample_interpolator_t::linear:		return sample_interpolation_mode_t::linear;
-			case sample_interpolator_t::constant:	return sample_interpolation_mode_t::constant;
-			default:								return sample_interpolation_mode_t::mixed;	// The animated data stores each interpolator
-			}
+			if (has_constant_samples && has_linear_samples)
+				return sample_interpolation_mode_t::mixed;
+
+			// A track without a used interpolator is linear, it is the default mode
+			return has_constant_samples ? sample_interpolation_mode_t::constant : sample_interpolation_mode_t::linear;
 		}
 
 		// Finds the sample interpolation mode of each track.
@@ -357,7 +386,7 @@ namespace acl
 				// A constant track has no animated data, thus it does not need sample interpolators
 				context.sample_interpolation_mode_list[track_index] = context.is_constant(track_index)
 					? sample_interpolation_mode_t::linear
-					: get_sample_interpolation_mode(context.track_list[track_index]);
+					: get_sample_interpolation_mode(context, track_index);
 			}
 		}
 	}
