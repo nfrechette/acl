@@ -114,6 +114,12 @@ namespace acl
 			bool has_additive_base = false;
 			bool needs_conversion = false;
 
+			// True when the error metric functions must use the variants with scale.
+			// It is true when the clip has scale, or when the transform layout of the error metric depends on the scale.
+			// For example, the matrix error metric uses a vqvf without scale and a matrix3x4f with scale.
+			// The validation error always measures with scale, and the layout must agree with the error function.
+			bool metric_has_scale = false;
+
 			rotation_format8 rotation_format;
 			vector_format8 translation_format;
 			vector_format8 scale_format;
@@ -195,8 +201,14 @@ namespace acl
 				local_query.bind(bit_rate_database);
 				object_query.bind(bit_rate_database);
 
-				needs_conversion = settings_.error_metric->needs_conversion(clip_.has_scale);
-				const size_t metric_transform_size_ = settings_.error_metric->get_transform_size(clip_.has_scale);
+				const itransform_error_metric* error_metric_ = settings_.error_metric;
+				const bool is_metric_layout_scale_dependent =
+					error_metric_->get_transform_size(false) != error_metric_->get_transform_size(true) ||
+					error_metric_->needs_conversion(false) != error_metric_->needs_conversion(true);
+				metric_has_scale = clip_.has_scale || is_metric_layout_scale_dependent;
+
+				needs_conversion = error_metric_->needs_conversion(metric_has_scale);
+				const size_t metric_transform_size_ = error_metric_->get_transform_size(metric_has_scale);
 				metric_transform_size = metric_transform_size_;
 
 				shell_metadata_per_transform = allocate_type_array<rigid_shell_metadata_t>(allocator, num_bones);
@@ -666,9 +678,9 @@ namespace acl
 			const rigid_shell_metadata_t& transform_shell = context.shell_metadata_per_transform[target_bone_index];
 			const rtm::scalarf error_threshold_sq = rtm::scalar_set(transform_shell.precision * transform_shell.precision);
 
-			const auto convert_transforms_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::convert_transforms : &itransform_error_metric::convert_transforms_no_scale);
-			const auto apply_additive_to_base_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
-			const auto calculate_error_squared_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::calculate_error_squared : &itransform_error_metric::calculate_error_squared_no_scale);
+			const auto convert_transforms_impl = std::mem_fn(context.metric_has_scale ? &itransform_error_metric::convert_transforms : &itransform_error_metric::convert_transforms_no_scale);
+			const auto apply_additive_to_base_impl = std::mem_fn(context.metric_has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
+			const auto calculate_error_squared_impl = std::mem_fn(context.metric_has_scale ? &itransform_error_metric::calculate_error_squared : &itransform_error_metric::calculate_error_squared_no_scale);
 
 			itransform_error_metric::convert_transforms_args convert_transforms_args_lossy;
 			convert_transforms_args_lossy.dirty_transform_indices = &target_bone_index;
@@ -730,7 +742,7 @@ namespace acl
 #if defined(RTM_COMPILER_MSVC) && defined(RTM_ARCH_X86) && RTM_COMPILER_MSVC == RTM_COMPILER_MSVC_2015
 				// VS2015 fails to generate the right x86 assembly, branch instead
 				(void)calculate_error_squared_impl;
-				const rtm::scalarf error_sq = context.has_scale ? error_metric->calculate_error_squared(calculate_error_args) : error_metric->calculate_error_squared_no_scale(calculate_error_args);
+				const rtm::scalarf error_sq = context.metric_has_scale ? error_metric->calculate_error_squared(calculate_error_args) : error_metric->calculate_error_squared_no_scale(calculate_error_args);
 #else
 				const rtm::scalarf error_sq = calculate_error_squared_impl(error_metric, calculate_error_args);
 #endif
@@ -772,10 +784,10 @@ namespace acl
 
 			const rtm::scalarf error_threshold_sq = rtm::scalar_mul(error_threshold, error_threshold);
 
-			const auto convert_transforms_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::convert_transforms : &itransform_error_metric::convert_transforms_no_scale);
-			const auto apply_additive_to_base_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
-			const auto local_to_object_space_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::local_to_object_space : &itransform_error_metric::local_to_object_space_no_scale);
-			const auto calculate_error_squared_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::calculate_error_squared : &itransform_error_metric::calculate_error_squared_no_scale);
+			const auto convert_transforms_impl = std::mem_fn(context.metric_has_scale ? &itransform_error_metric::convert_transforms : &itransform_error_metric::convert_transforms_no_scale);
+			const auto apply_additive_to_base_impl = std::mem_fn(context.metric_has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
+			const auto local_to_object_space_impl = std::mem_fn(context.metric_has_scale ? &itransform_error_metric::local_to_object_space : &itransform_error_metric::local_to_object_space_no_scale);
+			const auto calculate_error_squared_impl = std::mem_fn(context.metric_has_scale ? &itransform_error_metric::calculate_error_squared : &itransform_error_metric::calculate_error_squared_no_scale);
 
 			itransform_error_metric::convert_transforms_args convert_transforms_args_lossy;
 			convert_transforms_args_lossy.dirty_transform_indices = context.chain_bone_indices;
@@ -846,7 +858,7 @@ namespace acl
 #if defined(RTM_COMPILER_MSVC) && defined(RTM_ARCH_X86) && RTM_COMPILER_MSVC == RTM_COMPILER_MSVC_2015
 				// VS2015 fails to generate the right x86 assembly, branch instead
 				(void)calculate_error_squared_impl;
-				const rtm::scalarf error_sq = context.has_scale ? error_metric->calculate_error_squared(calculate_error_args) : error_metric->calculate_error_squared_no_scale(calculate_error_args);
+				const rtm::scalarf error_sq = context.metric_has_scale ? error_metric->calculate_error_squared(calculate_error_args) : error_metric->calculate_error_squared_no_scale(calculate_error_args);
 #else
 				const rtm::scalarf error_sq = calculate_error_squared_impl(error_metric, calculate_error_args);
 #endif
@@ -1460,7 +1472,7 @@ namespace acl
 			const float sample_rate = context.sample_rate;
 			const float clip_duration = context.clip_duration;
 			const uint32_t segment_sample_start_index = context.segment_sample_start_index;
-			const bool has_scale = context.has_scale;
+			const bool has_scale = context.metric_has_scale;
 			const bool needs_conversion = context.needs_conversion;
 			const bool has_additive_base = context.has_additive_base;
 
@@ -2703,9 +2715,9 @@ namespace acl
 			const float clip_duration = context.clip_duration;
 			const uint32_t segment_sample_start_index = context.segment_sample_start_index;
 
-			const auto convert_transforms_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::convert_transforms : &itransform_error_metric::convert_transforms_no_scale);
-			const auto apply_additive_to_base_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
-			const auto local_to_object_space_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::local_to_object_space : &itransform_error_metric::local_to_object_space_no_scale);
+			const auto convert_transforms_impl = std::mem_fn(context.metric_has_scale ? &itransform_error_metric::convert_transforms : &itransform_error_metric::convert_transforms_no_scale);
+			const auto apply_additive_to_base_impl = std::mem_fn(context.metric_has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
+			const auto local_to_object_space_impl = std::mem_fn(context.metric_has_scale ? &itransform_error_metric::local_to_object_space : &itransform_error_metric::local_to_object_space_no_scale);
 
 			itransform_error_metric::convert_transforms_args convert_transforms_args_lossy;
 			convert_transforms_args_lossy.dirty_transform_indices = context.self_transform_indices;
