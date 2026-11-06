@@ -207,7 +207,7 @@ namespace acl
 			~quantization_context()
 			{
 				// v2
-				deallocate_type_array(allocator, additive_base_local_transforms, num_bones);
+				deallocate_type_array(allocator, additive_base_local_transforms, num_bones * segmenting_settings.max_num_samples);
 				deallocate_type_array(allocator, object_transforms_raw, num_bones * segmenting_settings.max_num_samples);
 				deallocate_type_array(allocator, cached_transforms_lossy, num_bones * segmenting_settings.max_num_samples);
 				deallocate_type_array(allocator, critical_transform_indices, num_bones);
