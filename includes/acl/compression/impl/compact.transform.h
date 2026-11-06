@@ -93,8 +93,12 @@ namespace acl
 
 			const itransform_error_metric& error_metric = *settings.error_metric;
 
+			// The error metric calls below always use the variants with scale.
+			// The transform layout must agree with them, even when the clip has no scale.
+			// For example, the matrix error metric uses a vqvf without scale and a matrix3x4f with scale.
+			const bool has_scale = true;
 			const bool has_additive_base = lossy_clip_context.has_additive_base;
-			const bool needs_conversion = error_metric.needs_conversion(lossy_clip_context.has_scale);
+			const bool needs_conversion = error_metric.needs_conversion(has_scale);
 
 			const uint32_t dirty_transform_indices[2] = { 0, 1 };
 			rtm::vqvf local_transforms[2];
@@ -102,7 +106,7 @@ namespace acl
 			alignas(16) uint8_t local_transforms_converted[1024];	// Big enough for 2 transforms for sure
 			alignas(16) uint8_t base_transforms_converted[1024];	// Big enough for 2 transforms for sure
 
-			const size_t metric_transform_size = error_metric.get_transform_size(lossy_clip_context.has_scale);
+			const size_t metric_transform_size = error_metric.get_transform_size(has_scale);
 			ACL_ASSERT(metric_transform_size * 2 <= sizeof(local_transforms_converted), "Transform size is too large");
 
 			itransform_error_metric::convert_transforms_args convert_transforms_args_local;

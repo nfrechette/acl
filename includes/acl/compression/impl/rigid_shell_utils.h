@@ -316,9 +316,13 @@ namespace acl
 			if (num_samples == 0)
 				return;	// No samples present, no shell distances
 
+			// We don't support error metrics that require conversion.
+			// The code below calls calculate_error_squared on vqvf transforms, and it always uses the variant with scale.
+			// Thus we test the conversion with scale, even when the clip has no scale.
+			if (error_metric.needs_conversion(false) || error_metric.needs_conversion(true))
+				return;
+
 			const bool has_scale = raw_clip.has_scale();
-			if (error_metric.needs_conversion(has_scale))
-				return;	// We don't support error metrics that require conversion
 
 			const float sample_rate = raw_clip.get_sample_rate();
 			const float duration = raw_clip.get_duration();
