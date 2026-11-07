@@ -260,17 +260,25 @@ namespace acl
 			//
 			// Inlined and optimized
 			// tmp_xxxx = rtm::vector_neg_mul_sub(vector_zzzz, inv_rotation_yyyy, rtm::vector_mul_add(vector_yyyy, inv_rotation_zzzz, rtm::vector_mul(vector_xxxx, inv_rotation_wwww)));
-			// tmp_yyyy = rtm::vector_mul_add(vector_zzzz, inv_rotation_xxxx, rtm::vector_mul_add(vector_yyyy, inv_rotation_wwww, rtm::vector_mul(vector_xxxx, inv_rotation_zzzz)));
+			// tmp_yyyy = rtm::vector_mul_add(vector_zzzz, inv_rotation_xxxx, rtm::vector_neg_mul_sub(vector_xxxx, inv_rotation_zzzz, rtm::vector_mul(vector_yyyy, inv_rotation_wwww)));
 			// tmp_zzzz = rtm::vector_mul_add(vector_zzzz, inv_rotation_wwww, rtm::vector_neg_mul_sub(vector_yyyy, inv_rotation_xxxx, rtm::vector_mul(vector_xxxx, inv_rotation_yyyy)));
-			// tmp_wwww = rtm::vector_neg_mul_sub(vector_zzzz, inv_rotation_zzzz, rtm::vector_neg_mul_sub(vector_yyyy, inv_rotation_yyyy, rtm::vector_mul(vector_xxxx, inv_rotation_xxxx)));
+			// tmp_wwww = rtm::vector_neg_mul_sub(vector_zzzz, inv_rotation_zzzz, rtm::vector_neg_mul_sub(vector_yyyy, inv_rotation_yyyy, rtm::vector_neg(rtm::vector_mul(vector_xxxx, inv_rotation_xxxx))));
 			//
 			// Hand optimize because Apple clang struggles to re-order the instructions
 			// to minimize dependencies. Ideally, we want independent instructions to dispatch
 			// together to facilitate simultaneous execution.
+			// The terms with vector_xxxx in tmp_yyyy and tmp_wwww are negative. The inverse rotation is the
+			// conjugate, thus (-inv_rotation.z) == rotation.z and (-inv_rotation.x) == rotation.x.
+			rtm::vector4f rotation_v = rtm::quat_to_vector(rotation);
+			rtm::vector4f rotation_xxxx = rtm::vector_dup_x(rotation_v);
+			rtm::vector4f rotation_yyyy = rtm::vector_dup_y(rotation_v);
+			rtm::vector4f rotation_zzzz = rtm::vector_dup_z(rotation_v);
+			rtm::vector4f rotation_wwww = rtm::vector_dup_w(rotation_v);
+
 			tmp_xxxx = rtm::vector_mul(vector_xxxx, inv_rotation_wwww);
-			tmp_yyyy = rtm::vector_mul(vector_xxxx, inv_rotation_zzzz);
+			tmp_yyyy = rtm::vector_mul(vector_xxxx, rotation_zzzz);
 			tmp_zzzz = rtm::vector_mul(vector_xxxx, inv_rotation_yyyy);
-			tmp_wwww = rtm::vector_mul(vector_xxxx, inv_rotation_xxxx);
+			tmp_wwww = rtm::vector_mul(vector_xxxx, rotation_xxxx);
 
 			tmp_xxxx = rtm::vector_mul_add(vector_yyyy, inv_rotation_zzzz, tmp_xxxx);
 			tmp_yyyy = rtm::vector_mul_add(vector_yyyy, inv_rotation_wwww, tmp_yyyy);
@@ -281,12 +289,6 @@ namespace acl
 			tmp_yyyy = rtm::vector_mul_add(vector_zzzz, inv_rotation_xxxx, tmp_yyyy);
 			tmp_zzzz = rtm::vector_mul_add(vector_zzzz, inv_rotation_wwww, tmp_zzzz);
 			tmp_wwww = rtm::vector_neg_mul_sub(vector_zzzz, inv_rotation_zzzz, tmp_wwww);
-
-			rtm::vector4f rotation_v = rtm::quat_to_vector(rotation);
-			rtm::vector4f rotation_xxxx = rtm::vector_dup_x(rotation_v);
-			rtm::vector4f rotation_yyyy = rtm::vector_dup_y(rotation_v);
-			rtm::vector4f rotation_zzzz = rtm::vector_dup_z(rotation_v);
-			rtm::vector4f rotation_wwww = rtm::vector_dup_w(rotation_v);
 
 			// We know that result_wwww is discarded and so we can cut down a few operations
 			// quat_mul_x4(
