@@ -259,11 +259,11 @@ namespace acl
 				if (raw_local_pose != nullptr)
 					return;	// Already initialized
 
-				additive_local_pose = clip.has_additive_base ? allocate_type_array<rtm::vqvf>(allocator, num_bones) : nullptr;
+				additive_local_pose = has_additive_base ? allocate_type_array<rtm::vqvf>(allocator, num_bones) : nullptr;
 				raw_local_pose = allocate_type_array<rtm::vqvf>(allocator, num_bones);
 				lossy_local_pose = allocate_type_array<rtm::vqvf>(allocator, num_bones);
 				raw_local_transforms = allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size * num_bones * clip.segments->num_samples, 64);
-				base_local_transforms = clip.has_additive_base ? allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size * num_bones * clip.segments->num_samples, 64) : nullptr;
+				base_local_transforms = has_additive_base ? allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size * num_bones * clip.segments->num_samples, 64) : nullptr;
 				raw_object_transforms = allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size * num_bones * clip.segments->num_samples, 64);
 				local_transforms_converted = needs_conversion ? allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size * num_bones, 64) : nullptr;
 				lossy_object_pose = allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size * num_bones, 64);
