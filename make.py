@@ -429,14 +429,10 @@ def do_generate_solution(build_dir, cmake_script_dir, regression_test_data_dir, 
 	if args.bench:
 		extra_switches.append('-DBUILD_BENCHMARK_EXE:BOOL=true')
 
-	if platform.system() == 'Windows':
-		if os.path.sep == '\\':
-			# Native Windows
-			extra_switches
-		else:
-			# MSYS2 or Cygwin
-			extra_switches.append('-DCMAKE_BUILD_TYPE={}'.format(config.upper()))
-	else:
+	# Native Windows uses a multi-config generator that does not use CMAKE_BUILD_TYPE
+	# MSYS2 and Cygwin use a single-config generator
+	is_native_windows = platform.system() == 'Windows' and os.path.sep == '\\'
+	if not is_native_windows:
 		extra_switches.append('-DCMAKE_BUILD_TYPE={}'.format(config.upper()))
 
 	if platform.system() == 'Darwin' and compiler == 'ios' and args.ci:
