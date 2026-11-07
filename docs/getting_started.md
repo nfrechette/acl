@@ -13,8 +13,11 @@ In order to contribute to ACL and use the various tools provided for development
 4. Build the IDE solution with: `python make.py -build`
 5. Run the unit tests with: `python make.py -unit_test`
 6. Run the regression tests with: `python make.py -regression_test`
+7. Run the clang static analyzer on the public headers with: `python make.py -analyze`
 
 On all three platforms, *AVX* support can be enabled by using the `-avx` switch.
+
+The `-analyze` switch runs the clang static analyzer on the include validation files, one file for each public header. It analyzes the functions in the headers and enables the array bound checker. It needs clang and a Makefile or Ninja generator: use the default compiler on OS X, or `-compiler clang19` (or a later version) on Linux. It prints each issue one time and returns an error code if it finds an issue. On GitHub Actions, it also prints each issue as an annotation on the line of the issue. The other switches apply: for example, `-nosimd` analyzes the scalar code path.
 
 ### Windows ARM64
 
@@ -25,6 +28,14 @@ For *Windows on ARM64*, the steps are identical to *x86 and x64* but you will ne
 For native *Linux on ARMv7*, the steps are identical to *x86 and x64* and `make.py` selects the `armv7` architecture automatically. You can generate build files with: `python make.py -cpu armv7`
 
 With SIMD enabled, the build adds `-mfpu=neon` because the Linux `armhf` compilers do not enable NEON by default.
+
+### Linux riscv64
+
+For native *Linux on riscv64*, the steps are identical to *x86 and x64* and `make.py` selects the `riscv64` architecture automatically. You can generate build files with: `python make.py -cpu riscv64`
+
+RTM has no SIMD code for RISC-V, so the build uses the scalar code path. The `-avx`, `-avx2`, and `-pop` switches are not supported with `riscv64`.
+
+`make.py` does not cross-compile for `riscv64`. To cross-compile, use CMake directly with a RISC-V compiler and toolchain file.
 
 ### Android
 

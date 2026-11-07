@@ -3,10 +3,13 @@
 from __future__ import print_function
 
 import argparse
+import json
 import multiprocessing
+import multiprocessing.pool
 import os
 import platform
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -23,14 +26,14 @@ CURRENT_REGRESSION_TEST_DATA_FILENAME = 'acl_regression_tests_v4.zip'
 current_decomp_data = 'decomp_data_v8'
 
 def is_host_cpu_arm64():
-	is_arm64_cpu = False
-	if platform.machine() == 'arm64' or platform.machine() == 'aarch64':
-		is_arm64_cpu = True
-	return is_arm64_cpu
+	return platform.machine() == 'arm64' or platform.machine() == 'aarch64'
 
 def is_host_cpu_armv7():
 	# armv8l is a 32-bit ARM user space on a 64-bit ARM processor
 	return platform.machine() == 'armv7l' or platform.machine() == 'armv8l'
+
+def is_host_cpu_riscv64():
+	return platform.machine() == 'riscv64'
 
 def parse_argv():
 	parser = argparse.ArgumentParser(add_help=False)
@@ -45,11 +48,12 @@ def parse_argv():
 	actions.add_argument('-run_bench', action='store_true')
 	actions.add_argument('-pull_bench', action='store_true')	# Android only
 	actions.add_argument('-convert', help='Input/Output directory to convert')
+	actions.add_argument('-analyze', action='store_true', help='Run the clang static analyzer on the public headers')
 
 	target = parser.add_argument_group(title='Target')
 	target.add_argument('-compiler', choices=['vs2015', 'vs2017', 'vs2019', 'vs2022', 'vs2026', 'vs2019-clang', 'vs2022-clang', 'vs2026-clang', 'android', 'clang4', 'clang5', 'clang6', 'clang7', 'clang8', 'clang9', 'clang10', 'clang11', 'clang12', 'clang13', 'clang14', 'clang15', 'clang16', 'clang17', 'clang18', 'clang19', 'clang20', 'clang21', 'clang22', 'clang23', 'gcc4.9', 'gcc5', 'gcc6', 'gcc7', 'gcc8', 'gcc9', 'gcc10', 'gcc11', 'gcc12', 'gcc13', 'gcc14', 'gcc15', 'osx', 'ios', 'emscripten'], help='Defaults to the host system\'s default compiler')
 	target.add_argument('-config', choices=['Debug', 'Release'], type=str.capitalize)
-	target.add_argument('-cpu', choices=['x86', 'x64', 'armv7', 'arm64', 'arm64ec', 'wasm'], help='Defaults to the host system\'s architecture')
+	target.add_argument('-cpu', choices=['x86', 'x64', 'armv7', 'arm64', 'arm64ec', 'riscv64', 'wasm'], help='Defaults to the host system\'s architecture')
 	target.add_argument('-cpp_version', choices=['11', '14', '17', '20'], help='Defaults to C++11')
 
 	misc = parser.add_argument_group(title='Miscellaneous')
@@ -60,8 +64,9 @@ def parse_argv():
 	misc.add_argument('-simd', dest='use_simd', action='store_true', help='Compile with default SIMD instructions')
 	misc.add_argument('-nosjson', dest='use_sjson', action='store_false', help='Compile without SJSON support')
 	misc.add_argument('-allwarnings', dest='allwarnings', action='store_true', help='Enable all warnings, MSVC only')
-	misc.add_argument('-num_threads', help='No. to use while compiling and regressing')
+	misc.add_argument('-num_threads', type=int, help='No. to use while compiling and regressing')
 	misc.add_argument('-tests_matching', help='Only run tests whose names match this regex')
+	misc.add_argument('-fast_math', action='store_true', help='Compile the include validation with fast math')
 	misc.add_argument('-ci', action='store_true', help='Whether or not this is a Continuous Integration build')
 	misc.add_argument('-help', action='help', help='Display this usage information')
 
@@ -71,14 +76,15 @@ def parse_argv():
 	if not num_threads or num_threads == 0:
 		num_threads = 4
 
-	parser.set_defaults(build=False, clean=False, clean_only=False, unit_test=False, regression_test=False, bench=False, run_bench=False, pull_bench=False,
+	parser.set_defaults(build=False, clean=False, clean_only=False, unit_test=False, regression_test=False, bench=False, run_bench=False, pull_bench=False, analyze=False,
 		compiler=None, config='Release', cpu=None, cpp_version='11', use_avx=False, use_avx2=False, use_popcnt=False, use_simd=True, use_sjson=True, allwarnings=False,
-		num_threads=num_threads, tests_matching='')
+		num_threads=num_threads, tests_matching='', fast_math=False)
 
 	args = parser.parse_args()
 
 	is_arm64_cpu = is_host_cpu_arm64()
 	is_armv7_cpu = is_host_cpu_armv7()
+	is_riscv64_cpu = is_host_cpu_riscv64()
 
 	# Sanitize and validate our options
 	if (args.use_avx or args.use_avx2) and not args.use_simd:
@@ -90,7 +96,7 @@ def parse_argv():
 		if not args.cpu:
 			args.cpu = 'arm64'
 
-		if not platform.system() == 'Windows':
+		if platform.system() != 'Windows':
 			print('Android is only supported on Windows')
 			sys.exit(1)
 
@@ -98,14 +104,14 @@ def parse_argv():
 			print('AVX and AVX2 are not supported on Android')
 			sys.exit(1)
 
-		if not args.cpu in ['armv7', 'arm64']:
+		if args.cpu not in ['armv7', 'arm64']:
 			print('{} cpu architecture not in supported list [armv7, arm64] for Android'.format(args.cpu))
 			sys.exit(1)
 	elif args.compiler == 'ios':
 		if not args.cpu:
 			args.cpu = 'arm64'
 
-		if not platform.system() == 'Darwin':
+		if platform.system() != 'Darwin':
 			print('iOS is only supported on OS X')
 			sys.exit(1)
 
@@ -121,14 +127,14 @@ def parse_argv():
 			print('Regression tests cannot run from the command line on iOS')
 			sys.exit(1)
 
-		if not args.cpu in ['arm64']:
+		if args.cpu not in ['arm64']:
 			print('{} cpu architecture not in supported list [arm64] for iOS'.format(args.cpu))
 			sys.exit(1)
 	elif args.compiler == 'emscripten':
 		if not args.cpu:
 			args.cpu = 'wasm'
 
-		if not platform.system() == 'Darwin' and not platform.system() == 'Linux':
+		if platform.system() != 'Darwin' and platform.system() != 'Linux':
 			print('Emscripten is only supported on OS X and Linux')
 			sys.exit(1)
 
@@ -136,7 +142,7 @@ def parse_argv():
 			print('AVX and AVX2 are not supported on Emscripten')
 			sys.exit(1)
 
-		if not args.cpu in ['wasm']:
+		if args.cpu not in ['wasm']:
 			print('{} cpu architecture not in supported list [wasm] for Emscripten'.format(args.cpu))
 			sys.exit(1)
 	else:
@@ -145,6 +151,8 @@ def parse_argv():
 				args.cpu = 'arm64'
 			elif is_armv7_cpu:
 				args.cpu = 'armv7'
+			elif is_riscv64_cpu:
+				args.cpu = 'riscv64'
 			else:
 				args.cpu = 'x64'
 
@@ -156,16 +164,14 @@ def parse_argv():
 			is_arm_supported = True
 
 		# Native compilation
-		if platform.system() == 'Darwin' and is_arm64_cpu:
-			is_arm_supported = True
-		elif platform.system() == 'Linux' and is_arm64_cpu:
+		if platform.system() in ['Darwin', 'Linux'] and is_arm64_cpu:
 			is_arm_supported = True
 
 		if not is_arm_supported:
 			print('arm64 is only supported with VS2017, VS2019, VS2022, VS2026, OS X (M* processors), Linux, Android, and iOS')
 			sys.exit(1)
 	elif args.cpu == 'arm64ec':
-		if not args.compiler in ['vs2019', 'vs2022', 'vs2026']:
+		if args.compiler not in ['vs2019', 'vs2022', 'vs2026']:
 			print('arm64ec is only supported with VS2019, VS2022, and VS2026')
 			sys.exit(1)
 	elif args.cpu == 'armv7':
@@ -182,9 +188,24 @@ def parse_argv():
 		if not is_armv7_supported:
 			print('armv7 is only supported with Linux and Android')
 			sys.exit(1)
-	elif args.cpu == 'wasm':
-		if not args.compiler == 'emscripten':
-			print('wasm is only supported with Emscripten')
+	elif args.cpu == 'riscv64':
+		# RTM has no SIMD code for RISC-V, so riscv64 uses the scalar code path
+		if platform.system() != 'Linux' or not is_riscv64_cpu:
+			print('riscv64 is only supported with a native Linux riscv64 host')
+			print('To cross-compile for riscv64, use CMake with a RISC-V toolchain file')
+			sys.exit(1)
+
+		if args.use_avx or args.use_avx2 or args.use_popcnt:
+			print('AVX, AVX2, and POPCNT are not supported on riscv64')
+			sys.exit(1)
+	elif args.cpu == 'wasm' and args.compiler != 'emscripten':
+		print('wasm is only supported with Emscripten')
+		sys.exit(1)
+
+	if args.analyze:
+		# The static analyzer reads compile_commands.json, which only the Makefile and Ninja generators write
+		if args.compiler in ['vs2015', 'vs2017', 'vs2019', 'vs2022', 'vs2026', 'vs2019-clang', 'vs2022-clang', 'vs2026-clang', 'android', 'osx', 'ios', 'emscripten'] or (args.compiler and args.compiler.startswith('gcc')):
+			print('The static analyzer is only supported with clang on Linux and with the default compiler on OS X')
 			sys.exit(1)
 
 	if platform.system() == 'Darwin' and args.cpu == 'x86':
@@ -246,18 +267,10 @@ def get_architecture(compiler, cpu):
 		return None
 
 	if platform.system() == 'Windows':
-		if compiler == 'vs2017':
-			if cpu == 'arm64':
-				return 'ARM64'
+		if compiler == 'vs2017' and cpu == 'arm64':
+			return 'ARM64'
 
-		is_modern_vs = False
-		if compiler == 'vs2019' or compiler == 'vs2019-clang':
-			is_modern_vs = True
-		elif compiler == 'vs2022' or compiler == 'vs2022-clang':
-			is_modern_vs = True
-		elif compiler == 'vs2026' or compiler == 'vs2026-clang':
-			is_modern_vs = True
-
+		is_modern_vs = compiler in ['vs2019', 'vs2019-clang', 'vs2022', 'vs2022-clang', 'vs2026', 'vs2026-clang']
 		if is_modern_vs:
 			if cpu == 'x86':
 				return 'Win32'
@@ -276,111 +289,56 @@ def get_toolchain(compiler, cmake_script_dir):
 	# No toolchain
 	return None
 
-def set_compiler_env(compiler, args):
-	if platform.system() == 'Linux':
-		if compiler == 'clang4':
-			os.environ['CC'] = 'clang-4.0'
-			os.environ['CXX'] = 'clang++-4.0'
-		elif compiler == 'clang5':
-			os.environ['CC'] = 'clang-5.0'
-			os.environ['CXX'] = 'clang++-5.0'
-		elif compiler == 'clang6':
-			os.environ['CC'] = 'clang-6.0'
-			os.environ['CXX'] = 'clang++-6.0'
-		elif compiler == 'clang7':
-			os.environ['CC'] = 'clang-7'
-			os.environ['CXX'] = 'clang++-7'
-		elif compiler == 'clang8':
-			os.environ['CC'] = 'clang-8'
-			os.environ['CXX'] = 'clang++-8'
-		elif compiler == 'clang9':
-			os.environ['CC'] = 'clang-9'
-			os.environ['CXX'] = 'clang++-9'
-		elif compiler == 'clang10':
-			os.environ['CC'] = 'clang-10'
-			os.environ['CXX'] = 'clang++-10'
-		elif compiler == 'clang11':
-			os.environ['CC'] = 'clang-11'
-			os.environ['CXX'] = 'clang++-11'
-		elif compiler == 'clang12':
-			os.environ['CC'] = 'clang-12'
-			os.environ['CXX'] = 'clang++-12'
-		elif compiler == 'clang13':
-			os.environ['CC'] = 'clang-13'
-			os.environ['CXX'] = 'clang++-13'
-		elif compiler == 'clang14':
-			os.environ['CC'] = 'clang-14'
-			os.environ['CXX'] = 'clang++-14'
-		elif compiler == 'clang15':
-			os.environ['CC'] = 'clang-15'
-			os.environ['CXX'] = 'clang++-15'
-		elif compiler == 'clang16':
-			os.environ['CC'] = 'clang-16'
-			os.environ['CXX'] = 'clang++-16'
-		elif compiler == 'clang17':
-			os.environ['CC'] = 'clang-17'
-			os.environ['CXX'] = 'clang++-17'
-		elif compiler == 'clang18':
-			os.environ['CC'] = 'clang-18'
-			os.environ['CXX'] = 'clang++-18'
-		elif compiler == 'clang19':
-			os.environ['CC'] = 'clang-19'
-			os.environ['CXX'] = 'clang++-19'
-		elif compiler == 'clang20':
-			os.environ['CC'] = 'clang-20'
-			os.environ['CXX'] = 'clang++-20'
-		elif compiler == 'clang21':
-			os.environ['CC'] = 'clang-21'
-			os.environ['CXX'] = 'clang++-21'
-		elif compiler == 'clang22':
-			os.environ['CC'] = 'clang-22'
-			os.environ['CXX'] = 'clang++-22'
-		elif compiler == 'clang23':
-			os.environ['CC'] = 'clang-23'
-			os.environ['CXX'] = 'clang++-23'
-		elif compiler == 'gcc4.9':
-			os.environ['CC'] = 'gcc-4.9'
-			os.environ['CXX'] = 'g++-4.9'
-		elif compiler == 'gcc5':
-			os.environ['CC'] = 'gcc-5'
-			os.environ['CXX'] = 'g++-5'
-		elif compiler == 'gcc6':
-			os.environ['CC'] = 'gcc-6'
-			os.environ['CXX'] = 'g++-6'
-		elif compiler == 'gcc7':
-			os.environ['CC'] = 'gcc-7'
-			os.environ['CXX'] = 'g++-7'
-		elif compiler == 'gcc8':
-			os.environ['CC'] = 'gcc-8'
-			os.environ['CXX'] = 'g++-8'
-		elif compiler == 'gcc9':
-			os.environ['CC'] = 'gcc-9'
-			os.environ['CXX'] = 'g++-9'
-		elif compiler == 'gcc10':
-			os.environ['CC'] = 'gcc-10'
-			os.environ['CXX'] = 'g++-10'
-		elif compiler == 'gcc11':
-			os.environ['CC'] = 'gcc-11'
-			os.environ['CXX'] = 'g++-11'
-		elif compiler == 'gcc12':
-			os.environ['CC'] = 'gcc-12'
-			os.environ['CXX'] = 'g++-12'
-		elif compiler == 'gcc13':
-			os.environ['CC'] = 'gcc-13'
-			os.environ['CXX'] = 'g++-13'
-		elif compiler == 'gcc14':
-			os.environ['CC'] = 'gcc-14'
-			os.environ['CXX'] = 'g++-14'
-		elif compiler == 'gcc15':
-			os.environ['CC'] = 'gcc-15'
-			os.environ['CXX'] = 'g++-15'
-		elif compiler == 'emscripten':
-			# Nothing to do for Emscripten
-			return
-		else:
-			print('Unknown compiler: {}'.format(compiler))
-			print('See help with: python make.py -help')
-			sys.exit(1)
+def set_compiler_env(compiler):
+	if platform.system() != 'Linux':
+		return
+
+	if compiler == 'emscripten':
+		# Nothing to do for Emscripten
+		return
+
+	# The C and C++ compiler executables for each compiler
+	linux_compilers = {
+		'clang4':  ('clang-4.0', 'clang++-4.0'),
+		'clang5':  ('clang-5.0', 'clang++-5.0'),
+		'clang6':  ('clang-6.0', 'clang++-6.0'),
+		'clang7':  ('clang-7', 'clang++-7'),
+		'clang8':  ('clang-8', 'clang++-8'),
+		'clang9':  ('clang-9', 'clang++-9'),
+		'clang10': ('clang-10', 'clang++-10'),
+		'clang11': ('clang-11', 'clang++-11'),
+		'clang12': ('clang-12', 'clang++-12'),
+		'clang13': ('clang-13', 'clang++-13'),
+		'clang14': ('clang-14', 'clang++-14'),
+		'clang15': ('clang-15', 'clang++-15'),
+		'clang16': ('clang-16', 'clang++-16'),
+		'clang17': ('clang-17', 'clang++-17'),
+		'clang18': ('clang-18', 'clang++-18'),
+		'clang19': ('clang-19', 'clang++-19'),
+		'clang20': ('clang-20', 'clang++-20'),
+		'clang21': ('clang-21', 'clang++-21'),
+		'clang22': ('clang-22', 'clang++-22'),
+		'clang23': ('clang-23', 'clang++-23'),
+		'gcc4.9':  ('gcc-4.9', 'g++-4.9'),
+		'gcc5':    ('gcc-5', 'g++-5'),
+		'gcc6':    ('gcc-6', 'g++-6'),
+		'gcc7':    ('gcc-7', 'g++-7'),
+		'gcc8':    ('gcc-8', 'g++-8'),
+		'gcc9':    ('gcc-9', 'g++-9'),
+		'gcc10':   ('gcc-10', 'g++-10'),
+		'gcc11':   ('gcc-11', 'g++-11'),
+		'gcc12':   ('gcc-12', 'g++-12'),
+		'gcc13':   ('gcc-13', 'g++-13'),
+		'gcc14':   ('gcc-14', 'g++-14'),
+		'gcc15':   ('gcc-15', 'g++-15'),
+	}
+
+	if compiler not in linux_compilers:
+		print('Unknown compiler: {}'.format(compiler))
+		print('See help with: python make.py -help')
+		sys.exit(1)
+
+	os.environ['CC'], os.environ['CXX'] = linux_compilers[compiler]
 
 def do_generate_solution(build_dir, cmake_script_dir, regression_test_data_dir, decomp_data_dir,
 						 is_cross_compiling, args):
@@ -388,12 +346,8 @@ def do_generate_solution(build_dir, cmake_script_dir, regression_test_data_dir, 
 	cpu = args.cpu
 	config = args.config
 
-	is_arm64_cpu = False
-	if platform.machine() == 'arm64' or platform.machine() == 'aarch64':
-		is_arm64_cpu = True
-
 	if compiler:
-		set_compiler_env(compiler, args)
+		set_compiler_env(compiler)
 
 	extra_switches = ['--no-warn-unused-cli']
 	extra_switches.append('-DCPU_INSTRUCTION_SET:STRING={}'.format(cpu))
@@ -426,17 +380,20 @@ def do_generate_solution(build_dir, cmake_script_dir, regression_test_data_dir, 
 		print('Enabling all warnings')
 		extra_switches.append('-DENABLE_ALL_WARNINGS:BOOL=true')
 
+	if args.fast_math:
+		print('Enabling fast math for the include validation')
+		extra_switches.append('-DUSE_FAST_MATH:BOOL=true')
+
 	if args.bench:
 		extra_switches.append('-DBUILD_BENCHMARK_EXE:BOOL=true')
 
-	if platform.system() == 'Windows':
-		if os.path.sep == '\\':
-			# Native Windows
-			extra_switches
-		else:
-			# MSYS2 or Cygwin
-			extra_switches.append('-DCMAKE_BUILD_TYPE={}'.format(config.upper()))
-	else:
+	if args.analyze:
+		extra_switches.append('-DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=true')
+
+	# Native Windows uses a multi-config generator that does not use CMAKE_BUILD_TYPE
+	# MSYS2 and Cygwin use a single-config generator
+	is_native_windows = platform.system() == 'Windows' and os.path.sep == '\\'
+	if not is_native_windows:
 		extra_switches.append('-DCMAKE_BUILD_TYPE={}'.format(config.upper()))
 
 	if platform.system() == 'Darwin' and compiler == 'ios' and args.ci:
@@ -449,15 +406,15 @@ def do_generate_solution(build_dir, cmake_script_dir, regression_test_data_dir, 
 		extra_switches.append('-DCMAKE_TOOLCHAIN_FILE={}'.format(toolchain))
 
 	if regression_test_data_dir:
-		extra_switches.append('-DTEST_DATA_DIR:STRING="{}"'.format(regression_test_data_dir))
+		extra_switches.append('-DTEST_DATA_DIR:STRING={}'.format(regression_test_data_dir))
 
 	if decomp_data_dir:
-		extra_switches.append('-DDECOMP_DATA_DIR:STRING="{}"'.format(decomp_data_dir))
+		extra_switches.append('-DDECOMP_DATA_DIR:STRING={}'.format(decomp_data_dir))
 
 	# Generate IDE solution
 	print('Generating build files ...')
 	if compiler == 'emscripten':
-		cmake_cmd = 'emcmake cmake .. -DCMAKE_INSTALL_PREFIX="{}" {}'.format(build_dir, ' '.join(extra_switches))
+		cmake_cmd = ['emcmake', 'cmake', '..', '-DCMAKE_INSTALL_PREFIX={}'.format(build_dir)] + extra_switches
 	else:
 		cmake_generator = get_generator(compiler, cpu)
 		if not cmake_generator:
@@ -465,20 +422,21 @@ def do_generate_solution(build_dir, cmake_script_dir, regression_test_data_dir, 
 		else:
 			generator_suffix = ''
 			if compiler == 'vs2019-clang' or compiler == 'vs2022-clang' or compiler == 'vs2026-clang':
-				extra_switches.append('-T ClangCL')
+				extra_switches.extend(['-T', 'ClangCL'])
 				generator_suffix = 'Clang CL'
 
 			print('Using generator: {} {}'.format(cmake_generator, generator_suffix))
-			extra_switches.append('-G "{}"'.format(cmake_generator))
+			extra_switches.extend(['-G', cmake_generator])
 
 		cmake_arch = get_architecture(compiler, cpu)
 		if cmake_arch:
 			print('Using architecture: {}'.format(cmake_arch))
-			extra_switches.append('-A {}'.format(cmake_arch))
+			extra_switches.extend(['-A', cmake_arch])
 
-		cmake_cmd = 'cmake .. -DCMAKE_INSTALL_PREFIX="{}" {}'.format(build_dir, ' '.join(extra_switches))
+		cmake_cmd = ['cmake', '..', '-DCMAKE_INSTALL_PREFIX={}'.format(build_dir)] + extra_switches
 
-	result = subprocess.call(cmake_cmd, shell=True)
+	# Do not use a shell: each switch goes to cmake as one argument
+	result = subprocess.call(cmake_cmd)
 	if result != 0:
 		sys.exit(result)
 
@@ -486,26 +444,27 @@ def do_build(args):
 	config = args.config
 
 	print('Building ...')
-	cmake_cmd = 'cmake --build .'
+	cmake_cmd = ['cmake', '--build', '.']
 	if platform.system() == 'Windows':
 		if args.compiler == 'android':
-			cmake_cmd += ' --config {}'.format(config)
+			cmake_cmd += ['--config', config]
 		else:
 			if os.path.sep == '\\':
 				# Native Windows
-				cmake_cmd += ' --config {} --target INSTALL'.format(config)
+				cmake_cmd += ['--config', config, '--target', 'INSTALL']
 			else:
 				# MSYS2 or Cygwin
-				cmake_cmd += ' --config {} --target install'.format(config)
+				cmake_cmd += ['--config', config, '--target', 'install']
 	elif platform.system() == 'Darwin':
 		if args.compiler == 'ios':
-			cmake_cmd += ' --config {}'.format(config)
+			cmake_cmd += ['--config', config]
 		else:
-			cmake_cmd += ' --config {} --target install'.format(config)
+			cmake_cmd += ['--config', config, '--target', 'install']
 	else:
-		cmake_cmd += ' --target install'
+		cmake_cmd += ['--target', 'install']
 
-	result = subprocess.call(cmake_cmd, shell=True)
+	# Do not use a shell: the arguments go to cmake as they are
+	result = subprocess.call(cmake_cmd)
 	if result != 0:
 		sys.exit(result)
 
@@ -599,14 +558,15 @@ def do_tests_android(build_dir, args):
 	os.chdir(build_dir)
 
 def do_tests_cmake(args):
-	ctest_cmd = 'ctest --output-on-failure --parallel {}'.format(args.num_threads)
+	ctest_cmd = ['ctest', '--output-on-failure', '--parallel', str(args.num_threads)]
 
 	if platform.system() == 'Windows' or platform.system() == 'Darwin':
-		ctest_cmd += ' -C {}'.format(args.config)
+		ctest_cmd += ['-C', args.config]
 	if args.tests_matching:
-		ctest_cmd += ' --tests-regex {}'.format(args.tests_matching)
+		ctest_cmd += ['--tests-regex', args.tests_matching]
 
-	result = subprocess.call(ctest_cmd, shell=True)
+	# Do not use a shell: a regex such as 'a|b' must go to ctest as it is
+	result = subprocess.call(ctest_cmd)
 	if result != 0:
 		sys.exit(result)
 
@@ -1022,6 +982,206 @@ def do_run_bench(build_dir, test_data_dir, args):
 	else:
 		do_run_bench_native(build_dir, test_data_dir)
 
+def get_analyzer_array_bound_checker(compiler_exe):
+	# The array bound checker is not enabled by default
+	# Clang 21 and later name it security.ArrayBound, older versions name it alpha.security.ArrayBoundV2
+	checkers = [('-analyzer-checker-help', 'security.ArrayBound'), ('-analyzer-checker-help-alpha', 'alpha.security.ArrayBoundV2')]
+	for help_switch, checker in checkers:
+		try:
+			output = subprocess.check_output([compiler_exe, '-cc1', help_switch], stderr=subprocess.STDOUT).decode('utf-8', 'replace')
+		except (OSError, subprocess.CalledProcessError):
+			continue
+
+		if re.search(r'^\s*{}\s'.format(re.escape(checker)), output, re.MULTILINE):
+			return checker
+
+	return None
+
+def get_analyzer_command(entry, analyzer_switches):
+	if 'arguments' in entry:
+		compile_args = entry['arguments']
+	else:
+		compile_args = shlex.split(entry['command'], posix=(os.name != 'nt'))
+
+	# We remove the object file, the dependency file, and '-c' (an unused argument with -Werror is an error)
+	analyzer_cmd = []
+	skip_next_arg = False
+	for arg in compile_args:
+		if skip_next_arg:
+			skip_next_arg = False
+		elif arg in ['-o', '-MF', '-MT', '-MQ']:
+			skip_next_arg = True
+		elif arg not in ['-c', '-MD', '-MMD']:
+			analyzer_cmd.append(arg)
+
+	analyzer_cmd.extend(analyzer_switches)
+	analyzer_cmd.extend(['-o', os.devnull])
+	return analyzer_cmd
+
+def run_analyzer(entry, analyzer_switches):
+	analyzer_cmd = get_analyzer_command(entry, analyzer_switches)
+	process = subprocess.Popen(analyzer_cmd, cwd=entry['directory'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+	output = process.communicate()[0].decode('utf-8', 'replace')
+	return (process.returncode, output)
+
+def split_analyzer_line(line):
+	# A diagnostic line has the form 'filename:line:column: message'
+	# We do not use a regex: a lazy match on the filename makes the runtime of the regex more than linear
+	# A filename on Windows has a ':' after the drive letter, thus we split the line and the column from the right
+	location, separator, message = line.partition(': ')
+	parts = location.rsplit(':', 2)
+	if not separator or len(parts) != 3 or not parts[0] or not parts[1].isdigit() or not parts[2].isdigit():
+		return None
+
+	return (parts[0], int(parts[1]), int(parts[2]), message)
+
+def is_analyzer_line_of_kind(line, kind):
+	# The kind is 'warning' or 'note'
+	parts = split_analyzer_line(line)
+	return parts is not None and parts[3].startswith(kind + ': ')
+
+def get_analyzer_line_location(line):
+	# Returns the filename, the line, and the column
+	return split_analyzer_line(line)[0:3]
+
+def normalize_analyzer_line(line, root_dir):
+	# Print the paths relative to the root directory, for example 'includes/acl/core/bitset.h:171:33: warning: ...'
+	parts = split_analyzer_line(line)
+	if not parts or not os.path.isabs(parts[0]):
+		return line
+
+	filename = os.path.realpath(parts[0])
+	if filename.startswith(root_dir + os.sep):
+		filename = os.path.relpath(filename, root_dir)
+	return '{}:{}:{}: {}'.format(filename, parts[1], parts[2], parts[3])
+
+def parse_analyzer_findings(output, root_dir):
+	# A finding is a warning line and the source and note lines that follow it
+	findings = []
+	finding = None
+	for line in output.splitlines():
+		if is_analyzer_line_of_kind(line, 'warning'):
+			finding = [line]
+			findings.append(finding)
+		elif line.startswith('In file included from') or re.match(r'^\d+ warnings? generated\.$', line):
+			finding = None
+		elif finding is not None:
+			finding.append(line)
+
+	return [[normalize_analyzer_line(line, root_dir) for line in finding] for finding in findings]
+
+def escape_github_command_data(value):
+	return value.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+
+def escape_github_command_property(value):
+	return escape_github_command_data(value).replace(':', '%3A').replace(',', '%2C')
+
+def print_github_annotation(finding):
+	# GitHub Actions shows this line as an annotation on the line of the finding
+	# The message is the warning and its notes, without the source lines
+	filename, line_number, column, warning = split_analyzer_line(finding[0])
+	filename = filename.replace(os.sep, '/')
+
+	# The warning has the form 'warning: text [checker]', the checker is optional
+	text = warning[len('warning: '):]
+	checker = None
+	if text.endswith(']') and ' [' in text:
+		text, _, checker = text[:-1].rpartition(' [')
+
+	title = 'Static analyzer ({})'.format(checker) if checker else 'Static analyzer'
+	notes = [line for line in finding[1:] if is_analyzer_line_of_kind(line, 'note')]
+	message = '\n'.join([text] + notes)
+
+	print('::error file={},line={},col={},title={}::{}'.format(
+		escape_github_command_property(filename), line_number, column,
+		escape_github_command_property(title), escape_github_command_data(message)))
+
+def collect_analyzer_findings(entries, results, root_dir):
+	# Each header is analyzed once for each cpp file that includes it, we keep each finding once
+	# The headers of the compiler are analyzed too (e.g. the intrinsic headers), we ignore the findings in them
+	is_failure = False
+	unique_findings = {}
+	ignored_findings = set()
+	for entry, (result, output) in zip(entries, results):
+		if result != 0:
+			print('The static analyzer failed on {}:'.format(entry['file']))
+			print(output)
+			is_failure = True
+			continue
+
+		for finding in parse_analyzer_findings(output, root_dir):
+			# A finding in the repository has a relative path
+			if os.path.isabs(get_analyzer_line_location(finding[0])[0]):
+				ignored_findings.add(finding[0])
+			else:
+				unique_findings.setdefault(finding[0], finding)
+
+	return (is_failure, unique_findings, ignored_findings)
+
+def do_analyze(build_dir, args):
+	print('Running the static analyzer ...')
+
+	compile_commands_filename = os.path.join(build_dir, 'compile_commands.json')
+	if not os.path.exists(compile_commands_filename):
+		print('{} does not exist. The static analyzer needs a Makefile or Ninja generator.'.format(compile_commands_filename))
+		sys.exit(1)
+
+	with open(compile_commands_filename, 'r') as compile_commands_file:
+		entries = json.load(compile_commands_file)
+
+	# The include validation has one cpp file for each public header
+	# We analyze the functions in the headers too, because a header-only library has no other functions to analyze
+	entries = [entry for entry in entries if 'validate_includes' in entry['file'].replace('\\', '/').split('/')]
+	if not entries:
+		print('No include validation file is in {}'.format(compile_commands_filename))
+		sys.exit(1)
+
+	compiler_exe = get_analyzer_command(entries[0], [])[0]
+	compiler_version = subprocess.check_output([compiler_exe, '--version']).decode('utf-8', 'replace')
+	if 'clang' not in compiler_version.lower():
+		print('The static analyzer needs clang. The compiler is: {}'.format(compiler_version.splitlines()[0]))
+		sys.exit(1)
+
+	analyzer_switches = ['--analyze', '--analyzer-output', 'text', '-Xclang', '-analyzer-opt-analyze-headers']
+
+	# The asserts are removed by default, we enable them to let the analyzer use the conditions that they check
+	# When an assert fails, it calls abort() and the analyzer stops on that path
+	analyzer_switches.extend(['-DACL_ON_ASSERT_ABORT', '-DRTM_ON_ASSERT_ABORT'])
+
+	# The code writes its buffers with a pointer that it moves after each write, the last move is never read
+	# This checker finds no memory errors, we disable it
+	analyzer_switches.extend(['-Xclang', '-analyzer-disable-checker=deadcode.DeadStores'])
+
+	array_bound_checker = get_analyzer_array_bound_checker(compiler_exe)
+	if array_bound_checker:
+		print('Enabling checker: {}'.format(array_bound_checker))
+		analyzer_switches.extend(['-Xclang', '-analyzer-checker={}'.format(array_bound_checker)])
+	else:
+		print('This compiler has no array bound checker. Only the default checkers are used.')
+
+	thread_pool = multiprocessing.pool.ThreadPool(int(args.num_threads))
+	results = thread_pool.map(lambda entry: run_analyzer(entry, analyzer_switches), entries)
+	thread_pool.close()
+	thread_pool.join()
+
+	root_dir = os.path.realpath(os.path.dirname(build_dir))
+	is_failure, unique_findings, ignored_findings = collect_analyzer_findings(entries, results, root_dir)
+
+	# Sort the findings by file, line, and column
+	# On GitHub Actions, we also print each finding as an annotation
+	is_github_actions = os.environ.get('GITHUB_ACTIONS') == 'true'
+	for warning_line in sorted(unique_findings.keys(), key=get_analyzer_line_location):
+		print('\n'.join(unique_findings[warning_line]))
+		if is_github_actions:
+			print_github_annotation(unique_findings[warning_line])
+
+	if ignored_findings:
+		print('The static analyzer ignored {} issues in files outside of the repository'.format(len(ignored_findings)))
+
+	print('The static analyzer found {} issues in {} files'.format(len(unique_findings), len(entries)))
+	if is_failure or unique_findings:
+		sys.exit(1)
+
 if __name__ == "__main__":
 	args = parse_argv()
 
@@ -1086,5 +1246,8 @@ if __name__ == "__main__":
 
 	if args.pull_bench and (not is_cross_compiling or args.compiler == 'android'):
 		do_pull_bench_android(build_dir)
+
+	if args.analyze:
+		do_analyze(build_dir, args)
 
 	sys.exit(0)

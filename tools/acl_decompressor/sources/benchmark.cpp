@@ -519,7 +519,10 @@ bool read_clip(const std::string& clip_dir, const std::string& clip, acl::ialloc
 	// Make sure to enable buffering with a large buffer
 	const int setvbuf_result = setvbuf(file, NULL, _IOFBF, 1 * 1024 * 1024);
 	if (setvbuf_result != 0)
+	{
+		fclose(file);
 		return false;
+	}
 
 	const int fseek_result = fseek(file, 0, SEEK_END);
 	if (fseek_result != 0)
@@ -548,7 +551,7 @@ bool read_clip(const std::string& clip_dir, const std::string& clip, acl::ialloc
 
 	if (result != file_size)
 	{
-		delete[] buffer;
+		allocator.deallocate(buffer, file_size);
 		return false;
 	}
 

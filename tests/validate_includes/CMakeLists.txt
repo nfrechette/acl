@@ -67,3 +67,13 @@ if(MSVC)
 		target_compile_options(${PROJECT_NAME} PRIVATE /EHsc)
 	endif()
 endif()
+
+# Client code can compile with fast math. Our headers must compile without warnings in that case.
+# We do not compile the unit tests with fast math because they use NaN and infinity values.
+if(USE_FAST_MATH)
+	if(MSVC)
+		target_compile_options(${PROJECT_NAME} PRIVATE /fp:fast)
+	else()
+		target_compile_options(${PROJECT_NAME} PRIVATE -ffast-math)
+	endif()
+endif()

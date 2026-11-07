@@ -1364,15 +1364,18 @@ namespace acl
 		ACL_ASSERT(out_split_database->is_valid(true).empty(), "Failed to split database");
 
 		// Allocate and setup our new bulk data
+		// An empty tier has no buffer, and std::memcpy must not receive a null pointer even when the size is zero
 		uint8_t* bulk_data_medium_buffer = bulk_data_medium_size != 0 ? allocate_type_array_aligned<uint8_t>(allocator, bulk_data_medium_size, k_database_bulk_data_alignment) : nullptr;
 		out_bulk_data_medium = bulk_data_medium_buffer;
 
-		std::memcpy(bulk_data_medium_buffer, database.get_bulk_data(quality_tier::medium_importance), bulk_data_medium_size);
+		if (bulk_data_medium_size != 0)
+			std::memcpy(bulk_data_medium_buffer, database.get_bulk_data(quality_tier::medium_importance), bulk_data_medium_size);
 
 		uint8_t* bulk_data_low_buffer = bulk_data_low_size != 0 ? allocate_type_array_aligned<uint8_t>(allocator, bulk_data_low_size, k_database_bulk_data_alignment) : nullptr;
 		out_bulk_data_low = bulk_data_low_buffer;
 
-		std::memcpy(bulk_data_low_buffer, database.get_bulk_data(quality_tier::lowest_importance), bulk_data_low_size);
+		if (bulk_data_low_size != 0)
+			std::memcpy(bulk_data_low_buffer, database.get_bulk_data(quality_tier::lowest_importance), bulk_data_low_size);
 
 #if defined(ACL_HAS_ASSERT_CHECKS)
 		const uint32_t bulk_data_medium_hash = hash32(bulk_data_medium_buffer, bulk_data_medium_size);

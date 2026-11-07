@@ -21,9 +21,10 @@ python3 make.py -build -regression_test               # compress + decompress th
 python3 make.py -clean -build        # clean rebuild
 python3 make.py -build -bench        # build the decompression benchmarks
 python3 make.py -run_bench           # run them (needs the decompression data in test_data/)
+python3 make.py -analyze             # clang static analyzer on the public headers (clang only)
 ```
 
-Useful variants: `-compiler {osx,clang23,gcc15,vs2026,android,ios,emscripten,...}`, `-cpu {x64,x86,armv7,arm64,arm64ec,...}`, `-cpp_version {11,14,17,20}`, `-avx`, `-avx2`, `-pop` (POPCNT), `-nosimd` (RTM scalar fallback path), `-nosjson` (no clip IO). Changing these flags regenerates CMake; use `-clean` if the cache seems stale. On Android, `-unit_test` and `-regression_test` run on the device with `adb`. iOS builds need manual code signing in Xcode.
+Useful variants: `-compiler {osx,clang23,gcc15,vs2026,android,ios,emscripten,...}`, `-cpu {x64,x86,armv7,arm64,arm64ec,riscv64,...}`, `-cpp_version {11,14,17,20}`, `-avx`, `-avx2`, `-pop` (POPCNT), `-nosimd` (RTM scalar fallback path), `-nosjson` (no clip IO), `-fast_math` (compiles the include validation files with fast math, to verify that the public headers compile without warnings in that mode). Changing these flags regenerates CMake; use `-clean` if the cache seems stale. On Android, `-unit_test` and `-regression_test` run on the device with `adb`. iOS builds need manual code signing in Xcode.
 
 Regression tests (`-regression_test`) use `test_data/acl_regression_tests_v3.zip`; `make.py` downloads it when it is not there. Each clip is tested against each config in `test_data/configs/`. When a test fails, the script prints the `acl_compressor` command line that reproduces the failure. See `test_data/README.md` and `tools/acl_compressor/README.md`.
 

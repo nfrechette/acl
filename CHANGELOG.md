@@ -8,6 +8,11 @@
 *  Default `compression_settings` now keep scalar tracks with full precision, use `get_default_compression_settings()` for variable bit rates
 *  Fix `pre_process_track_list` with extended scalar samples, it now changes only the sample values
 *  Compression ignores the sample interpolators that have no effect when it selects the interpolation mode of a track
+*  Add the `-analyze` action to `make.py` to run the clang static analyzer on the public headers
+*  Disable fast math with the `float_control` pragma under Clang where the target supports it
+*  Add the `-fast_math` option to `make.py` to compile the public headers with fast math, and a CI workflow that uses it
+*  Add native Linux `riscv64` builds to `make.py`, they use the scalar code path of RTM
+*  Fix `split_database_bulk_data` that gave a null pointer to `std::memcpy` when a quality tier is empty
 
 ## 2.1.0
 

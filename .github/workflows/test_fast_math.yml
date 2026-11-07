@@ -1,0 +1,76 @@
+name: test fast math
+
+on:
+  pull_request:
+    branches:
+      - '**'
+    paths-ignore:
+      - docs/**
+      - '**/*.md'
+
+permissions:
+  contents: read
+
+# Cancel the previous run of a pull request when it receives new commits
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        compiler: [gcc15, clang23]
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: 'recursive'
+      - name: Building (release-x86)
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x86 -fast_math -build'
+      - name: Clean
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        with:
+          args: 'python3 make.py -ci -clean_only'
+      - name: Building (release-x64)
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -fast_math -build'
+      - name: Clean
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        with:
+          args: 'python3 make.py -ci -clean_only'
+      - name: Building (release-x64 nosimd)
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -nosimd -fast_math -build'
+      - name: Clean
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        with:
+          args: 'python3 make.py -ci -clean_only'
+      - name: Building (release-x64 AVX)
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -avx -fast_math -build'
+
+  osx-15:
+    runs-on: macos-15
+    strategy:
+      matrix:
+        compiler: [xcode26]
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: 'recursive'
+      - name: Setup ${{ matrix.compiler }} compiler
+        run: ./tools/setup_osx_compiler.sh ${{ matrix.compiler }}
+      - name: Building (release-arm64)
+        run: python3 make.py -ci -compiler osx -config Release -fast_math -build
+      - name: Clean
+        run: python3 make.py -ci -clean_only
+      - name: Building (release-arm64 nosimd)
+        run: python3 make.py -ci -compiler osx -config Release -nosimd -fast_math -build
