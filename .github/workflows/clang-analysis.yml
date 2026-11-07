@@ -1,0 +1,66 @@
+name: clang analysis
+
+on:
+  pull_request:
+    branches:
+      - '**'
+    paths-ignore:
+      - docs/**
+      - '**/*.md'
+
+permissions:
+  contents: read
+
+# Cancel the previous run of a pull request when it receives new commits
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # The static analyzer analyzes the public headers, one include validation file for each header
+  # Each step analyzes a different code path: SSE2, AVX2, the scalar code path, and NEON
+  linux-resolute:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        compiler: [clang23]
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: 'recursive'
+      - name: Analyzing (release-x64)
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -analyze'
+      - name: Clean
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        with:
+          args: 'python3 make.py -ci -clean_only'
+      - name: Analyzing (release-x64 AVX2)
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -avx2 -analyze'
+      - name: Clean
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        with:
+          args: 'python3 make.py -ci -clean_only'
+      - name: Analyzing (release-x64 nosimd)
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -nosimd -analyze'
+
+  linux-resolute-arm64:
+    runs-on: ubuntu-24.04-arm
+    strategy:
+      matrix:
+        compiler: [clang23]
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: 'recursive'
+      - name: Analyzing (release-arm64)
+        uses: docker://ghcr.io/nfrechette/toolchain-arm64-resolute:v1
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu arm64 -analyze'
