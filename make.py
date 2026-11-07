@@ -60,7 +60,7 @@ def parse_argv():
 	misc.add_argument('-simd', dest='use_simd', action='store_true', help='Compile with default SIMD instructions')
 	misc.add_argument('-nosjson', dest='use_sjson', action='store_false', help='Compile without SJSON support')
 	misc.add_argument('-allwarnings', dest='allwarnings', action='store_true', help='Enable all warnings, MSVC only')
-	misc.add_argument('-num_threads', help='No. to use while compiling and regressing')
+	misc.add_argument('-num_threads', type=int, help='No. to use while compiling and regressing')
 	misc.add_argument('-tests_matching', help='Only run tests whose names match this regex')
 	misc.add_argument('-ci', action='store_true', help='Whether or not this is a Continuous Integration build')
 	misc.add_argument('-help', action='help', help='Display this usage information')
