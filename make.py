@@ -1024,23 +1024,43 @@ def run_analyzer(entry, analyzer_switches):
 	output = process.communicate()[0].decode('utf-8', 'replace')
 	return (process.returncode, output)
 
+def split_analyzer_line(line):
+	# A diagnostic line has the form 'filename:line:column: message'
+	# We do not use a regex: a lazy match on the filename makes the runtime of the regex more than linear
+	# A filename on Windows has a ':' after the drive letter, thus we split the line and the column from the right
+	location, separator, message = line.partition(': ')
+	parts = location.rsplit(':', 2)
+	if not separator or len(parts) != 3 or not parts[0] or not parts[1].isdigit() or not parts[2].isdigit():
+		return None
+
+	return (parts[0], int(parts[1]), int(parts[2]), message)
+
+def is_analyzer_line_of_kind(line, kind):
+	# The kind is 'warning' or 'note'
+	parts = split_analyzer_line(line)
+	return parts is not None and parts[3].startswith(kind + ': ')
+
+def get_analyzer_line_location(line):
+	# Returns the filename, the line, and the column
+	return split_analyzer_line(line)[0:3]
+
 def normalize_analyzer_line(line, root_dir):
 	# Print the paths relative to the root directory, for example 'includes/acl/core/bitset.h:171:33: warning: ...'
-	match = re.match(r'^(.+?):(\d+:\d+: .*)$', line)
-	if not match or not os.path.isabs(match.group(1)):
+	parts = split_analyzer_line(line)
+	if not parts or not os.path.isabs(parts[0]):
 		return line
 
-	filename = os.path.realpath(match.group(1))
+	filename = os.path.realpath(parts[0])
 	if filename.startswith(root_dir + os.sep):
 		filename = os.path.relpath(filename, root_dir)
-	return '{}:{}'.format(filename, match.group(2))
+	return '{}:{}:{}: {}'.format(filename, parts[1], parts[2], parts[3])
 
 def parse_analyzer_findings(output, root_dir):
 	# A finding is a warning line and the source and note lines that follow it
 	findings = []
 	finding = None
 	for line in output.splitlines():
-		if re.match(r'^.+?:\d+:\d+: warning: ', line):
+		if is_analyzer_line_of_kind(line, 'warning'):
 			finding = [line]
 			findings.append(finding)
 		elif line.startswith('In file included from') or re.match(r'^\d+ warnings? generated\.$', line):
@@ -1059,16 +1079,44 @@ def escape_github_command_property(value):
 def print_github_annotation(finding):
 	# GitHub Actions shows this line as an annotation on the line of the finding
 	# The message is the warning and its notes, without the source lines
-	match = re.match(r'^(.+?):(\d+):(\d+): warning: (.*?)(?: \[([\w.-]+)\])?$', finding[0])
-	filename = match.group(1).replace(os.sep, '/')
-	checker = match.group(5)
+	filename, line_number, column, warning = split_analyzer_line(finding[0])
+	filename = filename.replace(os.sep, '/')
+
+	# The warning has the form 'warning: text [checker]', the checker is optional
+	text = warning[len('warning: '):]
+	checker = None
+	if text.endswith(']') and ' [' in text:
+		text, _, checker = text[:-1].rpartition(' [')
+
 	title = 'Static analyzer ({})'.format(checker) if checker else 'Static analyzer'
-	notes = [line for line in finding[1:] if re.match(r'^.+?:\d+:\d+: note: ', line)]
-	message = '\n'.join([match.group(4)] + notes)
+	notes = [line for line in finding[1:] if is_analyzer_line_of_kind(line, 'note')]
+	message = '\n'.join([text] + notes)
 
 	print('::error file={},line={},col={},title={}::{}'.format(
-		escape_github_command_property(filename), match.group(2), match.group(3),
+		escape_github_command_property(filename), line_number, column,
 		escape_github_command_property(title), escape_github_command_data(message)))
+
+def collect_analyzer_findings(entries, results, root_dir):
+	# Each header is analyzed once for each cpp file that includes it, we keep each finding once
+	# The headers of the compiler are analyzed too (e.g. the intrinsic headers), we ignore the findings in them
+	is_failure = False
+	unique_findings = {}
+	ignored_findings = set()
+	for entry, (result, output) in zip(entries, results):
+		if result != 0:
+			print('The static analyzer failed on {}:'.format(entry['file']))
+			print(output)
+			is_failure = True
+			continue
+
+		for finding in parse_analyzer_findings(output, root_dir):
+			# A finding in the repository has a relative path
+			if os.path.isabs(get_analyzer_line_location(finding[0])[0]):
+				ignored_findings.add(finding[0])
+			else:
+				unique_findings.setdefault(finding[0], finding)
+
+	return (is_failure, unique_findings, ignored_findings)
 
 def do_analyze(build_dir, args):
 	print('Running the static analyzer ...')
@@ -1116,34 +1164,13 @@ def do_analyze(build_dir, args):
 	thread_pool.close()
 	thread_pool.join()
 
-	def get_finding_location(warning_line):
-		match = re.match(r'^(.+?):(\d+):(\d+): ', warning_line)
-		return (match.group(1), int(match.group(2)), int(match.group(3)))
-
-	# Each header is analyzed once for each cpp file that includes it, we print each finding once
-	# The headers of the compiler are analyzed too (e.g. the intrinsic headers), we ignore the findings in them
 	root_dir = os.path.realpath(os.path.dirname(build_dir))
-	is_failure = False
-	unique_findings = {}
-	ignored_findings = set()
-	for entry, (result, output) in zip(entries, results):
-		if result != 0:
-			print('The static analyzer failed on {}:'.format(entry['file']))
-			print(output)
-			is_failure = True
-			continue
-
-		for finding in parse_analyzer_findings(output, root_dir):
-			# A finding in the repository has a relative path
-			if os.path.isabs(get_finding_location(finding[0])[0]):
-				ignored_findings.add(finding[0])
-			else:
-				unique_findings.setdefault(finding[0], finding)
+	is_failure, unique_findings, ignored_findings = collect_analyzer_findings(entries, results, root_dir)
 
 	# Sort the findings by file, line, and column
 	# On GitHub Actions, we also print each finding as an annotation
 	is_github_actions = os.environ.get('GITHUB_ACTIONS') == 'true'
-	for warning_line in sorted(unique_findings.keys(), key=get_finding_location):
+	for warning_line in sorted(unique_findings.keys(), key=get_analyzer_line_location):
 		print('\n'.join(unique_findings[warning_line]))
 		if is_github_actions:
 			print_github_annotation(unique_findings[warning_line])
