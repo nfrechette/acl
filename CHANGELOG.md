@@ -8,6 +8,7 @@
 *  Default `compression_settings` now keep scalar tracks with full precision, use `get_default_compression_settings()` for variable bit rates
 *  Fix `pre_process_track_list` with extended scalar samples, it now changes only the sample values
 *  Compression ignores the sample interpolators that have no effect when it selects the interpolation mode of a track
+*  Add the `-analyze` action to `make.py` to run the clang static analyzer on the public headers
 
 ## 2.1.0
 

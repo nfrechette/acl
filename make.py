@@ -3,10 +3,13 @@
 from __future__ import print_function
 
 import argparse
+import json
 import multiprocessing
+import multiprocessing.pool
 import os
 import platform
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -45,6 +48,7 @@ def parse_argv():
 	actions.add_argument('-run_bench', action='store_true')
 	actions.add_argument('-pull_bench', action='store_true')	# Android only
 	actions.add_argument('-convert', help='Input/Output directory to convert')
+	actions.add_argument('-analyze', action='store_true', help='Run the clang static analyzer on the public headers')
 
 	target = parser.add_argument_group(title='Target')
 	target.add_argument('-compiler', choices=['vs2015', 'vs2017', 'vs2019', 'vs2022', 'vs2026', 'vs2019-clang', 'vs2022-clang', 'vs2026-clang', 'android', 'clang4', 'clang5', 'clang6', 'clang7', 'clang8', 'clang9', 'clang10', 'clang11', 'clang12', 'clang13', 'clang14', 'clang15', 'clang16', 'clang17', 'clang18', 'clang19', 'clang20', 'clang21', 'clang22', 'clang23', 'gcc4.9', 'gcc5', 'gcc6', 'gcc7', 'gcc8', 'gcc9', 'gcc10', 'gcc11', 'gcc12', 'gcc13', 'gcc14', 'gcc15', 'osx', 'ios', 'emscripten'], help='Defaults to the host system\'s default compiler')
@@ -71,7 +75,7 @@ def parse_argv():
 	if not num_threads or num_threads == 0:
 		num_threads = 4
 
-	parser.set_defaults(build=False, clean=False, clean_only=False, unit_test=False, regression_test=False, bench=False, run_bench=False, pull_bench=False,
+	parser.set_defaults(build=False, clean=False, clean_only=False, unit_test=False, regression_test=False, bench=False, run_bench=False, pull_bench=False, analyze=False,
 		compiler=None, config='Release', cpu=None, cpp_version='11', use_avx=False, use_avx2=False, use_popcnt=False, use_simd=True, use_sjson=True, allwarnings=False,
 		num_threads=num_threads, tests_matching='')
 
@@ -185,6 +189,12 @@ def parse_argv():
 	elif args.cpu == 'wasm':
 		if not args.compiler == 'emscripten':
 			print('wasm is only supported with Emscripten')
+			sys.exit(1)
+
+	if args.analyze:
+		# The static analyzer reads compile_commands.json, which only the Makefile and Ninja generators write
+		if args.compiler in ['vs2015', 'vs2017', 'vs2019', 'vs2022', 'vs2026', 'vs2019-clang', 'vs2022-clang', 'vs2026-clang', 'android', 'osx', 'ios', 'emscripten'] or (args.compiler and args.compiler.startswith('gcc')):
+			print('The static analyzer is only supported with clang on Linux and with the default compiler on OS X')
 			sys.exit(1)
 
 	if platform.system() == 'Darwin' and args.cpu == 'x86':
@@ -428,6 +438,9 @@ def do_generate_solution(build_dir, cmake_script_dir, regression_test_data_dir, 
 
 	if args.bench:
 		extra_switches.append('-DBUILD_BENCHMARK_EXE:BOOL=true')
+
+	if args.analyze:
+		extra_switches.append('-DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=true')
 
 	# Native Windows uses a multi-config generator that does not use CMAKE_BUILD_TYPE
 	# MSYS2 and Cygwin use a single-config generator
@@ -1021,6 +1034,171 @@ def do_run_bench(build_dir, test_data_dir, args):
 	else:
 		do_run_bench_native(build_dir, test_data_dir)
 
+def get_analyzer_array_bound_checker(compiler_exe):
+	# The array bound checker is not enabled by default
+	# Clang 21 and later name it security.ArrayBound, older versions name it alpha.security.ArrayBoundV2
+	checkers = [('-analyzer-checker-help', 'security.ArrayBound'), ('-analyzer-checker-help-alpha', 'alpha.security.ArrayBoundV2')]
+	for help_switch, checker in checkers:
+		try:
+			output = subprocess.check_output([compiler_exe, '-cc1', help_switch], stderr=subprocess.STDOUT).decode('utf-8', 'replace')
+		except (OSError, subprocess.CalledProcessError):
+			continue
+
+		if re.search(r'^\s*{}\s'.format(re.escape(checker)), output, re.MULTILINE):
+			return checker
+
+	return None
+
+def get_analyzer_command(entry, analyzer_switches):
+	if 'arguments' in entry:
+		compile_args = entry['arguments']
+	else:
+		compile_args = shlex.split(entry['command'], posix=(os.name != 'nt'))
+
+	# We remove the object file, the dependency file, and '-c' (an unused argument with -Werror is an error)
+	analyzer_cmd = []
+	skip_next_arg = False
+	for arg in compile_args:
+		if skip_next_arg:
+			skip_next_arg = False
+		elif arg in ['-o', '-MF', '-MT', '-MQ']:
+			skip_next_arg = True
+		elif arg not in ['-c', '-MD', '-MMD']:
+			analyzer_cmd.append(arg)
+
+	analyzer_cmd.extend(analyzer_switches)
+	analyzer_cmd.extend(['-o', os.devnull])
+	return analyzer_cmd
+
+def run_analyzer(entry, analyzer_switches):
+	analyzer_cmd = get_analyzer_command(entry, analyzer_switches)
+	process = subprocess.Popen(analyzer_cmd, cwd=entry['directory'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+	output = process.communicate()[0].decode('utf-8', 'replace')
+	return (process.returncode, output)
+
+def normalize_analyzer_line(line, root_dir):
+	# Print the paths relative to the root directory, for example 'includes/acl/core/bitset.h:171:33: warning: ...'
+	match = re.match(r'^(.+?):(\d+:\d+: .*)$', line)
+	if not match or not os.path.isabs(match.group(1)):
+		return line
+
+	filename = os.path.realpath(match.group(1))
+	if filename.startswith(root_dir + os.sep):
+		filename = os.path.relpath(filename, root_dir)
+	return '{}:{}'.format(filename, match.group(2))
+
+def parse_analyzer_findings(output, root_dir):
+	# A finding is a warning line and the source and note lines that follow it
+	findings = []
+	finding = None
+	for line in output.splitlines():
+		if re.match(r'^.+?:\d+:\d+: warning: ', line):
+			finding = [line]
+			findings.append(finding)
+		elif line.startswith('In file included from') or re.match(r'^\d+ warnings? generated\.$', line):
+			finding = None
+		elif finding is not None:
+			finding.append(line)
+
+	return [[normalize_analyzer_line(line, root_dir) for line in finding] for finding in findings]
+
+def escape_github_command_data(value):
+	return value.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+
+def escape_github_command_property(value):
+	return escape_github_command_data(value).replace(':', '%3A').replace(',', '%2C')
+
+def print_github_annotation(finding):
+	# GitHub Actions shows this line as an annotation on the line of the finding
+	# The message is the warning and its notes, without the source lines
+	match = re.match(r'^(.+?):(\d+):(\d+): warning: (.*?)(?: \[([\w.-]+)\])?$', finding[0])
+	filename = match.group(1).replace(os.sep, '/')
+	checker = match.group(5)
+	title = 'Static analyzer ({})'.format(checker) if checker else 'Static analyzer'
+	notes = [line for line in finding[1:] if re.match(r'^.+?:\d+:\d+: note: ', line)]
+	message = '\n'.join([match.group(4)] + notes)
+
+	print('::error file={},line={},col={},title={}::{}'.format(
+		escape_github_command_property(filename), match.group(2), match.group(3),
+		escape_github_command_property(title), escape_github_command_data(message)))
+
+def do_analyze(build_dir, args):
+	print('Running the static analyzer ...')
+
+	compile_commands_filename = os.path.join(build_dir, 'compile_commands.json')
+	if not os.path.exists(compile_commands_filename):
+		print('{} does not exist. The static analyzer needs a Makefile or Ninja generator.'.format(compile_commands_filename))
+		sys.exit(1)
+
+	with open(compile_commands_filename, 'r') as compile_commands_file:
+		entries = json.load(compile_commands_file)
+
+	# The include validation has one cpp file for each public header
+	# We analyze the functions in the headers too, because a header-only library has no other functions to analyze
+	entries = [entry for entry in entries if 'validate_includes' in entry['file'].replace('\\', '/').split('/')]
+	if not entries:
+		print('No include validation file is in {}'.format(compile_commands_filename))
+		sys.exit(1)
+
+	compiler_exe = get_analyzer_command(entries[0], [])[0]
+	compiler_version = subprocess.check_output([compiler_exe, '--version']).decode('utf-8', 'replace')
+	if 'clang' not in compiler_version.lower():
+		print('The static analyzer needs clang. The compiler is: {}'.format(compiler_version.splitlines()[0]))
+		sys.exit(1)
+
+	analyzer_switches = ['--analyze', '--analyzer-output', 'text', '-Xclang', '-analyzer-opt-analyze-headers']
+
+	array_bound_checker = get_analyzer_array_bound_checker(compiler_exe)
+	if array_bound_checker:
+		print('Enabling checker: {}'.format(array_bound_checker))
+		analyzer_switches.extend(['-Xclang', '-analyzer-checker={}'.format(array_bound_checker)])
+	else:
+		print('This compiler has no array bound checker. Only the default checkers are used.')
+
+	thread_pool = multiprocessing.pool.ThreadPool(int(args.num_threads))
+	results = thread_pool.map(lambda entry: run_analyzer(entry, analyzer_switches), entries)
+	thread_pool.close()
+	thread_pool.join()
+
+	def get_finding_location(warning_line):
+		match = re.match(r'^(.+?):(\d+):(\d+): ', warning_line)
+		return (match.group(1), int(match.group(2)), int(match.group(3)))
+
+	# Each header is analyzed once for each cpp file that includes it, we print each finding once
+	# The headers of the compiler are analyzed too (e.g. the intrinsic headers), we ignore the findings in them
+	root_dir = os.path.realpath(os.path.dirname(build_dir))
+	is_failure = False
+	unique_findings = {}
+	ignored_findings = set()
+	for entry, (result, output) in zip(entries, results):
+		if result != 0:
+			print('The static analyzer failed on {}:'.format(entry['file']))
+			print(output)
+			is_failure = True
+			continue
+
+		for finding in parse_analyzer_findings(output, root_dir):
+			# A finding in the repository has a relative path
+			if os.path.isabs(get_finding_location(finding[0])[0]):
+				ignored_findings.add(finding[0])
+			else:
+				unique_findings.setdefault(finding[0], finding)
+
+	# Sort the findings by file, line, and column
+	# On GitHub Actions, we also print each finding as an annotation
+	is_github_actions = os.environ.get('GITHUB_ACTIONS') == 'true'
+	for warning_line in sorted(unique_findings.keys(), key=get_finding_location):
+		print('\n'.join(unique_findings[warning_line]))
+		if is_github_actions:
+			print_github_annotation(unique_findings[warning_line])
+
+	if ignored_findings:
+		print('The static analyzer ignored {} issues in files outside of the repository'.format(len(ignored_findings)))
+
+	print('The static analyzer found {} issues in {} files'.format(len(unique_findings), len(entries)))
+	if is_failure or unique_findings:
+		sys.exit(1)
+
 if __name__ == "__main__":
 	args = parse_argv()
 
@@ -1085,5 +1263,8 @@ if __name__ == "__main__":
 
 	if args.pull_bench and (not is_cross_compiling or args.compiler == 'android'):
 		do_pull_bench_android(build_dir)
+
+	if args.analyze:
+		do_analyze(build_dir, args)
 
 	sys.exit(0)
