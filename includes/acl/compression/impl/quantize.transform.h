@@ -1218,18 +1218,28 @@ namespace acl
 			}
 		}
 
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the bit rates of a permutation, one bit rate for each degree of freedom.
+		// We index the table that has the number of degrees of freedom, not a pointer to its first row.
+		// A read past the end of the first row through such a pointer is out of bounds.
+		inline const uint8_t* get_local_bit_rate_permutation(uint32_t num_dof, size_t permutation_index)
+		{
+			ACL_ASSERT(num_dof >= 1 && num_dof <= 3, "Invalid number of degrees of freedom: %u", num_dof);
+
+			if (num_dof == 1)
+				return &acl_impl::k_local_bit_rate_permutations_1_dof[permutation_index][0];
+			else if (num_dof == 2)
+				return &acl_impl::k_local_bit_rate_permutations_2_dof[permutation_index][0];
+			else
+				return &acl_impl::k_local_bit_rate_permutations_3_dof[permutation_index][0];
+		}
+
 		inline void calculate_local_space_bit_rates(quantization_context& context)
 		{
 			// To minimize the bit rate, we first start by trying every permutation in local space
 			// until our error is acceptable.
 			// We try permutations from the lowest memory footprint to the highest.
 
-			const uint8_t* const bit_rate_permutations_per_dofs[] =
-			{
-				&acl_impl::k_local_bit_rate_permutations_1_dof[0][0],
-				&acl_impl::k_local_bit_rate_permutations_2_dof[0][0],
-				&acl_impl::k_local_bit_rate_permutations_3_dof[0][0],
-			};
 			const size_t num_bit_rate_permutations_per_dofs[] =
 			{
 				get_array_size(acl_impl::k_local_bit_rate_permutations_1_dof),
@@ -1268,35 +1278,35 @@ namespace acl
 				num_dof += bone_bit_rates.translation != k_invalid_bit_rate ? 1 : 0;
 				num_dof += bone_bit_rates.scale != k_invalid_bit_rate ? 1 : 0;
 
-				const uint8_t* bit_rate_permutations_per_dof = bit_rate_permutations_per_dofs[num_dof - 1];
 				const size_t num_bit_rate_permutations = num_bit_rate_permutations_per_dofs[num_dof - 1];
 
 				// Our desired bit rates start with the initial value
 				transform_bit_rates desired_bit_rates = bone_bit_rates;
 
-				size_t permutation_offset = 0;
 				for (size_t permutation_index = 0; permutation_index < num_bit_rate_permutations; ++permutation_index)
 				{
 					// If a bit rate is variable, grab a permutation for it
 					// We'll only consume as many bit rates as we have degrees of freedom
+					const uint8_t* permutation_bit_rates = get_local_bit_rate_permutation(num_dof, permutation_index);
+					uint32_t dof_index = 0;
 
 					uint32_t transform_size = 0;	// In bits
 
 					if (desired_bit_rates.rotation != k_invalid_bit_rate)
 					{
-						desired_bit_rates.rotation = bit_rate_permutations_per_dof[permutation_offset++];
+						desired_bit_rates.rotation = permutation_bit_rates[dof_index++];
 						transform_size += get_num_bits_at_bit_rate(desired_bit_rates.rotation);
 					}
 
 					if (desired_bit_rates.translation != k_invalid_bit_rate)
 					{
-						desired_bit_rates.translation = bit_rate_permutations_per_dof[permutation_offset++];
+						desired_bit_rates.translation = permutation_bit_rates[dof_index++];
 						transform_size += get_num_bits_at_bit_rate(desired_bit_rates.translation);
 					}
 
 					if (desired_bit_rates.scale != k_invalid_bit_rate)
 					{
-						desired_bit_rates.scale = bit_rate_permutations_per_dof[permutation_offset++];
+						desired_bit_rates.scale = permutation_bit_rates[dof_index++];
 						transform_size += get_num_bits_at_bit_rate(desired_bit_rates.scale);
 					}
 
@@ -2257,12 +2267,6 @@ namespace acl
 			compute_segment_shell_distances(*context.segment, cached_transforms_lossy, context.shell_metadata_per_transform);
 
 			// We try permutations from the lowest memory footprint to the highest.
-			const uint8_t* const bit_rate_permutations_per_dofs[] =
-			{
-				&acl_impl::k_local_bit_rate_permutations_1_dof[0][0],
-				&acl_impl::k_local_bit_rate_permutations_2_dof[0][0],
-				&acl_impl::k_local_bit_rate_permutations_3_dof[0][0],
-			};
 			const size_t num_bit_rate_permutations_per_dofs[] =
 			{
 				get_array_size(acl_impl::k_local_bit_rate_permutations_1_dof),
@@ -2388,35 +2392,35 @@ namespace acl
 				num_dof += bone_bit_rates.translation != k_invalid_bit_rate ? 1 : 0;
 				num_dof += bone_bit_rates.scale != k_invalid_bit_rate ? 1 : 0;
 
-				const uint8_t* bit_rate_permutations_per_dof = bit_rate_permutations_per_dofs[num_dof - 1];
 				const size_t num_bit_rate_permutations = num_bit_rate_permutations_per_dofs[num_dof - 1];
 
 				// Our desired bit rates start with the initial value
 				transform_bit_rates desired_bit_rates = bone_bit_rates;
 
-				size_t permutation_offset = 0;
 				for (size_t permutation_index = 0; permutation_index < num_bit_rate_permutations; ++permutation_index)
 				{
 					// If a bit rate is variable, grab a permutation for it
 					// We'll only consume as many bit rates as we have degrees of freedom
+					const uint8_t* permutation_bit_rates = get_local_bit_rate_permutation(num_dof, permutation_index);
+					uint32_t dof_index = 0;
 
 					uint32_t transform_size = 0;	// In bits
 
 					if (desired_bit_rates.rotation != k_invalid_bit_rate)
 					{
-						desired_bit_rates.rotation = bit_rate_permutations_per_dof[permutation_offset++];
+						desired_bit_rates.rotation = permutation_bit_rates[dof_index++];
 						transform_size += get_num_bits_at_bit_rate(desired_bit_rates.rotation);
 					}
 
 					if (desired_bit_rates.translation != k_invalid_bit_rate)
 					{
-						desired_bit_rates.translation = bit_rate_permutations_per_dof[permutation_offset++];
+						desired_bit_rates.translation = permutation_bit_rates[dof_index++];
 						transform_size += get_num_bits_at_bit_rate(desired_bit_rates.translation);
 					}
 
 					if (desired_bit_rates.scale != k_invalid_bit_rate)
 					{
-						desired_bit_rates.scale = bit_rate_permutations_per_dof[permutation_offset++];
+						desired_bit_rates.scale = permutation_bit_rates[dof_index++];
 						transform_size += get_num_bits_at_bit_rate(desired_bit_rates.scale);
 					}
 
