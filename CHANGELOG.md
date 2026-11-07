@@ -11,6 +11,7 @@
 *  Add the `-analyze` action to `make.py` to run the clang static analyzer on the public headers
 *  Disable fast math with the `float_control` pragma under Clang where the target supports it
 *  Add the `-fast_math` option to `make.py` to compile the public headers with fast math, and a CI workflow that uses it
+*  Add native Linux `riscv64` builds to `make.py`, they use the scalar code path of RTM
 
 ## 2.1.0
 

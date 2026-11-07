@@ -29,6 +29,14 @@ For native *Linux on ARMv7*, the steps are identical to *x86 and x64* and `make.
 
 With SIMD enabled, the build adds `-mfpu=neon` because the Linux `armhf` compilers do not enable NEON by default.
 
+### Linux riscv64
+
+For native *Linux on riscv64*, the steps are identical to *x86 and x64* and `make.py` selects the `riscv64` architecture automatically. You can generate build files with: `python make.py -cpu riscv64`
+
+RTM has no SIMD code for RISC-V, so the build uses the scalar code path. The `-avx`, `-avx2`, and `-pop` switches are not supported with `riscv64`.
+
+`make.py` does not cross-compile for `riscv64`. To cross-compile, use CMake directly with a RISC-V compiler and toolchain file.
+
 ### Android
 
 For *Android*, the steps are identical to *Windows, Linux, and OS X* but you also need to install *Android NDK 21* (or higher). The build uses `gradle` and `-unit_test` as well as `-regression_test` will deploy and run on the device when executed (make sure that the `adb` executable is in your `PATH` for this to work).

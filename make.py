@@ -32,6 +32,9 @@ def is_host_cpu_armv7():
 	# armv8l is a 32-bit ARM user space on a 64-bit ARM processor
 	return platform.machine() == 'armv7l' or platform.machine() == 'armv8l'
 
+def is_host_cpu_riscv64():
+	return platform.machine() == 'riscv64'
+
 def parse_argv():
 	parser = argparse.ArgumentParser(add_help=False)
 
@@ -50,7 +53,7 @@ def parse_argv():
 	target = parser.add_argument_group(title='Target')
 	target.add_argument('-compiler', choices=['vs2015', 'vs2017', 'vs2019', 'vs2022', 'vs2026', 'vs2019-clang', 'vs2022-clang', 'vs2026-clang', 'android', 'clang4', 'clang5', 'clang6', 'clang7', 'clang8', 'clang9', 'clang10', 'clang11', 'clang12', 'clang13', 'clang14', 'clang15', 'clang16', 'clang17', 'clang18', 'clang19', 'clang20', 'clang21', 'clang22', 'clang23', 'gcc4.9', 'gcc5', 'gcc6', 'gcc7', 'gcc8', 'gcc9', 'gcc10', 'gcc11', 'gcc12', 'gcc13', 'gcc14', 'gcc15', 'osx', 'ios', 'emscripten'], help='Defaults to the host system\'s default compiler')
 	target.add_argument('-config', choices=['Debug', 'Release'], type=str.capitalize)
-	target.add_argument('-cpu', choices=['x86', 'x64', 'armv7', 'arm64', 'arm64ec', 'wasm'], help='Defaults to the host system\'s architecture')
+	target.add_argument('-cpu', choices=['x86', 'x64', 'armv7', 'arm64', 'arm64ec', 'riscv64', 'wasm'], help='Defaults to the host system\'s architecture')
 	target.add_argument('-cpp_version', choices=['11', '14', '17', '20'], help='Defaults to C++11')
 
 	misc = parser.add_argument_group(title='Miscellaneous')
@@ -81,6 +84,7 @@ def parse_argv():
 
 	is_arm64_cpu = is_host_cpu_arm64()
 	is_armv7_cpu = is_host_cpu_armv7()
+	is_riscv64_cpu = is_host_cpu_riscv64()
 
 	# Sanitize and validate our options
 	if (args.use_avx or args.use_avx2) and not args.use_simd:
@@ -147,6 +151,8 @@ def parse_argv():
 				args.cpu = 'arm64'
 			elif is_armv7_cpu:
 				args.cpu = 'armv7'
+			elif is_riscv64_cpu:
+				args.cpu = 'riscv64'
 			else:
 				args.cpu = 'x64'
 
@@ -181,6 +187,16 @@ def parse_argv():
 
 		if not is_armv7_supported:
 			print('armv7 is only supported with Linux and Android')
+			sys.exit(1)
+	elif args.cpu == 'riscv64':
+		# RTM has no SIMD code for RISC-V, so riscv64 uses the scalar code path
+		if platform.system() != 'Linux' or not is_riscv64_cpu:
+			print('riscv64 is only supported with a native Linux riscv64 host')
+			print('To cross-compile for riscv64, use CMake with a RISC-V toolchain file')
+			sys.exit(1)
+
+		if args.use_avx or args.use_avx2 or args.use_popcnt:
+			print('AVX, AVX2, and POPCNT are not supported on riscv64')
 			sys.exit(1)
 	elif args.cpu == 'wasm' and args.compiler != 'emscripten':
 		print('wasm is only supported with Emscripten')

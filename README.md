@@ -54,6 +54,8 @@ Continuous integration tests a variety of platforms and configurations but it ge
 
 Each releases is also manually tested on iOS and Android.
 
+On RISC-V (`riscv64`), ACL uses the scalar code path of RTM because RTM has no SIMD code for RISC-V. CI does not test `riscv64`. `make.py -cpu riscv64` supports native builds on a Linux `riscv64` host. To cross-compile, use CMake with a RISC-V toolchain file.
+
 The [Unreal Engine](https://www.unrealengine.com/en-US/blog) is supported through a plugin originally found [here](https://github.com/nfrechette/acl-ue4-plugin) although it is now distributed with a more recent version as part of each engine release since UE 5.13.
 
 ## Getting started
