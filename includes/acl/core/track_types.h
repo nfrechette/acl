@@ -65,8 +65,12 @@ namespace acl
 		//quatf		= 10,
 		//quatd		= 11,
 
-		qvvf		= 12,
-		//qvvd		= 13,
+		vqvf		= 12,
+		//vqvd		= 13,
+
+		// The attribute is not portable on an enumerator with C++11 and C++14
+		//ACL_DEPRECATED("Use 'vqvf' instead, to be removed in v2.3")
+		qvvf		= vqvf,
 
 		//int1i		= 14,
 		//int2i		= 15,
@@ -94,6 +98,17 @@ namespace acl
 	};
 
 	//////////////////////////////////////////////////////////////////////////
+	// The interpolator function used by a track.
+	enum class track_interpolator_t : uint8_t
+	{
+		// Simple linear interpolation means we have a single value per sample
+		linear		= 0,
+
+		// Extended interpolation means each sample can be customized independently
+		extended	= 1,
+	};
+
+	//////////////////////////////////////////////////////////////////////////
 
 	//////////////////////////////////////////////////////////////////////////
 	// Returns the string representation for the provided track type.
@@ -107,7 +122,7 @@ namespace acl
 		case track_type8::float3f:			return "float3f";
 		case track_type8::float4f:			return "float4f";
 		case track_type8::vector4f:			return "vector4f";
-		case track_type8::qvvf:				return "qvvf";
+		case track_type8::vqvf:				return "vqvf";
 		default:							return "<Invalid>";
 		}
 	}
@@ -135,10 +150,10 @@ namespace acl
 			"quatf",
 			"quatd",
 
-			"qvvf",
+			"vqvf",
 		};
 
-		static_assert(get_array_size(k_track_type_names) == (size_t)track_type8::qvvf + 1, "Unexpected array size");
+		static_assert(get_array_size(k_track_type_names) == (size_t)track_type8::vqvf + 1, "Unexpected array size");
 
 		ACL_ASSERT(type != nullptr, "Track type name cannot be null");
 		if (type == nullptr)
@@ -152,6 +167,13 @@ namespace acl
 				out_type = safe_static_cast<track_type8>(type_index);
 				return true;
 			}
+		}
+
+		const char* qvvf_type = "qvvf";	// ACL_DEPRECATED Legacy name, keep for backwards compatibility, remove in v2.3
+		if (std::strncmp(type, qvvf_type, std::strlen(qvvf_type)) == 0)
+		{
+			out_type = track_type8::vqvf;
+			return true;
 		}
 
 		return false;
@@ -179,13 +201,57 @@ namespace acl
 			track_category8::transformf,	// quatf
 			track_category8::transformd,	// quatd
 
-			track_category8::transformf,	// qvvf
+			track_category8::transformf,	// vqvf
 		};
 
-		static_assert(get_array_size(k_track_type_to_category) == (size_t)track_type8::qvvf + 1, "Unexpected array size");
+		static_assert(get_array_size(k_track_type_to_category) == (size_t)track_type8::vqvf + 1, "Unexpected array size");
 
-		ACL_ASSERT(type <= track_type8::qvvf, "Unexpected track type");
-		return type <= track_type8::qvvf ? k_track_type_to_category[static_cast<uint32_t>(type)] : track_category8::scalarf;
+		ACL_ASSERT(type <= track_type8::vqvf, "Unexpected track type");
+		return type <= track_type8::vqvf ? k_track_type_to_category[static_cast<uint32_t>(type)] : track_category8::scalarf;
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Returns the string representation for the provided track interpolator type.
+	// TODO: constexpr
+	inline const char* get_track_interpolator_name(track_interpolator_t interpolator)
+	{
+		switch (interpolator)
+		{
+		case track_interpolator_t::linear:		return "linear";
+		case track_interpolator_t::extended:	return "extended";
+		default:								return "<Invalid>";
+		}
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Returns the track interpolator from its string representation.
+	// Returns true on success, false otherwise.
+	inline bool get_track_interpolator(const char* interpolator, track_interpolator_t& out_interpolator)
+	{
+		// Entries in the same order as the enum integral value
+		static const char* k_track_interpolator_names[] =
+		{
+			"linear",
+			"extended",
+		};
+
+		static_assert(get_array_size(k_track_interpolator_names) == (size_t)track_interpolator_t::extended + 1, "Unexpected array size");
+
+		ACL_ASSERT(interpolator != nullptr, "Track interpolator name cannot be null");
+		if (interpolator == nullptr)
+			return false;
+
+		for (size_t index = 0; index < get_array_size(k_track_interpolator_names); ++index)
+		{
+			const char* name = k_track_interpolator_names[index];
+			if (std::strncmp(interpolator, name, std::strlen(name)) == 0)
+			{
+				out_interpolator = safe_static_cast<track_interpolator_t>(index);
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -210,13 +276,13 @@ namespace acl
 			4,	// quatf
 			4,	// quatd
 
-			12,	// qvvf
+			12,	// vqvf
 		};
 
-		static_assert(get_array_size(k_track_type_to_num_elements) == (size_t)track_type8::qvvf + 1, "Unexpected array size");
+		static_assert(get_array_size(k_track_type_to_num_elements) == (size_t)track_type8::vqvf + 1, "Unexpected array size");
 
-		ACL_ASSERT(type <= track_type8::qvvf, "Unexpected track type");
-		return type <= track_type8::qvvf ? k_track_type_to_num_elements[static_cast<uint32_t>(type)] : 0;
+		ACL_ASSERT(type <= track_type8::vqvf, "Unexpected track type");
+		return type <= track_type8::vqvf ? k_track_type_to_num_elements[static_cast<uint32_t>(type)] : 0;
 	}
 
 	ACL_IMPL_VERSION_NAMESPACE_END

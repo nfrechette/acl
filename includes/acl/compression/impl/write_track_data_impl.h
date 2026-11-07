@@ -55,7 +55,12 @@ namespace acl
 				const uint32_t track_index = context.track_output_indices[output_index];
 
 				if (per_track_metadata != nullptr)
-					per_track_metadata[output_index].bit_rate = context.is_constant(track_index) ? static_cast<uint8_t>(0) : context.bit_rate_list[track_index].scalar.value;
+				{
+					const uint8_t bit_rate = context.is_constant(track_index) ? static_cast<uint8_t>(0) : context.bit_rate_list[track_index].scalar.value;
+
+					per_track_metadata[output_index].set_bit_rate(bit_rate);
+					per_track_metadata[output_index].set_sample_interpolation_mode(context.get_sample_interpolation_mode(track_index));
+				}
 
 				output_buffer += sizeof(track_metadata);
 			}
@@ -78,10 +83,10 @@ namespace acl
 					continue;
 
 				const track& ref_track = (*context.reference_list)[track_index];
-				const uint32_t element_size = ref_track.get_sample_size();
+				const uint32_t element_size = get_sample_value_size(ref_track);
 
 				if (constant_values != nullptr)
-					std::memcpy(output_buffer, ref_track[0], element_size);
+					std::memcpy(output_buffer, get_sample_value_ptr(ref_track, 0), element_size);
 
 				output_buffer += element_size;
 			}
@@ -110,7 +115,7 @@ namespace acl
 				const track& ref_track = (*context.reference_list)[track_index];
 				const track_range& range = context.range_list[track_index];
 
-				const uint32_t element_size = ref_track.get_sample_size();
+				const uint32_t element_size = get_sample_value_size(ref_track);
 
 				if (range_values != nullptr)
 				{
@@ -156,11 +161,36 @@ namespace acl
 
 					const scalar_bit_rate bit_rate = context.bit_rate_list[track_index].scalar;
 					const uint64_t num_bits_per_component = get_num_bits_at_bit_rate(bit_rate.value);
+					const bool has_sample_interpolators = context.get_sample_interpolation_mode(track_index) == sample_interpolation_mode_t::mixed;
 
 					const track& src_track = is_raw_bit_rate(bit_rate.value) ? ref_track : mut_track;
 
-					const uint32_t* sample_u32 = safe_ptr_cast<const uint32_t>(src_track[sample_index]);
-					const float* sample_f32 = safe_ptr_cast<const float>(src_track[sample_index]);
+					if (has_sample_interpolators)
+					{
+						constexpr uint32_t interpolator_num_bits = k_num_sample_interpolator_bits;
+						static_assert(static_cast<uint32_t>(sample_interpolator_t::constant) < (1U << interpolator_num_bits), "Sample interpolator must fit in the reserved bits");
+						static_assert(static_cast<uint32_t>(sample_interpolator_t::linear) < (1U << interpolator_num_bits), "Sample interpolator must fit in the reserved bits");
+
+						if (animated_values != nullptr)
+						{
+							const track_vector4f_ex& mut_track_ex = track_cast<track_vector4f_ex>(mut_track);
+							const sample_interpolator_t interpolator = mut_track_ex[sample_index].interpolator;
+
+							uint32_t interpolator_u32 = static_cast<uint32_t>(interpolator);
+							ACL_ASSERT(interpolator_u32 < (1U << interpolator_num_bits), "Sample interpolator must fit in the reserved bits");
+
+							// Convert to BigEndian to match other values
+							interpolator_u32 = interpolator_u32 << (32 - interpolator_num_bits);
+							interpolator_u32 = byte_swap(interpolator_u32);
+
+							memcpy_bits(output_buffer, output_bit_offset, &interpolator_u32, 0, interpolator_num_bits);
+						}
+
+						output_bit_offset += interpolator_num_bits;
+					}
+
+					const uint32_t* sample_u32 = safe_ptr_cast<const uint32_t>(get_sample_value_ptr(src_track, sample_index));
+					const float* sample_f32 = safe_ptr_cast<const float>(get_sample_value_ptr(src_track, sample_index));
 					for (uint32_t component_index = 0; component_index < num_components; ++component_index)
 					{
 						if (animated_values != nullptr)

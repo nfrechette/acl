@@ -102,7 +102,7 @@ static void stream_out_database_tier(database_context<debug_database_settings>& 
 	ACL_ASSERT(num_chunks == 0 || is_streamed_out, "Failed to stream out tier 1");
 }
 
-static void validate_db_streaming(iallocator& allocator, const track_array_qvvf& raw_tracks, const track_array_qvvf& additive_base_tracks, const itransform_error_metric& error_metric,
+static void validate_db_streaming(iallocator& allocator, const track_array_vqvf& raw_tracks, const track_array_vqvf& additive_base_tracks, const itransform_error_metric& error_metric,
 	const track_error& high_quality_tier_error_ref,
 	const compressed_tracks& tracks0, const compressed_tracks& tracks1,
 	const compressed_database& db, const uint8_t* db_bulk_data_medium, const uint8_t* db_bulk_data_low)
@@ -216,7 +216,7 @@ static void validate_db_streaming(iallocator& allocator, const track_array_qvvf&
 	}
 }
 
-static void validate_db_stripping(iallocator& allocator, const track_array_qvvf& raw_tracks, const track_array_qvvf& additive_base_tracks, const itransform_error_metric& error_metric,
+static void validate_db_stripping(iallocator& allocator, const track_array_vqvf& raw_tracks, const track_array_vqvf& additive_base_tracks, const itransform_error_metric& error_metric,
 	const compressed_tracks& tracks0, const compressed_tracks& tracks1,
 	const compressed_database& db, const uint8_t* db_bulk_data_medium, const uint8_t* db_bulk_data_low)
 {
@@ -477,17 +477,17 @@ static void validate_db_stripping(iallocator& allocator, const track_array_qvvf&
 		allocator.deallocate(db_neither1, db_neither1->get_size());
 }
 
-static bool has_zero_scale(const track_array_qvvf& raw_tracks)
+static bool has_zero_scale(const track_array_vqvf& raw_tracks)
 {
 	const float threshold = 1.0E-6F;
 	const rtm::vector4f zero = rtm::vector_zero();
 	const uint32_t num_samples_per_track = raw_tracks.get_num_samples_per_track();
 
-	for (const track_qvvf& raw_track : raw_tracks)
+	for (const track_vqvf& raw_track : raw_tracks)
 	{
 		for (uint32_t sample_index = 0; sample_index < num_samples_per_track; ++sample_index)
 		{
-			const rtm::qvvf& sample = raw_track[sample_index];
+			const rtm::vqvf& sample = raw_track[sample_index];
 			if (rtm::vector_any_near_equal3(sample.scale, zero, threshold))
 				return true;
 		}
@@ -496,7 +496,7 @@ static bool has_zero_scale(const track_array_qvvf& raw_tracks)
 	return false;
 }
 
-void validate_db(iallocator& allocator, const track_array_qvvf& raw_tracks, const track_array_qvvf& additive_base_tracks,
+void validate_db(iallocator& allocator, const track_array_vqvf& raw_tracks, const track_array_vqvf& additive_base_tracks,
 	const compression_database_settings& settings, const itransform_error_metric& error_metric,
 	const compressed_tracks& compressed_tracks0, const compressed_tracks& compressed_tracks1)
 {

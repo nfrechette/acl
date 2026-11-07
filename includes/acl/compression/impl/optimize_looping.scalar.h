@@ -66,11 +66,12 @@ namespace acl
 			const uint32_t num_tracks = context.num_tracks;
 			for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 			{
-				const track_vector4f& typed_track = track_cast<const track_vector4f>(track_list[track_index]);
+				const track_vector4f_ex& typed_track = track_cast<const track_vector4f_ex>(track_list[track_index]);
 				const track_desc_scalarf& desc = typed_track.get_description();
 
-				const rtm::vector4f first_sample = typed_track[0];
-				const rtm::vector4f last_sample = typed_track[last_sample_index];
+				const rtm::vector4f first_sample = typed_track[0].value;
+				const rtm::vector4f last_sample = typed_track[last_sample_index].value;
+
 				if (!rtm::vector_all_near_equal(first_sample, last_sample, desc.precision))
 				{
 					is_wrapping = false;
@@ -88,15 +89,15 @@ namespace acl
 				context.num_samples = num_samples;
 				context.looping_policy = sample_looping_policy::wrap;
 
-				track_array_vector4f wrap_track_list(allocator, num_tracks);
+				track_array_vector4f_ex wrap_track_list(allocator, num_tracks);
 
 				for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 				{
-					const track_vector4f& ref_track = track_cast<const track_vector4f>(track_list[track_index]);
+					const track_vector4f_ex& ref_track = track_cast<const track_vector4f_ex>(track_list[track_index]);
 					const track_desc_scalarf& desc = ref_track.get_description();
 
-					track_vector4f& wrap_track = wrap_track_list[track_index];
-					wrap_track = track_vector4f::make_copy(desc, allocator, ref_track.get_data(), num_samples, sample_rate);
+					track_vector4f_ex& wrap_track = wrap_track_list[track_index];
+					wrap_track = track_vector4f_ex::make_copy(desc, allocator, ref_track.get_data(), num_samples, sample_rate);
 				}
 
 				track_list = std::move(wrap_track_list);

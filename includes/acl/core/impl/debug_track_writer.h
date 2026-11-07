@@ -32,7 +32,7 @@
 #include "acl/core/track_types.h"
 #include "acl/core/track_writer.h"
 
-#include <rtm/qvvf.h>
+#include <rtm/vqvf.h>
 #include <rtm/scalarf.h>
 #include <rtm/vector4f.h>
 
@@ -59,8 +59,8 @@ namespace acl
 				, type(type_)
 			{
 				// Large enough to accommodate the largest type
-				buffer_size = sizeof(rtm::qvvf) * num_tracks_;
-				tracks_typed.any = allocator_.allocate(buffer_size, alignof(rtm::qvvf));
+				buffer_size = sizeof(rtm::vqvf) * num_tracks_;
+				tracks_typed.any = allocator_.allocate(buffer_size, alignof(rtm::vqvf));
 			}
 
 			~debug_track_writer()
@@ -92,15 +92,15 @@ namespace acl
 			// track_array remaps to it properly with matching output indices.
 			void initialize_with_defaults(const track_array& tracks)
 			{
-				const track_array_qvvf& tracks_ = track_array_cast<track_array_qvvf>(tracks);
+				const track_array_vqvf& tracks_ = track_array_cast<track_array_vqvf>(tracks);
 
-				for (const track_qvvf& track : tracks_)
+				for (const track_vqvf& track : tracks_)
 				{
 					const track_desc_transformf& desc = track.get_description();
 					if (desc.output_index == k_invalid_track_index)
 						continue;	// Stripped, skip it
 
-					tracks_typed.qvvf[desc.output_index] = desc.default_value;
+					tracks_typed.vqvf[desc.output_index] = desc.default_value;
 				}
 			}
 
@@ -178,30 +178,30 @@ namespace acl
 			// Called by the decoder to write out a quaternion rotation value for a specified bone index.
 			void RTM_SIMD_CALL write_rotation(uint32_t track_index, rtm::quatf_arg0 rotation)
 			{
-				ACL_ASSERT(type == track_type8::qvvf, "Unexpected track type access");
-				tracks_typed.qvvf[track_index].rotation = rotation;
+				ACL_ASSERT(type == track_type8::vqvf, "Unexpected track type access");
+				tracks_typed.vqvf[track_index].rotation = rotation;
 			}
 
 			//////////////////////////////////////////////////////////////////////////
 			// Called by the decoder to write out a translation value for a specified bone index.
 			void RTM_SIMD_CALL write_translation(uint32_t track_index, rtm::vector4f_arg0 translation)
 			{
-				ACL_ASSERT(type == track_type8::qvvf, "Unexpected track type access");
-				tracks_typed.qvvf[track_index].translation = translation;
+				ACL_ASSERT(type == track_type8::vqvf, "Unexpected track type access");
+				tracks_typed.vqvf[track_index].translation = translation;
 			}
 
 			//////////////////////////////////////////////////////////////////////////
 			// Called by the decoder to write out a scale value for a specified bone index.
 			void RTM_SIMD_CALL write_scale(uint32_t track_index, rtm::vector4f_arg0 scale)
 			{
-				ACL_ASSERT(type == track_type8::qvvf, "Unexpected track type access");
-				tracks_typed.qvvf[track_index].scale = scale;
+				ACL_ASSERT(type == track_type8::vqvf, "Unexpected track type access");
+				tracks_typed.vqvf[track_index].scale = scale;
 			}
 
-			const rtm::qvvf& RTM_SIMD_CALL read_qvv(uint32_t track_index) const
+			const rtm::vqvf& RTM_SIMD_CALL read_vqv(uint32_t track_index) const
 			{
-				ACL_ASSERT(type == track_type8::qvvf, "Unexpected track type access");
-				return tracks_typed.qvvf[track_index];
+				ACL_ASSERT(type == track_type8::vqvf, "Unexpected track type access");
+				return tracks_typed.vqvf[track_index];
 			}
 
 			union ptr_union
@@ -212,7 +212,7 @@ namespace acl
 				rtm::float3f*	float3f;
 				rtm::float4f*	float4f;
 				rtm::vector4f*	vector4f;
-				rtm::qvvf*		qvvf;
+				rtm::vqvf*		vqvf;
 			};
 
 			iallocator& allocator;
@@ -229,7 +229,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Same as debug_track_writer but default sub-tracks are constant instead of skipped.
-		// Only supports qvvf tracks.
+		// Only supports vqvf tracks.
 		//////////////////////////////////////////////////////////////////////////
 		struct debug_track_writer_constant_defaults final : public debug_track_writer
 		{
@@ -239,7 +239,7 @@ namespace acl
 				, default_translation(rtm::vector_zero())
 				, default_scale(rtm::vector_set(1.0F))
 			{
-				ACL_ASSERT(type_ == track_type8::qvvf, "Only qvvf tracks are supported");
+				ACL_ASSERT(type_ == track_type8::vqvf, "Only vqvf tracks are supported");
 			}
 
 			// Cannot copy or move
@@ -261,7 +261,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Same as debug_track_writer but default sub-tracks are variable instead of skipped.
-		// Only supports qvvf tracks.
+		// Only supports vqvf tracks.
 		//////////////////////////////////////////////////////////////////////////
 		struct debug_track_writer_variable_defaults final : public debug_track_writer
 		{
@@ -269,7 +269,7 @@ namespace acl
 				: debug_track_writer(allocator_, type_, num_tracks_)
 				, default_sub_tracks(nullptr)
 			{
-				ACL_ASSERT(type_ == track_type8::qvvf, "Only qvvf tracks are supported");
+				ACL_ASSERT(type_ == track_type8::vqvf, "Only vqvf tracks are supported");
 			}
 
 			// Cannot copy or move
@@ -284,7 +284,7 @@ namespace acl
 			rtm::vector4f RTM_SIMD_CALL get_variable_default_translation(uint32_t track_index) const { return default_sub_tracks[track_index].translation; }
 			rtm::vector4f RTM_SIMD_CALL get_variable_default_scale(uint32_t track_index) const { return default_sub_tracks[track_index].scale; }
 
-			const rtm::qvvf* default_sub_tracks;
+			const rtm::vqvf* default_sub_tracks;
 		};
 
 		//////////////////////////////////////////////////////////////////////////

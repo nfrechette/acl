@@ -128,7 +128,7 @@ namespace acl
 			writer["decomp_touched_cache_lines"] = segment.clip->decomp_touched_cache_lines + num_segment_header_cache_lines + num_animated_pose_cache_lines;
 		}
 
-		inline void write_exhaustive_segment_stats(iallocator& allocator, const segment_context& segment, const clip_context& raw_clip_context, const clip_context& additive_base_clip_context, const compression_settings& settings, const track_array_qvvf& track_list, sjson::ObjectWriter& writer)
+		inline void write_exhaustive_segment_stats(iallocator& allocator, const segment_context& segment, const clip_context& raw_clip_context, const clip_context& additive_base_clip_context, const compression_settings& settings, const track_array_vqvf& track_list, sjson::ObjectWriter& writer)
 		{
 			const uint32_t num_bones = raw_clip_context.num_bones;
 			const bool has_scale = segment_context_has_scale(segment);
@@ -139,19 +139,19 @@ namespace acl
 			const auto calculate_error_squared_impl = std::mem_fn(has_scale ? &itransform_error_metric::calculate_error_squared : &itransform_error_metric::calculate_error_squared_no_scale);
 			const auto apply_additive_to_base_impl = std::mem_fn(has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
 
-			rtm::qvvf* raw_local_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
-			rtm::qvvf* base_local_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
-			rtm::qvvf* lossy_local_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
+			rtm::vqvf* raw_local_pose = allocate_type_array<rtm::vqvf>(allocator, num_bones);
+			rtm::vqvf* base_local_pose = allocate_type_array<rtm::vqvf>(allocator, num_bones);
+			rtm::vqvf* lossy_local_pose = allocate_type_array<rtm::vqvf>(allocator, num_bones);
 
-			rtm::qvvf* raw_object_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
-			rtm::qvvf* lossy_object_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
+			rtm::vqvf* raw_object_pose = allocate_type_array<rtm::vqvf>(allocator, num_bones);
+			rtm::vqvf* lossy_object_pose = allocate_type_array<rtm::vqvf>(allocator, num_bones);
 
 			uint32_t* parent_transform_indices = allocate_type_array<uint32_t>(allocator, num_bones);
 			uint32_t* self_transform_indices = allocate_type_array<uint32_t>(allocator, num_bones);
 
 			for (uint32_t transform_index = 0; transform_index < num_bones; ++transform_index)
 			{
-				const track_qvvf& track = track_list[transform_index];
+				const track_vqvf& track = track_list[transform_index];
 				const track_desc_transformf& desc = track.get_description();
 
 				parent_transform_indices[transform_index] = desc.parent_index;
@@ -413,7 +413,7 @@ namespace acl
 			return result;
 		}
 
-		inline void write_stats(iallocator& allocator, const track_array_qvvf& track_list, const clip_context& clip,
+		inline void write_stats(iallocator& allocator, const track_array_vqvf& track_list, const clip_context& clip,
 			const compressed_tracks& compressed_clip, const compression_settings& settings, const compression_segmenting_settings& segmenting_settings,
 			range_reduction_flags8 range_reduction, const clip_context& raw_clip,
 			const clip_context& additive_base_clip_context,

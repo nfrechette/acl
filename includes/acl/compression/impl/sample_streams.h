@@ -40,7 +40,7 @@
 #include "acl/compression/impl/transform_clip_adapters.h"
 
 #include <rtm/quatf.h>
-#include <rtm/qvvf.h>
+#include <rtm/vqvf.h>
 #include <rtm/vector4f.h>
 
 #include <cstdint>
@@ -646,7 +646,7 @@ namespace acl
 
 		// Samples all transforms at a point in time
 		// Transforms can be raw or quantized
-		inline void sample_streams(const transform_streams* bone_streams, uint32_t num_bones, float sample_time, rtm::qvvf* out_local_pose)
+		inline void sample_streams(const transform_streams* bone_streams, uint32_t num_bones, float sample_time, rtm::vqvf* out_local_pose)
 		{
 			const segment_context* segment_context = bone_streams->segment;
 			const bool has_scale = segment_context->clip->has_scale;
@@ -668,7 +668,7 @@ namespace acl
 				const rtm::vector4f translation = acl_impl::sample_translation(context, bone_stream);
 				const rtm::vector4f scale = has_scale ? acl_impl::sample_scale(context, bone_stream) : bone_stream.default_value.scale;
 
-				out_local_pose[bone_index] = rtm::qvv_set(rotation, translation, scale);
+				out_local_pose[bone_index] = rtm::vqv_set(rotation, translation, scale);
 			}
 		}
 	}

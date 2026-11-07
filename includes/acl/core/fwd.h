@@ -46,9 +46,18 @@ namespace acl
 	enum class range_reduction_flags8 : uint8_t;
 	enum class rotation_format8 : uint8_t;
 	enum class vector_format8 : uint8_t;
+	enum class scalar_format8 : uint8_t;
 	union track_format8;
 	enum class animation_track_type8 : uint8_t;
 	enum class rotation_variant8 : uint8_t;
+
+	enum class track_type8 : uint8_t;
+	enum class track_category8 : uint8_t;
+	enum class track_interpolator_t : uint8_t;
+	enum class sample_interpolator_t : uint8_t;
+
+	template<typename sample_type_t>
+	struct track_extended_sample_t;
 
 	enum class quality_tier;
 	enum class sample_looping_policy;

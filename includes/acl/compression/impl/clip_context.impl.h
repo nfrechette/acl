@@ -80,7 +80,7 @@ namespace acl
 			std::sort(sorted_transforms_parent_first, sorted_transforms_parent_first + num_transforms, sort_predicate);
 		}
 
-		inline bool initialize_clip_context(iallocator& allocator, const track_array_qvvf& track_list, const compression_settings& settings, additive_clip_format8 additive_format, clip_context& out_clip_context)
+		inline bool initialize_clip_context(iallocator& allocator, const track_array_vqvf& track_list, const compression_settings& settings, additive_clip_format8 additive_format, clip_context& out_clip_context)
 		{
 			const uint32_t num_transforms = track_list.get_num_tracks();
 			const uint32_t num_samples = track_list.get_num_samples_per_track();
@@ -119,7 +119,7 @@ namespace acl
 
 			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 			{
-				const track_qvvf& track = track_list[transform_index];
+				const track_vqvf& track = track_list[transform_index];
 				const track_desc_transformf& desc = track.get_description();
 
 				transform_streams& bone_stream = bone_streams[transform_index];
@@ -144,7 +144,7 @@ namespace acl
 
 				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 				{
-					const rtm::qvvf& transform = track[sample_index];
+					const rtm::vqvf& transform = track[sample_index];
 
 					// If we request raw data and we are already normalized, retain the original value
 					// otherwise we normalize for safety

@@ -103,7 +103,7 @@ namespace acl
 			return safe_static_cast<uint32_t>(output_buffer - output_buffer_start);
 		}
 
-		inline uint32_t write_parent_track_indices(const track_array_qvvf& tracks, const uint32_t* track_output_indices, uint32_t num_output_tracks, uint32_t* out_parent_track_indices)
+		inline uint32_t write_parent_track_indices(const track_array_vqvf& tracks, const uint32_t* track_output_indices, uint32_t num_output_tracks, uint32_t* out_parent_track_indices)
 		{
 			ACL_ASSERT(out_parent_track_indices == nullptr || out_parent_track_indices[0] == 0 || num_output_tracks == 0, "Buffer overrun detected");
 
@@ -127,7 +127,7 @@ namespace acl
 			for (uint32_t output_index = 0; output_index < num_output_tracks; ++output_index)
 			{
 				const uint32_t track_index = track_output_indices[output_index];
-				const track_qvvf& track = tracks[track_index];
+				const track_vqvf& track = tracks[track_index];
 				const track_desc_transformf& desc = track.get_description();
 				const uint32_t parent_track_index = desc.parent_index;
 
@@ -148,7 +148,7 @@ namespace acl
 			uint8_t* output_buffer = out_track_descriptions;
 			const uint8_t* output_buffer_start = output_buffer;
 
-			const bool is_scalar = tracks.get_track_type() != track_type8::qvvf;
+			const bool is_scalar = tracks.get_track_type() != track_type8::vqvf;
 
 			for (uint32_t output_index = 0; output_index < num_output_tracks; ++output_index)
 			{

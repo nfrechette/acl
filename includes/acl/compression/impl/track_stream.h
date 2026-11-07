@@ -37,7 +37,7 @@
 #include "acl/math/vector4_packing.h"
 
 #include <rtm/quatf.h>
-#include <rtm/qvvf.h>
+#include <rtm/vqvf.h>
 #include <rtm/vector4f.h>
 
 #include <cstdint>
@@ -417,7 +417,7 @@ namespace acl
 			transform_streams(transform_streams&&) = default;
 			transform_streams& operator=(transform_streams&&) = default;
 
-			rtm::qvvf default_value					= rtm::qvv_identity();
+			rtm::vqvf default_value					= rtm::vqv_identity();
 
 			// Sample 0 before we normalize over the segment.
 			// This is used when a sub-track is constant over the segment.

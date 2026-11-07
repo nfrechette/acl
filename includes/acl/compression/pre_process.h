@@ -52,7 +52,7 @@ namespace acl
 		// Ensures every rotation quaternion is normalized.
 		// A quaternion will be normalized only if it isn't already normalized to preserve
 		// its original value where possible.
-		// QVV transform tracks only.
+		// VQV transform tracks only.
 		// This is lossy.
 		normalize_rotations = 0x01,
 
@@ -61,7 +61,7 @@ namespace acl
 		// facilitate interpolation by avoiding wrapping around.
 		// Because both halves of the hyper-sphere represent equivalent rotations,
 		// this operation is considered lossless.
-		// QVV transform tracks only.
+		// VQV transform tracks only.
 		// This is lossless.
 		ensure_quat_w_positive = 0x02,
 
@@ -114,7 +114,7 @@ namespace acl
 		// The optional additive track list to use with transform tracks
 		// Lossy pre-processing only
 		// Transform tracks only
-		track_array_qvvf* additive_base = nullptr;
+		track_array_vqvf* additive_base = nullptr;
 		additive_clip_format8 additive_format = additive_clip_format8::none;
 	};
 

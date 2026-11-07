@@ -28,7 +28,7 @@
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/error.h"
 
-#include <rtm/qvvf.h>
+#include <rtm/vqvf.h>
 
 #include <cstdint>
 
@@ -39,7 +39,7 @@ namespace acl
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
 	// Note: It is safe for both pose buffers to alias since the data if sorted parent first
-	inline void local_to_object_space(const uint32_t* parent_indices, const rtm::qvvf* local_pose, uint32_t num_transforms, rtm::qvvf* out_object_pose)
+	inline void local_to_object_space(const uint32_t* parent_indices, const rtm::vqvf* local_pose, uint32_t num_transforms, rtm::vqvf* out_object_pose)
 	{
 		if (num_transforms == 0)
 			return;	// Nothing to do
@@ -51,12 +51,12 @@ namespace acl
 			const uint32_t parent_bone_index = parent_indices[bone_index];
 			ACL_ASSERT(parent_bone_index < num_transforms, "Invalid parent bone index: %u >= %u", parent_bone_index, num_transforms);
 
-			out_object_pose[bone_index] = rtm::qvv_normalize(rtm::qvv_mul(local_pose[bone_index], out_object_pose[parent_bone_index]));
+			out_object_pose[bone_index] = rtm::vqv_normalize(rtm::vqv_mul(local_pose[bone_index], out_object_pose[parent_bone_index]));
 		}
 	}
 
 	// Note: It is safe for both pose buffers to alias since the data if sorted parent first
-	inline void object_to_local_space(const uint32_t* parent_indices, const rtm::qvvf* object_pose, uint32_t num_transforms, rtm::qvvf* out_local_pose)
+	inline void object_to_local_space(const uint32_t* parent_indices, const rtm::vqvf* object_pose, uint32_t num_transforms, rtm::vqvf* out_local_pose)
 	{
 		if (num_transforms == 0)
 			return;	// Nothing to do
@@ -68,8 +68,8 @@ namespace acl
 			const uint32_t parent_bone_index = parent_indices[bone_index];
 			ACL_ASSERT(parent_bone_index < num_transforms, "Invalid parent bone index: %u >= %u", parent_bone_index, num_transforms);
 
-			const rtm::qvvf inv_parent_transform = rtm::qvv_inverse(object_pose[parent_bone_index]);
-			out_local_pose[bone_index] = rtm::qvv_normalize(rtm::qvv_mul(inv_parent_transform, object_pose[bone_index]));
+			const rtm::vqvf inv_parent_transform = rtm::vqv_inverse(object_pose[parent_bone_index]);
+			out_local_pose[bone_index] = rtm::vqv_normalize(rtm::vqv_mul(inv_parent_transform, object_pose[bone_index]));
 		}
 	}
 

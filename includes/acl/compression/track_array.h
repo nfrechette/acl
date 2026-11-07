@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/version.h"
+#include "acl/core/error.h"
 #include "acl/core/error_result.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/sample_looping_policy.h"
@@ -89,6 +90,10 @@ namespace acl
 		// looping policy is used.
 		// See `sample_looping_policy` for details.
 		uint32_t get_num_samples_per_track() const { return m_allocator != nullptr && m_num_tracks != 0 ? m_tracks->get_num_samples() : 0; }
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the track interpolator type for tracks in this array.
+		track_interpolator_t get_track_interpolator() const { return m_allocator != nullptr && m_num_tracks != 0 ? m_tracks->get_interpolator() : track_interpolator_t::linear; }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the track type for tracks in this array.
@@ -203,7 +208,10 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// A typed track array. See `track_array` for details.
 	//////////////////////////////////////////////////////////////////////////
-	template<track_type8 track_type_>
+	template<
+		track_type8 track_type_,
+		track_interpolator_t track_interpolator_ = track_interpolator_t::linear
+	>
 	class track_array_typed final : public track_array
 	{
 	public:
@@ -212,12 +220,16 @@ namespace acl
 		static constexpr track_type8 type = track_type_;
 
 		//////////////////////////////////////////////////////////////////////////
+		// The interpolation type.
+		static constexpr track_interpolator_t interpolator = track_interpolator_;
+
+		//////////////////////////////////////////////////////////////////////////
 		// The track category.
 		static constexpr track_category8 category = track_traits<track_type_>::category;
 
 		//////////////////////////////////////////////////////////////////////////
 		// The track member type.
-		using track_member_type = track_typed<track_type_>;
+		using track_member_type = track_typed<track_type_, track_interpolator_>;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Constructs an empty track array.
@@ -297,12 +309,21 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// Create aliases for the various typed track array types.
 
-	using track_array_float1f	= track_array_typed<track_type8::float1f>;
-	using track_array_float2f	= track_array_typed<track_type8::float2f>;
-	using track_array_float3f	= track_array_typed<track_type8::float3f>;
-	using track_array_float4f	= track_array_typed<track_type8::float4f>;
-	using track_array_vector4f	= track_array_typed<track_type8::vector4f>;
-	using track_array_qvvf		= track_array_typed<track_type8::qvvf>;
+	using track_array_float1f	= track_array_typed<track_type8::float1f, track_interpolator_t::linear>;
+	using track_array_float2f	= track_array_typed<track_type8::float2f, track_interpolator_t::linear>;
+	using track_array_float3f	= track_array_typed<track_type8::float3f, track_interpolator_t::linear>;
+	using track_array_float4f	= track_array_typed<track_type8::float4f, track_interpolator_t::linear>;
+	using track_array_vector4f	= track_array_typed<track_type8::vector4f, track_interpolator_t::linear>;
+	using track_array_vqvf		= track_array_typed<track_type8::vqvf, track_interpolator_t::linear>;
+
+	using track_array_float1f_ex	= track_array_typed<track_type8::float1f, track_interpolator_t::extended>;
+	using track_array_float2f_ex	= track_array_typed<track_type8::float2f, track_interpolator_t::extended>;
+	using track_array_float3f_ex	= track_array_typed<track_type8::float3f, track_interpolator_t::extended>;
+	using track_array_float4f_ex	= track_array_typed<track_type8::float4f, track_interpolator_t::extended>;
+	using track_array_vector4f_ex	= track_array_typed<track_type8::vector4f, track_interpolator_t::extended>;
+	using track_array_vqvf_ex		= track_array_typed<track_type8::vqvf, track_interpolator_t::extended>;
+
+	using track_array_qvvf ACL_DEPRECATED("Use 'track_array_vqvf' instead, to be removed in v2.3") = track_array_vqvf;
 
 	ACL_IMPL_VERSION_NAMESPACE_END
 }

@@ -114,6 +114,12 @@ namespace acl
 			bool has_additive_base = false;
 			bool needs_conversion = false;
 
+			// True when the error metric functions must use the variants with scale.
+			// It is true when the clip has scale, or when the transform layout of the error metric depends on the scale.
+			// For example, the matrix error metric uses a vqvf without scale and a matrix3x4f with scale.
+			// The validation error always measures with scale, and the layout must agree with the error function.
+			bool metric_has_scale = false;
+
 			rotation_format8 rotation_format;
 			vector_format8 translation_format;
 			vector_format8 scale_format;
@@ -122,9 +128,9 @@ namespace acl
 			const transform_streams* raw_bone_streams = nullptr;
 
 			// v2
-			rtm::qvvf* additive_base_local_transforms = nullptr;	// 1 per transform, per sample, in segment (only when additive)
-			rtm::qvvf* object_transforms_raw = nullptr;				// 1 per transform, per sample, in segment
-			rtm::qvvf* cached_transforms_lossy = nullptr;			// 1 per transform, per sample, in segment
+			rtm::vqvf* additive_base_local_transforms = nullptr;	// 1 per transform, per sample, in segment (only when additive)
+			rtm::vqvf* object_transforms_raw = nullptr;				// 1 per transform, per sample, in segment
+			rtm::vqvf* cached_transforms_lossy = nullptr;			// 1 per transform, per sample, in segment
 			uint32_t* critical_transform_indices = nullptr;			// 1 per transform
 
 			uint32_t* transform_chain_indices = nullptr;			// max_num_transform_chains * max_chain_length
@@ -137,12 +143,12 @@ namespace acl
 			// v1
 			rigid_shell_metadata_t* shell_metadata_per_transform = nullptr;	// 1 per transform
 
-			rtm::qvvf* additive_local_pose = nullptr;			// 1 per transform
-			rtm::qvvf* raw_local_pose = nullptr;				// 1 per transform
-			rtm::qvvf* lossy_local_pose = nullptr;				// 1 per transform
+			rtm::vqvf* additive_local_pose = nullptr;			// 1 per transform
+			rtm::vqvf* raw_local_pose = nullptr;				// 1 per transform
+			rtm::vqvf* lossy_local_pose = nullptr;				// 1 per transform
 
-			rtm::qvvf* lossy_transforms_start = nullptr;		// 1 per transform, for calculating the contributing error
-			rtm::qvvf* lossy_transforms_end = nullptr;			// 1 per transform, for calculating the contributing error
+			rtm::vqvf* lossy_transforms_start = nullptr;		// 1 per transform, for calculating the contributing error
+			rtm::vqvf* lossy_transforms_end = nullptr;			// 1 per transform, for calculating the contributing error
 
 			uint8_t* raw_local_transforms = nullptr;			// 1 per transform per sample in segment
 			uint8_t* base_local_transforms = nullptr;			// 1 per transform per sample in segment
@@ -195,8 +201,14 @@ namespace acl
 				local_query.bind(bit_rate_database);
 				object_query.bind(bit_rate_database);
 
-				needs_conversion = settings_.error_metric->needs_conversion(clip_.has_scale);
-				const size_t metric_transform_size_ = settings_.error_metric->get_transform_size(clip_.has_scale);
+				const itransform_error_metric* error_metric_ = settings_.error_metric;
+				const bool is_metric_layout_scale_dependent =
+					error_metric_->get_transform_size(false) != error_metric_->get_transform_size(true) ||
+					error_metric_->needs_conversion(false) != error_metric_->needs_conversion(true);
+				metric_has_scale = clip_.has_scale || is_metric_layout_scale_dependent;
+
+				needs_conversion = error_metric_->needs_conversion(metric_has_scale);
+				const size_t metric_transform_size_ = error_metric_->get_transform_size(metric_has_scale);
 				metric_transform_size = metric_transform_size_;
 
 				shell_metadata_per_transform = allocate_type_array<rigid_shell_metadata_t>(allocator, num_bones);
@@ -207,7 +219,7 @@ namespace acl
 			~quantization_context()
 			{
 				// v2
-				deallocate_type_array(allocator, additive_base_local_transforms, num_bones);
+				deallocate_type_array(allocator, additive_base_local_transforms, num_bones * segmenting_settings.max_num_samples);
 				deallocate_type_array(allocator, object_transforms_raw, num_bones * segmenting_settings.max_num_samples);
 				deallocate_type_array(allocator, cached_transforms_lossy, num_bones * segmenting_settings.max_num_samples);
 				deallocate_type_array(allocator, critical_transform_indices, num_bones);
@@ -247,9 +259,9 @@ namespace acl
 				if (raw_local_pose != nullptr)
 					return;	// Already initialized
 
-				additive_local_pose = clip.has_additive_base ? allocate_type_array<rtm::qvvf>(allocator, num_bones) : nullptr;
-				raw_local_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
-				lossy_local_pose = allocate_type_array<rtm::qvvf>(allocator, num_bones);
+				additive_local_pose = clip.has_additive_base ? allocate_type_array<rtm::vqvf>(allocator, num_bones) : nullptr;
+				raw_local_pose = allocate_type_array<rtm::vqvf>(allocator, num_bones);
+				lossy_local_pose = allocate_type_array<rtm::vqvf>(allocator, num_bones);
 				raw_local_transforms = allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size * num_bones * clip.segments->num_samples, 64);
 				base_local_transforms = clip.has_additive_base ? allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size * num_bones * clip.segments->num_samples, 64) : nullptr;
 				raw_object_transforms = allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size * num_bones * clip.segments->num_samples, 64);
@@ -271,9 +283,9 @@ namespace acl
 				if (object_transforms_raw != nullptr)
 					return;	// Already initialized
 
-				additive_base_local_transforms = has_additive_base ? allocate_type_array<rtm::qvvf>(allocator, num_bones * segmenting_settings.max_num_samples) : nullptr;
-				object_transforms_raw = allocate_type_array<rtm::qvvf>(allocator, num_bones * segmenting_settings.max_num_samples);
-				cached_transforms_lossy = allocate_type_array<rtm::qvvf>(allocator, num_bones * segmenting_settings.max_num_samples);
+				additive_base_local_transforms = has_additive_base ? allocate_type_array<rtm::vqvf>(allocator, num_bones * segmenting_settings.max_num_samples) : nullptr;
+				object_transforms_raw = allocate_type_array<rtm::vqvf>(allocator, num_bones * segmenting_settings.max_num_samples);
+				cached_transforms_lossy = allocate_type_array<rtm::vqvf>(allocator, num_bones * segmenting_settings.max_num_samples);
 
 				critical_transform_indices = allocate_type_array<uint32_t>(allocator, num_bones);
 			}
@@ -666,9 +678,9 @@ namespace acl
 			const rigid_shell_metadata_t& transform_shell = context.shell_metadata_per_transform[target_bone_index];
 			const rtm::scalarf error_threshold_sq = rtm::scalar_set(transform_shell.precision * transform_shell.precision);
 
-			const auto convert_transforms_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::convert_transforms : &itransform_error_metric::convert_transforms_no_scale);
-			const auto apply_additive_to_base_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
-			const auto calculate_error_squared_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::calculate_error_squared : &itransform_error_metric::calculate_error_squared_no_scale);
+			const auto convert_transforms_impl = std::mem_fn(context.metric_has_scale ? &itransform_error_metric::convert_transforms : &itransform_error_metric::convert_transforms_no_scale);
+			const auto apply_additive_to_base_impl = std::mem_fn(context.metric_has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
+			const auto calculate_error_squared_impl = std::mem_fn(context.metric_has_scale ? &itransform_error_metric::calculate_error_squared : &itransform_error_metric::calculate_error_squared_no_scale);
 
 			itransform_error_metric::convert_transforms_args convert_transforms_args_lossy;
 			convert_transforms_args_lossy.dirty_transform_indices = &target_bone_index;
@@ -719,7 +731,7 @@ namespace acl
 					base_transforms += sample_transform_size;
 
 					// TODO: Is this accurate if we have conversion? Our input is in the converted array for base/local
-					//       and we write to the local qvvf buffer? The calculate error below will read from the converted array
+					//       and we write to the local vqvf buffer? The calculate error below will read from the converted array
 					//       if we are converted.
 					apply_additive_to_base_impl(error_metric, apply_additive_to_base_args_lossy, context.lossy_local_pose);
 				}
@@ -730,7 +742,7 @@ namespace acl
 #if defined(RTM_COMPILER_MSVC) && defined(RTM_ARCH_X86) && RTM_COMPILER_MSVC == RTM_COMPILER_MSVC_2015
 				// VS2015 fails to generate the right x86 assembly, branch instead
 				(void)calculate_error_squared_impl;
-				const rtm::scalarf error_sq = context.has_scale ? error_metric->calculate_error_squared(calculate_error_args) : error_metric->calculate_error_squared_no_scale(calculate_error_args);
+				const rtm::scalarf error_sq = context.metric_has_scale ? error_metric->calculate_error_squared(calculate_error_args) : error_metric->calculate_error_squared_no_scale(calculate_error_args);
 #else
 				const rtm::scalarf error_sq = calculate_error_squared_impl(error_metric, calculate_error_args);
 #endif
@@ -772,10 +784,10 @@ namespace acl
 
 			const rtm::scalarf error_threshold_sq = rtm::scalar_mul(error_threshold, error_threshold);
 
-			const auto convert_transforms_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::convert_transforms : &itransform_error_metric::convert_transforms_no_scale);
-			const auto apply_additive_to_base_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
-			const auto local_to_object_space_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::local_to_object_space : &itransform_error_metric::local_to_object_space_no_scale);
-			const auto calculate_error_squared_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::calculate_error_squared : &itransform_error_metric::calculate_error_squared_no_scale);
+			const auto convert_transforms_impl = std::mem_fn(context.metric_has_scale ? &itransform_error_metric::convert_transforms : &itransform_error_metric::convert_transforms_no_scale);
+			const auto apply_additive_to_base_impl = std::mem_fn(context.metric_has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
+			const auto local_to_object_space_impl = std::mem_fn(context.metric_has_scale ? &itransform_error_metric::local_to_object_space : &itransform_error_metric::local_to_object_space_no_scale);
+			const auto calculate_error_squared_impl = std::mem_fn(context.metric_has_scale ? &itransform_error_metric::calculate_error_squared : &itransform_error_metric::calculate_error_squared_no_scale);
 
 			itransform_error_metric::convert_transforms_args convert_transforms_args_lossy;
 			convert_transforms_args_lossy.dirty_transform_indices = context.chain_bone_indices;
@@ -833,7 +845,7 @@ namespace acl
 					base_transforms += sample_transform_size;
 
 					// TODO: Is this accurate if we have conversion? Our input is in the converted array for base/local
-					//       and we write to the local qvvf buffer? The calculate error below will read from the converted array
+					//       and we write to the local vqvf buffer? The calculate error below will read from the converted array
 					//       if we are converted.
 					apply_additive_to_base_impl(error_metric, apply_additive_to_base_args_lossy, context.lossy_local_pose);
 				}
@@ -846,7 +858,7 @@ namespace acl
 #if defined(RTM_COMPILER_MSVC) && defined(RTM_ARCH_X86) && RTM_COMPILER_MSVC == RTM_COMPILER_MSVC_2015
 				// VS2015 fails to generate the right x86 assembly, branch instead
 				(void)calculate_error_squared_impl;
-				const rtm::scalarf error_sq = context.has_scale ? error_metric->calculate_error_squared(calculate_error_args) : error_metric->calculate_error_squared_no_scale(calculate_error_args);
+				const rtm::scalarf error_sq = context.metric_has_scale ? error_metric->calculate_error_squared(calculate_error_args) : error_metric->calculate_error_squared_no_scale(calculate_error_args);
 #else
 				const rtm::scalarf error_sq = calculate_error_squared_impl(error_metric, calculate_error_args);
 #endif
@@ -943,7 +955,7 @@ namespace acl
 					base_transforms += sample_transform_size;
 
 					// TODO: Is this accurate if we have conversion? Our input is in the converted array for base/local
-					//       and we write to the local qvvf buffer? The calculate error below will read from the converted array
+					//       and we write to the local vqvf buffer? The calculate error below will read from the converted array
 					//       if we are converted.
 					apply_additive_to_base_impl(error_metric, apply_additive_to_base_args_lossy, context.lossy_local_pose);
 				}
@@ -974,9 +986,9 @@ namespace acl
 		inline float calculate_max_error_at_bit_rate_object_cached(
 			quantization_context& context,
 			uint32_t transform_index_being_optimized, uint32_t transform_index_to_measure,
-			const rtm::qvvf* additive_base_local_transforms,
-			const rtm::qvvf* object_transforms_raw,
-			const rtm::qvvf* cached_transforms_lossy,
+			const rtm::vqvf* additive_base_local_transforms,
+			const rtm::vqvf* object_transforms_raw,
+			const rtm::vqvf* cached_transforms_lossy,
 			float max_allowed_error)
 		{
 			const itransform_error_metric* error_metric = context.error_metric;
@@ -1006,26 +1018,26 @@ namespace acl
 				// The sample time is calculated from the full clip duration to be consistent with decompression
 				const float sample_time = rtm::scalar_min(sample_indexf / sample_rate, clip_duration);
 
-				rtm::qvvf local_transform_lossy = context.bit_rate_database.sample(context.local_query, sample_time);
+				rtm::vqvf local_transform_lossy = context.bit_rate_database.sample(context.local_query, sample_time);
 
 				// Apply our additive onto our base
 				if (has_additive_base)
-					local_transform_lossy = rtm::qvv_normalize(acl::apply_additive_to_base(additive_format, additive_base_local_transforms[(sample_index * num_transforms) + transform_index_being_optimized], local_transform_lossy));
+					local_transform_lossy = rtm::vqv_normalize(acl::apply_additive_to_base(additive_format, additive_base_local_transforms[(sample_index * num_transforms) + transform_index_being_optimized], local_transform_lossy));
 
 				// Use our local transform being optimized and convert the transform to measure into object space
 				// result = measured_to_transform * transform_being_optimized * transform_to_root
-				rtm::qvvf parent_transform_to_root_lossy = rtm::qvv_identity();
+				rtm::vqvf parent_transform_to_root_lossy = rtm::vqv_identity();
 				if (parent_transform_index != k_invalid_track_index)
 					parent_transform_to_root_lossy = cached_transforms_lossy[(sample_index * num_transforms) + parent_transform_index];
 
-				const rtm::qvvf transform_to_root_lossy = rtm::qvv_normalize(rtm::qvv_mul_no_scale(local_transform_lossy, parent_transform_to_root_lossy));
+				const rtm::vqvf transform_to_root_lossy = rtm::vqv_normalize(rtm::vqv_mul_no_scale(local_transform_lossy, parent_transform_to_root_lossy));
 
-				rtm::qvvf measured_to_transform_lossy = rtm::qvv_identity();
+				rtm::vqvf measured_to_transform_lossy = rtm::vqv_identity();
 				if (transform_index_being_optimized != transform_index_to_measure)
 					measured_to_transform_lossy = cached_transforms_lossy[(sample_index * num_transforms) + transform_index_to_measure];
 
-				const rtm::qvvf measured_to_root_lossy = rtm::qvv_normalize(rtm::qvv_mul_no_scale(measured_to_transform_lossy, transform_to_root_lossy));
-				const rtm::qvvf& measured_to_root_raw = object_transforms_raw[(sample_index * num_transforms) + transform_index_to_measure];
+				const rtm::vqvf measured_to_root_lossy = rtm::vqv_normalize(rtm::vqv_mul_no_scale(measured_to_transform_lossy, transform_to_root_lossy));
+				const rtm::vqvf& measured_to_root_raw = object_transforms_raw[(sample_index * num_transforms) + transform_index_to_measure];
 
 				// Measure the error
 				calculate_error_args.transform0 = &measured_to_root_raw;
@@ -1049,9 +1061,9 @@ namespace acl
 			quantization_context& context,
 			uint32_t transform_index_being_optimized, uint32_t transform_index_to_measure,
 			const uint32_t* transform_chain_indices, uint32_t transform_chain_length,
-			const rtm::qvvf* additive_base_local_transforms,
-			const rtm::qvvf* object_transforms_raw,
-			const rtm::qvvf* cached_transforms_lossy,
+			const rtm::vqvf* additive_base_local_transforms,
+			const rtm::vqvf* object_transforms_raw,
+			const rtm::vqvf* cached_transforms_lossy,
 			float max_allowed_error)
 		{
 			const itransform_error_metric* error_metric = context.error_metric;
@@ -1081,33 +1093,33 @@ namespace acl
 				// The sample time is calculated from the full clip duration to be consistent with decompression
 				const float sample_time = rtm::scalar_min(sample_indexf / sample_rate, clip_duration);
 
-				rtm::qvvf local_transform_lossy = context.bit_rate_database.sample(context.local_query, sample_time);
+				rtm::vqvf local_transform_lossy = context.bit_rate_database.sample(context.local_query, sample_time);
 
 				// Apply our additive onto our base
 				if (has_additive_base)
-					local_transform_lossy = rtm::qvv_normalize(acl::apply_additive_to_base(additive_format, additive_base_local_transforms[(sample_index * num_transforms) + transform_index_being_optimized], local_transform_lossy));
+					local_transform_lossy = rtm::vqv_normalize(acl::apply_additive_to_base(additive_format, additive_base_local_transforms[(sample_index * num_transforms) + transform_index_being_optimized], local_transform_lossy));
 
 				// Use our local transform being optimized and convert the transform to measure into object space
 				// result = measured_to_transform * transform_being_optimized * transform_to_root
-				rtm::qvvf parent_transform_to_root_lossy = rtm::qvv_identity();
+				rtm::vqvf parent_transform_to_root_lossy = rtm::vqv_identity();
 				if (parent_transform_index != k_invalid_track_index)
 					parent_transform_to_root_lossy = cached_transforms_lossy[(sample_index * num_transforms) + parent_transform_index];
 
-				const rtm::qvvf transform_to_root_lossy = rtm::qvv_normalize(rtm::qvv_mul(local_transform_lossy, parent_transform_to_root_lossy));
+				const rtm::vqvf transform_to_root_lossy = rtm::vqv_normalize(rtm::vqv_mul(local_transform_lossy, parent_transform_to_root_lossy));
 
 				// When non-uniform 3D scale is present, our cached transforms after optimization contain the local space transform
 				// We cannot leverage associativity to speed up computation, do it manually using the transform chain
-				rtm::qvvf measured_to_root_lossy = transform_to_root_lossy;
+				rtm::vqvf measured_to_root_lossy = transform_to_root_lossy;
 
 				// Skip the transform currently being optimized
 				ACL_ASSERT(transform_chain_indices[transform_chain_length - 1] == transform_index_being_optimized, "Last chain transform index should be the transform being optimized");
 				for (const uint32_t chain_transform_index : make_reverse_iterator(transform_chain_indices, transform_chain_length - 1))
 				{
-					const rtm::qvvf& chain_transform = cached_transforms_lossy[(sample_index * num_transforms) + chain_transform_index];
-					measured_to_root_lossy = rtm::qvv_normalize(rtm::qvv_mul(chain_transform, measured_to_root_lossy));
+					const rtm::vqvf& chain_transform = cached_transforms_lossy[(sample_index * num_transforms) + chain_transform_index];
+					measured_to_root_lossy = rtm::vqv_normalize(rtm::vqv_mul(chain_transform, measured_to_root_lossy));
 				}
 
-				const rtm::qvvf& measured_to_root_raw = object_transforms_raw[(sample_index * num_transforms) + transform_index_to_measure];
+				const rtm::vqvf& measured_to_root_raw = object_transforms_raw[(sample_index * num_transforms) + transform_index_to_measure];
 
 				// Measure the error
 				calculate_error_args.transform0 = &measured_to_root_raw;
@@ -1130,8 +1142,8 @@ namespace acl
 		inline void update_cached_transforms(
 			quantization_context& context,
 			uint32_t transform_index_being_optimized, uint32_t transform_index_to_measure,
-			const rtm::qvvf* additive_base_local_transforms,
-			rtm::qvvf* cached_transforms_lossy)
+			const rtm::vqvf* additive_base_local_transforms,
+			rtm::vqvf* cached_transforms_lossy)
 		{
 			const bool has_additive_base = context.has_additive_base;
 			const float sample_rate = context.sample_rate;
@@ -1149,19 +1161,19 @@ namespace acl
 				// The sample time is calculated from the full clip duration to be consistent with decompression
 				const float sample_time = rtm::scalar_min(sample_indexf / sample_rate, clip_duration);
 
-				rtm::qvvf local_transform_lossy = context.bit_rate_database.sample(context.local_query, sample_time);
+				rtm::vqvf local_transform_lossy = context.bit_rate_database.sample(context.local_query, sample_time);
 
 				// Apply our additive onto our base
 				if (has_additive_base)
-					local_transform_lossy = rtm::qvv_normalize(acl::apply_additive_to_base(additive_format, additive_base_local_transforms[(sample_index * num_transforms) + transform_index_being_optimized], local_transform_lossy));
+					local_transform_lossy = rtm::vqv_normalize(acl::apply_additive_to_base(additive_format, additive_base_local_transforms[(sample_index * num_transforms) + transform_index_being_optimized], local_transform_lossy));
 
 				// Our cached transforms contains the combined measured_to_transform from some parent transform in the chain up to
 				// the transform we measure (e.g. leaf)
-				rtm::qvvf measured_to_transform_lossy = rtm::qvv_identity();
+				rtm::vqvf measured_to_transform_lossy = rtm::vqv_identity();
 				if (transform_index_being_optimized != transform_index_to_measure)
 					measured_to_transform_lossy = cached_transforms_lossy[(sample_index * num_transforms) + transform_index_to_measure];
 
-				measured_to_transform_lossy = rtm::qvv_normalize(rtm::qvv_mul_no_scale(measured_to_transform_lossy, local_transform_lossy));
+				measured_to_transform_lossy = rtm::vqv_normalize(rtm::vqv_mul_no_scale(measured_to_transform_lossy, local_transform_lossy));
 
 				cached_transforms_lossy[(sample_index * num_transforms) + transform_index_to_measure] = measured_to_transform_lossy;
 
@@ -1174,8 +1186,8 @@ namespace acl
 		inline void update_cached_transforms_with_scale(
 			quantization_context& context,
 			uint32_t transform_index_being_optimized,
-			const rtm::qvvf* additive_base_local_transforms,
-			rtm::qvvf* cached_transforms_lossy)
+			const rtm::vqvf* additive_base_local_transforms,
+			rtm::vqvf* cached_transforms_lossy)
 		{
 			const bool has_additive_base = context.has_additive_base;
 			const float sample_rate = context.sample_rate;
@@ -1193,11 +1205,11 @@ namespace acl
 				// The sample time is calculated from the full clip duration to be consistent with decompression
 				const float sample_time = rtm::scalar_min(sample_indexf / sample_rate, clip_duration);
 
-				rtm::qvvf local_transform_lossy = context.bit_rate_database.sample(context.local_query, sample_time);
+				rtm::vqvf local_transform_lossy = context.bit_rate_database.sample(context.local_query, sample_time);
 
 				// Apply our additive onto our base
 				if (has_additive_base)
-					local_transform_lossy = rtm::qvv_normalize(acl::apply_additive_to_base(additive_format, additive_base_local_transforms[(sample_index * num_transforms) + transform_index_being_optimized], local_transform_lossy));
+					local_transform_lossy = rtm::vqv_normalize(acl::apply_additive_to_base(additive_format, additive_base_local_transforms[(sample_index * num_transforms) + transform_index_being_optimized], local_transform_lossy));
 
 				// When non-uniform 3D scale is present, our cached transforms after optimization contain the local space transform
 				cached_transforms_lossy[(sample_index * num_transforms) + transform_index_being_optimized] = local_transform_lossy;
@@ -1460,7 +1472,7 @@ namespace acl
 			const float sample_rate = context.sample_rate;
 			const float clip_duration = context.clip_duration;
 			const uint32_t segment_sample_start_index = context.segment_sample_start_index;
-			const bool has_scale = context.has_scale;
+			const bool has_scale = context.metric_has_scale;
 			const bool needs_conversion = context.needs_conversion;
 			const bool has_additive_base = context.has_additive_base;
 
@@ -2129,7 +2141,7 @@ namespace acl
 		// unchanged since they are no longer needed once optimized: their final values are rolled up into the cached critical
 		// transforms as we progress through the optimization process.
 		//
-		// Non-uniform 3D scale throws a wrench in the mix because Realtime Math's qvv type is not associative under multiplication
+		// Non-uniform 3D scale throws a wrench in the mix because Realtime Math's vqv type is not associative under multiplication
 		// when non-uniform scale is present. As such, the multiplication order is important and we cannot leverage caching
 		// as effectively. We have to calculate the object space transforms by traversing the transform chains manually.
 		// This is quite a bit slower, but thankfully, non-uniform 3D scale is uncommon. When it is, we take a slower path
@@ -2176,9 +2188,9 @@ namespace acl
 			const bool translation_supports_constant_tracks = context.segment->are_translations_normalized;
 			const bool scale_supports_constant_tracks = context.segment->are_scales_normalized;
 
-			rtm::qvvf* additive_base_local_transforms = context.additive_base_local_transforms;
-			rtm::qvvf* object_transforms_raw = context.object_transforms_raw;
-			rtm::qvvf* cached_transforms_lossy = context.cached_transforms_lossy;
+			rtm::vqvf* additive_base_local_transforms = context.additive_base_local_transforms;
+			rtm::vqvf* object_transforms_raw = context.object_transforms_raw;
+			rtm::vqvf* cached_transforms_lossy = context.cached_transforms_lossy;
 			uint32_t* critical_transform_indices = context.critical_transform_indices;
 
 			if (!context.all_local_query.is_bound())
@@ -2194,8 +2206,8 @@ namespace acl
 				// The sample time is calculated from the full clip duration to be consistent with decompression
 				const float sample_time = rtm::scalar_min(float(context.segment->clip_sample_offset + sample_index) / sample_rate, clip_duration);
 
-				rtm::qvvf* object_pose_raw = object_transforms_raw + (sample_index * num_transforms);
-				rtm::qvvf* cached_pose_lossy = cached_transforms_lossy + (sample_index * num_transforms);
+				rtm::vqvf* object_pose_raw = object_transforms_raw + (sample_index * num_transforms);
+				rtm::vqvf* cached_pose_lossy = cached_transforms_lossy + (sample_index * num_transforms);
 
 				// In local space
 				sample_streams(context.raw_bone_streams, num_transforms, sample_time, object_pose_raw);
@@ -2203,7 +2215,7 @@ namespace acl
 
 				if (has_additive_base)
 				{
-					rtm::qvvf* additive_base_pose_transforms = additive_base_local_transforms + (sample_index * num_transforms);
+					rtm::vqvf* additive_base_pose_transforms = additive_base_local_transforms + (sample_index * num_transforms);
 
 					const float normalized_sample_time = context.additive_base_clip.num_samples > 1 ? (sample_time / clip_duration) : 0.0F;
 					const float additive_sample_time = context.additive_base_clip.num_samples > 1 ? (normalized_sample_time * context.additive_base_clip.duration) : 0.0F;
@@ -2212,8 +2224,8 @@ namespace acl
 					// Apply our additives onto our base
 					for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 					{
-						object_pose_raw[transform_index] = rtm::qvv_normalize(acl::apply_additive_to_base(additive_format, additive_base_pose_transforms[transform_index], object_pose_raw[transform_index]));
-						cached_pose_lossy[transform_index] = rtm::qvv_normalize(acl::apply_additive_to_base(additive_format, additive_base_pose_transforms[transform_index], cached_pose_lossy[transform_index]));
+						object_pose_raw[transform_index] = rtm::vqv_normalize(acl::apply_additive_to_base(additive_format, additive_base_pose_transforms[transform_index], object_pose_raw[transform_index]));
+						cached_pose_lossy[transform_index] = rtm::vqv_normalize(acl::apply_additive_to_base(additive_format, additive_base_pose_transforms[transform_index], cached_pose_lossy[transform_index]));
 					}
 				}
 
@@ -2226,8 +2238,8 @@ namespace acl
 					const uint32_t parent_transform_index = context.topology->transforms[transform_index].parent_index;
 					if (parent_transform_index != k_invalid_track_index)
 					{
-						object_pose_raw[transform_index] = rtm::qvv_normalize(rtm::qvv_mul(object_pose_raw[transform_index], object_pose_raw[parent_transform_index]));
-						cached_pose_lossy[transform_index] = rtm::qvv_normalize(rtm::qvv_mul(cached_pose_lossy[transform_index], cached_pose_lossy[parent_transform_index]));
+						object_pose_raw[transform_index] = rtm::vqv_normalize(rtm::vqv_mul(object_pose_raw[transform_index], object_pose_raw[parent_transform_index]));
+						cached_pose_lossy[transform_index] = rtm::vqv_normalize(rtm::vqv_mul(cached_pose_lossy[transform_index], cached_pose_lossy[parent_transform_index]));
 					}
 				}
 			}
@@ -2703,9 +2715,9 @@ namespace acl
 			const float clip_duration = context.clip_duration;
 			const uint32_t segment_sample_start_index = context.segment_sample_start_index;
 
-			const auto convert_transforms_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::convert_transforms : &itransform_error_metric::convert_transforms_no_scale);
-			const auto apply_additive_to_base_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
-			const auto local_to_object_space_impl = std::mem_fn(context.has_scale ? &itransform_error_metric::local_to_object_space : &itransform_error_metric::local_to_object_space_no_scale);
+			const auto convert_transforms_impl = std::mem_fn(context.metric_has_scale ? &itransform_error_metric::convert_transforms : &itransform_error_metric::convert_transforms_no_scale);
+			const auto apply_additive_to_base_impl = std::mem_fn(context.metric_has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
+			const auto local_to_object_space_impl = std::mem_fn(context.metric_has_scale ? &itransform_error_metric::local_to_object_space : &itransform_error_metric::local_to_object_space_no_scale);
 
 			itransform_error_metric::convert_transforms_args convert_transforms_args_lossy;
 			convert_transforms_args_lossy.dirty_transform_indices = context.self_transform_indices;
@@ -2739,12 +2751,12 @@ namespace acl
 				if (!context.all_local_query.is_bound())
 					context.all_local_query.bind(context.bit_rate_database);
 
-				context.lossy_transforms_start = allocate_type_array<rtm::qvvf>(context.allocator, num_bones);
-				context.lossy_transforms_end = allocate_type_array<rtm::qvvf>(context.allocator, num_bones);
+				context.lossy_transforms_start = allocate_type_array<rtm::vqvf>(context.allocator, num_bones);
+				context.lossy_transforms_end = allocate_type_array<rtm::vqvf>(context.allocator, num_bones);
 			}
 
-			rtm::qvvf* lossy_transforms_start = context.lossy_transforms_start;
-			rtm::qvvf* lossy_transforms_end = context.lossy_transforms_end;
+			rtm::vqvf* lossy_transforms_start = context.lossy_transforms_start;
+			rtm::vqvf* lossy_transforms_end = context.lossy_transforms_end;
 
 			context.all_local_query.build(context.bit_rate_per_bone);
 			// END OF ERROR METRIC STUFF
@@ -2802,7 +2814,7 @@ namespace acl
 							const rtm::vector4f interp_translation = rtm::vector_lerp(lossy_transforms_start[bone_index].translation, lossy_transforms_end[bone_index].translation, interpolation_alpha);
 							const rtm::vector4f interp_scale = rtm::vector_lerp(lossy_transforms_start[bone_index].scale, lossy_transforms_end[bone_index].scale, interpolation_alpha);
 
-							context.lossy_local_pose[bone_index] = rtm::qvv_set(interp_rotation, interp_translation, interp_scale);
+							context.lossy_local_pose[bone_index] = rtm::vqv_set(interp_rotation, interp_translation, interp_scale);
 						}
 
 						// Convert to our object space representation
@@ -3004,8 +3016,8 @@ namespace acl
 				writer["track_bit_rate_database_size"] = static_cast<uint32_t>(context.bit_rate_database.get_allocated_size());
 
 				size_t transform_cache_size = 0;
-				transform_cache_size += sizeof(rtm::qvvf) * context.num_bones;	// raw_local_pose
-				transform_cache_size += sizeof(rtm::qvvf) * context.num_bones;	// lossy_local_pose
+				transform_cache_size += sizeof(rtm::vqvf) * context.num_bones;	// raw_local_pose
+				transform_cache_size += sizeof(rtm::vqvf) * context.num_bones;	// lossy_local_pose
 				transform_cache_size += context.metric_transform_size * context.num_bones;	// lossy_object_pose
 				transform_cache_size += context.metric_transform_size * context.num_bones * context.clip.segments->num_samples;	// raw_local_transforms
 				transform_cache_size += context.metric_transform_size * context.num_bones * context.clip.segments->num_samples;	// raw_object_transforms
@@ -3015,7 +3027,7 @@ namespace acl
 
 				if (context.has_additive_base)
 				{
-					transform_cache_size += sizeof(rtm::qvvf) * context.num_bones;	// additive_local_pose
+					transform_cache_size += sizeof(rtm::vqvf) * context.num_bones;	// additive_local_pose
 					transform_cache_size += context.metric_transform_size * context.num_bones * context.clip.segments->num_samples;	// base_local_transforms
 					transform_cache_size += context.metric_transform_size * context.num_bones * context.clip.segments->num_samples;	// base_object_transforms
 				}

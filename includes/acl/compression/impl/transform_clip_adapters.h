@@ -174,7 +174,7 @@ namespace acl
 		struct transform_track_array_adapter_t final : transform_clip_adapter_t
 		{
 			// Set in constructor
-			const track_array_qvvf* track_list = nullptr;
+			const track_array_vqvf* track_list = nullptr;
 			additive_clip_format8 additive_format = additive_clip_format8::none;
 
 			// Set manually when needed
@@ -182,12 +182,12 @@ namespace acl
 			const rigid_shell_metadata_t* rigid_shell_metadata = nullptr;
 			const clip_topology_t* topology = nullptr;
 
-			explicit transform_track_array_adapter_t(const track_array_qvvf& track_list_)
+			explicit transform_track_array_adapter_t(const track_array_vqvf& track_list_)
 				: track_list(&track_list_)
 			{
 			}
 
-			transform_track_array_adapter_t(const track_array_qvvf* track_list_, additive_clip_format8 additive_format_)
+			transform_track_array_adapter_t(const track_array_vqvf* track_list_, additive_clip_format8 additive_format_)
 				: track_list(track_list_)
 				, additive_format(additive_format_)
 			{

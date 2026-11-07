@@ -5,7 +5,16 @@ on:
     branches:
       - '**'
     paths-ignore:
+      - docs/**
       - '**/*.md'
+
+permissions:
+  contents: read
+
+# Cancel the previous run of a pull request when it receives new commits
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   # We use the presence of the sonar token to detect if the PR comes from a fork
@@ -20,19 +29,22 @@ jobs:
           if [ ! -z "${{ secrets.SONAR_TOKEN }}" ]; then
             echo "ok=true" >> $GITHUB_OUTPUT
           fi
-  vs2022:
+  vs2026:
     needs:
       - condition-check
-    runs-on: windows-2022
+    runs-on: windows-2025
+    permissions:
+      contents: read
+      security-events: write    # Upload the SARIF file
     steps:
       - name: Git checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: 'recursive'
       - name: Generate solution (release-x64)
-        run: python3 make.py -ci -compiler vs2022 -config Release -cpu x64
+        run: python3 make.py -ci -compiler vs2026 -config Release -cpu x64
       - name: Run MSVC Code Analysis
-        uses: microsoft/msvc-code-analysis-action@v0.1.1
+        uses: microsoft/msvc-code-analysis-action@24c285ab36952c9e9182f4b78dfafbac38a7e5ee # v0.1.1
         id: run-analysis
         with:
           cmakeBuildDirectory: ${{ github.workspace }}/build
@@ -42,11 +54,11 @@ jobs:
       - name: Upload SARIF to GitHub
         # Can only upload SARIF if we don't come from a fork
         if: ${{ needs.condition-check.outputs.ok == 'true' }}
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: ${{ steps.run-analysis.outputs.sarif }}
       - name: Upload SARIF as an Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sarif-file
           path: ${{ steps.run-analysis.outputs.sarif }}

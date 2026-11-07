@@ -5,5 +5,6 @@ algorithm_name = "uniformly_sampled"
 rotation_format = "quatf_full"
 translation_format = "vector3f_full"
 scale_format = "vector3f_full"
+scalar_format = "scalarf_full"
 
 regression_error_threshold = 0.001

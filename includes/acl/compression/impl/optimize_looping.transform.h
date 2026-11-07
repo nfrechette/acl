@@ -80,14 +80,14 @@ namespace acl
 
 			uint32_t* dirty_transform_indices = allocate_type_array<uint32_t>(allocator, num_transforms);
 			uint32_t* parent_transform_indices = allocate_type_array<uint32_t>(allocator, num_transforms);
-			rtm::qvvf* clip_transforms = allocate_type_array<rtm::qvvf>(allocator, num_transforms * 2);
-			rtm::qvvf* base_transforms = allocate_type_array<rtm::qvvf>(allocator, num_transforms * 2);
+			rtm::vqvf* clip_transforms = allocate_type_array<rtm::vqvf>(allocator, num_transforms * 2);
+			rtm::vqvf* base_transforms = allocate_type_array<rtm::vqvf>(allocator, num_transforms * 2);
 
-			rtm::qvvf* clip_transforms_first = clip_transforms;
-			rtm::qvvf* clip_transforms_last = clip_transforms + num_transforms;
+			rtm::vqvf* clip_transforms_first = clip_transforms;
+			rtm::vqvf* clip_transforms_last = clip_transforms + num_transforms;
 
-			rtm::qvvf* base_transforms_first = base_transforms;
-			rtm::qvvf* base_transforms_last = base_transforms + num_transforms;
+			rtm::vqvf* base_transforms_first = base_transforms;
+			rtm::vqvf* base_transforms_last = base_transforms + num_transforms;
 
 			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 			{
@@ -106,8 +106,8 @@ namespace acl
 				const rtm::vector4f last_translation = raw_clip.get_transform_translation(transform_index, last_sample_index);
 				const rtm::vector4f last_scale = raw_clip.get_transform_scale(transform_index, last_sample_index);
 
-				clip_transforms_first[transform_index] = rtm::qvv_set(first_rotation, first_translation, first_scale);
-				clip_transforms_last[transform_index] = rtm::qvv_set(last_rotation, last_translation, last_scale);
+				clip_transforms_first[transform_index] = rtm::vqv_set(first_rotation, first_translation, first_scale);
+				clip_transforms_last[transform_index] = rtm::vqv_set(last_rotation, last_translation, last_scale);
 
 				if (has_additive_base)
 				{
@@ -119,8 +119,8 @@ namespace acl
 					const rtm::vector4f base_last_translation = additive_base_clip.get_transform_translation(transform_index, base_last_sample_index);
 					const rtm::vector4f base_last_scale = additive_base_clip.get_transform_scale(transform_index, base_last_sample_index);
 
-					base_transforms_first[transform_index] = rtm::qvv_set(base_first_rotation, base_first_translation, base_first_scale);
-					base_transforms_last[transform_index] = rtm::qvv_set(base_last_rotation, base_last_translation, base_last_scale);
+					base_transforms_first[transform_index] = rtm::vqv_set(base_first_rotation, base_first_translation, base_first_scale);
+					base_transforms_last[transform_index] = rtm::vqv_set(base_last_rotation, base_last_translation, base_last_scale);
 				}
 			}
 

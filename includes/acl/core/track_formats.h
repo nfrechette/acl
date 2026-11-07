@@ -70,6 +70,14 @@ namespace acl
 		vector3f_variable			= 1,	// Quantized vector3f, [x,y,z] stored with [N,N,N] bits (same number of bits per component)
 	};
 
+	// The format of the samples of scalar tracks.
+	// The compressed data does not store this value, the bit rate of each track tells how its samples are stored.
+	enum class scalar_format8 : uint8_t
+	{
+		scalarf_full				= 0,	// Full precision scalar track, each component stored with float32
+		scalarf_variable			= 1,	// Quantized scalar track, each component stored with N bits (same number of bits per component), N depends on the track precision
+	};
+
 	union track_format8
 	{
 		rotation_format8 rotation;
@@ -104,6 +112,10 @@ namespace acl
 	constexpr const char* get_vector_format_name(vector_format8 format);
 
 	bool get_vector_format(const char* format, vector_format8& out_format);
+
+	constexpr const char* get_scalar_format_name(scalar_format8 format);
+
+	bool get_scalar_format(const char* format, scalar_format8& out_format);
 
 	constexpr rotation_variant8 get_rotation_variant(rotation_format8 rotation_format);
 

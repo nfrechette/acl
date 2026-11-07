@@ -73,7 +73,7 @@ namespace acl
 
 	namespace acl_impl
 	{
-		inline bool has_trivial_default_values(const track_array_qvvf& track_list, additive_clip_format8 additive_format, const clip_context& lossy_clip_context)
+		inline bool has_trivial_default_values(const track_array_vqvf& track_list, additive_clip_format8 additive_format, const clip_context& lossy_clip_context)
 		{
 			// Additive clips and regular clips can have zero/one scale and be trivial
 			bool all_scales_zero = true;
@@ -82,7 +82,7 @@ namespace acl
 			const rtm::vector4f zero = rtm::vector_zero();
 			const rtm::vector4f one = rtm::vector_set(1.0F);
 
-			for (const track_qvvf& track : track_list)
+			for (const track_vqvf& track : track_list)
 			{
 				const track_desc_transformf& desc = track.get_description();
 
@@ -136,8 +136,8 @@ namespace acl
 				return compression_level8::medium;
 		}
 
-		inline error_result compress_transform_track_list(iallocator& allocator, const track_array_qvvf& track_list, compression_settings settings,
-			const track_array_qvvf* additive_base_track_list, additive_clip_format8 additive_format,
+		inline error_result compress_transform_track_list(iallocator& allocator, const track_array_vqvf& track_list, compression_settings settings,
+			const track_array_vqvf* additive_base_track_list, additive_clip_format8 additive_format,
 			compressed_tracks*& out_compressed_tracks, output_stats& out_stats)
 		{
 			error_result result = settings.is_valid();

@@ -117,24 +117,24 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns whether or not this clip is split into a compressed database instance.
-		// Only supported with qvv transform tracks.
+		// Only supported with vqv transform tracks.
 		bool has_database() const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns whether or not every sub-track's default value is trivial (aka the identity).
 		// Non-trivial default values indicate that extra data beyond the clip will be needed at decompression (e.g. bind pose)
-		// Only supported with qvv transform tracks.
+		// Only supported with vqv transform tracks.
 		bool has_trivial_default_values() const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns whether or not this clip has had keyframes stripped.
-		// Only supported with qvv transform tracks.
+		// Only supported with vqv transform tracks.
 		bool has_stripped_keyframes() const;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the default scale value used during compression.
 		// Depending on the additive type, this value will either be 0 or 1.
-		// Only supported with qvv transform tracks.
+		// Only supported with vqv transform tracks.
 		int32_t get_default_scale() const;
 
 		//////////////////////////////////////////////////////////////////////////
@@ -151,7 +151,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the parent track index for the specified track index if metadata is present, nullptr otherwise.
-		// Only supported with qvv transform tracks.
+		// Only supported with vqv transform tracks.
 		uint32_t get_parent_track_index(uint32_t track_index) const;
 
 		//////////////////////////////////////////////////////////////////////////

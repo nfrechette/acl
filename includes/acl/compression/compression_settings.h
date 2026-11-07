@@ -221,6 +221,14 @@ namespace acl
 		vector_format8 scale_format = vector_format8::vector3f_full;
 
 		//////////////////////////////////////////////////////////////////////////
+		// The format of the scalar track samples. See functions get_scalar_format(..)
+		// With 'scalarf_full', each animated track keeps its samples with full precision.
+		// With 'scalarf_variable', each animated track uses the lowest bit rate that keeps its precision.
+		// Defaults to raw: 'scalarf_full'
+		// Scalar tracks only.
+		scalar_format8 scalar_format = scalar_format8::scalarf_full;
+
+		//////////////////////////////////////////////////////////////////////////
 		// The error metric to use.
 		// Defaults to 'null', this value must be set manually!
 		// Transform tracks only.

@@ -61,6 +61,8 @@ raw_track_list[0] = std::move(raw_track0);
 
 Once your raw track list has been populated with data, it is ready for [compression](compressing_raw_tracks.md). The data contained within the `track_array` will be read-only.
 
+Each sample of a scalar track can also select how it interpolates to the next sample, for example to make a step. See [extended samples](extended_samples.md) for details.
+
 You can override the looping policy by calling `raw_track_list.set_looping_policy(policy);`. This is only necessary if you perform your own loop optimization before compressing with ACL. See [how to handle looping playback](handling_looping_playback.md) for details.
 
 ## Additive animation clips
@@ -73,7 +75,7 @@ Note that if your additive format does not use a scale of 1.0 as its default val
 
 ## Re-ordering or stripping bones
 
-Sometimes it is desirable to re-order the bones being outputted or strip them altogether. This could be to facilitate LOD support or various forms of skeleton changes without needing to re-import the clips. This is easily achieved by setting the desired `output_index` on each `track_desc_transformf` contained in a `track_qvvf`. The default value is the track index. You can use `k_invalid_track_index` to strip the track from the final compressed output.
+Sometimes it is desirable to re-order the bones being outputted or strip them altogether. This could be to facilitate LOD support or various forms of skeleton changes without needing to re-import the clips. This is easily achieved by setting the desired `output_index` on each `track_desc_transformf` contained in a `track_vqvf`. The default value is the track index. You can use `k_invalid_track_index` to strip the track from the final compressed output.
 
 *Note that each `output_index` needs to be unique and there can be no gaps. If **20** bones are outputted, the indices must run from **[0 .. 20)**.*
 

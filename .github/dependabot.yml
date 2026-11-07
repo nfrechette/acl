@@ -1,0 +1,15 @@
+version: 2
+
+updates:
+  # Keep the GitHub Actions in the workflows up to date
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore(ci)
+    groups:
+      # Open one pull request for all the action updates
+      github-actions:
+        patterns:
+          - '*'

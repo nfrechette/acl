@@ -51,6 +51,7 @@ namespace acl
 			InvalidAdditiveClipFormat,
 			PositiveValueExpected,
 			InvalidTrackType,
+			InvalidTrackInterpolator,
 		};
 
 		clip_reader_error() noexcept = default;
@@ -82,6 +83,8 @@ namespace acl
 				return "A positive value is expected here";
 			case InvalidTrackType:
 				return "Invalid raw track type";
+			case InvalidTrackInterpolator:
+				return "Invalid raw track interpolator";
 			default:
 				return sjson::ParserError::get_description();
 			}

@@ -121,6 +121,7 @@ namespace acl
 		hash_value = hash_combine(hash_value, hash32(rotation_format));
 		hash_value = hash_combine(hash_value, hash32(translation_format));
 		hash_value = hash_combine(hash_value, hash32(scale_format));
+		hash_value = hash_combine(hash_value, hash32(scalar_format));
 
 		if (error_metric != nullptr)
 			hash_value = hash_combine(hash_value, error_metric->get_hash());
@@ -164,6 +165,7 @@ namespace acl
 		settings.rotation_format = rotation_format8::quatf_drop_w_variable;
 		settings.translation_format = vector_format8::vector3f_variable;
 		settings.scale_format = vector_format8::vector3f_variable;
+		settings.scalar_format = scalar_format8::scalarf_variable;
 		settings.optimize_loops = true;
 		settings.keyframe_stripping.strip_trivial = true;
 		return settings;

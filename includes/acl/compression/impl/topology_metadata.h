@@ -182,7 +182,7 @@ namespace acl
 			~clip_topology_t();
 		};
 
-		void build_clip_topology(iallocator& allocator, const track_array_qvvf& track_list, clip_topology_t& out_topology);
+		void build_clip_topology(iallocator& allocator, const track_array_vqvf& track_list, clip_topology_t& out_topology);
 	}
 
 	ACL_IMPL_VERSION_NAMESPACE_END

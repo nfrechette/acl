@@ -28,6 +28,7 @@
 
 #include "acl/version.h"
 #include "acl/core/error.h"
+#include "acl/core/sample_interpolator.h"
 #include "acl/core/sample_looping_policy.h"
 #include "acl/core/sample_rounding_policy.h"
 #include "acl/core/time_utils.h"
@@ -275,6 +276,25 @@ namespace acl
 		case sample_rounding_policy::nearest:
 			return rtm::scalar_floor(interpolation_alpha + 0.5F);
 		}
+	}
+
+	namespace acl_impl
+	{
+		// Modify an interpolation alpha value given the interpolator of the first sample.
+		// A constant sample keeps its value until the next sample. The next sample is used
+		// only when the alpha is 1.0 (e.g. with the ceil or nearest rounding policy).
+		inline float apply_sample_interpolator(float interpolation_alpha, sample_interpolator_t interpolator)
+		{
+			return interpolator == sample_interpolator_t::constant ? rtm::scalar_floor(interpolation_alpha) : interpolation_alpha;
+		}
+
+#if defined(RTM_SSE2_INTRINSICS)
+		// Without SSE2, 'rtm::scalarf' is a 'float' and the function above is used
+		inline rtm::scalarf RTM_SIMD_CALL apply_sample_interpolator(rtm::scalarf_arg0 interpolation_alpha, sample_interpolator_t interpolator)
+		{
+			return interpolator == sample_interpolator_t::constant ? rtm::scalar_floor(interpolation_alpha) : interpolation_alpha;
+		}
+#endif
 	}
 
 	ACL_IMPL_VERSION_NAMESPACE_END

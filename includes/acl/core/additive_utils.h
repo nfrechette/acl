@@ -28,7 +28,7 @@
 #include "acl/core/error.h"
 #include "acl/core/impl/compiler_utils.h"
 
-#include <rtm/qvvf.h>
+#include <rtm/vqvf.h>
 
 #include <cstdint>
 
@@ -126,72 +126,72 @@ namespace acl
 		return false;
 	}
 
-	inline rtm::qvvf RTM_SIMD_CALL transform_add0(rtm::qvvf_arg0 base, rtm::qvvf_arg1 additive)
+	inline rtm::vqvf RTM_SIMD_CALL transform_add0(rtm::vqvf_arg0 base, rtm::vqvf_arg1 additive)
 	{
 		const rtm::quatf rotation = rtm::quat_mul(additive.rotation, base.rotation);
 		const rtm::vector4f translation = rtm::vector_add(additive.translation, base.translation);
 		const rtm::vector4f scale = rtm::vector_mul(additive.scale, base.scale);
-		return rtm::qvv_set(rotation, translation, scale);
+		return rtm::vqv_set(rotation, translation, scale);
 	}
 
-	inline rtm::qvvf RTM_SIMD_CALL transform_add1(rtm::qvvf_arg0 base, rtm::qvvf_arg1 additive)
+	inline rtm::vqvf RTM_SIMD_CALL transform_add1(rtm::vqvf_arg0 base, rtm::vqvf_arg1 additive)
 	{
 		const rtm::quatf rotation = rtm::quat_mul(additive.rotation, base.rotation);
 		const rtm::vector4f translation = rtm::vector_add(additive.translation, base.translation);
 		const rtm::vector4f scale = rtm::vector_mul(rtm::vector_add(rtm::vector_set(1.0F), additive.scale), base.scale);
-		return rtm::qvv_set(rotation, translation, scale);
+		return rtm::vqv_set(rotation, translation, scale);
 	}
 
-	inline rtm::qvvf RTM_SIMD_CALL transform_add_no_scale(rtm::qvvf_arg0 base, rtm::qvvf_arg1 additive)
+	inline rtm::vqvf RTM_SIMD_CALL transform_add_no_scale(rtm::vqvf_arg0 base, rtm::vqvf_arg1 additive)
 	{
 		const rtm::quatf rotation = rtm::quat_mul(additive.rotation, base.rotation);
 		const rtm::vector4f translation = rtm::vector_add(additive.translation, base.translation);
-		return rtm::qvv_set(rotation, translation, rtm::vector_set(1.0F));
+		return rtm::vqv_set(rotation, translation, rtm::vector_set(1.0F));
 	}
 
-	inline rtm::qvvf RTM_SIMD_CALL apply_additive_to_base(additive_clip_format8 additive_format, rtm::qvvf_arg0 base, rtm::qvvf_arg1 additive)
+	inline rtm::vqvf RTM_SIMD_CALL apply_additive_to_base(additive_clip_format8 additive_format, rtm::vqvf_arg0 base, rtm::vqvf_arg1 additive)
 	{
 		switch (additive_format)
 		{
 		default:
 		case additive_clip_format8::none:			return additive;
-		case additive_clip_format8::relative:		return rtm::qvv_mul(additive, base);
+		case additive_clip_format8::relative:		return rtm::vqv_mul(additive, base);
 		case additive_clip_format8::additive0:		return transform_add0(base, additive);
 		case additive_clip_format8::additive1:		return transform_add1(base, additive);
 		}
 	}
 
-	inline rtm::qvvf RTM_SIMD_CALL apply_additive_to_base_no_scale(additive_clip_format8 additive_format, rtm::qvvf_arg0 base, rtm::qvvf_arg1 additive)
+	inline rtm::vqvf RTM_SIMD_CALL apply_additive_to_base_no_scale(additive_clip_format8 additive_format, rtm::vqvf_arg0 base, rtm::vqvf_arg1 additive)
 	{
 		switch (additive_format)
 		{
 		default:
 		case additive_clip_format8::none:			return additive;
-		case additive_clip_format8::relative:		return rtm::qvv_mul_no_scale(additive, base);
+		case additive_clip_format8::relative:		return rtm::vqv_mul_no_scale(additive, base);
 		case additive_clip_format8::additive0:		return transform_add_no_scale(base, additive);
 		case additive_clip_format8::additive1:		return transform_add_no_scale(base, additive);
 		}
 	}
 
-	inline rtm::qvvf RTM_SIMD_CALL convert_to_relative(rtm::qvvf_arg0 base, rtm::qvvf_arg1 transform)
+	inline rtm::vqvf RTM_SIMD_CALL convert_to_relative(rtm::vqvf_arg0 base, rtm::vqvf_arg1 transform)
 	{
-		return rtm::qvv_mul(transform, rtm::qvv_inverse(base));
+		return rtm::vqv_mul(transform, rtm::vqv_inverse(base));
 	}
 
-	inline rtm::qvvf RTM_SIMD_CALL convert_to_additive0(rtm::qvvf_arg0 base, rtm::qvvf_arg1 transform)
+	inline rtm::vqvf RTM_SIMD_CALL convert_to_additive0(rtm::vqvf_arg0 base, rtm::vqvf_arg1 transform)
 	{
 		const rtm::quatf rotation = rtm::quat_mul(transform.rotation, rtm::quat_conjugate(base.rotation));
 		const rtm::vector4f translation = rtm::vector_sub(transform.translation, base.translation);
 		const rtm::vector4f scale = rtm::vector_div(transform.scale, base.scale);
-		return rtm::qvv_set(rotation, translation, scale);
+		return rtm::vqv_set(rotation, translation, scale);
 	}
 
-	inline rtm::qvvf RTM_SIMD_CALL convert_to_additive1(rtm::qvvf_arg0 base, rtm::qvvf_arg1 transform)
+	inline rtm::vqvf RTM_SIMD_CALL convert_to_additive1(rtm::vqvf_arg0 base, rtm::vqvf_arg1 transform)
 	{
 		const rtm::quatf rotation = rtm::quat_mul(transform.rotation, rtm::quat_conjugate(base.rotation));
 		const rtm::vector4f translation = rtm::vector_sub(transform.translation, base.translation);
 		const rtm::vector4f scale = rtm::vector_sub(rtm::vector_mul(transform.scale, rtm::vector_reciprocal(base.scale)), rtm::vector_set(1.0F));
-		return rtm::qvv_set(rotation, translation, scale);
+		return rtm::vqv_set(rotation, translation, scale);
 	}
 
 	ACL_IMPL_VERSION_NAMESPACE_END

@@ -30,7 +30,7 @@
 #include "acl/core/error_result.h"
 #include "acl/core/track_types.h"
 
-#include <rtm/qvvf.h>
+#include <rtm/vqvf.h>
 #include <rtm/scalarf.h>
 
 #include <cstdint>
@@ -57,7 +57,7 @@ namespace acl
 		if (shell_distance < 0.0F || !rtm::scalar_is_finite(shell_distance))
 			return error_result("Invalid shell_distance");
 
-		if (!rtm::qvv_is_finite(default_value))
+		if (!rtm::vqv_is_finite(default_value))
 			return error_result("Invalid default_value must be finite");
 
 		if (!rtm::quat_is_normalized(default_value.rotation))

@@ -1,5 +1,14 @@
 # Significant changes per release
 
+## Unreleased
+
+*  Add extended samples to scalar tracks, each sample can use a constant or a linear interpolation, see [extended samples](docs/extended_samples.md)
+*  Fix scalar tracks with more than one component that always used the raw bit rate
+*  Add the `scalar_format` compression setting, it defaults to full precision like the transform formats
+*  Default `compression_settings` now keep scalar tracks with full precision, use `get_default_compression_settings()` for variable bit rates
+*  Fix `pre_process_track_list` with extended scalar samples, it now changes only the sample values
+*  Compression ignores the sample interpolators that have no effect when it selects the interpolation mode of a track
+
 ## 2.1.0
 
 *  Add support for bind pose stripping

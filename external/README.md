@@ -4,7 +4,7 @@
 
 ### Realtime Math
 
-[Realtime Math v2.x-develop](https://github.com/nfrechette/rtm) (MIT License) is used for its optimized math.
+[Realtime Math v2.4.0](https://github.com/nfrechette/rtm/releases/tag/v2.4.0) (MIT License) is used for its optimized math.
 
 ## Development dependencies
 
@@ -14,7 +14,7 @@
 
 ### Google Benchmark
 
-[Google Benchmark v1.6.1](https://github.com/google/benchmark/releases/tag/v1.6.1) (Apache License 2.0) is used to benchmark various functions. You will only need it if you run the benchmarks and it is included as-is without modifications.
+[Google Benchmark v1.9.5](https://github.com/google/benchmark/releases/tag/v1.9.5) (Apache License 2.0) is used to benchmark various functions. You will only need it if you run the benchmarks and it is included as-is without modifications.
 
 ### sjson-cpp
 

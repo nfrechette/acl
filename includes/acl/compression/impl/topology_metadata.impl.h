@@ -92,7 +92,7 @@ namespace acl
 #endif
 		}
 
-		inline void build_clip_topology(iallocator& allocator, const track_array_qvvf& track_list, clip_topology_t& out_topology)
+		inline void build_clip_topology(iallocator& allocator, const track_array_vqvf& track_list, clip_topology_t& out_topology)
 		{
 			ACL_ASSERT(out_topology.allocator == nullptr, "Topology has already been built");
 

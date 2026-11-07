@@ -117,6 +117,34 @@ namespace acl
 		return false;
 	}
 
+	constexpr const char* get_scalar_format_name(scalar_format8 format)
+	{
+		return format == scalar_format8::scalarf_full ? "scalarf_full" : "scalarf_variable";
+	}
+
+	inline bool get_scalar_format(const char* format, scalar_format8& out_format)
+	{
+		ACL_ASSERT(format != nullptr, "Scalar format name cannot be null");
+		if (format == nullptr)
+			return false;
+
+		const char* scalarf_full_format = "scalarf_full";
+		if (std::strncmp(format, scalarf_full_format, std::strlen(scalarf_full_format)) == 0)
+		{
+			out_format = scalar_format8::scalarf_full;
+			return true;
+		}
+
+		const char* scalarf_variable_format = "scalarf_variable";
+		if (std::strncmp(format, scalarf_variable_format, std::strlen(scalarf_variable_format)) == 0)
+		{
+			out_format = scalar_format8::scalarf_variable;
+			return true;
+		}
+
+		return false;
+	}
+
 	constexpr rotation_variant8 get_rotation_variant(rotation_format8 rotation_format)
 	{
 		return rotation_format == rotation_format8::quatf_full ? rotation_variant8::quat : rotation_variant8::quat_drop_w;

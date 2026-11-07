@@ -58,13 +58,24 @@ namespace acl
 			static constexpr bool is_translation_format_supported(vector_format8 format) { return format == vector_format8::vector3f_full; }
 			static constexpr bool is_scale_format_supported(vector_format8 format) { return format == vector_format8::vector3f_full; }
 		};
+
+		// Copies the interpolator of each sample of a compressed scalar track into a raw extended track
+		template<class track_type>
+		inline void copy_sample_interpolators(const compressed_tracks& tracks, uint32_t track_index, track& track_)
+		{
+			track_type& typed_track = track_cast<track_type>(track_);
+
+			const uint32_t num_samples = typed_track.get_num_samples();
+			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+				typed_track[sample_index].interpolator = get_compressed_sample_interpolator(tracks, track_index, sample_index);
+		}
 	}
 
 	inline error_result convert_track_list(iallocator& allocator, const track_array& track_list, compressed_tracks*& out_compressed_tracks)
 	{
 		compression_settings settings = get_raw_compression_settings();
 
-		qvvf_transform_error_metric error_metric;
+		vqvf_transform_error_metric error_metric;
 		settings.error_metric = &error_metric;
 
 		// Include all the metadata
@@ -92,6 +103,10 @@ namespace acl
 		track_array result(allocator, num_tracks);
 		result.set_name(string(allocator, tracks.get_name()));
 
+		// Scalar tracks with extended samples become extended raw tracks to retain each sample interpolator
+		const acl_impl::tracks_header& header = acl_impl::get_tracks_header(tracks);
+		const bool has_extended_samples = track_type != track_type8::vqvf && header.get_has_extended_samples();
+
 		// Setup our track metadata and allocate memory
 		bool success = true;
 		for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
@@ -106,27 +121,42 @@ namespace acl
 			{
 			case track_type8::float1f:
 				got_description = tracks.get_track_description(track_index, desc_scalar);
-				track_ = track_float1f::make_reserve(desc_scalar, allocator, num_samples, sample_rate);
+				if (has_extended_samples)
+					track_ = track_float1f_ex::make_reserve(desc_scalar, allocator, num_samples, sample_rate);
+				else
+					track_ = track_float1f::make_reserve(desc_scalar, allocator, num_samples, sample_rate);
 				break;
 			case track_type8::float2f:
 				got_description = tracks.get_track_description(track_index, desc_scalar);
-				track_ = track_float2f::make_reserve(desc_scalar, allocator, num_samples, sample_rate);
+				if (has_extended_samples)
+					track_ = track_float2f_ex::make_reserve(desc_scalar, allocator, num_samples, sample_rate);
+				else
+					track_ = track_float2f::make_reserve(desc_scalar, allocator, num_samples, sample_rate);
 				break;
 			case track_type8::float3f:
 				got_description = tracks.get_track_description(track_index, desc_scalar);
-				track_ = track_float3f::make_reserve(desc_scalar, allocator, num_samples, sample_rate);
+				if (has_extended_samples)
+					track_ = track_float3f_ex::make_reserve(desc_scalar, allocator, num_samples, sample_rate);
+				else
+					track_ = track_float3f::make_reserve(desc_scalar, allocator, num_samples, sample_rate);
 				break;
 			case track_type8::float4f:
 				got_description = tracks.get_track_description(track_index, desc_scalar);
-				track_ = track_float4f::make_reserve(desc_scalar, allocator, num_samples, sample_rate);
+				if (has_extended_samples)
+					track_ = track_float4f_ex::make_reserve(desc_scalar, allocator, num_samples, sample_rate);
+				else
+					track_ = track_float4f::make_reserve(desc_scalar, allocator, num_samples, sample_rate);
 				break;
 			case track_type8::vector4f:
 				got_description = tracks.get_track_description(track_index, desc_scalar);
-				track_ = track_vector4f::make_reserve(desc_scalar, allocator, num_samples, sample_rate);
+				if (has_extended_samples)
+					track_ = track_vector4f_ex::make_reserve(desc_scalar, allocator, num_samples, sample_rate);
+				else
+					track_ = track_vector4f::make_reserve(desc_scalar, allocator, num_samples, sample_rate);
 				break;
-			case track_type8::qvvf:
+			case track_type8::vqvf:
 				got_description = tracks.get_track_description(track_index, desc_transform);
-				track_ = track_qvvf::make_reserve(desc_transform, allocator, num_samples, sample_rate);
+				track_ = track_vqvf::make_reserve(desc_transform, allocator, num_samples, sample_rate);
 				break;
 			default:
 				ACL_ASSERT(false, "Unexpected track type");
@@ -145,8 +175,7 @@ namespace acl
 		scope_disable_fp_exceptions fp_off;
 
 		// Decompress and populate our track data
-		const acl_impl::tracks_header& header = acl_impl::get_tracks_header(tracks);
-		if (track_type == track_type8::qvvf &&
+		if (track_type == track_type8::vqvf &&
 			header.get_rotation_format() == rotation_format8::quatf_full &&
 			header.get_translation_format() == vector_format8::vector3f_full &&
 			header.get_scale_format() == vector_format8::vector3f_full)
@@ -188,8 +217,8 @@ namespace acl
 					case track_type8::vector4f:
 						*acl_impl::bit_cast<rtm::vector4f*>(track_[sample_index]) = writer.read_vector4(track_index);
 						break;
-					case track_type8::qvvf:
-						*acl_impl::bit_cast<rtm::qvvf*>(track_[sample_index]) = writer.read_qvv(track_index);
+					case track_type8::vqvf:
+						*acl_impl::bit_cast<rtm::vqvf*>(track_[sample_index]) = writer.read_vqv(track_index);
 						break;
 					default:
 						ACL_ASSERT(false, "Unexpected track type");
@@ -205,7 +234,7 @@ namespace acl
 
 			acl_impl::debug_track_writer writer(allocator, track_type, num_tracks);
 
-			if (track_type == track_type8::qvvf)
+			if (track_type == track_type8::vqvf)
 				writer.initialize_with_defaults(result);
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
@@ -224,27 +253,57 @@ namespace acl
 					switch (track_type)
 					{
 					case track_type8::float1f:
-						*acl_impl::bit_cast<float*>(track_[sample_index]) = writer.read_float1(track_index);
+						*acl_impl::bit_cast<float*>(acl_impl::get_sample_value_ptr(track_, sample_index)) = writer.read_float1(track_index);
 						break;
 					case track_type8::float2f:
-						rtm::vector_store2(writer.read_float2(track_index), acl_impl::bit_cast<rtm::float2f*>(track_[sample_index]));
+						rtm::vector_store2(writer.read_float2(track_index), acl_impl::bit_cast<rtm::float2f*>(acl_impl::get_sample_value_ptr(track_, sample_index)));
 						break;
 					case track_type8::float3f:
-						rtm::vector_store3(writer.read_float3(track_index), acl_impl::bit_cast<rtm::float3f*>(track_[sample_index]));
+						rtm::vector_store3(writer.read_float3(track_index), acl_impl::bit_cast<rtm::float3f*>(acl_impl::get_sample_value_ptr(track_, sample_index)));
 						break;
 					case track_type8::float4f:
-						rtm::vector_store(writer.read_float4(track_index), acl_impl::bit_cast<rtm::float4f*>(track_[sample_index]));
+						rtm::vector_store(writer.read_float4(track_index), acl_impl::bit_cast<rtm::float4f*>(acl_impl::get_sample_value_ptr(track_, sample_index)));
 						break;
 					case track_type8::vector4f:
-						*acl_impl::bit_cast<rtm::vector4f*>(track_[sample_index]) = writer.read_vector4(track_index);
+						*acl_impl::bit_cast<rtm::vector4f*>(acl_impl::get_sample_value_ptr(track_, sample_index)) = writer.read_vector4(track_index);
 						break;
-					case track_type8::qvvf:
-						*acl_impl::bit_cast<rtm::qvvf*>(track_[sample_index]) = writer.read_qvv(track_index);
+					case track_type8::vqvf:
+						*acl_impl::bit_cast<rtm::vqvf*>(track_[sample_index]) = writer.read_vqv(track_index);
 						break;
 					default:
 						ACL_ASSERT(false, "Unexpected track type");
 						break;
 					}
+				}
+			}
+		}
+
+		if (has_extended_samples)
+		{
+			for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+			{
+				track& track_ = result[track_index];
+
+				switch (track_type)
+				{
+				case track_type8::float1f:
+					acl_impl::copy_sample_interpolators<track_float1f_ex>(tracks, track_index, track_);
+					break;
+				case track_type8::float2f:
+					acl_impl::copy_sample_interpolators<track_float2f_ex>(tracks, track_index, track_);
+					break;
+				case track_type8::float3f:
+					acl_impl::copy_sample_interpolators<track_float3f_ex>(tracks, track_index, track_);
+					break;
+				case track_type8::float4f:
+					acl_impl::copy_sample_interpolators<track_float4f_ex>(tracks, track_index, track_);
+					break;
+				case track_type8::vector4f:
+					acl_impl::copy_sample_interpolators<track_vector4f_ex>(tracks, track_index, track_);
+					break;
+				default:
+					ACL_ASSERT(false, "Unexpected track type");
+					break;
 				}
 			}
 		}

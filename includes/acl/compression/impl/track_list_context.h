@@ -29,6 +29,7 @@
 #include "acl/core/iallocator.h"
 #include "acl/core/bitset.h"
 #include "acl/core/track_desc.h"
+#include "acl/core/impl/compressed_headers.h"
 #include "acl/core/impl/variable_bit_rates.h"
 #include "acl/compression/track_array.h"
 #include "acl/compression/impl/track_range.h"
@@ -36,6 +37,7 @@
 #include <rtm/vector4f.h>
 
 #include <cstdint>
+#include <cstring>
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
@@ -50,7 +52,7 @@ namespace acl
 			uint8_t value;
 		};
 
-		struct qvv_bit_rate
+		struct vqv_bit_rate
 		{
 			uint8_t rotation;
 			uint8_t translation;
@@ -60,22 +62,26 @@ namespace acl
 		union track_bit_rate
 		{
 			scalar_bit_rate		scalar;
-			qvv_bit_rate		qvv;
+			vqv_bit_rate		vqv;
 
-			track_bit_rate() : qvv{k_invalid_bit_rate, k_invalid_bit_rate, k_invalid_bit_rate} {}
+			track_bit_rate() : vqv{k_invalid_bit_rate, k_invalid_bit_rate, k_invalid_bit_rate} {}
 		};
 
 		struct track_list_context
 		{
 			iallocator* allocator = nullptr;
+
+			// Original track list provided to compression (raw)
 			const track_array* reference_list = nullptr;
 
+			// Mutable track list we operate on (lossy)
 			track_array track_list;
 
 			track_range* range_list = nullptr;
 			uint32_t* constant_tracks_bitset = nullptr;
 			track_bit_rate* bit_rate_list = nullptr;
 			uint32_t* track_output_indices = nullptr;
+			sample_interpolation_mode_t* sample_interpolation_mode_list = nullptr;
 
 			uint32_t num_tracks = 0;
 			uint32_t num_output_tracks = 0;
@@ -99,23 +105,104 @@ namespace acl
 					deallocate_type_array(*allocator, bit_rate_list, num_tracks);
 
 					deallocate_type_array(*allocator, track_output_indices, num_output_tracks);
+
+					deallocate_type_array(*allocator, sample_interpolation_mode_list, num_tracks);
 				}
 			}
 
 			bool is_valid() const { return allocator != nullptr; }
 			bool is_constant(uint32_t track_index) const { return bitset_test(constant_tracks_bitset, bitset_description::make_from_num_bits(num_tracks), track_index); }
+			sample_interpolation_mode_t get_sample_interpolation_mode(uint32_t track_index) const { return sample_interpolation_mode_list[track_index]; }
 
+			// Returns true if an output track does not use the linear sample interpolation mode
+			bool has_extended_samples() const
+			{
+				for (uint32_t output_index = 0; output_index < num_output_tracks; ++output_index)
+				{
+					if (get_sample_interpolation_mode(track_output_indices[output_index]) != sample_interpolation_mode_t::linear)
+						return true;
+				}
+
+				return false;
+			}
+
+			// Disallow move/copy
 			track_list_context(const track_list_context&) = delete;
-			track_list_context(track_list_context&&) = delete;
 			track_list_context& operator=(const track_list_context&) = delete;
-			track_list_context& operator=(track_list_context&&) = delete;
 		};
+
+		// Copies the samples from the src track to the dst track
+		// Returns whether or not all samples are valid
+		inline bool copy_samples_as_linear_interpolation(const track& src_track, track_vector4f_ex& dst_track)
+		{
+			const uint32_t ref_sample_size = src_track.get_sample_size();
+			const uint32_t num_samples = src_track.get_num_samples();
+
+			bool are_samples_valid = true;
+			rtm::vector4f sample = rtm::vector_zero();
+
+			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+			{
+				std::memcpy(&sample, src_track[sample_index], ref_sample_size);
+				are_samples_valid &= rtm::scalar_is_finite(rtm::vector_get_x_as_scalar(sample));
+				dst_track[sample_index].set_linear({ sample });
+			}
+
+			return are_samples_valid;
+		}
+
+		template<class sample_type>
+		inline track_vector4f_ex::sample_type promote_sample(const sample_type& src_sample)
+		{
+			const size_t sample_size = sample_type::sample_size;
+
+			track_vector4f_ex::sample_type result;
+			result.interpolator = src_sample.interpolator;
+			std::memcpy(&result.value, &src_sample.value, sample_size);
+
+			return result;
+		}
+
+		inline track_vector4f_ex::sample_type promote_sample(const track& src_track, uint32_t sample_index)
+		{
+			switch (src_track.get_type())
+			{
+			case track_type8::float1f:
+				return promote_sample(track_cast<track_float1f_ex>(src_track)[sample_index]);
+			case track_type8::float2f:
+				return promote_sample(track_cast<track_float2f_ex>(src_track)[sample_index]);
+			case track_type8::float3f:
+				return promote_sample(track_cast<track_float3f_ex>(src_track)[sample_index]);
+			case track_type8::float4f:
+				return promote_sample(track_cast<track_float4f_ex>(src_track)[sample_index]);
+			case track_type8::vector4f:
+				return promote_sample(track_cast<track_vector4f_ex>(src_track)[sample_index]);
+			default:
+				ACL_ASSERT(false, "Unsupported track type");
+				return track_vector4f_ex::sample_type{};
+			}
+		}
+
+		inline bool copy_samples(const track& src_track, track_vector4f_ex& dst_track)
+		{
+			bool are_samples_valid = true;
+
+			const uint32_t num_samples = src_track.get_num_samples();
+			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+			{
+				const track_vector4f_ex::sample_type sample = promote_sample(src_track, sample_index);
+
+				are_samples_valid &= rtm::scalar_is_finite(rtm::vector_get_x_as_scalar(sample.value));
+
+				dst_track[sample_index] = sample;
+			}
+
+			return are_samples_valid;
+		}
 
 		// Promote scalar tracks to vector tracks for SIMD alignment and padding
 		inline track_array copy_and_promote_track_list(iallocator& allocator, const track_array& ref_track_list, bool& out_are_samples_valid)
 		{
-			using namespace rtm;
-
 			const uint32_t num_tracks = ref_track_list.get_num_tracks();
 			const uint32_t num_samples = ref_track_list.get_num_samples_per_track();
 			const float sample_rate = ref_track_list.get_sample_rate();
@@ -128,79 +215,21 @@ namespace acl
 				const track& ref_track = ref_track_list[track_index];
 				track& out_track = out_track_list[track_index];
 
-				switch (ref_track.get_type())
+				if (ref_track.get_type() == track_type8::vqvf)
 				{
-				case track_type8::float1f:
-				{
-					const track_float1f& typed_ref_track = track_cast<const track_float1f>(ref_track);
-					track_vector4f track = track_vector4f::make_reserve(ref_track.get_description<track_desc_scalarf>(), allocator, num_samples, sample_rate);
-					for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-					{
-						const vector4f sample = vector_load1(&typed_ref_track[sample_index]);
-						are_samples_valid &= scalar_is_finite(vector_get_x_as_scalar(sample));
-						track[sample_index] = sample;
-					}
-					out_track = std::move(track);
-					break;
-				}
-				case track_type8::float2f:
-				{
-					const track_float2f& typed_ref_track = track_cast<const track_float2f>(ref_track);
-					track_vector4f track = track_vector4f::make_reserve(ref_track.get_description<track_desc_scalarf>(), allocator, num_samples, sample_rate);
-					for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-					{
-						const vector4f sample = vector_load2(&typed_ref_track[sample_index]);
-						are_samples_valid &= vector_is_finite2(sample);
-						track[sample_index] = sample;
-					}
-					out_track = std::move(track);
-					break;
-				}
-				case track_type8::float3f:
-				{
-					const track_float3f& typed_ref_track = track_cast<const track_float3f>(ref_track);
-					track_vector4f track = track_vector4f::make_reserve(ref_track.get_description<track_desc_scalarf>(), allocator, num_samples, sample_rate);
-					for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-					{
-						const vector4f sample = vector_load3(&typed_ref_track[sample_index]);
-						are_samples_valid &= vector_is_finite3(sample);
-						track[sample_index] = sample;
-					}
-					out_track = std::move(track);
-					break;
-				}
-				case track_type8::float4f:
-				{
-					const track_float4f& typed_ref_track = track_cast<const track_float4f>(ref_track);
-					track_vector4f track = track_vector4f::make_reserve(ref_track.get_description<track_desc_scalarf>(), allocator, num_samples, sample_rate);
-					for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-					{
-						const vector4f sample = vector_load(&typed_ref_track[sample_index]);
-						are_samples_valid &= vector_is_finite(sample);
-						track[sample_index] = sample;
-					}
-					out_track = std::move(track);
-					break;
-				}
-				case track_type8::vector4f:
-				{
-					const track_vector4f& typed_ref_track = track_cast<const track_vector4f>(ref_track);
-					track_vector4f track = track_vector4f::make_reserve(ref_track.get_description<track_desc_scalarf>(), allocator, num_samples, sample_rate);
-					for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-					{
-						const vector4f sample = typed_ref_track[sample_index];
-						are_samples_valid &= vector_is_finite(sample);
-						track[sample_index] = sample;
-					}
-					out_track = std::move(track);
-					break;
-				}
-				case track_type8::qvvf:
-				default:
 					ACL_ASSERT(false, "Unexpected track type");
 					are_samples_valid = false;
-					break;
+					continue;
 				}
+
+				track_vector4f_ex track = track_vector4f_ex::make_reserve(ref_track.get_description<track_desc_scalarf>(), allocator, num_samples, sample_rate);
+
+				if (ref_track.get_interpolator() == track_interpolator_t::linear)
+					are_samples_valid &= copy_samples_as_linear_interpolation(ref_track, track);
+				else
+					are_samples_valid &= copy_samples(ref_track, track);
+
+				out_track = std::move(track);
 			}
 
 			out_are_samples_valid = are_samples_valid;
@@ -253,6 +282,112 @@ namespace acl
 			context.track_output_indices = create_output_track_mapping(allocator, track_list, context.num_output_tracks);
 
 			return are_samples_valid;
+		}
+
+		inline const void* get_sample_value_ptr(const track& track_, uint32_t sample_index)
+		{
+			if (track_.get_interpolator() == track_interpolator_t::linear)
+			{
+				return track_[sample_index];
+			}
+
+			switch (track_.get_type())
+			{
+				case track_type8::float1f:
+					return &track_cast<track_float1f_ex>(track_)[sample_index].value;
+				case track_type8::float2f:
+					return &track_cast<track_float2f_ex>(track_)[sample_index].value;
+				case track_type8::float3f:
+					return &track_cast<track_float3f_ex>(track_)[sample_index].value;
+				case track_type8::float4f:
+					return &track_cast<track_float4f_ex>(track_)[sample_index].value;
+				case track_type8::vector4f:
+					return &track_cast<track_vector4f_ex>(track_)[sample_index].value;
+				default:
+					ACL_ASSERT(false, "Unsupported track type");
+					return nullptr;
+			}
+		}
+
+		inline void* get_sample_value_ptr(track& track_, uint32_t sample_index)
+		{
+			return const_cast<void*>(get_sample_value_ptr(static_cast<const track&>(track_), sample_index));
+		}
+
+		// Returns the size in bytes of a sample value.
+		// With extended samples, the sample size also includes the interpolator and padding.
+		inline uint32_t get_sample_value_size(const track& track_)
+		{
+			return get_track_num_sample_elements(track_.get_type()) * static_cast<uint32_t>(sizeof(float));
+		}
+
+		// Returns true if the interpolator of a sample has an effect on the output.
+		// The interpolator of a sample controls the interval from that sample to the next sample.
+		// Two kinds of interpolators have no effect:
+		//    - The interpolator of the last sample, when we do not wrap: no interval follows it.
+		//    - The interpolator of a sample with the same value as the next sample: each interpolator
+		//      gives that value. The linear interpolation can give a value that is 1 ulp from it.
+		inline bool is_sample_interpolator_used(const track& ref_track, uint32_t sample_index, uint32_t num_samples, sample_looping_policy looping_policy)
+		{
+			const bool is_last_sample = sample_index == (num_samples - 1);
+			if (is_last_sample && looping_policy != sample_looping_policy::wrap)
+				return false;
+
+			// When we wrap, the last sample interpolates to the first sample
+			const uint32_t next_sample_index = is_last_sample ? 0 : (sample_index + 1);
+
+			// Equal raw values give equal quantized values, thus we compare the raw values
+			const void* value = get_sample_value_ptr(ref_track, sample_index);
+			const void* next_value = get_sample_value_ptr(ref_track, next_sample_index);
+			return std::memcmp(value, next_value, get_sample_value_size(ref_track)) != 0;
+		}
+
+		// Returns how the samples of a mutable track interpolate.
+		// The mode ignores each interpolator that has no effect on the output.
+		// Call this function after the looping optimization, because it uses the final number of samples.
+		inline sample_interpolation_mode_t get_sample_interpolation_mode(const track_list_context& context, uint32_t track_index)
+		{
+			const track_vector4f_ex& track_ = track_cast<track_vector4f_ex>(context.track_list[track_index]);
+			const track& ref_track = (*context.reference_list)[track_index];
+			const uint32_t num_samples = context.num_samples;
+
+			bool has_constant_samples = false;
+			bool has_linear_samples = false;
+			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+			{
+				if (!is_sample_interpolator_used(ref_track, sample_index, num_samples, context.looping_policy))
+					continue;
+
+				switch (track_[sample_index].interpolator)
+				{
+				case sample_interpolator_t::constant:	has_constant_samples = true; break;
+				case sample_interpolator_t::linear:		has_linear_samples = true; break;
+				default:								return sample_interpolation_mode_t::mixed;	// The animated data stores each interpolator
+				}
+			}
+
+			if (has_constant_samples && has_linear_samples)
+				return sample_interpolation_mode_t::mixed;
+
+			// A track without a used interpolator is linear, it is the default mode
+			return has_constant_samples ? sample_interpolation_mode_t::constant : sample_interpolation_mode_t::linear;
+		}
+
+		// Finds the sample interpolation mode of each track.
+		// Call this function after the constant tracks are known and after the looping optimization.
+		inline void extract_sample_interpolation_modes(track_list_context& context)
+		{
+			ACL_ASSERT(context.is_valid(), "Invalid context");
+
+			context.sample_interpolation_mode_list = allocate_type_array<sample_interpolation_mode_t>(*context.allocator, context.num_tracks);
+
+			for (uint32_t track_index = 0; track_index < context.num_tracks; ++track_index)
+			{
+				// A constant track has no animated data, thus it does not need sample interpolators
+				context.sample_interpolation_mode_list[track_index] = context.is_constant(track_index)
+					? sample_interpolation_mode_t::linear
+					: get_sample_interpolation_mode(context, track_index);
+			}
 		}
 	}
 

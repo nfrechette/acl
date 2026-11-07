@@ -336,7 +336,7 @@ void benchmark_decompression(benchmark::State& state)
 	const uint32_t pose_size = s_benchmark_state.pose_size;
 
 	const uint32_t num_tracks = compressed_tracks.get_num_tracks();
-	acl::acl_impl::debug_track_writer pose_writer(s_allocator, acl::track_type8::qvvf, num_tracks);
+	acl::acl_impl::debug_track_writer pose_writer(s_allocator, acl::track_type8::vqvf, num_tracks);
 
 	uint32_t current_context_index = 0;
 	uint32_t current_sample_index = 0;
@@ -373,7 +373,7 @@ void benchmark_decompression(benchmark::State& state)
 				context.decompress_track(0, pose_writer);
 				break;
 			case DecompressionFunction::Memcpy:
-				std::memcpy(pose_writer.tracks_typed.qvvf, decompression_instances[0], pose_size);
+				std::memcpy(pose_writer.tracks_typed.vqvf, decompression_instances[0], pose_size);
 				break;
 			}
 
@@ -408,7 +408,7 @@ void benchmark_decompression(benchmark::State& state)
 					context.decompress_track(bone_index, pose_writer);
 				break;
 			case DecompressionFunction::Memcpy:
-				std::memcpy(pose_writer.tracks_typed.qvvf, decompression_instances[current_context_index], pose_size);
+				std::memcpy(pose_writer.tracks_typed.vqvf, decompression_instances[current_context_index], pose_size);
 				break;
 			}
 		}
@@ -450,7 +450,7 @@ void benchmark_decompression(benchmark::State& state)
 						context.decompress_track(0, pose_writer);
 						break;
 					case DecompressionFunction::Memcpy:
-						std::memcpy(pose_writer.tracks_typed.qvvf, decompression_instances[0], pose_size);
+						std::memcpy(pose_writer.tracks_typed.vqvf, decompression_instances[0], pose_size);
 						break;
 					}
 				}
@@ -577,13 +577,13 @@ bool prepare_clip(const std::string& clip_name, const acl::compressed_tracks& ra
 		return false;
 	}
 
-	if (track_list.get_track_type() != acl::track_type8::qvvf)
+	if (track_list.get_track_type() != acl::track_type8::vqvf)
 	{
 		printf("    Invalid clip track type!\n");
 		return false;
 	}
 
-	acl::qvvf_transform_error_metric error_metric;
+	acl::vqvf_transform_error_metric error_metric;
 
 	// Pre-process
 	{
@@ -615,7 +615,7 @@ bool prepare_clip(const std::string& clip_name, const acl::compressed_tracks& ra
 	}
 
 	// Dynamically register our benchmark
-	benchmark::internal::Benchmark* bench = benchmark::internal::RegisterBenchmarkInternal(new benchmark::internal::FunctionBenchmark(clip_name.c_str(), benchmark_decompression));
+	benchmark::Benchmark* bench = benchmark::RegisterBenchmark(clip_name, benchmark_decompression);
 
 	bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Forward, (int64_t)DecompressionFunction::DecompressPose, (int64_t)CPUCacheTemperature::Cold });
 	bench->Args({ acl::acl_impl::bit_cast<int64_t>(compressed_tracks), (int64_t)PlaybackDirection::Forward, (int64_t)DecompressionFunction::DecompressBone, (int64_t)CPUCacheTemperature::Cold });

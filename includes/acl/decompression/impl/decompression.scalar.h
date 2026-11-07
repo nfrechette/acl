@@ -104,6 +104,19 @@ namespace acl
 			if (database != nullptr)
 				return false;	// Database decompression is not supported for scalar tracks
 
+			if (!decompression_settings_type::skip_initialize_safety_checks())
+			{
+				if (!decompression_settings_type::are_extended_samples_supported())
+				{
+					const acl_impl::tracks_header& header = acl_impl::get_tracks_header(tracks);
+
+					const bool has_extended_samples = header.get_has_extended_samples();
+					ACL_ASSERT(!has_extended_samples, "Compressed tracks contain extended samples but support is disabled in the decompression context");
+					if (has_extended_samples)
+						return false;
+				}
+			}
+
 			context.tracks = &tracks;
 			context.tracks_hash = tracks.get_hash();
 			context.sample_time = -1.0F;
@@ -211,6 +224,57 @@ namespace acl
 			context.key_frame_bit_offsets[1] = key_frame1 * scalars_header.num_bits_per_frame;
 		}
 
+		inline sample_interpolator_t unpack_sample_interpolator(const uint8_t* packed_data, uint32_t bit_offset)
+		{
+			const uint32_t byte_offset = bit_offset / 8;
+			uint32_t packed_u32 = unaligned_load<uint32_t>(packed_data + byte_offset);
+			packed_u32 = byte_swap(packed_u32);
+
+			constexpr uint32_t num_bits = k_num_sample_interpolator_bits;
+			constexpr uint32_t interpolator_mask = (1 << num_bits) - 1;
+			constexpr uint32_t bit_shift = 32 - num_bits;
+			const uint32_t interpolator = (packed_u32 >> (bit_shift - (bit_offset % 8))) & interpolator_mask;
+			return static_cast<sample_interpolator_t>(interpolator);
+		}
+
+		// Returns the interpolator of a sample of compressed scalar tracks.
+		// The track index is the output index of the track.
+		inline sample_interpolator_t get_compressed_sample_interpolator(const compressed_tracks& tracks, uint32_t track_index, uint32_t sample_index)
+		{
+			const tracks_header& header = get_tracks_header(tracks);
+			ACL_ASSERT(track_index < header.num_tracks, "Invalid track index");
+			ACL_ASSERT(sample_index < header.num_samples, "Invalid sample index");
+
+			const scalar_tracks_header& scalars_header = get_scalar_tracks_header(tracks);
+			const track_metadata* per_track_metadata = scalars_header.get_track_metadata();
+
+			switch (per_track_metadata[track_index].get_sample_interpolation_mode())
+			{
+			case sample_interpolation_mode_t::linear:	return sample_interpolator_t::linear;
+			case sample_interpolation_mode_t::constant:	return sample_interpolator_t::constant;
+			case sample_interpolation_mode_t::mixed:
+			default:									break;
+			}
+
+			// Each sample stores its interpolator before its value, find where the track starts in the frame
+			const uint8_t* num_bits_at_bit_rate = tracks.get_version() == compressed_tracks_version16::v02_00_00 ? k_bit_rate_num_bits_v0 : k_bit_rate_num_bits;
+			const uint32_t num_element_components = get_track_num_sample_elements(header.track_type);
+
+			uint32_t track_bit_offset = 0;
+			for (uint32_t scan_track_index = 0; scan_track_index < track_index; ++scan_track_index)
+			{
+				const track_metadata& metadata = per_track_metadata[scan_track_index];
+				const uint32_t num_bits_per_component = num_bits_at_bit_rate[metadata.get_bit_rate()];
+				const bool has_sample_interpolators = metadata.get_sample_interpolation_mode() == sample_interpolation_mode_t::mixed;
+
+				track_bit_offset += num_bits_per_component * num_element_components;
+				track_bit_offset += has_sample_interpolators && num_bits_per_component != 0 ? k_num_sample_interpolator_bits : 0;
+			}
+
+			const uint32_t bit_offset = (sample_index * scalars_header.num_bits_per_frame) + track_bit_offset;
+			return unpack_sample_interpolator(scalars_header.get_track_animated_values(), bit_offset);
+		}
+
 		template<class decompression_settings_type, class track_writer_type>
 		inline void decompress_tracks_v0(const persistent_scalar_decompression_context_v0& context, track_writer_type& writer)
 		{
@@ -253,6 +317,9 @@ namespace acl
 			const float* range_values = scalars_header.get_track_range_values();
 			const uint8_t* animated_values = scalars_header.get_track_animated_values();
 
+			// TODO: We always consume as many bits from both keyframes since every sample has the same size
+			// when we don't use segments. We could compute the bit offset between both and only increment
+			// the base offset within the loop
 			uint32_t track_bit_offset0 = context.key_frame_bit_offsets[0];
 			uint32_t track_bit_offset1 = context.key_frame_bit_offsets[1];
 
@@ -268,8 +335,11 @@ namespace acl
 			for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 			{
 				const acl_impl::track_metadata& metadata = per_track_metadata[track_index];
-				const uint32_t bit_rate = metadata.bit_rate;
+				const uint32_t bit_rate = metadata.get_bit_rate();
 				ACL_ASSERT(bit_rate < max_bit_rate, "Invalid bit rate: %u", bit_rate);
+				const acl_impl::sample_interpolation_mode_t interpolation_mode = decompression_settings_type::are_extended_samples_supported() ? metadata.get_sample_interpolation_mode() : acl_impl::sample_interpolation_mode_t::linear;
+				const bool has_sample_interpolators = interpolation_mode == acl_impl::sample_interpolation_mode_t::mixed;
+				const sample_interpolator_t track_interpolator = interpolation_mode == acl_impl::sample_interpolation_mode_t::constant ? sample_interpolator_t::constant : sample_interpolator_t::linear;
 				const uint32_t num_bits_per_component = num_bits_at_bit_rate[bit_rate];
 
 				rtm::scalarf alpha = interpolation_alpha;
@@ -291,6 +361,16 @@ namespace acl
 					}
 					else
 					{
+						// By default, each sample of the track uses the same interpolator
+						sample_interpolator_t interpolator = track_interpolator;
+						if (has_sample_interpolators)
+						{
+							// Our first sample always dictates how we interpolate across to the next sample
+							interpolator = unpack_sample_interpolator(animated_values, track_bit_offset0);
+							track_bit_offset0 += k_num_sample_interpolator_bits;
+							track_bit_offset1 += k_num_sample_interpolator_bits;
+						}
+
 						rtm::scalarf value0;
 						rtm::scalarf value1;
 						if (num_bits_per_component == 32)	// Raw bit rate
@@ -310,7 +390,7 @@ namespace acl
 							range_values += 2;
 						}
 
-						value = rtm::scalar_lerp(value0, value1, alpha);
+						value = rtm::scalar_lerp(value0, value1, apply_sample_interpolator(alpha, interpolator));
 
 						const uint32_t num_sample_bits = num_bits_per_component;
 						track_bit_offset0 += num_sample_bits;
@@ -330,6 +410,16 @@ namespace acl
 					}
 					else
 					{
+						// By default, each sample of the track uses the same interpolator
+						sample_interpolator_t interpolator = track_interpolator;
+						if (has_sample_interpolators)
+						{
+							// Our first sample always dictates how we interpolate across to the next sample
+							interpolator = unpack_sample_interpolator(animated_values, track_bit_offset0);
+							track_bit_offset0 += k_num_sample_interpolator_bits;
+							track_bit_offset1 += k_num_sample_interpolator_bits;
+						}
+
 						rtm::vector4f value0;
 						rtm::vector4f value1;
 						if (num_bits_per_component == 32)	// Raw bit rate
@@ -349,7 +439,7 @@ namespace acl
 							range_values += 4;
 						}
 
-						value = rtm::vector_lerp(value0, value1, alpha);
+						value = rtm::vector_lerp(value0, value1, apply_sample_interpolator(alpha, interpolator));
 
 						const uint32_t num_sample_bits = num_bits_per_component * 2;
 						track_bit_offset0 += num_sample_bits;
@@ -369,6 +459,16 @@ namespace acl
 					}
 					else
 					{
+						// By default, each sample of the track uses the same interpolator
+						sample_interpolator_t interpolator = track_interpolator;
+						if (has_sample_interpolators)
+						{
+							// Our first sample always dictates how we interpolate across to the next sample
+							interpolator = unpack_sample_interpolator(animated_values, track_bit_offset0);
+							track_bit_offset0 += k_num_sample_interpolator_bits;
+							track_bit_offset1 += k_num_sample_interpolator_bits;
+						}
+
 						rtm::vector4f value0;
 						rtm::vector4f value1;
 						if (num_bits_per_component == 32)	// Raw bit rate
@@ -388,7 +488,7 @@ namespace acl
 							range_values += 6;
 						}
 
-						value = rtm::vector_lerp(value0, value1, alpha);
+						value = rtm::vector_lerp(value0, value1, apply_sample_interpolator(alpha, interpolator));
 
 						const uint32_t num_sample_bits = num_bits_per_component * 3;
 						track_bit_offset0 += num_sample_bits;
@@ -408,6 +508,16 @@ namespace acl
 					}
 					else
 					{
+						// By default, each sample of the track uses the same interpolator
+						sample_interpolator_t interpolator = track_interpolator;
+						if (has_sample_interpolators)
+						{
+							// Our first sample always dictates how we interpolate across to the next sample
+							interpolator = unpack_sample_interpolator(animated_values, track_bit_offset0);
+							track_bit_offset0 += k_num_sample_interpolator_bits;
+							track_bit_offset1 += k_num_sample_interpolator_bits;
+						}
+
 						rtm::vector4f value0;
 						rtm::vector4f value1;
 						if (num_bits_per_component == 32)	// Raw bit rate
@@ -427,7 +537,7 @@ namespace acl
 							range_values += 8;
 						}
 
-						value = rtm::vector_lerp(value0, value1, alpha);
+						value = rtm::vector_lerp(value0, value1, apply_sample_interpolator(alpha, interpolator));
 
 						const uint32_t num_sample_bits = num_bits_per_component * 4;
 						track_bit_offset0 += num_sample_bits;
@@ -447,6 +557,16 @@ namespace acl
 					}
 					else
 					{
+						// By default, each sample of the track uses the same interpolator
+						sample_interpolator_t interpolator = track_interpolator;
+						if (has_sample_interpolators)
+						{
+							// Our first sample always dictates how we interpolate across to the next sample
+							interpolator = unpack_sample_interpolator(animated_values, track_bit_offset0);
+							track_bit_offset0 += k_num_sample_interpolator_bits;
+							track_bit_offset1 += k_num_sample_interpolator_bits;
+						}
+
 						rtm::vector4f value0;
 						rtm::vector4f value1;
 						if (num_bits_per_component == 32)	// Raw bit rate
@@ -466,7 +586,7 @@ namespace acl
 							range_values += 8;
 						}
 
-						value = rtm::vector_lerp(value0, value1, alpha);
+						value = rtm::vector_lerp(value0, value1, apply_sample_interpolator(alpha, interpolator));
 
 						const uint32_t num_sample_bits = num_bits_per_component * 4;
 						track_bit_offset0 += num_sample_bits;
@@ -533,10 +653,12 @@ namespace acl
 			for (uint32_t scan_track_index = 0; scan_track_index < track_index; ++scan_track_index)
 			{
 				const acl_impl::track_metadata& metadata = per_track_metadata[scan_track_index];
-				const uint32_t bit_rate = metadata.bit_rate;
+				const uint32_t bit_rate = metadata.get_bit_rate();
 				ACL_ASSERT(bit_rate < max_bit_rate, "Invalid bit rate: %u", bit_rate);
+				const bool has_sample_interpolators = decompression_settings_type::are_extended_samples_supported() && metadata.get_sample_interpolation_mode() == acl_impl::sample_interpolation_mode_t::mixed;
 				const uint32_t num_bits_per_component = num_bits_at_bit_rate[bit_rate];
 				track_bit_offset += num_bits_per_component * num_element_components;
+				track_bit_offset += has_sample_interpolators && num_bits_per_component != 0 ? k_num_sample_interpolator_bits : 0;
 
 				if (num_bits_per_component == 0)	// Constant bit rate
 					constant_values += num_element_components;
@@ -545,8 +667,11 @@ namespace acl
 			}
 
 			const acl_impl::track_metadata& metadata = per_track_metadata[track_index];
-			const uint32_t bit_rate = metadata.bit_rate;
+			const uint32_t bit_rate = metadata.get_bit_rate();
 			ACL_ASSERT(bit_rate < max_bit_rate, "Invalid bit rate: %u", bit_rate);
+			const acl_impl::sample_interpolation_mode_t interpolation_mode = decompression_settings_type::are_extended_samples_supported() ? metadata.get_sample_interpolation_mode() : acl_impl::sample_interpolation_mode_t::linear;
+			const bool has_sample_interpolators = interpolation_mode == acl_impl::sample_interpolation_mode_t::mixed;
+			const sample_interpolator_t track_interpolator = interpolation_mode == acl_impl::sample_interpolation_mode_t::constant ? sample_interpolator_t::constant : sample_interpolator_t::linear;
 			const uint32_t num_bits_per_component = num_bits_at_bit_rate[bit_rate];
 
 			const uint8_t* animated_values = scalars_header.get_track_animated_values();
@@ -558,6 +683,15 @@ namespace acl
 					value = rtm::scalar_load_as_scalar(constant_values);
 				else
 				{
+					// By default, each sample of the track uses the same interpolator
+					sample_interpolator_t interpolator = track_interpolator;
+					if (has_sample_interpolators)
+					{
+						// Our first sample always dictates how we interpolate across to the next sample
+						interpolator = unpack_sample_interpolator(animated_values, context.key_frame_bit_offsets[0] + track_bit_offset);
+						track_bit_offset += k_num_sample_interpolator_bits;
+					}
+
 					rtm::scalarf value0;
 					rtm::scalarf value1;
 					if (num_bits_per_component == 32)	// Raw bit rate
@@ -576,7 +710,7 @@ namespace acl
 						value1 = rtm::scalar_mul_add(value1, range_extent, range_min);
 					}
 
-					value = rtm::scalar_lerp(value0, value1, interpolation_alpha);
+					value = rtm::scalar_lerp(value0, value1, apply_sample_interpolator(interpolation_alpha, interpolator));
 				}
 
 				writer.write_float1(track_index, value);
@@ -588,6 +722,15 @@ namespace acl
 					value = rtm::vector_load(constant_values);
 				else
 				{
+					// By default, each sample of the track uses the same interpolator
+					sample_interpolator_t interpolator = track_interpolator;
+					if (has_sample_interpolators)
+					{
+						// Our first sample always dictates how we interpolate across to the next sample
+						interpolator = unpack_sample_interpolator(animated_values, context.key_frame_bit_offsets[0] + track_bit_offset);
+						track_bit_offset += k_num_sample_interpolator_bits;
+					}
+
 					rtm::vector4f value0;
 					rtm::vector4f value1;
 					if (num_bits_per_component == 32)	// Raw bit rate
@@ -606,7 +749,7 @@ namespace acl
 						value1 = rtm::vector_mul_add(value1, range_extent, range_min);
 					}
 
-					value = rtm::vector_lerp(value0, value1, interpolation_alpha);
+					value = rtm::vector_lerp(value0, value1, apply_sample_interpolator(interpolation_alpha, interpolator));
 				}
 
 				writer.write_float2(track_index, value);
@@ -618,6 +761,15 @@ namespace acl
 					value = rtm::vector_load(constant_values);
 				else
 				{
+					// By default, each sample of the track uses the same interpolator
+					sample_interpolator_t interpolator = track_interpolator;
+					if (has_sample_interpolators)
+					{
+						// Our first sample always dictates how we interpolate across to the next sample
+						interpolator = unpack_sample_interpolator(animated_values, context.key_frame_bit_offsets[0] + track_bit_offset);
+						track_bit_offset += k_num_sample_interpolator_bits;
+					}
+
 					rtm::vector4f value0;
 					rtm::vector4f value1;
 					if (num_bits_per_component == 32)	// Raw bit rate
@@ -636,7 +788,7 @@ namespace acl
 						value1 = rtm::vector_mul_add(value1, range_extent, range_min);
 					}
 
-					value = rtm::vector_lerp(value0, value1, interpolation_alpha);
+					value = rtm::vector_lerp(value0, value1, apply_sample_interpolator(interpolation_alpha, interpolator));
 				}
 
 				writer.write_float3(track_index, value);
@@ -648,6 +800,15 @@ namespace acl
 					value = rtm::vector_load(constant_values);
 				else
 				{
+					// By default, each sample of the track uses the same interpolator
+					sample_interpolator_t interpolator = track_interpolator;
+					if (has_sample_interpolators)
+					{
+						// Our first sample always dictates how we interpolate across to the next sample
+						interpolator = unpack_sample_interpolator(animated_values, context.key_frame_bit_offsets[0] + track_bit_offset);
+						track_bit_offset += k_num_sample_interpolator_bits;
+					}
+
 					rtm::vector4f value0;
 					rtm::vector4f value1;
 					if (num_bits_per_component == 32)	// Raw bit rate
@@ -666,7 +827,7 @@ namespace acl
 						value1 = rtm::vector_mul_add(value1, range_extent, range_min);
 					}
 
-					value = rtm::vector_lerp(value0, value1, interpolation_alpha);
+					value = rtm::vector_lerp(value0, value1, apply_sample_interpolator(interpolation_alpha, interpolator));
 				}
 
 				writer.write_float4(track_index, value);
@@ -678,6 +839,15 @@ namespace acl
 					value = rtm::vector_load(constant_values);
 				else
 				{
+					// By default, each sample of the track uses the same interpolator
+					sample_interpolator_t interpolator = track_interpolator;
+					if (has_sample_interpolators)
+					{
+						// Our first sample always dictates how we interpolate across to the next sample
+						interpolator = unpack_sample_interpolator(animated_values, context.key_frame_bit_offsets[0] + track_bit_offset);
+						track_bit_offset += k_num_sample_interpolator_bits;
+					}
+
 					rtm::vector4f value0;
 					rtm::vector4f value1;
 					if (num_bits_per_component == 32)	// Raw bit rate
@@ -696,7 +866,7 @@ namespace acl
 						value1 = rtm::vector_mul_add(value1, range_extent, range_min);
 					}
 
-					value = rtm::vector_lerp(value0, value1, interpolation_alpha);
+					value = rtm::vector_lerp(value0, value1, apply_sample_interpolator(interpolation_alpha, interpolator));
 				}
 
 				writer.write_vector4(track_index, value);

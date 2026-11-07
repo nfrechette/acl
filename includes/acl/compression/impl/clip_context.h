@@ -241,7 +241,7 @@ namespace acl
 
 		bool initialize_clip_context(
 			iallocator& allocator,
-			const track_array_qvvf& track_list,
+			const track_array_vqvf& track_list,
 			const compression_settings& settings,
 			additive_clip_format8 additive_format,
 			clip_context& out_clip_context);

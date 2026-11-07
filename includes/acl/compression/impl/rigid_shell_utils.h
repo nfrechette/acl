@@ -31,7 +31,7 @@
 #include "acl/compression/impl/sample_streams.h"
 #include "acl/compression/impl/transform_clip_adapters.h"
 
-#include <rtm/qvvf.h>
+#include <rtm/vqvf.h>
 
 #include <cstdint>
 #include <type_traits>
@@ -75,7 +75,7 @@ namespace acl
 			// To that end, we compute the local shell distance in object space for each transform at every sample and we
 			// retain the largest value. We then use this maximum value to compute our dominance.
 
-			rtm::qvvf* object_transforms = allocate_type_array<rtm::qvvf>(allocator, num_transforms);
+			rtm::vqvf* object_transforms = allocate_type_array<rtm::vqvf>(allocator, num_transforms);
 			float* max_distance_to_parents = allocate_type_array<float>(allocator, num_transforms);
 
 			std::memset(max_distance_to_parents, 0, sizeof(float) * num_transforms);
@@ -117,22 +117,22 @@ namespace acl
 					const rtm::quatf rotation = raw_clip.get_transform_rotation(transform_index, sample_index);
 					const rtm::vector4f translation = raw_clip.get_transform_translation(transform_index, sample_index);
 					const rtm::vector4f scale = raw_clip.get_transform_scale(transform_index, sample_index);
-					rtm::qvvf local_transform = rtm::qvv_set(rotation, translation, scale);
+					rtm::vqvf local_transform = rtm::vqv_set(rotation, translation, scale);
 
 					if (has_additive_base)
 					{
 						const rtm::quatf base_rotation = additive_base_clip.get_transform_rotation(transform_index, base_sample_index);
 						const rtm::vector4f base_translation = additive_base_clip.get_transform_translation(transform_index, base_sample_index);
 						const rtm::vector4f base_scale = additive_base_clip.get_transform_scale(transform_index, base_sample_index);
-						const rtm::qvvf base_transform = rtm::qvv_set(base_rotation, base_translation, base_scale);
+						const rtm::vqvf base_transform = rtm::vqv_set(base_rotation, base_translation, base_scale);
 
-						local_transform = rtm::qvv_normalize(acl::apply_additive_to_base(additive_format, base_transform, local_transform));
+						local_transform = rtm::vqv_normalize(acl::apply_additive_to_base(additive_format, base_transform, local_transform));
 					}
 
 					// Compute our object space transform
-					rtm::qvvf object_transform;
+					rtm::vqvf object_transform;
 					if (parent_index != k_invalid_track_index)
-						object_transform = rtm::qvv_normalize(rtm::qvv_mul(local_transform, object_transforms[parent_index]));
+						object_transform = rtm::vqv_normalize(rtm::vqv_mul(local_transform, object_transforms[parent_index]));
 					else
 						object_transform = local_transform;
 
@@ -143,7 +143,7 @@ namespace acl
 				// This will essentially compute the shell distance in object space
 				for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 				{
-					const rtm::qvvf& object_transform = object_transforms[transform_index];
+					const rtm::vqvf& object_transform = object_transforms[transform_index];
 
 					// Apply the object space scale to our local space shell distance
 					const rtm::vector4f abs_scale = rtm::vector_abs(object_transform.scale);
@@ -316,9 +316,13 @@ namespace acl
 			if (num_samples == 0)
 				return;	// No samples present, no shell distances
 
+			// We don't support error metrics that require conversion.
+			// The code below calls calculate_error_squared on vqvf transforms, and it always uses the variant with scale.
+			// Thus we test the conversion with scale, even when the clip has no scale.
+			if (error_metric.needs_conversion(false) || error_metric.needs_conversion(true))
+				return;
+
 			const bool has_scale = raw_clip.has_scale();
-			if (error_metric.needs_conversion(has_scale))
-				return;	// We don't support error metrics that require conversion
 
 			const float sample_rate = raw_clip.get_sample_rate();
 			const float duration = raw_clip.get_duration();
@@ -339,8 +343,8 @@ namespace acl
 
 			std::fill_n(dominance_reverse_map, size_t(num_transforms) * num_map_entries_per_transform, 0);
 
-			rtm::qvvf* local_transforms = allocate_type_array<rtm::qvvf>(allocator, size_t(num_transforms) * 2);
-			rtm::qvvf* object_transforms = local_transforms + num_transforms;
+			rtm::vqvf* local_transforms = allocate_type_array<rtm::vqvf>(allocator, size_t(num_transforms) * 2);
+			rtm::vqvf* object_transforms = local_transforms + num_transforms;
 
 			itransform_error_metric::calculate_error_args calculate_error_args;
 
@@ -368,23 +372,23 @@ namespace acl
 					const rtm::quatf rotation = raw_clip.get_transform_rotation(transform_index, sample_index);
 					const rtm::vector4f translation = raw_clip.get_transform_translation(transform_index, sample_index);
 					const rtm::vector4f scale = raw_clip.get_transform_scale(transform_index, sample_index);
-					rtm::qvvf local_transform = rtm::qvv_set(rotation, translation, scale);
+					rtm::vqvf local_transform = rtm::vqv_set(rotation, translation, scale);
 
 					if (has_additive_base)
 					{
 						const rtm::quatf base_rotation = additive_base_clip.get_transform_rotation(transform_index, base_sample_index);
 						const rtm::vector4f base_translation = additive_base_clip.get_transform_translation(transform_index, base_sample_index);
 						const rtm::vector4f base_scale = additive_base_clip.get_transform_scale(transform_index, base_sample_index);
-						const rtm::qvvf base_transform = rtm::qvv_set(base_rotation, base_translation, base_scale);
+						const rtm::vqvf base_transform = rtm::vqv_set(base_rotation, base_translation, base_scale);
 
-						local_transform = rtm::qvv_normalize(acl::apply_additive_to_base(additive_format, base_transform, local_transform));
+						local_transform = rtm::vqv_normalize(acl::apply_additive_to_base(additive_format, base_transform, local_transform));
 					}
 
 					local_transforms[transform_index] = local_transform;
 
-					rtm::qvvf object_transform;
+					rtm::vqvf object_transform;
 					if (parent_index != k_invalid_track_index)
-						object_transform = rtm::qvv_normalize(rtm::qvv_mul(local_transform, object_transforms[parent_index]));
+						object_transform = rtm::vqv_normalize(rtm::vqv_mul(local_transform, object_transforms[parent_index]));
 					else
 						object_transform = local_transform;
 
@@ -411,7 +415,7 @@ namespace acl
 						const rtm::quatf rotation_offset = rtm::quat_load(current_dominance_transform_offsets++);
 						const rtm::vector4f scale_offset = rtm::vector_load(current_dominance_transform_offsets++);
 
-						rtm::qvvf local_transform = local_transforms[transform_index];
+						rtm::vqvf local_transform = local_transforms[transform_index];
 
 						// Apply our delta offset
 						local_transform.rotation = rtm::quat_normalize(quat_add(local_transform.rotation, rotation_offset));
@@ -423,26 +427,26 @@ namespace acl
 						for (const uint32_t descendant_transform_index : transform_topology.descendants_iterator())
 						{
 							// Compute our descendant transform in object space taking into account our local change
-							rtm::qvvf descendant_object_transform = local_transforms[descendant_transform_index];
+							rtm::vqvf descendant_object_transform = local_transforms[descendant_transform_index];
 
 							// Accumulate transforms up to our current test transform
 							uint32_t cursor_index = clip_topology.transforms[descendant_transform_index].parent_index;
 							while (cursor_index != transform_index)
 							{
-								descendant_object_transform = rtm::qvv_normalize(rtm::qvv_mul(descendant_object_transform, local_transforms[cursor_index]));
+								descendant_object_transform = rtm::vqv_normalize(rtm::vqv_mul(descendant_object_transform, local_transforms[cursor_index]));
 
 								cursor_index = clip_topology.transforms[cursor_index].parent_index;
 							}
 
 							// Accumulate the test transform
-							descendant_object_transform = rtm::qvv_normalize(rtm::qvv_mul(descendant_object_transform, local_transform));
+							descendant_object_transform = rtm::vqv_normalize(rtm::vqv_mul(descendant_object_transform, local_transform));
 
 							// Accumulate the rest of the chain up to the root
 							if (parent_index != k_invalid_track_index)
-								descendant_object_transform = rtm::qvv_normalize(rtm::qvv_mul(descendant_object_transform, object_transforms[parent_index]));
+								descendant_object_transform = rtm::vqv_normalize(rtm::vqv_mul(descendant_object_transform, object_transforms[parent_index]));
 
 							// The original descendant object transform
-							const rtm::qvvf& reference_descendant_object_transform = object_transforms[descendant_transform_index];
+							const rtm::vqvf& reference_descendant_object_transform = object_transforms[descendant_transform_index];
 
 							// Measure the error
 							const float shell_distance = raw_clip.get_transform_shell_distance(descendant_transform_index);
@@ -578,7 +582,7 @@ namespace acl
 			// To that end, we compute the local shell distance in object space for each transform at every sample and we
 			// retain the largest value. We then use this maximum value to compute our dominance.
 
-			rtm::qvvf* object_transforms = allocate_type_array<rtm::qvvf>(allocator, num_transforms);
+			rtm::vqvf* object_transforms = allocate_type_array<rtm::vqvf>(allocator, num_transforms);
 			float* max_distance_to_parents = allocate_type_array<float>(allocator, num_transforms);
 
 			std::memset(max_distance_to_parents, 0, sizeof(float) * num_transforms);
@@ -627,7 +631,7 @@ namespace acl
 					const rtm::quatf rotation = acl_impl::sample_rotation(context, sampling_bone_stream);
 					const rtm::vector4f translation = acl_impl::sample_translation(context, sampling_bone_stream);
 					const rtm::vector4f scale = has_scale ? acl_impl::sample_scale(context, sampling_bone_stream) : sampling_bone_stream.default_value.scale;
-					rtm::qvvf local_transform = rtm::qvv_set(rotation, translation, scale);
+					rtm::vqvf local_transform = rtm::vqv_set(rotation, translation, scale);
 
 					if (has_additive_base)
 					{
@@ -637,15 +641,15 @@ namespace acl
 						const rtm::quatf base_rotation = base_bone_stream.rotations.get_sample_clamped(base_sample_index);
 						const rtm::vector4f base_translation = base_bone_stream.translations.get_sample_clamped(base_sample_index);
 						const rtm::vector4f base_scale = base_bone_stream.scales.get_sample_clamped(base_sample_index);
-						const rtm::qvvf base_transform = rtm::qvv_set(base_rotation, base_translation, base_scale);
+						const rtm::vqvf base_transform = rtm::vqv_set(base_rotation, base_translation, base_scale);
 
-						local_transform = rtm::qvv_normalize(acl::apply_additive_to_base(additive_format, base_transform, local_transform));
+						local_transform = rtm::vqv_normalize(acl::apply_additive_to_base(additive_format, base_transform, local_transform));
 					}
 
 					// Compute our object space transform
-					rtm::qvvf object_transform;
+					rtm::vqvf object_transform;
 					if (parent_index != k_invalid_track_index)
-						object_transform = rtm::qvv_normalize(rtm::qvv_mul(local_transform, object_transforms[parent_index]));
+						object_transform = rtm::vqv_normalize(rtm::vqv_mul(local_transform, object_transforms[parent_index]));
 					else
 						object_transform = local_transform;
 
@@ -656,7 +660,7 @@ namespace acl
 				// This will essentially compute the shell distance in object space
 				for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 				{
-					const rtm::qvvf& object_transform = object_transforms[transform_index];
+					const rtm::vqvf& object_transform = object_transforms[transform_index];
 
 					// Apply the object space scale to our local space shell distance
 					const rtm::vector4f abs_scale = rtm::vector_abs(object_transform.scale);
@@ -715,7 +719,7 @@ namespace acl
 		// We use the provided object space transforms to compute the rigid shell
 		// For each transform, its rigid shell is formed by the dominant joint (itself or a child)
 		// We compute the largest value over the whole segment per transform
-		inline void compute_segment_shell_distances(const segment_context& segment, const rtm::qvvf* object_transforms, rigid_shell_metadata_t* out_shell_metadata)
+		inline void compute_segment_shell_distances(const segment_context& segment, const rtm::vqvf* object_transforms, rigid_shell_metadata_t* out_shell_metadata)
 		{
 			const uint32_t num_transforms = segment.num_bones;
 			if (num_transforms == 0)
@@ -744,13 +748,13 @@ namespace acl
 
 			for (uint32_t segment_sample_index = 0; segment_sample_index < num_samples; ++segment_sample_index)
 			{
-				const rtm::qvvf* object_pose_transforms = object_transforms + (segment_sample_index * num_transforms);
+				const rtm::vqvf* object_pose_transforms = object_transforms + (segment_sample_index * num_transforms);
 
 				// Apply the object space scale the shell distance for each transform
 				// This will essentially compute the shell distance in object space
 				for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 				{
-					const rtm::qvvf& object_transform = object_pose_transforms[transform_index];
+					const rtm::vqvf& object_transform = object_pose_transforms[transform_index];
 
 					// Apply the object space scale to our local space shell distance
 					const rtm::vector4f abs_scale = rtm::vector_abs(object_transform.scale);
