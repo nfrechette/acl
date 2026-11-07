@@ -1148,6 +1148,10 @@ def do_analyze(build_dir, args):
 
 	analyzer_switches = ['--analyze', '--analyzer-output', 'text', '-Xclang', '-analyzer-opt-analyze-headers']
 
+	# The asserts are removed by default, we enable them to let the analyzer use the conditions that they check
+	# When an assert fails, it calls abort() and the analyzer stops on that path
+	analyzer_switches.extend(['-DACL_ON_ASSERT_ABORT', '-DRTM_ON_ASSERT_ABORT'])
+
 	array_bound_checker = get_analyzer_array_bound_checker(compiler_exe)
 	if array_bound_checker:
 		print('Enabling checker: {}'.format(array_bound_checker))
