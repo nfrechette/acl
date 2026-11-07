@@ -445,15 +445,15 @@ def do_generate_solution(build_dir, cmake_script_dir, regression_test_data_dir, 
 		extra_switches.append('-DCMAKE_TOOLCHAIN_FILE={}'.format(toolchain))
 
 	if regression_test_data_dir:
-		extra_switches.append('-DTEST_DATA_DIR:STRING="{}"'.format(regression_test_data_dir))
+		extra_switches.append('-DTEST_DATA_DIR:STRING={}'.format(regression_test_data_dir))
 
 	if decomp_data_dir:
-		extra_switches.append('-DDECOMP_DATA_DIR:STRING="{}"'.format(decomp_data_dir))
+		extra_switches.append('-DDECOMP_DATA_DIR:STRING={}'.format(decomp_data_dir))
 
 	# Generate IDE solution
 	print('Generating build files ...')
 	if compiler == 'emscripten':
-		cmake_cmd = 'emcmake cmake .. -DCMAKE_INSTALL_PREFIX="{}" {}'.format(build_dir, ' '.join(extra_switches))
+		cmake_cmd = ['emcmake', 'cmake', '..', '-DCMAKE_INSTALL_PREFIX={}'.format(build_dir)] + extra_switches
 	else:
 		cmake_generator = get_generator(compiler, cpu)
 		if not cmake_generator:
@@ -461,20 +461,21 @@ def do_generate_solution(build_dir, cmake_script_dir, regression_test_data_dir, 
 		else:
 			generator_suffix = ''
 			if compiler == 'vs2019-clang' or compiler == 'vs2022-clang' or compiler == 'vs2026-clang':
-				extra_switches.append('-T ClangCL')
+				extra_switches.extend(['-T', 'ClangCL'])
 				generator_suffix = 'Clang CL'
 
 			print('Using generator: {} {}'.format(cmake_generator, generator_suffix))
-			extra_switches.append('-G "{}"'.format(cmake_generator))
+			extra_switches.extend(['-G', cmake_generator])
 
 		cmake_arch = get_architecture(compiler, cpu)
 		if cmake_arch:
 			print('Using architecture: {}'.format(cmake_arch))
-			extra_switches.append('-A {}'.format(cmake_arch))
+			extra_switches.extend(['-A', cmake_arch])
 
-		cmake_cmd = 'cmake .. -DCMAKE_INSTALL_PREFIX="{}" {}'.format(build_dir, ' '.join(extra_switches))
+		cmake_cmd = ['cmake', '..', '-DCMAKE_INSTALL_PREFIX={}'.format(build_dir)] + extra_switches
 
-	result = subprocess.call(cmake_cmd, shell=True)
+	# Do not use a shell: each switch goes to cmake as one argument
+	result = subprocess.call(cmake_cmd)
 	if result != 0:
 		sys.exit(result)
 
@@ -482,26 +483,27 @@ def do_build(args):
 	config = args.config
 
 	print('Building ...')
-	cmake_cmd = 'cmake --build .'
+	cmake_cmd = ['cmake', '--build', '.']
 	if platform.system() == 'Windows':
 		if args.compiler == 'android':
-			cmake_cmd += ' --config {}'.format(config)
+			cmake_cmd += ['--config', config]
 		else:
 			if os.path.sep == '\\':
 				# Native Windows
-				cmake_cmd += ' --config {} --target INSTALL'.format(config)
+				cmake_cmd += ['--config', config, '--target', 'INSTALL']
 			else:
 				# MSYS2 or Cygwin
-				cmake_cmd += ' --config {} --target install'.format(config)
+				cmake_cmd += ['--config', config, '--target', 'install']
 	elif platform.system() == 'Darwin':
 		if args.compiler == 'ios':
-			cmake_cmd += ' --config {}'.format(config)
+			cmake_cmd += ['--config', config]
 		else:
-			cmake_cmd += ' --config {} --target install'.format(config)
+			cmake_cmd += ['--config', config, '--target', 'install']
 	else:
-		cmake_cmd += ' --target install'
+		cmake_cmd += ['--target', 'install']
 
-	result = subprocess.call(cmake_cmd, shell=True)
+	# Do not use a shell: the arguments go to cmake as they are
+	result = subprocess.call(cmake_cmd)
 	if result != 0:
 		sys.exit(result)
 
@@ -595,14 +597,15 @@ def do_tests_android(build_dir, args):
 	os.chdir(build_dir)
 
 def do_tests_cmake(args):
-	ctest_cmd = 'ctest --output-on-failure --parallel {}'.format(args.num_threads)
+	ctest_cmd = ['ctest', '--output-on-failure', '--parallel', str(args.num_threads)]
 
 	if platform.system() == 'Windows' or platform.system() == 'Darwin':
-		ctest_cmd += ' -C {}'.format(args.config)
+		ctest_cmd += ['-C', args.config]
 	if args.tests_matching:
-		ctest_cmd += ' --tests-regex {}'.format(args.tests_matching)
+		ctest_cmd += ['--tests-regex', args.tests_matching]
 
-	result = subprocess.call(ctest_cmd, shell=True)
+	# Do not use a shell: a regex such as 'a|b' must go to ctest as it is
+	result = subprocess.call(ctest_cmd)
 	if result != 0:
 		sys.exit(result)
 
