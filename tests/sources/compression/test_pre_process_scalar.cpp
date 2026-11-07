@@ -32,6 +32,7 @@
 #include <rtm/vector4f.h>
 
 #include <cstdint>
+#include <cstring>
 #include <utility>
 
 using namespace acl;
@@ -72,19 +73,27 @@ namespace
 		set_sample(sample.value, interpolator, value);
 	}
 
-	// Returns true if the sample has the expected value and the expected interpolator.
-	// A linear sample has no interpolator.
-	inline bool is_sample_equal(const float& sample, sample_interpolator_t /*interpolator*/, float value) { return sample == value; }
-
-	inline bool is_sample_equal(const rtm::float4f& sample, sample_interpolator_t /*interpolator*/, float value)
+	// Returns true if the value is binary equal to the value that 'set_sample' writes.
+	// The expected value goes through memory. On x86 with x87 math (for example GCC with -m32),
+	// an expression such as (value + 10.0) keeps more precision than a stored float.
+	template<typename value_type_t>
+	inline bool is_value_equal(const value_type_t& value, float expected_value)
 	{
-		return sample.x == value && sample.y == (value + 10.0F) && sample.z == (value + 20.0F) && sample.w == (value + 30.0F);
+		value_type_t expected = {};
+		set_sample(expected, sample_interpolator_t::linear, expected_value);
+		return std::memcmp(&value, &expected, sizeof(value_type_t)) == 0;
 	}
 
+	// Returns true if the sample has the expected value and the expected interpolator.
+	// A linear sample has no interpolator.
+	inline bool is_sample_equal(const float& sample, sample_interpolator_t /*interpolator*/, float value) { return is_value_equal(sample, value); }
+	inline bool is_sample_equal(const rtm::float4f& sample, sample_interpolator_t /*interpolator*/, float value) { return is_value_equal(sample, value); }
+
+	// The extended sample has padding, thus we compare each member and not the whole sample
 	template<typename sample_type_t>
 	inline bool is_sample_equal(const track_extended_sample_t<sample_type_t>& sample, sample_interpolator_t interpolator, float value)
 	{
-		return sample.interpolator == interpolator && is_sample_equal(sample.value, interpolator, value);
+		return sample.interpolator == interpolator && is_value_equal(sample.value, value);
 	}
 
 	template<class track_array_type>
