@@ -10,6 +10,7 @@
 *  Compression ignores the sample interpolators that have no effect when it selects the interpolation mode of a track
 *  Add the `-analyze` action to `make.py` to run the clang static analyzer on the public headers
 *  Disable fast math with the `float_control` pragma under Clang where the target supports it
+*  Add the `-fast_math` option to `make.py` to compile the public headers with fast math, and a CI workflow that uses it
 
 ## 2.1.0
 

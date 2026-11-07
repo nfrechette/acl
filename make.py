@@ -66,6 +66,7 @@ def parse_argv():
 	misc.add_argument('-allwarnings', dest='allwarnings', action='store_true', help='Enable all warnings, MSVC only')
 	misc.add_argument('-num_threads', type=int, help='No. to use while compiling and regressing')
 	misc.add_argument('-tests_matching', help='Only run tests whose names match this regex')
+	misc.add_argument('-fast_math', action='store_true', help='Compile the include validation with fast math')
 	misc.add_argument('-ci', action='store_true', help='Whether or not this is a Continuous Integration build')
 	misc.add_argument('-help', action='help', help='Display this usage information')
 
@@ -77,7 +78,7 @@ def parse_argv():
 
 	parser.set_defaults(build=False, clean=False, clean_only=False, unit_test=False, regression_test=False, bench=False, run_bench=False, pull_bench=False, analyze=False,
 		compiler=None, config='Release', cpu=None, cpp_version='11', use_avx=False, use_avx2=False, use_popcnt=False, use_simd=True, use_sjson=True, allwarnings=False,
-		num_threads=num_threads, tests_matching='')
+		num_threads=num_threads, tests_matching='', fast_math=False)
 
 	args = parser.parse_args()
 
@@ -435,6 +436,10 @@ def do_generate_solution(build_dir, cmake_script_dir, regression_test_data_dir, 
 	if args.allwarnings and compiler.startswith('vs'):
 		print('Enabling all warnings')
 		extra_switches.append('-DENABLE_ALL_WARNINGS:BOOL=true')
+
+	if args.fast_math:
+		print('Enabling fast math for the include validation')
+		extra_switches.append('-DUSE_FAST_MATH:BOOL=true')
 
 	if args.bench:
 		extra_switches.append('-DBUILD_BENCHMARK_EXE:BOOL=true')
