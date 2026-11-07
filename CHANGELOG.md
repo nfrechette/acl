@@ -9,6 +9,7 @@
 *  Fix `pre_process_track_list` with extended scalar samples, it now changes only the sample values
 *  Compression ignores the sample interpolators that have no effect when it selects the interpolation mode of a track
 *  Add the `-analyze` action to `make.py` to run the clang static analyzer on the public headers
+*  Disable fast math with the `float_control` pragma under Clang where the target supports it
 
 ## 2.1.0
 

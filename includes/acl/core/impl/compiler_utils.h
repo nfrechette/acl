@@ -48,14 +48,26 @@
 
 	#define ACL_IMPL_FILE_PRAGMA_POP \
 		__pragma(float_control(pop))
-#elif defined(RTM_COMPILER_CLANG) && 0
-	// For some reason, clang doesn't appear to support disabling fast-math through pragmas
+#elif defined(RTM_COMPILER_CLANG)
+	// Clang supports this pragma only on some targets: x86 and x64, AArch64 (clang 16+), and RISC-V (clang 18+).
+	// On other targets, clang ignores the pragma and gives a warning. We disable that warning.
 	// See: https://github.com/llvm/llvm-project/issues/55392
+	//
+	// Limits of the pragma under clang:
+	//    - Clang defines most SSE and NEON intrinsics with operators in system headers.
+	//      These headers are outside of our pragma region and fast math stays on for them.
+	//    - The pragma does not disable -ffinite-math-only. Clang can still assume that values are not NaN or infinity.
 	#define ACL_IMPL_FILE_PRAGMA_PUSH \
-		_Pragma("float_control(precise, on, push)")
+		_Pragma("clang diagnostic push") \
+		_Pragma("clang diagnostic ignored \"-Wignored-pragmas\"") \
+		_Pragma("float_control(precise, on, push)") \
+		_Pragma("clang diagnostic pop")
 
 	#define ACL_IMPL_FILE_PRAGMA_POP \
-		_Pragma("float_control(pop)")
+		_Pragma("clang diagnostic push") \
+		_Pragma("clang diagnostic ignored \"-Wignored-pragmas\"") \
+		_Pragma("float_control(pop)") \
+		_Pragma("clang diagnostic pop")
 #elif defined(RTM_COMPILER_GCC)
 	#define ACL_IMPL_FILE_PRAGMA_PUSH \
 		_Pragma("GCC push_options") \
