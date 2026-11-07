@@ -1152,6 +1152,10 @@ def do_analyze(build_dir, args):
 	# When an assert fails, it calls abort() and the analyzer stops on that path
 	analyzer_switches.extend(['-DACL_ON_ASSERT_ABORT', '-DRTM_ON_ASSERT_ABORT'])
 
+	# The code writes its buffers with a pointer that it moves after each write, the last move is never read
+	# This checker finds no memory errors, we disable it
+	analyzer_switches.extend(['-Xclang', '-analyzer-disable-checker=deadcode.DeadStores'])
+
 	array_bound_checker = get_analyzer_array_bound_checker(compiler_exe)
 	if array_bound_checker:
 		print('Enabling checker: {}'.format(array_bound_checker))
