@@ -251,12 +251,10 @@ namespace acl
 			const size_t transform_size = error_metric.get_transform_size(has_scale);
 			const bool needs_conversion = error_metric.needs_conversion(has_scale);
 			uint8_t* raw_local_pose_converted = nullptr;
-			uint8_t* base_local_pose_converted = nullptr;
 			uint8_t* lossy_local_pose_converted = nullptr;
 			if (needs_conversion)
 			{
 				raw_local_pose_converted = allocate_type_array_aligned<uint8_t>(allocator, num_tracks * transform_size, 64);
-				base_local_pose_converted = allocate_type_array_aligned<uint8_t>(allocator, num_tracks * transform_size, 64);
 				lossy_local_pose_converted = allocate_type_array_aligned<uint8_t>(allocator, num_tracks * transform_size, 64);
 			}
 
@@ -273,9 +271,9 @@ namespace acl
 				self_transform_indices[transform_index] = transform_index;
 			}
 
-			void* raw_local_pose_ = needs_conversion ? (void*)raw_local_pose_converted : (void*)tracks_writer0.tracks_typed.vqvf;
-			const void* base_local_pose_ = needs_conversion ? (void*)base_local_pose_converted : (void*)tracks_writer_base.tracks_typed.vqvf;
-			void* lossy_local_pose_ = needs_conversion ? (void*)lossy_local_pose_converted : (void*)tracks_writer1_remapped.tracks_typed.vqvf;
+			// The additive applies to the rtm::vqvf source transforms, before the conversion
+			const void* raw_local_pose_ = needs_conversion ? (void*)raw_local_pose_converted : (void*)tracks_writer0.tracks_typed.vqvf;
+			const void* lossy_local_pose_ = needs_conversion ? (void*)lossy_local_pose_converted : (void*)tracks_writer1_remapped.tracks_typed.vqvf;
 
 			itransform_error_metric::convert_transforms_args convert_transforms_args_raw;
 			convert_transforms_args_raw.dirty_transform_indices = self_transform_indices;
@@ -286,10 +284,6 @@ namespace acl
 			convert_transforms_args_raw.is_lossy = false;
 			convert_transforms_args_raw.is_additive_base = false;
 
-			itransform_error_metric::convert_transforms_args convert_transforms_args_base = convert_transforms_args_raw;
-			convert_transforms_args_base.transforms = tracks_writer_base.tracks_typed.vqvf;
-			convert_transforms_args_base.is_additive_base = true;
-
 			itransform_error_metric::convert_transforms_args convert_transforms_args_lossy = convert_transforms_args_raw;
 			convert_transforms_args_lossy.transforms = tracks_writer1_remapped.tracks_typed.vqvf;
 			convert_transforms_args_lossy.is_lossy = true;
@@ -297,12 +291,12 @@ namespace acl
 			itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args_raw;
 			apply_additive_to_base_args_raw.dirty_transform_indices = self_transform_indices;
 			apply_additive_to_base_args_raw.num_dirty_transforms = num_tracks;
-			apply_additive_to_base_args_raw.local_transforms = raw_local_pose_;
-			apply_additive_to_base_args_raw.base_transforms = base_local_pose_;
+			apply_additive_to_base_args_raw.local_transforms = tracks_writer0.tracks_typed.vqvf;
+			apply_additive_to_base_args_raw.base_transforms = tracks_writer_base.tracks_typed.vqvf;
 			apply_additive_to_base_args_raw.num_transforms = num_tracks;
 
 			itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args_lossy = apply_additive_to_base_args_raw;
-			apply_additive_to_base_args_lossy.local_transforms = lossy_local_pose_;
+			apply_additive_to_base_args_lossy.local_transforms = tracks_writer1_remapped.tracks_typed.vqvf;
 
 			itransform_error_metric::local_to_object_space_args local_to_object_space_args_raw;
 			local_to_object_space_args_raw.dirty_transform_indices = self_transform_indices;
@@ -328,29 +322,22 @@ namespace acl
 				// Maybe remap them
 				args.adapter.remap_output(tracks_writer0, tracks_writer1, tracks_writer1_remapped);
 
-				if (needs_conversion)
-				{
-					convert_transforms_args_raw.sample_index = sample_index;
-					convert_transforms_args_lossy.sample_index = sample_index;
-					error_metric.convert_transforms(convert_transforms_args_raw, raw_local_pose_converted);
-					error_metric.convert_transforms(convert_transforms_args_lossy, lossy_local_pose_converted);
-				}
-
 				if (has_additive_base)
 				{
 					const float normalized_sample_time = additive_num_samples > 1 ? (sample_time / clip_duration) : 0.0F;
 					const float additive_sample_time = additive_num_samples > 1 ? (normalized_sample_time * additive_duration) : 0.0F;
 					args.adapter.sample_tracks_base(additive_sample_time, rounding_policy, tracks_writer_base);
 
-					if (needs_conversion)
-					{
-						const uint32_t nearest_base_sample_index = static_cast<uint32_t>(rtm::scalar_round_bankers(normalized_sample_time * float(additive_num_samples)));
-						convert_transforms_args_base.sample_index = nearest_base_sample_index;
-						error_metric.convert_transforms(convert_transforms_args_base, base_local_pose_converted);
-					}
+					error_metric.apply_additive_to_base(apply_additive_to_base_args_raw, tracks_writer0.tracks_typed.vqvf);
+					error_metric.apply_additive_to_base(apply_additive_to_base_args_lossy, tracks_writer1_remapped.tracks_typed.vqvf);
+				}
 
-					error_metric.apply_additive_to_base(apply_additive_to_base_args_raw, raw_local_pose_);
-					error_metric.apply_additive_to_base(apply_additive_to_base_args_lossy, lossy_local_pose_);
+				if (needs_conversion)
+				{
+					convert_transforms_args_raw.sample_index = sample_index;
+					convert_transforms_args_lossy.sample_index = sample_index;
+					error_metric.convert_transforms(convert_transforms_args_raw, raw_local_pose_converted);
+					error_metric.convert_transforms(convert_transforms_args_lossy, lossy_local_pose_converted);
 				}
 
 				error_metric.local_to_object_space(local_to_object_space_args_raw, raw_object_pose);
@@ -381,7 +368,6 @@ namespace acl
 			result.error = rtm::scalar_sqrt(result.error);
 
 			deallocate_type_array(allocator, raw_local_pose_converted, num_tracks * transform_size);
-			deallocate_type_array(allocator, base_local_pose_converted, num_tracks * transform_size);
 			deallocate_type_array(allocator, lossy_local_pose_converted, num_tracks * transform_size);
 			deallocate_type_array(allocator, raw_object_pose, num_tracks * transform_size);
 			deallocate_type_array(allocator, lossy_object_pose, num_tracks * transform_size);

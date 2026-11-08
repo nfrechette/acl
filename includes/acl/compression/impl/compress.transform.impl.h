@@ -144,6 +144,11 @@ namespace acl
 			if (result.any())
 				return result;
 
+			// When the settings do not supply an error metric, we use the default for the additive format
+			default_transform_error_metrics default_error_metrics;
+			if (settings.error_metric == nullptr)
+				settings.error_metric = default_error_metrics.get(additive_format);
+
 			compression_stats_t compression_stats;
 			(void)compression_stats;
 

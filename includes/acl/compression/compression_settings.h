@@ -230,7 +230,11 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// The error metric to use.
-		// Defaults to 'null', this value must be set manually!
+		// When 'null', compression uses 'vqmf_transform_error_metric' (or its additive variant
+		// for the additive format of the clip). Without scale, it uses VQ arithmetic. With scale,
+		// it uses VQM arithmetic, which keeps the shear and gives exact object space transforms.
+		// Set a value only to use a different runtime transform type (e.g. VQV) or a custom error metric.
+		// Defaults to 'null'.
 		// Transform tracks only.
 		itransform_error_metric* error_metric = nullptr;
 

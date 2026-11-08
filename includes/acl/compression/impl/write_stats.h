@@ -131,10 +131,13 @@ namespace acl
 		inline void write_exhaustive_segment_stats(iallocator& allocator, const segment_context& segment, const clip_context& raw_clip_context, const clip_context& additive_base_clip_context, const compression_settings& settings, const track_array_vqvf& track_list, sjson::ObjectWriter& writer)
 		{
 			const uint32_t num_bones = raw_clip_context.num_bones;
-			const bool has_scale = segment_context_has_scale(segment);
 
-			ACL_ASSERT(!settings.error_metric->needs_conversion(has_scale), "Error metric conversion not supported");
+			// When the transform layout of the error metric depends on the scale, we must use the functions with scale
+			const bool has_scale = segment_context_has_scale(segment) || is_error_metric_layout_scale_dependent(*settings.error_metric);
+			const bool needs_conversion = settings.error_metric->needs_conversion(has_scale);
+			const size_t metric_transform_size = settings.error_metric->get_transform_size(has_scale);
 
+			const auto convert_transforms_impl = std::mem_fn(has_scale ? &itransform_error_metric::convert_transforms : &itransform_error_metric::convert_transforms_no_scale);
 			const auto local_to_object_space_impl = std::mem_fn(has_scale ? &itransform_error_metric::local_to_object_space : &itransform_error_metric::local_to_object_space_no_scale);
 			const auto calculate_error_squared_impl = std::mem_fn(has_scale ? &itransform_error_metric::calculate_error_squared : &itransform_error_metric::calculate_error_squared_no_scale);
 			const auto apply_additive_to_base_impl = std::mem_fn(has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
@@ -143,8 +146,12 @@ namespace acl
 			rtm::vqvf* base_local_pose = allocate_type_array<rtm::vqvf>(allocator, num_bones);
 			rtm::vqvf* lossy_local_pose = allocate_type_array<rtm::vqvf>(allocator, num_bones);
 
-			rtm::vqvf* raw_object_pose = allocate_type_array<rtm::vqvf>(allocator, num_bones);
-			rtm::vqvf* lossy_object_pose = allocate_type_array<rtm::vqvf>(allocator, num_bones);
+			// The error metric functions use their own transform type after the conversion
+			uint8_t* raw_local_pose_converted = needs_conversion ? allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size * num_bones, 64) : nullptr;
+			uint8_t* lossy_local_pose_converted = needs_conversion ? allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size * num_bones, 64) : nullptr;
+
+			uint8_t* raw_object_pose = allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size * num_bones, 64);
+			uint8_t* lossy_object_pose = allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size * num_bones, 64);
 
 			uint32_t* parent_transform_indices = allocate_type_array<uint32_t>(allocator, num_bones);
 			uint32_t* self_transform_indices = allocate_type_array<uint32_t>(allocator, num_bones);
@@ -171,15 +178,28 @@ namespace acl
 			itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args_lossy = apply_additive_to_base_args_raw;
 			apply_additive_to_base_args_lossy.local_transforms = lossy_local_pose;
 
+			itransform_error_metric::convert_transforms_args convert_transforms_args_raw;
+			convert_transforms_args_raw.dirty_transform_indices = self_transform_indices;
+			convert_transforms_args_raw.num_dirty_transforms = num_bones;
+			convert_transforms_args_raw.transforms = raw_local_pose;
+			convert_transforms_args_raw.num_transforms = num_bones;
+			convert_transforms_args_raw.sample_index = 0;
+			convert_transforms_args_raw.is_lossy = false;
+			convert_transforms_args_raw.is_additive_base = false;
+
+			itransform_error_metric::convert_transforms_args convert_transforms_args_lossy = convert_transforms_args_raw;
+			convert_transforms_args_lossy.transforms = lossy_local_pose;
+			convert_transforms_args_lossy.is_lossy = true;
+
 			itransform_error_metric::local_to_object_space_args local_to_object_space_args_raw;
 			local_to_object_space_args_raw.dirty_transform_indices = self_transform_indices;
 			local_to_object_space_args_raw.num_dirty_transforms = num_bones;
 			local_to_object_space_args_raw.parent_transform_indices = parent_transform_indices;
-			local_to_object_space_args_raw.local_transforms = raw_local_pose;
+			local_to_object_space_args_raw.local_transforms = needs_conversion ? (const void*)raw_local_pose_converted : (const void*)raw_local_pose;
 			local_to_object_space_args_raw.num_transforms = num_bones;
 
 			itransform_error_metric::local_to_object_space_args local_to_object_space_args_lossy = local_to_object_space_args_raw;
-			local_to_object_space_args_lossy.local_transforms = lossy_local_pose;
+			local_to_object_space_args_lossy.local_transforms = needs_conversion ? (const void*)lossy_local_pose_converted : (const void*)lossy_local_pose;
 
 			track_error worst_bone_error;
 			worst_bone_error.error = -1.0F;		// Can never have a negative error, use -1 so the first sample is used
@@ -205,6 +225,14 @@ namespace acl
 						apply_additive_to_base_impl(settings.error_metric, apply_additive_to_base_args_lossy, lossy_local_pose);
 					}
 
+					if (needs_conversion)
+					{
+						convert_transforms_args_raw.sample_index = segment.clip_sample_offset + sample_index;
+						convert_transforms_args_lossy.sample_index = segment.clip_sample_offset + sample_index;
+						convert_transforms_impl(settings.error_metric, convert_transforms_args_raw, raw_local_pose_converted);
+						convert_transforms_impl(settings.error_metric, convert_transforms_args_lossy, lossy_local_pose_converted);
+					}
+
 					local_to_object_space_impl(settings.error_metric, local_to_object_space_args_raw, raw_object_pose);
 					local_to_object_space_impl(settings.error_metric, local_to_object_space_args_lossy, lossy_object_pose);
 
@@ -216,8 +244,8 @@ namespace acl
 								const track_desc_transformf& desc = track_list[bone_index].get_description();
 
 								itransform_error_metric::calculate_error_args calculate_error_args;
-								calculate_error_args.transform0 = raw_object_pose + bone_index;
-								calculate_error_args.transform1 = lossy_object_pose + bone_index;
+								calculate_error_args.transform0 = raw_object_pose + (metric_transform_size * bone_index);
+								calculate_error_args.transform1 = lossy_object_pose + (metric_transform_size * bone_index);
 								calculate_error_args.construct_sphere_shell(desc.shell_distance);
 
 								const float error_sq = rtm::scalar_cast(calculate_error_squared_impl(settings.error_metric, calculate_error_args));
@@ -246,8 +274,11 @@ namespace acl
 			deallocate_type_array(allocator, base_local_pose, num_bones);
 			deallocate_type_array(allocator, lossy_local_pose, num_bones);
 
-			deallocate_type_array(allocator, raw_object_pose, num_bones);
-			deallocate_type_array(allocator, lossy_object_pose, num_bones);
+			deallocate_type_array(allocator, raw_local_pose_converted, metric_transform_size * num_bones);
+			deallocate_type_array(allocator, lossy_local_pose_converted, metric_transform_size * num_bones);
+
+			deallocate_type_array(allocator, raw_object_pose, metric_transform_size * num_bones);
+			deallocate_type_array(allocator, lossy_object_pose, metric_transform_size * num_bones);
 
 			deallocate_type_array(allocator, parent_transform_indices, num_bones);
 			deallocate_type_array(allocator, self_transform_indices, num_bones);

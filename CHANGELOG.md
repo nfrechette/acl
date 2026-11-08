@@ -13,6 +13,13 @@
 *  Add the `-fast_math` option to `make.py` to compile the public headers with fast math, and a CI workflow that uses it
 *  Add native Linux `riscv64` builds to `make.py`, they use the scalar code path of RTM
 *  Fix `split_database_bulk_data` that gave a null pointer to `std::memcpy` when a quality tier is empty
+*  Add `vqmf_transform_error_metric` and `additive_vqmf_transform_error_metric`, they use exact VQM arithmetic when scale is present
+*  `compression_settings::error_metric` and `pre_process_settings_t::error_metric` are now optional, when null ACL uses `vqmf_transform_error_metric` (or its additive variant)
+*  Add `transform_runtime_type8` and `itransform_error_metric::get_runtime_type()`, the bit rate algorithm v2 uses the cached transforms with scale when the type is `vqmf`
+*  ACL now applies the additive base to the `rtm::vqvf` source transforms before `convert_transforms`, `apply_additive_to_base` always receives `rtm::vqvf` transforms
+*  Loop optimization and the detailed segment stats now support error metrics that convert transforms
+*  Fix the SoA quaternion rotation of the error metrics, two terms had the wrong sign
+*  Add the `-error_vqv` option and the `use_vqv_error_metric` config option to `acl_compressor`
 
 ## 2.1.0
 

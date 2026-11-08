@@ -67,8 +67,8 @@ namespace acl
 				return false;	// No data present
 
 			const bool has_scale = true;	// We assume we have scale for simplicity
-			if (error_metric.needs_conversion(has_scale))
-				return false;	// We don't support error metrics that require conversion
+			const bool needs_conversion = error_metric.needs_conversion(has_scale);
+			const size_t metric_transform_size = error_metric.get_transform_size(has_scale);
 
 			const uint32_t first_sample_index = 0;
 			const uint32_t last_sample_index = num_samples - 1;
@@ -88,6 +88,16 @@ namespace acl
 
 			rtm::vqvf* base_transforms_first = base_transforms;
 			rtm::vqvf* base_transforms_last = base_transforms + num_transforms;
+
+			// The error metric functions use their own transform type after the conversion
+			uint8_t* converted_transforms = needs_conversion ? allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size * num_transforms * 2, 64) : nullptr;
+			uint8_t* object_transforms = allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size * num_transforms * 2, 64);
+
+			uint8_t* local_transforms_first = needs_conversion ? converted_transforms : reinterpret_cast<uint8_t*>(clip_transforms_first);
+			uint8_t* local_transforms_last = needs_conversion ? (converted_transforms + (metric_transform_size * num_transforms)) : reinterpret_cast<uint8_t*>(clip_transforms_last);
+
+			uint8_t* object_transforms_first = object_transforms;
+			uint8_t* object_transforms_last = object_transforms + (metric_transform_size * num_transforms);
 
 			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 			{
@@ -142,20 +152,40 @@ namespace acl
 				error_metric.apply_additive_to_base(apply_additive_to_base_args, clip_transforms_last);
 			}
 
+			// Convert to the transform type of the error metric
+			if (needs_conversion)
+			{
+				itransform_error_metric::convert_transforms_args convert_transforms_args;
+				convert_transforms_args.dirty_transform_indices = dirty_transform_indices;
+				convert_transforms_args.num_dirty_transforms = num_transforms;
+				convert_transforms_args.transforms = clip_transforms_first;
+				convert_transforms_args.num_transforms = num_transforms;
+				convert_transforms_args.sample_index = first_sample_index;
+				convert_transforms_args.is_lossy = false;
+				convert_transforms_args.is_additive_base = false;
+
+				error_metric.convert_transforms(convert_transforms_args, local_transforms_first);
+
+				convert_transforms_args.transforms = clip_transforms_last;
+				convert_transforms_args.sample_index = last_sample_index;
+
+				error_metric.convert_transforms(convert_transforms_args, local_transforms_last);
+			}
+
 			// Convert to object space
 			{
 				itransform_error_metric::local_to_object_space_args local_to_object_space_args;
 				local_to_object_space_args.dirty_transform_indices = dirty_transform_indices;
 				local_to_object_space_args.num_dirty_transforms = num_transforms;
 				local_to_object_space_args.parent_transform_indices = parent_transform_indices;
-				local_to_object_space_args.local_transforms = (const void*)clip_transforms_first;
+				local_to_object_space_args.local_transforms = (const void*)local_transforms_first;
 				local_to_object_space_args.num_transforms = num_transforms;
 
-				error_metric.local_to_object_space(local_to_object_space_args, clip_transforms_first);
+				error_metric.local_to_object_space(local_to_object_space_args, object_transforms_first);
 
-				local_to_object_space_args.local_transforms = (const void*)clip_transforms_last;
+				local_to_object_space_args.local_transforms = (const void*)local_transforms_last;
 
-				error_metric.local_to_object_space(local_to_object_space_args, clip_transforms_last);
+				error_metric.local_to_object_space(local_to_object_space_args, object_transforms_last);
 			}
 
 			// Detect if our last sample matches the first, if it does we are looping and we can
@@ -170,8 +200,8 @@ namespace acl
 
 					itransform_error_metric::calculate_error_args calculate_error_args;
 					calculate_error_args.construct_sphere_shell(shell_distance);
-					calculate_error_args.transform0 = clip_transforms_first + transform_index;
-					calculate_error_args.transform1 = clip_transforms_last + transform_index;
+					calculate_error_args.transform0 = object_transforms_first + (metric_transform_size * transform_index);
+					calculate_error_args.transform1 = object_transforms_last + (metric_transform_size * transform_index);
 
 					const rtm::scalarf error_sq = error_metric.calculate_error_squared(calculate_error_args);
 
@@ -188,6 +218,8 @@ namespace acl
 			deallocate_type_array(allocator, parent_transform_indices, num_transforms);
 			deallocate_type_array(allocator, clip_transforms, num_transforms * 2);
 			deallocate_type_array(allocator, base_transforms, num_transforms * 2);
+			deallocate_type_array(allocator, converted_transforms, metric_transform_size * num_transforms * 2);
+			deallocate_type_array(allocator, object_transforms, metric_transform_size * num_transforms * 2);
 
 			return is_wrapping;
 		}

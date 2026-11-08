@@ -182,10 +182,17 @@ namespace acl
 
 	inline error_result pre_process_track_list(
 		iallocator& allocator,
-		const pre_process_settings_t& settings,
+		const pre_process_settings_t& input_settings,
 		track_array& track_list)
 	{
 		using namespace acl_impl;
+
+		// When the settings do not supply an error metric, we use the default for the additive format
+		// This is the same error metric that compression uses by default
+		default_transform_error_metrics default_error_metrics;
+		pre_process_settings_t settings = input_settings;
+		if (settings.error_metric == nullptr)
+			settings.error_metric = default_error_metrics.get(settings.additive_format);
 
 		if (track_list.is_empty())
 			return error_result();	// No tracks, nothing to do
@@ -227,31 +234,16 @@ namespace acl
 
 		if (are_any_enum_flags_set(settings.actions, pre_process_actions::optimize_looping))
 		{
-			if (track_type == track_type8::vqvf &&
-				settings.precision_policy == pre_process_precision_policy::lossy &&
-				settings.error_metric == nullptr)
-				return error_result("'error_metric' is required when optimizing looping transform tracks");
-
 			pre_process_optimize_looping(context);
 		}
 
 		if (are_any_enum_flags_set(settings.actions, pre_process_actions::sanitize_constant_tracks))
 		{
-			if (track_type == track_type8::vqvf &&
-				settings.precision_policy == pre_process_precision_policy::lossy &&
-				settings.error_metric == nullptr)
-				return error_result("'error_metric' is required when sanitizing lossy constant transform tracks");
-
 			pre_process_sanitize_constant_tracks(context);
 		}
 
 		if (are_any_enum_flags_set(settings.actions, pre_process_actions::sanitize_default_tracks))
 		{
-			if (track_type == track_type8::vqvf &&
-				settings.precision_policy == pre_process_precision_policy::lossy &&
-				settings.error_metric == nullptr)
-				return error_result("'error_metric' is required when sanitizing lossy default transform tracks");
-
 			if (track_type == track_type8::vqvf)
 				pre_process_sanitize_default_tracks(context);
 		}

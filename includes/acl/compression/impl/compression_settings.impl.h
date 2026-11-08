@@ -136,9 +136,6 @@ namespace acl
 
 	inline error_result compression_settings::is_valid() const
 	{
-		if (error_metric == nullptr)
-			return error_result("error_metric cannot be NULL");
-
 		const error_result keyframe_stripping_result = keyframe_stripping.is_valid();
 		if (keyframe_stripping_result.any())
 			return keyframe_stripping_result;

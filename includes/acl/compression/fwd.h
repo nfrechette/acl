@@ -84,11 +84,15 @@ namespace acl
 
 	enum class additive_clip_format8 : uint8_t;
 
+	enum class transform_runtime_type8 : uint8_t;
+
 	class itransform_error_metric;
 	class vqvf_transform_error_metric;
 	class vqvf_precise_transform_error_metric;
 	class vqvf_matrix3x4f_transform_error_metric;
 	template<additive_clip_format8 additive_format> class additive_vqvf_transform_error_metric;
+	class vqmf_transform_error_metric;
+	template<additive_clip_format8 additive_format> class additive_vqmf_transform_error_metric;
 
 	using qvvf_transform_error_metric ACL_DEPRECATED("Use 'vqvf_transform_error_metric' instead, to be removed in v2.3") = vqvf_transform_error_metric;
 	using qvvf_precise_transform_error_metric ACL_DEPRECATED("Use 'vqvf_precise_transform_error_metric' instead, to be removed in v2.3") = vqvf_precise_transform_error_metric;

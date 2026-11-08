@@ -104,7 +104,6 @@ namespace acl
 			rtm::vqvf local_transforms[2];
 			rtm::vqvf base_transforms[2];
 			alignas(16) uint8_t local_transforms_converted[1024];	// Big enough for 2 transforms for sure
-			alignas(16) uint8_t base_transforms_converted[1024];	// Big enough for 2 transforms for sure
 
 			const size_t metric_transform_size = error_metric.get_transform_size(has_scale);
 			ACL_ASSERT(metric_transform_size * 2 <= sizeof(local_transforms_converted), "Transform size is too large");
@@ -115,19 +114,11 @@ namespace acl
 			convert_transforms_args_local.num_transforms = 1;
 			convert_transforms_args_local.is_additive_base = false;
 
-			itransform_error_metric::convert_transforms_args convert_transforms_args_base;
-			convert_transforms_args_base.dirty_transform_indices = &dirty_transform_indices[0];
-			convert_transforms_args_base.num_dirty_transforms = 2;
-			convert_transforms_args_base.num_transforms = 2;
-			convert_transforms_args_base.transforms = &base_transforms[0];
-			convert_transforms_args_base.is_additive_base = true;
-			convert_transforms_args_base.is_lossy = false;
-
 			itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args;
 			apply_additive_to_base_args.dirty_transform_indices = &dirty_transform_indices[0];
 			apply_additive_to_base_args.num_dirty_transforms = 2;
-			apply_additive_to_base_args.base_transforms = needs_conversion ? (const void*)&base_transforms_converted[0] : (const void*)&base_transforms[0];
-			apply_additive_to_base_args.local_transforms = needs_conversion ? (const void*)&local_transforms_converted[0] : (const void*)&local_transforms[0];
+			apply_additive_to_base_args.base_transforms = &base_transforms[0];
+			apply_additive_to_base_args.local_transforms = &local_transforms[0];
 			apply_additive_to_base_args.num_transforms = 2;
 
 			itransform_error_metric::calculate_error_args calculate_error_args;
@@ -165,23 +156,6 @@ namespace acl
 				local_transforms[0] = raw_transform;
 				local_transforms[1] = lossy_transform;
 
-				if (needs_conversion)
-				{
-					convert_transforms_args_local.sample_index = sample_index;
-
-					convert_transforms_args_local.transforms = &local_transforms[0];
-					convert_transforms_args_local.is_lossy = false;
-
-					error_metric.convert_transforms(convert_transforms_args_local, &local_transforms_converted[metric_transform_size * 0]);
-
-					convert_transforms_args_local.transforms = &local_transforms[1];
-					convert_transforms_args_local.is_lossy = true;
-
-					error_metric.convert_transforms(convert_transforms_args_local, &local_transforms_converted[metric_transform_size * 1]);
-				}
-				else
-					std::memcpy(&local_transforms_converted[0], &local_transforms[0], metric_transform_size * 2);
-
 				if (has_additive_base)
 				{
 					const segment_context& additive_base_segment = additive_base_clip_context.segments[0];
@@ -205,16 +179,26 @@ namespace acl
 					base_transforms[0] = base_transform;
 					base_transforms[1] = base_transform;
 
-					if (needs_conversion)
-					{
-						convert_transforms_args_base.sample_index = base_sample_index;
-						error_metric.convert_transforms(convert_transforms_args_base, &base_transforms_converted[0]);
-					}
-					else
-						std::memcpy(&base_transforms_converted[0], &base_transforms[0], metric_transform_size * 2);
-
-					error_metric.apply_additive_to_base(apply_additive_to_base_args, &local_transforms_converted[0]);
+					// The additive applies to the source transforms, before the conversion
+					error_metric.apply_additive_to_base(apply_additive_to_base_args, &local_transforms[0]);
 				}
+
+				if (needs_conversion)
+				{
+					convert_transforms_args_local.sample_index = sample_index;
+
+					convert_transforms_args_local.transforms = &local_transforms[0];
+					convert_transforms_args_local.is_lossy = false;
+
+					error_metric.convert_transforms(convert_transforms_args_local, &local_transforms_converted[metric_transform_size * 0]);
+
+					convert_transforms_args_local.transforms = &local_transforms[1];
+					convert_transforms_args_local.is_lossy = true;
+
+					error_metric.convert_transforms(convert_transforms_args_local, &local_transforms_converted[metric_transform_size * 1]);
+				}
+				else
+					std::memcpy(&local_transforms_converted[0], &local_transforms[0], metric_transform_size * 2);
 
 				const rtm::scalarf vtx_error_sq = error_metric.calculate_error_squared(calculate_error_args);
 

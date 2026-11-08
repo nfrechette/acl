@@ -32,9 +32,11 @@
 #include "acl/compression/fwd.h"
 #include "acl/math/vector4f.h"
 #include "acl/math/quatf.h"
+#include "acl/math/vqmf.h"
 #include "acl/math/vqvf.h"
 
 #include <rtm/matrix3x4f.h>
+#include <rtm/vqmf.h>
 #include <rtm/vqvd.h>
 #include <rtm/vqvf.h>
 #include <rtm/scalarf.h>
@@ -59,10 +61,32 @@ namespace acl
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
 	//////////////////////////////////////////////////////////////////////////
+	// The transform types that an error metric uses at runtime to compose transforms
+	// and to measure the error. The type applies to the functions with scale.
+	// Without scale, the built-in error metrics use rtm::vqvf as a VQ transform: they ignore the scale.
+	enum class transform_runtime_type8 : uint8_t
+	{
+		//////////////////////////////////////////////////////////////////////////
+		// The error metric uses a transform type that ACL does not know.
+		// ACL uses this transform type only through the functions of the error metric.
+		custom		= 0,
+
+		//////////////////////////////////////////////////////////////////////////
+		// The error metric uses rtm::vqvf: a rotation, a translation, and a 3D scale.
+		// The product of two rtm::vqvf transforms discards the shear. Thus the product is not associative.
+		vqvf		= 1,
+
+		//////////////////////////////////////////////////////////////////////////
+		// The error metric uses rtm::vqmf: a rotation, a translation, and a 3x3 scale/shear matrix.
+		// The product of two rtm::vqmf transforms keeps the shear. Thus the product is exact and associative.
+		vqmf		= 2,
+	};
+
+	//////////////////////////////////////////////////////////////////////////
 	// Interface for all skeletal error metrics.
 	// An error metric is responsible for a few things:
+	//    - applying local space rtm::vqvf transforms on top of rtm::vqvf base transforms (optional)
 	//    - converting from rtm::vqvf into whatever transform type the metric uses (optional)
-	//    - applying local space transforms on top of base transforms (optional)
 	//    - transforming local space transforms into object space
 	//    - evaluating the error function
 	//
@@ -91,6 +115,12 @@ namespace acl
 		// If this is the case, we need to convert from rtm::vqvf into the transform type
 		// used by the error metric.
 		virtual bool needs_conversion(bool has_scale) const { (void)has_scale; return false; }
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the transform type that the functions with scale use.
+		// The bit rate algorithm v2 uses it to select its transform arithmetic.
+		// When the error metric supports that algorithm and returns 'custom', the algorithm uses rtm::vqvf.
+		virtual transform_runtime_type8 get_runtime_type() const { return transform_runtime_type8::custom; }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Whether or not this error metric supports the new bit rate algorithm v2
@@ -128,9 +158,8 @@ namespace acl
 			bool is_lossy;
 
 			//////////////////////////////////////////////////////////////////////////
-			// True if these transforms are being converted from the additive base pose.
-			// False if these transforms are being converted from the additive pose.
-			// If not using a base, this value is always false.
+			// ACL applies the additive base pose before the conversion and does not convert the base pose.
+			// Thus this value is always false.
 			bool is_additive_base;
 		};
 
@@ -213,11 +242,11 @@ namespace acl
 			uint32_t num_dirty_transforms;
 
 			//////////////////////////////////////////////////////////////////////////
-			// The input local space transforms in the type expected by the error metric.
+			// The input local space transforms in rtm::vqvf format.
 			const void* local_transforms;
 
 			//////////////////////////////////////////////////////////////////////////
-			// The input base transforms in the type expected by the error metric.
+			// The input base transforms in rtm::vqvf format.
 			const void* base_transforms;
 
 			//////////////////////////////////////////////////////////////////////////
@@ -228,6 +257,8 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Applies local space transforms on top of base transforms.
 		// This is called when a clip has an additive base.
+		// The input and output transforms are in rtm::vqvf format. ACL calls this function
+		// before 'convert_transforms', thus the additive applies to the source transforms.
 		virtual void apply_additive_to_base(const apply_additive_to_base_args& args, void* out_transforms) const
 		{
 			(void)args;
@@ -238,6 +269,8 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Applies local space transforms on top of base transforms.
 		// This is called when a clip has an additive base.
+		// The input and output transforms are in rtm::vqvf format. ACL calls this function
+		// before 'convert_transforms_no_scale', thus the additive applies to the source transforms.
 		virtual void apply_additive_to_base_no_scale(const apply_additive_to_base_args& args, void* out_transforms) const
 		{
 			(void)args;
@@ -356,6 +389,7 @@ namespace acl
 
 		virtual size_t get_transform_size(bool has_scale) const override { (void)has_scale; return sizeof(rtm::vqvf); }
 		virtual bool needs_conversion(bool has_scale) const override { (void)has_scale; return false; }
+		virtual transform_runtime_type8 get_runtime_type() const override { return transform_runtime_type8::vqvf; }
 		virtual bool supports_bit_rate_algorithm_v2() const override { return true; }
 
 		virtual RTM_DISABLE_SECURITY_COOKIE_CHECK void local_to_object_space(const local_to_object_space_args& args, void* out_object_transforms) const override
@@ -629,6 +663,7 @@ namespace acl
 
 		virtual size_t get_transform_size(bool has_scale) const override { return has_scale ? sizeof(rtm::matrix3x4f) : sizeof(rtm::vqvf); }
 		virtual bool needs_conversion(bool has_scale) const override { return has_scale; }
+		virtual transform_runtime_type8 get_runtime_type() const override { return transform_runtime_type8::custom; }
 		virtual bool supports_bit_rate_algorithm_v2() const override { return false; }
 
 		virtual RTM_DISABLE_SECURITY_COOKIE_CHECK void convert_transforms(const convert_transforms_args& args, void* out_transforms) const override
@@ -767,6 +802,227 @@ namespace acl
 			}
 		}
 	};
+
+	//////////////////////////////////////////////////////////////////////////
+	// Uses rtm::vqmf arithmetic for local and object space error when scale is present.
+	// The product of two transforms with non-uniform scale contains shear, and rtm::vqmf keeps it.
+	// Thus the object space transforms are exact, and the product is associative.
+	// Without scale, it uses rtm::vqvf arithmetic and ignores the scale (a VQ transform).
+	// Compression uses this error metric when the settings do not supply one.
+	//////////////////////////////////////////////////////////////////////////
+	class vqmf_transform_error_metric : public vqvf_transform_error_metric
+	{
+	public:
+		virtual const char* get_name() const override { return "vqmf_transform_error_metric"; }
+
+		virtual size_t get_transform_size(bool has_scale) const override { return has_scale ? sizeof(rtm::vqmf) : sizeof(rtm::vqvf); }
+		virtual bool needs_conversion(bool has_scale) const override { return has_scale; }
+		virtual transform_runtime_type8 get_runtime_type() const override { return transform_runtime_type8::vqmf; }
+		virtual bool supports_bit_rate_algorithm_v2() const override { return true; }
+
+		virtual RTM_DISABLE_SECURITY_COOKIE_CHECK void convert_transforms(const convert_transforms_args& args, void* out_transforms) const override
+		{
+			const uint32_t* dirty_transform_indices = args.dirty_transform_indices;
+			const rtm::vqvf* transforms_ = args.transforms;
+			rtm::vqmf* out_transforms_ = static_cast<rtm::vqmf*>(out_transforms);
+
+			const uint32_t num_dirty_transforms = args.num_dirty_transforms;
+			for (uint32_t dirty_transform_index = 0; dirty_transform_index < num_dirty_transforms; ++dirty_transform_index)
+			{
+				const uint32_t transform_index = dirty_transform_indices[dirty_transform_index];
+
+				const rtm::vqvf& transform_vqv = transforms_[transform_index];
+				out_transforms_[transform_index] = rtm::vqm_set(transform_vqv.rotation, transform_vqv.translation, transform_vqv.scale);
+			}
+		}
+
+		virtual RTM_DISABLE_SECURITY_COOKIE_CHECK void local_to_object_space(const local_to_object_space_args& args, void* out_object_transforms) const override
+		{
+			const uint32_t* dirty_transform_indices = args.dirty_transform_indices;
+			const uint32_t* parent_transform_indices = args.parent_transform_indices;
+			const rtm::vqmf* local_transforms_ = static_cast<const rtm::vqmf*>(args.local_transforms);
+			rtm::vqmf* out_object_transforms_ = static_cast<rtm::vqmf*>(out_object_transforms);
+
+			const uint32_t num_dirty_transforms = args.num_dirty_transforms;
+			for (uint32_t dirty_transform_index = 0; dirty_transform_index < num_dirty_transforms; ++dirty_transform_index)
+			{
+				const uint32_t transform_index = dirty_transform_indices[dirty_transform_index];
+				const uint32_t parent_transform_index = parent_transform_indices[transform_index];
+
+				rtm::vqmf obj_transform;
+				if (parent_transform_index == k_invalid_track_index)
+					obj_transform = local_transforms_[transform_index];	// Just copy the root as-is, it has no parent and thus local and object space transforms are equal
+				else
+					obj_transform = rtm::vqm_normalize(rtm::vqm_mul(local_transforms_[transform_index], out_object_transforms_[parent_transform_index]));
+
+				out_object_transforms_[transform_index] = obj_transform;
+			}
+		}
+
+		virtual rtm::scalarf RTM_SIMD_CALL calculate_error_squared(const calculate_error_args& args) const override
+		{
+			const rtm::vqmf& raw_transform_ = *static_cast<const rtm::vqmf*>(args.transform0);
+			const rtm::vqmf& lossy_transform_ = *static_cast<const rtm::vqmf*>(args.transform1);
+
+			// Note that because we have scale, we must measure all three axes
+
+#if defined(ACL_IMPL_USE_SOA_ERROR_METRIC)
+			const rtm::vector4f vtx_xxx_ = args.shell_points_xxxx;
+			const rtm::vector4f vtx_yyy_ = args.shell_points_yyyy;
+			const rtm::vector4f vtx_zzz_ = args.shell_points_zzzz;
+
+			rtm::vector4f raw_vtx_xxx_;
+			rtm::vector4f raw_vtx_yyy_;
+			rtm::vector4f raw_vtx_zzz_;
+			acl_impl::vqm_mul_point3_x4(
+				vtx_xxx_, vtx_yyy_, vtx_zzz_,
+				raw_transform_,
+				raw_vtx_xxx_, raw_vtx_yyy_, raw_vtx_zzz_);
+
+			rtm::vector4f lossy_vtx_xxx_;
+			rtm::vector4f lossy_vtx_yyy_;
+			rtm::vector4f lossy_vtx_zzz_;
+			acl_impl::vqm_mul_point3_x4(
+				vtx_xxx_, vtx_yyy_, vtx_zzz_,
+				lossy_transform_,
+				lossy_vtx_xxx_, lossy_vtx_yyy_, lossy_vtx_zzz_);
+
+			rtm::vector4f vtx_error_sq_xyz_ = acl_impl::vector_distance_squared3_x4(
+				raw_vtx_xxx_, raw_vtx_yyy_, raw_vtx_zzz_,
+				lossy_vtx_xxx_, lossy_vtx_yyy_, lossy_vtx_zzz_);
+
+	#if defined(ACL_IMPL_USE_4_POINTS)
+			return rtm::vector_get_max_component_as_scalar(vtx_error_sq_xyz_);
+	#else
+			return rtm::vector_get_max_component_as_scalar(rtm::vector_set_w(vtx_error_sq_xyz_, 0.0F));
+	#endif
+#else
+			const rtm::vector4f vtx0 = args.shell_point_x;
+			const rtm::vector4f vtx1 = args.shell_point_y;
+			const rtm::vector4f vtx2 = args.shell_point_z;
+
+			const rtm::vector4f raw_vtx0 = rtm::vqm_mul_point3(vtx0, raw_transform_);
+			const rtm::vector4f raw_vtx1 = rtm::vqm_mul_point3(vtx1, raw_transform_);
+			const rtm::vector4f raw_vtx2 = rtm::vqm_mul_point3(vtx2, raw_transform_);
+
+			const rtm::vector4f lossy_vtx0 = rtm::vqm_mul_point3(vtx0, lossy_transform_);
+			const rtm::vector4f lossy_vtx1 = rtm::vqm_mul_point3(vtx1, lossy_transform_);
+			const rtm::vector4f lossy_vtx2 = rtm::vqm_mul_point3(vtx2, lossy_transform_);
+
+			const rtm::scalarf vtx0_error = rtm::vector_distance_squared3_as_scalar(raw_vtx0, lossy_vtx0);
+			const rtm::scalarf vtx1_error = rtm::vector_distance_squared3_as_scalar(raw_vtx1, lossy_vtx1);
+			const rtm::scalarf vtx2_error = rtm::vector_distance_squared3_as_scalar(raw_vtx2, lossy_vtx2);
+
+	#if defined(ACL_IMPL_USE_4_POINTS)
+			const rtm::vector4f vtx3 = args.shell_point_mid;
+			const rtm::vector4f raw_vtx3 = rtm::vqm_mul_point3(vtx3, raw_transform_);
+			const rtm::vector4f lossy_vtx3 = rtm::vqm_mul_point3(vtx3, lossy_transform_);
+			const rtm::scalarf vtx3_error = rtm::vector_distance_squared3_as_scalar(raw_vtx3, lossy_vtx3);
+			return rtm::scalar_max(rtm::scalar_max(vtx0_error, vtx1_error), rtm::scalar_max(vtx2_error, vtx3_error));
+	#else
+			return rtm::scalar_max(rtm::scalar_max(vtx0_error, vtx1_error), vtx2_error);
+	#endif
+#endif
+		}
+	};
+
+	//////////////////////////////////////////////////////////////////////////
+	// Uses rtm::vqmf arithmetic for local and object space error when scale is present.
+	// This error metric should be used whenever a clip is additive or relative.
+	// The additive applies to the rtm::vqvf source transforms, before the conversion to rtm::vqmf.
+	//////////////////////////////////////////////////////////////////////////
+	template<additive_clip_format8 additive_format>
+	class additive_vqmf_transform_error_metric : public vqmf_transform_error_metric
+	{
+	public:
+		virtual const char* get_name() const override
+		{
+			switch (additive_format)
+			{
+			default:
+			case additive_clip_format8::none:			return "additive_vqmf_transform_error_metric<none>";
+			case additive_clip_format8::relative:		return "additive_vqmf_transform_error_metric<relative>";
+			case additive_clip_format8::additive0:		return "additive_vqmf_transform_error_metric<additive0>";
+			case additive_clip_format8::additive1:		return "additive_vqmf_transform_error_metric<additive1>";
+			}
+		}
+
+		virtual RTM_DISABLE_SECURITY_COOKIE_CHECK void apply_additive_to_base(const apply_additive_to_base_args& args, void* out_transforms) const override
+		{
+			const uint32_t* dirty_transform_indices = args.dirty_transform_indices;
+			const rtm::vqvf* local_transforms_ = static_cast<const rtm::vqvf*>(args.local_transforms);
+			const rtm::vqvf* base_transforms_ = static_cast<const rtm::vqvf*>(args.base_transforms);
+			rtm::vqvf* out_transforms_ = static_cast<rtm::vqvf*>(out_transforms);
+
+			const uint32_t num_dirty_transforms = args.num_dirty_transforms;
+			for (uint32_t dirty_transform_index = 0; dirty_transform_index < num_dirty_transforms; ++dirty_transform_index)
+			{
+				const uint32_t transform_index = dirty_transform_indices[dirty_transform_index];
+
+				const rtm::vqvf& local_transform = local_transforms_[transform_index];
+				const rtm::vqvf& base_transform = base_transforms_[transform_index];
+				const rtm::vqvf transform = acl::apply_additive_to_base(additive_format, base_transform, local_transform);
+
+				out_transforms_[transform_index] = transform;
+			}
+		}
+
+		virtual RTM_DISABLE_SECURITY_COOKIE_CHECK void apply_additive_to_base_no_scale(const apply_additive_to_base_args& args, void* out_transforms) const override
+		{
+			const uint32_t* dirty_transform_indices = args.dirty_transform_indices;
+			const rtm::vqvf* local_transforms_ = static_cast<const rtm::vqvf*>(args.local_transforms);
+			const rtm::vqvf* base_transforms_ = static_cast<const rtm::vqvf*>(args.base_transforms);
+			rtm::vqvf* out_transforms_ = static_cast<rtm::vqvf*>(out_transforms);
+
+			const uint32_t num_dirty_transforms = args.num_dirty_transforms;
+			for (uint32_t dirty_transform_index = 0; dirty_transform_index < num_dirty_transforms; ++dirty_transform_index)
+			{
+				const uint32_t transform_index = dirty_transform_indices[dirty_transform_index];
+
+				const rtm::vqvf& local_transform = local_transforms_[transform_index];
+				const rtm::vqvf& base_transform = base_transforms_[transform_index];
+				const rtm::vqvf transform = acl::apply_additive_to_base_no_scale(additive_format, base_transform, local_transform);
+
+				out_transforms_[transform_index] = transform;
+			}
+		}
+	};
+
+	namespace acl_impl
+	{
+		//////////////////////////////////////////////////////////////////////////
+		// Returns true when the transform layout of the error metric depends on the scale.
+		// For example, the matrix error metric uses a vqvf without scale and a matrix3x4f with scale.
+		// When this is true, the caller must use the functions with scale, even when the clip has no scale.
+		inline bool is_error_metric_layout_scale_dependent(const itransform_error_metric& error_metric)
+		{
+			return error_metric.get_transform_size(false) != error_metric.get_transform_size(true) ||
+				error_metric.needs_conversion(false) != error_metric.needs_conversion(true);
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Holds the error metrics that ACL uses when the settings do not supply one.
+		// Each additive format needs its own error metric.
+		struct default_transform_error_metrics
+		{
+			vqmf_transform_error_metric none;
+			additive_vqmf_transform_error_metric<additive_clip_format8::relative> relative;
+			additive_vqmf_transform_error_metric<additive_clip_format8::additive0> additive0;
+			additive_vqmf_transform_error_metric<additive_clip_format8::additive1> additive1;
+
+			itransform_error_metric* get(additive_clip_format8 additive_format)
+			{
+				switch (additive_format)
+				{
+				default:
+				case additive_clip_format8::none:			return &none;
+				case additive_clip_format8::relative:		return &relative;
+				case additive_clip_format8::additive0:		return &additive0;
+				case additive_clip_format8::additive1:		return &additive1;
+				}
+			}
+		};
+	}
 
 	ACL_IMPL_VERSION_NAMESPACE_END
 }

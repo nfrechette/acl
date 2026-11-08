@@ -107,6 +107,7 @@ namespace acl
 		pre_process_precision_policy precision_policy = pre_process_precision_policy::lossless;
 
 		// The optional error metric to use with transform tracks when lossy
+		// When 'null', pre-processing uses the same default error metric as compression
 		// Lossy pre-processing only
 		// Transform tracks only
 		const itransform_error_metric* error_metric = nullptr;
