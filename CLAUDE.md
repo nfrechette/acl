@@ -26,7 +26,21 @@ python3 make.py -analyze             # clang static analyzer on the public heade
 
 Useful variants: `-compiler {osx,clang23,gcc15,vs2026,android,ios,emscripten,...}`, `-cpu {x64,x86,armv7,arm64,arm64ec,riscv64,...}`, `-cpp_version {11,14,17,20}`, `-avx`, `-avx2`, `-pop` (POPCNT), `-nosimd` (RTM scalar fallback path), `-nosjson` (no clip IO), `-fast_math` (compiles the include validation files with fast math, to verify that the public headers compile without warnings in that mode). Changing these flags regenerates CMake; use `-clean` if the cache seems stale. On Android, `-unit_test` and `-regression_test` run on the device with `adb`. iOS builds need manual code signing in Xcode.
 
-Regression tests (`-regression_test`) use `test_data/acl_regression_tests_v3.zip`; `make.py` downloads it when it is not there. Each clip is tested against each config in `test_data/configs/`. When a test fails, the script prints the `acl_compressor` command line that reproduces the failure. See `test_data/README.md` and `tools/acl_compressor/README.md`.
+Regression tests (`-regression_test`) use a zip of regression clips in `test_data/`; `make.py` downloads it when it is not there. Each clip is tested against each config in `test_data/configs/`. When a test fails, the script prints the `acl_compressor` command line that reproduces the failure. See `test_data/README.md` and `tools/acl_compressor/README.md`.
+
+### Compression statistics on a full data set
+
+`tools/acl_compressor/acl_compressor.py` compresses each `.acl` and `.acl.sjson` file in a directory tree. It writes one `<clip>_stats.sjson` file for each clip and prints the aggregate stats to stdout. Use it to measure the effect of a change on size, error, and compression time (for example on the CMU or Paragon raw data).
+
+```bash
+cd tools/acl_compressor && python3 acl_compressor.py -acl=<clip dir> -stats=<stats dir> -parallel=10
+```
+
+- Run it from `tools/acl_compressor/`. It finds the executable at `../../build/bin/acl_compressor`, thus build first (`python3 make.py -build`, Release).
+- The summary stats are sufficient for most comparisons. Use `-stat_detailed`, `-stat_exhaustive`, and the `-csv_*` options only to generate the charts of a release. Exhaustive stats make the stats files very large.
+- The script skips each clip that already has a stats file. Use a new `-stats` directory for each build or setting, or add `-refresh`.
+- The script passes `-level` (default `Medium`) and no `-config`, thus the executable uses `get_default_compression_settings()` and the default error metric.
+- Other options: `-level=<level>`, `-out=<dir>` (write the compressed binaries), `-strip_keyframe_proportion=`, `-strip_keyframe_threshold=`. See `python3 acl_compressor.py -help`.
 
 Builds use `-Wall -Wextra -Werror` (GCC/Clang) and `/W4 /WX` (MSVC) -- warnings break the build. Tests define `ACL_ON_ASSERT_THROW` (and `RTM_ON_ASSERT_THROW`, `SJSON_CPP_ON_ASSERT_THROW`) so asserts can be caught.
 
