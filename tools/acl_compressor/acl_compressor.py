@@ -6,6 +6,7 @@ import queue
 import threading
 import time
 import signal
+import subprocess
 import sys
 
 from itertools import chain
@@ -297,8 +298,9 @@ def run_acl_compressor(cmd_queue, result_queue):
 
 		(acl_filename, cmd) = entry
 
-		result = os.system(cmd)
-		if result != 0:
+		# Do not use os.system: on macOS, only one call to os.system runs at a time
+		result = subprocess.run(cmd, shell=True)
+		if result.returncode != 0:
 			print('Failed to execute cmd: {}'.format(cmd))
 		result_queue.put(acl_filename)
 
