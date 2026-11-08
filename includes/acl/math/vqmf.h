@@ -55,20 +55,35 @@ namespace acl
 			// return rtm::vqm_mul_point3(point, vqm);
 			// p' = p * M * R + t
 
-			// The row vector p multiplies M: p * M = (p.x * M.x_axis) + (p.y * M.y_axis) + (p.z * M.z_axis)
-			const rtm::matrix3x3f scale_shear = rtm::vqm_get_scale_shear(vqm);
+			rtm::vector4f result_xxxx;
+			rtm::vector4f result_yyyy;
+			rtm::vector4f result_zzzz;
 
-			rtm::vector4f result_xxxx = rtm::vector_mul(point_xxxx, rtm::vector_dup_x(scale_shear.x_axis));
-			rtm::vector4f result_yyyy = rtm::vector_mul(point_xxxx, rtm::vector_dup_y(scale_shear.x_axis));
-			rtm::vector4f result_zzzz = rtm::vector_mul(point_xxxx, rtm::vector_dup_z(scale_shear.x_axis));
+			if (rtm::rtm_impl::vqm_has_identity_scale_shear(vqm))
+			{
+				// The flag tells that M is exactly the identity, thus p * M = p
+				// This is the case for each transform without scale, we skip the matrix product
+				result_xxxx = point_xxxx;
+				result_yyyy = point_yyyy;
+				result_zzzz = point_zzzz;
+			}
+			else
+			{
+				// The row vector p multiplies M: p * M = (p.x * M.x_axis) + (p.y * M.y_axis) + (p.z * M.z_axis)
+				const rtm::matrix3x3f scale_shear = rtm::rtm_impl::vqm_get_scale_shear_no_flag(vqm);
 
-			result_xxxx = rtm::vector_mul_add(point_yyyy, rtm::vector_dup_x(scale_shear.y_axis), result_xxxx);
-			result_yyyy = rtm::vector_mul_add(point_yyyy, rtm::vector_dup_y(scale_shear.y_axis), result_yyyy);
-			result_zzzz = rtm::vector_mul_add(point_yyyy, rtm::vector_dup_z(scale_shear.y_axis), result_zzzz);
+				result_xxxx = rtm::vector_mul(point_xxxx, rtm::vector_dup_x(scale_shear.x_axis));
+				result_yyyy = rtm::vector_mul(point_xxxx, rtm::vector_dup_y(scale_shear.x_axis));
+				result_zzzz = rtm::vector_mul(point_xxxx, rtm::vector_dup_z(scale_shear.x_axis));
 
-			result_xxxx = rtm::vector_mul_add(point_zzzz, rtm::vector_dup_x(scale_shear.z_axis), result_xxxx);
-			result_yyyy = rtm::vector_mul_add(point_zzzz, rtm::vector_dup_y(scale_shear.z_axis), result_yyyy);
-			result_zzzz = rtm::vector_mul_add(point_zzzz, rtm::vector_dup_z(scale_shear.z_axis), result_zzzz);
+				result_xxxx = rtm::vector_mul_add(point_yyyy, rtm::vector_dup_x(scale_shear.y_axis), result_xxxx);
+				result_yyyy = rtm::vector_mul_add(point_yyyy, rtm::vector_dup_y(scale_shear.y_axis), result_yyyy);
+				result_zzzz = rtm::vector_mul_add(point_yyyy, rtm::vector_dup_z(scale_shear.y_axis), result_zzzz);
+
+				result_xxxx = rtm::vector_mul_add(point_zzzz, rtm::vector_dup_x(scale_shear.z_axis), result_xxxx);
+				result_yyyy = rtm::vector_mul_add(point_zzzz, rtm::vector_dup_y(scale_shear.z_axis), result_yyyy);
+				result_zzzz = rtm::vector_mul_add(point_zzzz, rtm::vector_dup_z(scale_shear.z_axis), result_zzzz);
+			}
 
 			quat_mul_vector3_x4(
 				result_xxxx, result_yyyy, result_zzzz,

@@ -133,39 +133,51 @@ namespace
 
 TEST_CASE("vqm_mul_point3_x4", "[math][vqm]")
 {
+	const rtm::quatf rotation = rtm::quat_from_euler(0.4F, 1.1F, -0.6F);
+	const rtm::vector4f translation = rtm::vector_set(1.0F, -2.0F, 3.0F);
+
 	// A VQM transform with shear
 	const rtm::matrix3x3f scale_shear = rtm::matrix_set(
 		rtm::vector_set(1.5F, 0.2F, -0.3F),
 		rtm::vector_set(0.1F, 0.8F, 0.4F),
 		rtm::vector_set(-0.2F, 0.3F, 2.1F));
-	const rtm::vqmf transform = rtm::vqm_set(rtm::quat_from_euler(0.4F, 1.1F, -0.6F), rtm::vector_set(1.0F, -2.0F, 3.0F), scale_shear);
+
+	// The second transform has no scale: it holds the identity flag and uses the fast path
+	const rtm::vqmf transforms[2] =
+	{
+		rtm::vqm_set(rotation, translation, scale_shear),
+		rtm::vqm_set(rotation, translation, rtm::vector_set(1.0F)),
+	};
 
 	const rtm::vector4f point0 = rtm::vector_set(3.0F, 0.0F, 0.0F);
 	const rtm::vector4f point1 = rtm::vector_set(0.0F, 3.0F, 0.0F);
 	const rtm::vector4f point2 = rtm::vector_set(0.0F, 0.0F, 3.0F);
 	const rtm::vector4f point3 = rtm::vector_set(1.2F, -0.7F, 2.5F);
+	const rtm::vector4f points[4] = { point0, point1, point2, point3 };
 
 	rtm::vector4f points_xxxx;
 	rtm::vector4f points_yyyy;
 	rtm::vector4f points_zzzz;
 	RTM_MATRIXF_TRANSPOSE_4X3(point0, point1, point2, point3, points_xxxx, points_yyyy, points_zzzz);
 
-	rtm::vector4f result_xxxx;
-	rtm::vector4f result_yyyy;
-	rtm::vector4f result_zzzz;
-	acl_impl::vqm_mul_point3_x4(points_xxxx, points_yyyy, points_zzzz, transform, result_xxxx, result_yyyy, result_zzzz);
-
-	const rtm::vector4f points[4] = { point0, point1, point2, point3 };
-	const float result_x[4] = { rtm::vector_get_x(result_xxxx), rtm::vector_get_y(result_xxxx), rtm::vector_get_z(result_xxxx), rtm::vector_get_w(result_xxxx) };
-	const float result_y[4] = { rtm::vector_get_x(result_yyyy), rtm::vector_get_y(result_yyyy), rtm::vector_get_z(result_yyyy), rtm::vector_get_w(result_yyyy) };
-	const float result_z[4] = { rtm::vector_get_x(result_zzzz), rtm::vector_get_y(result_zzzz), rtm::vector_get_z(result_zzzz), rtm::vector_get_w(result_zzzz) };
-
-	for (uint32_t point_index = 0; point_index < 4; ++point_index)
+	for (const rtm::vqmf& transform : transforms)
 	{
-		const rtm::vector4f expected = rtm::vqm_mul_point3(points[point_index], transform);
-		CHECK(rtm::scalar_near_equal(result_x[point_index], rtm::vector_get_x(expected), 1.0E-4F));
-		CHECK(rtm::scalar_near_equal(result_y[point_index], rtm::vector_get_y(expected), 1.0E-4F));
-		CHECK(rtm::scalar_near_equal(result_z[point_index], rtm::vector_get_z(expected), 1.0E-4F));
+		rtm::vector4f result_xxxx;
+		rtm::vector4f result_yyyy;
+		rtm::vector4f result_zzzz;
+		acl_impl::vqm_mul_point3_x4(points_xxxx, points_yyyy, points_zzzz, transform, result_xxxx, result_yyyy, result_zzzz);
+
+		const float result_x[4] = { rtm::vector_get_x(result_xxxx), rtm::vector_get_y(result_xxxx), rtm::vector_get_z(result_xxxx), rtm::vector_get_w(result_xxxx) };
+		const float result_y[4] = { rtm::vector_get_x(result_yyyy), rtm::vector_get_y(result_yyyy), rtm::vector_get_z(result_yyyy), rtm::vector_get_w(result_yyyy) };
+		const float result_z[4] = { rtm::vector_get_x(result_zzzz), rtm::vector_get_y(result_zzzz), rtm::vector_get_z(result_zzzz), rtm::vector_get_w(result_zzzz) };
+
+		for (uint32_t point_index = 0; point_index < 4; ++point_index)
+		{
+			const rtm::vector4f expected = rtm::vqm_mul_point3(points[point_index], transform);
+			CHECK(rtm::scalar_near_equal(result_x[point_index], rtm::vector_get_x(expected), 1.0E-4F));
+			CHECK(rtm::scalar_near_equal(result_y[point_index], rtm::vector_get_y(expected), 1.0E-4F));
+			CHECK(rtm::scalar_near_equal(result_z[point_index], rtm::vector_get_z(expected), 1.0E-4F));
+		}
 	}
 }
 
