@@ -29,9 +29,11 @@
 #include "acl/compression/impl/optimize_looping.transform.h"
 #include "acl/compression/impl/pre_process.common.h"
 #include "acl/compression/impl/transform_clip_adapters.h"
+#include "acl/compression/impl/transform_track_utils.h"
 #include "acl/math/quatf.h"
 
 #include <rtm/quatf.h>
+#include <rtm/vqf.h>
 #include <rtm/vqvf.h>
 #include <rtm/scalarf.h>
 #include <rtm/vector4f.h>
@@ -46,19 +48,20 @@ namespace acl
 
 	namespace acl_impl
 	{
-		inline void pre_process_normalize_rotations(pre_process_context_t& context)
-		{
-			if (context.settings.precision_policy == pre_process_precision_policy::lossless)
-				return;	// This pre-process action is lossy, do nothing
+		// Sets the scale of a transform sample, a VQ sample has no scale
+		inline void RTM_SIMD_CALL pre_process_set_sample_scale(rtm::vqvf& sample, rtm::vector4f_arg0 scale) { sample.scale = scale; }
+		inline void RTM_SIMD_CALL pre_process_set_sample_scale(rtm::vqf& sample, rtm::vector4f_arg0 scale) { (void)sample; (void)scale; }
 
-			track_array_vqvf& track_list = track_array_cast<track_array_vqvf>(context.track_list);
+		template<class track_array_type>
+		inline void pre_process_normalize_rotations_impl(track_array_type& track_list)
+		{
 			const uint32_t num_samples_per_track = track_list.get_num_samples_per_track();
 
-			for (track_vqvf& track_ : track_list)
+			for (typename track_array_type::track_member_type& track_ : track_list)
 			{
 				for (uint32_t sample_index = 0; sample_index < num_samples_per_track; ++sample_index)
 				{
-					rtm::vqvf& sample = track_[sample_index];
+					typename track_array_type::track_member_type::sample_type& sample = track_[sample_index];
 
 					if (!rtm::quat_is_normalized(sample.rotation))
 						sample.rotation = quat_normalize_stable(sample.rotation);
@@ -66,24 +69,52 @@ namespace acl
 			}
 		}
 
-		inline void pre_process_ensure_quat_w_positive(pre_process_context_t& context)
+		inline void pre_process_normalize_rotations(pre_process_context_t& context)
 		{
-			track_array_vqvf& track_list = track_array_cast<track_array_vqvf>(context.track_list);
+			if (context.settings.precision_policy == pre_process_precision_policy::lossless)
+				return;	// This pre-process action is lossy, do nothing
+
+			if (context.track_list.get_track_type() == track_type8::vqf)
+				pre_process_normalize_rotations_impl(track_array_cast<track_array_vqf>(context.track_list));
+			else
+				pre_process_normalize_rotations_impl(track_array_cast<track_array_vqvf>(context.track_list));
+		}
+
+		template<class track_array_type>
+		inline void pre_process_ensure_quat_w_positive_impl(track_array_type& track_list)
+		{
 			const uint32_t num_samples_per_track = track_list.get_num_samples_per_track();
 
-			for (track_vqvf& track_ : track_list)
+			for (typename track_array_type::track_member_type& track_ : track_list)
 			{
 				for (uint32_t sample_index = 0; sample_index < num_samples_per_track; ++sample_index)
 				{
-					rtm::vqvf& sample = track_[sample_index];
+					typename track_array_type::track_member_type::sample_type& sample = track_[sample_index];
 					sample.rotation = rtm::quat_ensure_positive_w(sample.rotation);
 				}
 			}
 		}
 
+		inline void pre_process_ensure_quat_w_positive(pre_process_context_t& context)
+		{
+			if (context.track_list.get_track_type() == track_type8::vqf)
+				pre_process_ensure_quat_w_positive_impl(track_array_cast<track_array_vqf>(context.track_list));
+			else
+				pre_process_ensure_quat_w_positive_impl(track_array_cast<track_array_vqvf>(context.track_list));
+		}
+
+		template<class track_array_type>
+		inline void pre_process_copy_first_sample_to_last(track_array_type& track_list)
+		{
+			const uint32_t last_sample_index = track_list.get_num_samples_per_track() - 1;
+
+			for (typename track_array_type::track_member_type& track_ : track_list)
+				track_[last_sample_index] = track_[0];
+		}
+
 		inline void pre_process_optimize_looping_transform(pre_process_context_t& context)
 		{
-			track_array_vqvf& track_list = track_array_cast<track_array_vqvf>(context.track_list);
+			track_array& track_list = context.track_list;
 
 			transform_track_array_adapter_t clip_adapter(&track_list, context.settings.additive_format);
 
@@ -97,14 +128,14 @@ namespace acl
 			{
 				// We just replace the last sample with a copy of the first to ensure that
 				// we have perfect looping. We do not change the wrapping mode of the track list.
-				const uint32_t last_sample_index = track_list.get_num_samples_per_track() - 1;
-
-				for (track_vqvf& track_ : track_list)
-					track_[last_sample_index] = track_[0];
+				if (track_list.get_track_type() == track_type8::vqf)
+					pre_process_copy_first_sample_to_last(track_array_cast<track_array_vqf>(track_list));
+				else
+					pre_process_copy_first_sample_to_last(track_array_cast<track_array_vqvf>(track_list));
 			}
 		}
 
-		inline uint32_t pre_process_get_uniform_sample_key(const track_array_vqvf& track_list, float sample_time)
+		inline uint32_t pre_process_get_uniform_sample_key(const track_array& track_list, float sample_time)
 		{
 			return get_uniform_sample_key(
 				transform_track_array_adapter_t(track_list),
@@ -114,13 +145,13 @@ namespace acl
 
 		inline bool RTM_SIMD_CALL pre_process_are_samples_constant(
 			pre_process_context_t& context,
-			const track_array_vqvf& track_list,
+			const track_array& track_list,
 			uint32_t track_index,
 			rtm::vector4f_arg0 reference,
 			animation_track_type8 sub_track_type)
 		{
 			const pre_process_settings_t& settings = context.settings;
-			const track_vqvf& track_ = track_list[track_index];
+			const track& track_ = track_list[track_index];
 
 			const rigid_shell_metadata_t& shell = context.get_shell_metadata()[track_index];
 
@@ -129,6 +160,11 @@ namespace acl
 			const bool has_scale = true;	// Assume we have scale
 			const bool has_additive_base = settings.additive_format != additive_clip_format8::none;
 			const bool needs_conversion = error_metric.needs_conversion(has_scale);
+
+			// A VQ track has no scale, each of its samples uses this scale
+			// The additive base is a regular pose
+			const rtm::vector4f vq_scale = rtm::vector_set(get_additive_default_scale(settings.additive_format));
+			const rtm::vector4f vq_base_scale = rtm::vector_set(get_additive_default_scale(additive_clip_format8::none));
 
 			const uint32_t dirty_transform_indices[2] = { 0, 1 };
 			rtm::vqvf local_transforms[2];
@@ -166,11 +202,7 @@ namespace acl
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
-				const rtm::quatf raw_rotation = track_[sample_index].rotation;
-				const rtm::vector4f raw_translation = track_[sample_index].translation;
-				const rtm::vector4f raw_scale = track_[sample_index].scale;
-
-				rtm::vqvf raw_transform = rtm::vqv_set(raw_rotation, raw_translation, raw_scale);
+				const rtm::vqvf raw_transform = get_transform_track_sample(track_, sample_index, vq_scale);
 				rtm::vqvf lossy_transform = raw_transform;	// Copy the raw transform
 
 				// Fix up our lossy transform with the reference value
@@ -202,12 +234,8 @@ namespace acl
 					// With uniform sample distributions, we do not interpolate.
 					const uint32_t base_sample_index = pre_process_get_uniform_sample_key(*settings.additive_base, additive_sample_time);
 
-					const track_vqvf& base_track = (*settings.additive_base)[track_index];
-					const rtm::quatf base_rotation = base_track[base_sample_index].rotation;
-					const rtm::vector4f base_translation = base_track[base_sample_index].translation;
-					const rtm::vector4f base_scale = base_track[base_sample_index].scale;
-
-					const rtm::vqvf base_transform = rtm::vqv_set(base_rotation, base_translation, base_scale);
+					const track& base_track = (*settings.additive_base)[track_index];
+					const rtm::vqvf base_transform = get_transform_track_sample(base_track, base_sample_index, vq_base_scale);
 
 					base_transforms[0] = base_transform;
 					base_transforms[1] = base_transform;
@@ -244,16 +272,19 @@ namespace acl
 			return true;
 		}
 
-		inline void pre_process_sanitize_constant_tracks_transform(pre_process_context_t& context)
+		template<class track_array_type>
+		inline void pre_process_sanitize_constant_tracks_transform_impl(pre_process_context_t& context, track_array_type& track_list)
 		{
-			track_array_vqvf& track_list = track_array_cast<track_array_vqvf>(context.track_list);
 			const uint32_t num_tracks = track_list.get_num_tracks();
 			const uint32_t num_samples_per_track = track_list.get_num_samples_per_track();
+
+			// A VQ track has no scale
+			const bool has_scale = track_array_type::type != track_type8::vqf;
 
 			// Iterate in any order, doesn't matter
 			for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 			{
-				track_vqvf& track_ = track_list[track_index];
+				typename track_array_type::track_member_type& track_ = track_list[track_index];
 
 				const rtm::quatf reference_rotation = track_[0].rotation;
 				if (pre_process_are_samples_constant(context, track_list, track_index, rtm::quat_to_vector(reference_rotation), animation_track_type8::rotation))
@@ -269,25 +300,39 @@ namespace acl
 						track_[sample_index].translation = reference_translation;
 				}
 
-				const rtm::vector4f reference_scale = track_[0].scale;
+				if (!has_scale)
+					continue;
+
+				const rtm::vector4f reference_scale = get_transform_track_sample(track_, 0, rtm::vector_set(1.0F)).scale;
 				if (pre_process_are_samples_constant(context, track_list, track_index, reference_scale, animation_track_type8::scale))
 				{
 					for (uint32_t sample_index = 1; sample_index < num_samples_per_track; ++sample_index)
-						track_[sample_index].scale = reference_scale;
+						pre_process_set_sample_scale(track_[sample_index], reference_scale);
 				}
 			}
 		}
 
-		inline void pre_process_sanitize_default_tracks_transform(pre_process_context_t& context)
+		inline void pre_process_sanitize_constant_tracks_transform(pre_process_context_t& context)
 		{
-			track_array_vqvf& track_list = track_array_cast<track_array_vqvf>(context.track_list);
+			if (context.track_list.get_track_type() == track_type8::vqf)
+				pre_process_sanitize_constant_tracks_transform_impl(context, track_array_cast<track_array_vqf>(context.track_list));
+			else
+				pre_process_sanitize_constant_tracks_transform_impl(context, track_array_cast<track_array_vqvf>(context.track_list));
+		}
+
+		template<class track_array_type>
+		inline void pre_process_sanitize_default_tracks_transform_impl(pre_process_context_t& context, track_array_type& track_list)
+		{
 			const uint32_t num_tracks = track_list.get_num_tracks();
 			const uint32_t num_samples_per_track = track_list.get_num_samples_per_track();
+
+			// A VQ track has no scale
+			const bool has_scale = track_array_type::type != track_type8::vqf;
 
 			// Iterate in any order, doesn't matter
 			for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 			{
-				track_vqvf& track_ = track_list[track_index];
+				typename track_array_type::track_member_type& track_ = track_list[track_index];
 				const track_desc_transformf& desc = track_.get_description();
 
 				const rtm::quatf reference_rotation = desc.default_value.rotation;
@@ -304,12 +349,135 @@ namespace acl
 						track_[sample_index].translation = reference_translation;
 				}
 
+				if (!has_scale)
+					continue;
+
 				const rtm::vector4f reference_scale = desc.default_value.scale;
 				if (pre_process_are_samples_constant(context, track_list, track_index, reference_scale, animation_track_type8::scale))
 				{
 					for (uint32_t sample_index = 0; sample_index < num_samples_per_track; ++sample_index)
-						track_[sample_index].scale = reference_scale;
+						pre_process_set_sample_scale(track_[sample_index], reference_scale);
 				}
+			}
+		}
+
+		inline void pre_process_sanitize_default_tracks_transform(pre_process_context_t& context)
+		{
+			if (context.track_list.get_track_type() == track_type8::vqf)
+				pre_process_sanitize_default_tracks_transform_impl(context, track_array_cast<track_array_vqf>(context.track_list));
+			else
+				pre_process_sanitize_default_tracks_transform_impl(context, track_array_cast<track_array_vqvf>(context.track_list));
+		}
+
+		// Returns true if no track needs its scale: we can remove the scale of each track
+		inline bool pre_process_can_remove_scale(pre_process_context_t& context, const track_array_vqvf& track_list)
+		{
+			const pre_process_settings_t& settings = context.settings;
+			const bool is_lossy = settings.precision_policy == pre_process_precision_policy::lossy;
+
+			// The scale of a VQ track is the identity of the additive format
+			const rtm::vector4f identity_scale = rtm::vector_set(get_additive_default_scale(settings.additive_format));
+
+			const uint32_t num_tracks = track_list.get_num_tracks();
+			const uint32_t num_samples_per_track = track_list.get_num_samples_per_track();
+
+			for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+			{
+				const track_vqvf& track_ = track_list[track_index];
+
+				bool is_identity = true;
+				for (uint32_t sample_index = 0; sample_index < num_samples_per_track; ++sample_index)
+				{
+					if (!rtm::vector_all_near_equal3(track_[sample_index].scale, identity_scale, 0.0F))
+					{
+						is_identity = false;
+						break;
+					}
+				}
+
+				if (is_identity)
+					continue;	// The samples have no scale
+
+				// With the lossy policy, the error metric tells if the scale is visible
+				if (!is_lossy || !pre_process_are_samples_constant(context, track_list, track_index, identity_scale, animation_track_type8::scale))
+					return false;	// This track needs its scale
+			}
+
+			return true;
+		}
+
+		inline void pre_process_convert_transform_type(pre_process_context_t& context)
+		{
+			const pre_process_settings_t& settings = context.settings;
+			track_array& track_list = context.track_list;
+
+			const track_type8 source_type = track_list.get_track_type();
+			const track_type8 target_type = settings.transform_type;
+			if (source_type == target_type)
+				return;	// Nothing to do
+
+			iallocator& allocator = context.allocator;
+			const uint32_t num_tracks = track_list.get_num_tracks();
+			const uint32_t num_samples = track_list.get_num_samples_per_track();
+			const float sample_rate = track_list.get_sample_rate();
+
+			if (source_type == track_type8::vqf && target_type == track_type8::vqvf)
+			{
+				// Promotion: each new scale is the identity of the additive format
+				const rtm::vector4f identity_scale = rtm::vector_set(get_additive_default_scale(settings.additive_format));
+				const track_array_vqf& vq_tracks = track_array_cast<track_array_vqf>(track_list);
+
+				track_array_vqvf vqv_tracks(allocator, num_tracks);
+				vqv_tracks.set_name(vq_tracks.get_name());
+				vqv_tracks.set_looping_policy(vq_tracks.get_looping_policy());
+
+				for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+				{
+					const track_vqf& vq_track = vq_tracks[track_index];
+
+					track_desc_transformf desc = vq_track.get_description();
+					desc.default_value.scale = identity_scale;
+
+					track_vqvf vqv_track = track_vqvf::make_reserve(desc, allocator, num_samples, sample_rate);
+					vqv_track.set_name(vq_track.get_name());
+
+					for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+						vqv_track[sample_index] = rtm::vqv_set(vq_track[sample_index].rotation, vq_track[sample_index].translation, identity_scale);
+
+					vqv_tracks[track_index] = std::move(vqv_track);
+				}
+
+				track_list = std::move(vqv_tracks);
+			}
+			else if (source_type == track_type8::vqvf && target_type == track_type8::vqf)
+			{
+				// Demotion: only when no track needs its scale
+				const track_array_vqvf& vqv_tracks = track_array_cast<track_array_vqvf>(track_list);
+				if (!pre_process_can_remove_scale(context, vqv_tracks))
+					return;
+
+				track_array_vqf vq_tracks(allocator, num_tracks);
+				vq_tracks.set_name(vqv_tracks.get_name());
+				vq_tracks.set_looping_policy(vqv_tracks.get_looping_policy());
+
+				for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+				{
+					const track_vqvf& vqv_track = vqv_tracks[track_index];
+
+					// A VQ track has no scale, ACL ignores the scale of its default value
+					track_desc_transformf desc = vqv_track.get_description();
+					desc.default_value.scale = rtm::vector_set(1.0F);
+
+					track_vqf vq_track = track_vqf::make_reserve(desc, allocator, num_samples, sample_rate);
+					vq_track.set_name(vqv_track.get_name());
+
+					for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+						vq_track[sample_index] = rtm::vq_set(vqv_track[sample_index].rotation, vqv_track[sample_index].translation);
+
+					vq_tracks[track_index] = std::move(vq_track);
+				}
+
+				track_list = std::move(vq_tracks);
 			}
 		}
 	}

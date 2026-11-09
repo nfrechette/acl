@@ -215,7 +215,7 @@ namespace acl
 				const track& ref_track = ref_track_list[track_index];
 				track& out_track = out_track_list[track_index];
 
-				if (ref_track.get_type() == track_type8::vqvf)
+				if (is_transform_track_type(ref_track.get_type()))
 				{
 					ACL_ASSERT(false, "Unexpected track type");
 					are_samples_valid = false;

@@ -30,4 +30,28 @@ settings.precision_policy = pre_process_precision_policy::lossy;
 pre_process_track_list(allocator, settings, transform_tracks);
 ```
 
+## Transform type conversion
+
+The `convert_transform_type` action converts transform tracks into the type of `settings.transform_type` (`vqvf` or `vqf`). It is not part of the recommended actions, because it changes the type of the compressed tracks. Compression never changes the type of the raw tracks.
+
+*  A promotion (`vqf` -> `vqvf`) always succeeds and is lossless. Each new scale is the identity of the additive format: 0.0 with `additive1`, 1.0 otherwise.
+*  A demotion (`vqvf` -> `vqf`) removes the scale. It happens only when no track needs its scale. With the lossless policy, each scale sample must be exactly the identity. With the lossy policy, the error must stay within the precision of each track when its scale becomes the identity. When a track needs its scale, the tracks keep their type.
+
+This action runs last. Thus, with the lossy policy, `sanitize_constant_tracks` and `sanitize_default_tracks` run first.
+
+A typed track array (for example `track_array_vqvf`) cannot change its type. To convert, give `pre_process_track_list(..)` a `track_array`. With a typed track array, the action returns an error when the type must change.
+
+```c++
+// Compress the clips without scale as VQ tracks
+pre_process_settings_t settings;
+settings.actions = pre_process_actions::recommended | pre_process_actions::convert_transform_type;
+settings.precision_policy = pre_process_precision_policy::lossy;
+settings.transform_type = track_type8::vqf;
+
+track_array transform_tracks = std::move(raw_vqv_tracks);
+pre_process_track_list(allocator, settings, transform_tracks);
+
+// transform_tracks.get_track_type() is now vqf if no track needs its scale
+```
+
 See [pre_process.h](../includes/acl/compression/pre_process.h) for API and other usage details.

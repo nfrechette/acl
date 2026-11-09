@@ -44,6 +44,7 @@
 #include <rtm/vector4d.h>
 #include <rtm/vector4f.h>
 #include <rtm/vqvd.h>
+#include <rtm/vqf.h>
 #include <rtm/vqvf.h>
 
 #include <sjson/parser.h>
@@ -686,6 +687,23 @@ namespace acl
 
 		bool read_vqv_sample(rtm::vqvf& out_sample)
 		{
+			return read_transform_sample(out_sample, true);
+		}
+
+		bool read_vq_sample(rtm::vqf& out_sample)
+		{
+			rtm::vqvf sample;
+			if (!read_transform_sample(sample, false))
+				return false;
+
+			out_sample = rtm::vq_set(sample.rotation, sample.translation);
+			return true;
+		}
+
+		// A VQV sample has three parts: [ rotation ], [ translation ], [ scale ]
+		// A VQ sample has the first two parts only
+		bool read_transform_sample(rtm::vqvf& out_sample, bool has_scale)
+		{
 			rtm::vqvf sample = rtm::vqv_identity();
 			sjson::StringView values_str[4];
 			double values[4] = { 0.0, 0.0, 0.0, 0.0 };
@@ -749,10 +767,11 @@ namespace acl
 					return false;
 			}
 
-			if (!m_parser.read_comma())
-				return false;
-
+			if (has_scale)
 			{
+				if (!m_parser.read_comma())
+					return false;
+
 				if (!m_parser.array_begins())
 					return false;
 
@@ -939,6 +958,30 @@ namespace acl
 			return false;
 		}
 
+		// Returns whether we have any errors or not
+		bool read_vq_sample(
+			track_interpolator_t track_interpolator,
+			rtm::vqf* out_sample)
+		{
+			ACL_ASSERT(track_interpolator == track_interpolator_t::linear, "Unsupported interpolator with vqf");
+			(void)track_interpolator;
+
+			if (!m_parser.array_begins())
+				return true;
+
+			rtm::vqf value;
+			if (!read_vq_sample(value))
+				return true;
+
+			std::memcpy(out_sample, &value, sizeof(rtm::vqf));
+
+			if (!m_parser.array_ends())
+				return true;
+
+			// No errors
+			return false;
+		}
+
 		bool process_track_list(track* tracks, uint32_t& num_tracks)
 		{
 			const bool counting = tracks == nullptr;
@@ -1024,7 +1067,7 @@ namespace acl
 				scalar_desc.output_index = output_index;
 				transform_desc.output_index = output_index;
 
-				if (track_type == track_type8::vqvf)
+				if (acl_impl::is_transform_track_type(track_type))
 					transform_desc.precision = precision < 0.0F ? transform_desc.precision : precision;
 				else
 					scalar_desc.precision = precision < 0.0F ? scalar_desc.precision : precision;
@@ -1068,6 +1111,10 @@ namespace acl
 						bind_transform.scale = rtm::vector_cast(rtm::vector_load3(&scale[0]));
 				}
 
+				// A VQ track has no scale, ACL ignores the scale of its default value
+				if (track_type == track_type8::vqf)
+					bind_transform.scale = rtm::vector_set(1.0F);
+
 				transform_desc.default_value = bind_transform;
 
 				if (!m_parser.array_begins("data"))
@@ -1096,6 +1143,7 @@ namespace acl
 					rtm::float4f*	float4f;
 					rtm::vector4f*	vector4f;
 					rtm::vqvf*		vqvf;
+					rtm::vqf*		vqf;
 
 					// Extended interpolators
 					track_extended_sample_t<float>* 		float1f_ex;
@@ -1142,6 +1190,10 @@ namespace acl
 					ACL_ASSERT(track_interpolator == track_interpolator_t::linear, "Unsupported interpolator with vqvf");
 					track_samples_typed.vqvf = allocate_type_array<rtm::vqvf>(m_allocator, m_num_samples);
 					break;
+				case track_type8::vqf:
+					ACL_ASSERT(track_interpolator == track_interpolator_t::linear, "Unsupported interpolator with vqf");
+					track_samples_typed.vqf = allocate_type_array<rtm::vqf>(m_allocator, m_num_samples);
+					break;
 				default:
 					ACL_ASSERT(false, "Unsupported track type");
 					// Initialize our value to itself, we'll never use it
@@ -1175,6 +1227,9 @@ namespace acl
 						case track_type8::vqvf:
 							has_error = read_vqv_sample(track_interpolator, track_samples_typed.vqvf + sample_index);
 							break;
+						case track_type8::vqf:
+							has_error = read_vq_sample(track_interpolator, track_samples_typed.vqf + sample_index);
+							break;
 						default:
 							ACL_ASSERT(false, "Unsupported track type");
 							break;
@@ -1204,6 +1259,9 @@ namespace acl
 							break;
 						case track_type8::vqvf:
 							has_error = read_vqv_sample(track_interpolator, track_samples_typed.vqvf + sample_index);
+							break;
+						case track_type8::vqf:
+							has_error = read_vq_sample(track_interpolator, track_samples_typed.vqf + sample_index);
 							break;
 						default:
 							ACL_ASSERT(false, "Unsupported track type");
@@ -1261,6 +1319,10 @@ namespace acl
 						ACL_ASSERT(track_interpolator == track_interpolator_t::linear, "Unsupported interpolator with vqvf");
 						deallocate_type_array<rtm::vqvf>(m_allocator, track_samples_typed.vqvf, m_num_samples);
 						break;
+					case track_type8::vqf:
+						ACL_ASSERT(track_interpolator == track_interpolator_t::linear, "Unsupported interpolator with vqf");
+						deallocate_type_array<rtm::vqf>(m_allocator, track_samples_typed.vqf, m_num_samples);
+						break;
 					default:
 						ACL_ASSERT(false, "Unsupported track type");
 						break;
@@ -1305,6 +1367,10 @@ namespace acl
 					case track_type8::vqvf:
 						ACL_ASSERT(track_interpolator == track_interpolator_t::linear, "Unsupported interpolator with vqvf");
 						track_ = track_vqvf::make_owner(transform_desc, m_allocator, track_samples_typed.vqvf, m_num_samples, m_sample_rate);
+						break;
+					case track_type8::vqf:
+						ACL_ASSERT(track_interpolator == track_interpolator_t::linear, "Unsupported interpolator with vqf");
+						track_ = track_vqf::make_owner(transform_desc, m_allocator, track_samples_typed.vqf, m_num_samples, m_sample_rate);
 						break;
 					default:
 						ACL_ASSERT(false, "Unsupported track type");

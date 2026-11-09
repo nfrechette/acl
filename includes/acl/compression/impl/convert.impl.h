@@ -105,7 +105,11 @@ namespace acl
 
 		// Scalar tracks with extended samples become extended raw tracks to retain each sample interpolator
 		const acl_impl::tracks_header& header = acl_impl::get_tracks_header(tracks);
-		const bool has_extended_samples = track_type != track_type8::vqvf && header.get_has_extended_samples();
+		const bool is_transform = acl_impl::is_transform_track_type(track_type);
+		const bool has_extended_samples = !is_transform && header.get_has_extended_samples();
+
+		// The debug writer holds each transform as a VQV transform, a VQ track has no scale
+		const track_type8 writer_type = is_transform ? track_type8::vqvf : track_type;
 
 		// Setup our track metadata and allocate memory
 		bool success = true;
@@ -158,6 +162,10 @@ namespace acl
 				got_description = tracks.get_track_description(track_index, desc_transform);
 				track_ = track_vqvf::make_reserve(desc_transform, allocator, num_samples, sample_rate);
 				break;
+			case track_type8::vqf:
+				got_description = tracks.get_track_description(track_index, desc_transform);
+				track_ = track_vqf::make_reserve(desc_transform, allocator, num_samples, sample_rate);
+				break;
 			default:
 				ACL_ASSERT(false, "Unexpected track type");
 				break;
@@ -175,7 +183,7 @@ namespace acl
 		scope_disable_fp_exceptions fp_off;
 
 		// Decompress and populate our track data
-		if (track_type == track_type8::vqvf &&
+		if (is_transform &&
 			header.get_rotation_format() == rotation_format8::quatf_full &&
 			header.get_translation_format() == vector_format8::vector3f_full &&
 			header.get_scale_format() == vector_format8::vector3f_full)
@@ -184,7 +192,7 @@ namespace acl
 			decompression_context<acl_impl::raw_sampling_decompression_settings> context;
 			context.initialize(tracks);
 
-			acl_impl::debug_track_writer writer(allocator, track_type, num_tracks);
+			acl_impl::debug_track_writer writer(allocator, writer_type, num_tracks);
 			writer.initialize_with_defaults(result);
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
@@ -220,6 +228,12 @@ namespace acl
 					case track_type8::vqvf:
 						*acl_impl::bit_cast<rtm::vqvf*>(track_[sample_index]) = writer.read_vqv(track_index);
 						break;
+					case track_type8::vqf:
+					{
+						const rtm::vqvf& transform = writer.read_vqv(track_index);
+						*acl_impl::bit_cast<rtm::vqf*>(track_[sample_index]) = rtm::vq_set(transform.rotation, transform.translation);
+						break;
+					}
 					default:
 						ACL_ASSERT(false, "Unexpected track type");
 						break;
@@ -232,9 +246,9 @@ namespace acl
 			decompression_context<decompression_settings> context;
 			context.initialize(tracks);
 
-			acl_impl::debug_track_writer writer(allocator, track_type, num_tracks);
+			acl_impl::debug_track_writer writer(allocator, writer_type, num_tracks);
 
-			if (track_type == track_type8::vqvf)
+			if (is_transform)
 				writer.initialize_with_defaults(result);
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
@@ -270,6 +284,12 @@ namespace acl
 					case track_type8::vqvf:
 						*acl_impl::bit_cast<rtm::vqvf*>(track_[sample_index]) = writer.read_vqv(track_index);
 						break;
+					case track_type8::vqf:
+					{
+						const rtm::vqvf& transform = writer.read_vqv(track_index);
+						*acl_impl::bit_cast<rtm::vqf*>(track_[sample_index]) = rtm::vq_set(transform.rotation, transform.translation);
+						break;
+					}
 					default:
 						ACL_ASSERT(false, "Unexpected track type");
 						break;

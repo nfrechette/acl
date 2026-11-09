@@ -20,6 +20,14 @@
 *  Loop optimization and the detailed segment stats now support error metrics that convert transforms
 *  Fix the SoA quaternion rotation of the error metrics, two terms had the wrong sign
 *  Add the `-error_vqv` option and the `use_vqv_error_metric` config option to `acl_compressor`
+*  Add the `vqf` transform track type (rotation and translation, no scale) with `track_vqf` and `track_array_vqf`, the compressed tracks keep the type of the raw tracks
+*  Add the compressed data version `v02_02_99_1` for the `vqf` track type
+*  Decompression does not write the scale of a `vqf` clip, the default transform decompression settings accept `vqf` and `vqvf`
+*  Add the `convert_transform_type` pre-process action and `pre_process_settings_t::transform_type` to convert between `vqvf` and `vqf`
+*  The additive overloads of `compress_track_list` and `calculate_compression_error` take a `track_array`, the clip and its base can have different transform types
+*  `pre_process_settings_t::additive_base` is now a `const track_array*`
+*  The clip reader and writer support `vqf` tracks in the track list format
+*  Add the `-source_vq` option to `acl_compressor` and its python script, it compresses the clips without scale as `vqf` tracks
 
 ## 2.1.0
 

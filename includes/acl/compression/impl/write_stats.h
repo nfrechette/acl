@@ -128,7 +128,7 @@ namespace acl
 			writer["decomp_touched_cache_lines"] = segment.clip->decomp_touched_cache_lines + num_segment_header_cache_lines + num_animated_pose_cache_lines;
 		}
 
-		inline void write_exhaustive_segment_stats(iallocator& allocator, const segment_context& segment, const clip_context& raw_clip_context, const clip_context& additive_base_clip_context, const compression_settings& settings, const track_array_vqvf& track_list, sjson::ObjectWriter& writer)
+		inline void write_exhaustive_segment_stats(iallocator& allocator, const segment_context& segment, const clip_context& raw_clip_context, const clip_context& additive_base_clip_context, const compression_settings& settings, const track_array& track_list, sjson::ObjectWriter& writer)
 		{
 			const uint32_t num_bones = raw_clip_context.num_bones;
 
@@ -158,8 +158,7 @@ namespace acl
 
 			for (uint32_t transform_index = 0; transform_index < num_bones; ++transform_index)
 			{
-				const track_vqvf& track = track_list[transform_index];
-				const track_desc_transformf& desc = track.get_description();
+				const track_desc_transformf& desc = track_list[transform_index].get_description<track_desc_transformf>();
 
 				parent_transform_indices[transform_index] = desc.parent_index;
 				self_transform_indices[transform_index] = transform_index;
@@ -241,7 +240,7 @@ namespace acl
 						{
 							for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 							{
-								const track_desc_transformf& desc = track_list[bone_index].get_description();
+								const track_desc_transformf& desc = track_list[bone_index].get_description<track_desc_transformf>();
 
 								itransform_error_metric::calculate_error_args calculate_error_args;
 								calculate_error_args.transform0 = raw_object_pose + (metric_transform_size * bone_index);
@@ -444,7 +443,7 @@ namespace acl
 			return result;
 		}
 
-		inline void write_stats(iallocator& allocator, const track_array_vqvf& track_list, const clip_context& clip,
+		inline void write_stats(iallocator& allocator, const track_array& track_list, const clip_context& clip,
 			const compressed_tracks& compressed_clip, const compression_settings& settings, const compression_segmenting_settings& segmenting_settings,
 			range_reduction_flags8 range_reduction, const clip_context& raw_clip,
 			const clip_context& additive_base_clip_context,

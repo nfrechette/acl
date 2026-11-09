@@ -1038,6 +1038,8 @@ namespace acl
 
 			const rtm::vector4f default_scale = rtm::vector_set(float(header.get_default_scale()));
 			const uint32_t has_scale = context.has_scale;
+			// A VQ track has no scale, we do not write it
+			const bool is_vq = header.track_type == track_type8::vqf;
 
 			const transform_tracks_header& transforms_header = get_transform_tracks_header(*tracks);
 			const packed_sub_track_types* sub_track_types = transforms_header.get_sub_track_types();
@@ -1195,7 +1197,7 @@ namespace acl
 
 				if (has_scale)
 					step_unpack_default_scales(step_context, default_scale, writer);
-				else
+				else if (!is_vq)
 					step_set_default_scales(step_context, default_scale, writer);
 			}
 
@@ -1256,8 +1258,9 @@ namespace acl
 				// Constant scale sub-tracks are very rare, this shouldn't take much more than 50 cycles
 				step_unpack_constant_scales(scale_sub_track_types, last_entry_index, constant_track_cache.constant_data_scales, writer);
 			}
-			else
+			else if (!is_vq)
 			{
+				// A VQ track has no scale, we do not write it
 				step_set_default_scales(num_tracks, default_scale, writer);
 			}
 
@@ -1377,6 +1380,9 @@ namespace acl
 
 			const uint32_t has_scale = context.has_scale;
 
+			// A VQ track has no scale, we do not write it
+			const bool write_default_scale = default_scale_mode != default_sub_track_mode::skipped && tracks_header_.track_type != track_type8::vqf;
+
 			const packed_sub_track_types* sub_track_types = get_transform_tracks_header(*tracks).get_sub_track_types();
 			const uint32_t num_sub_track_entries = (num_tracks + k_num_sub_tracks_per_packed_entry - 1) / k_num_sub_tracks_per_packed_entry;
 
@@ -1423,7 +1429,7 @@ namespace acl
 						writer.write_translation(track_index, default_translation);
 				}
 
-				if (default_scale_mode != default_sub_track_mode::skipped)
+				if (write_default_scale)
 				{
 					if (default_scale_mode == default_sub_track_mode::variable)
 						writer.write_scale(track_index, writer.get_variable_default_scale(track_index));
@@ -1596,7 +1602,7 @@ namespace acl
 
 			if (scale_sub_track_type == 0)
 			{
-				if (default_scale_mode != default_sub_track_mode::skipped)
+				if (write_default_scale)
 				{
 					if (default_scale_mode == default_sub_track_mode::variable)
 						writer.write_scale(track_index, writer.get_variable_default_scale(track_index));

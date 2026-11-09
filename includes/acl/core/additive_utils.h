@@ -126,6 +126,18 @@ namespace acl
 		return false;
 	}
 
+	namespace acl_impl
+	{
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the default scale of a transform with the specified additive format.
+		// The scale of an additive1 transform is an offset from 1.0, thus its default is 0.0.
+		// The other formats use 1.0.
+		constexpr float get_additive_default_scale(additive_clip_format8 format)
+		{
+			return format == additive_clip_format8::additive1 ? 0.0F : 1.0F;
+		}
+	}
+
 	inline rtm::vqvf RTM_SIMD_CALL transform_add0(rtm::vqvf_arg0 base, rtm::vqvf_arg1 additive)
 	{
 		const rtm::quatf rotation = rtm::quat_mul(additive.rotation, base.rotation);

@@ -58,14 +58,14 @@ namespace acl
 		scope_disable_fp_exceptions fp_off;
 
 		if (track_list.get_track_category() == track_category8::transformf)
-			result = compress_transform_track_list(allocator, track_array_cast<track_array_vqvf>(track_list), settings, nullptr, additive_clip_format8::none, out_compressed_tracks, out_stats);
+			result = compress_transform_track_list(allocator, track_list, settings, nullptr, additive_clip_format8::none, out_compressed_tracks, out_stats);
 		else
 			result = compress_scalar_track_list(allocator, track_list, settings, out_compressed_tracks, out_stats);
 
 		return result;
 	}
 
-	inline error_result compress_track_list(iallocator& allocator, const track_array_vqvf& track_list, const compression_settings& settings, const track_array_vqvf& additive_base_track_list, additive_clip_format8 additive_format, compressed_tracks*& out_compressed_tracks, output_stats& out_stats)
+	inline error_result compress_track_list(iallocator& allocator, const track_array& track_list, const compression_settings& settings, const track_array& additive_base_track_list, additive_clip_format8 additive_format, compressed_tracks*& out_compressed_tracks, output_stats& out_stats)
 	{
 		using namespace acl_impl;
 
@@ -73,11 +73,17 @@ namespace acl
 		if (result.any())
 			return result;
 
+		if (!track_list.is_empty() && !is_transform_track_type(track_list.get_track_type()))
+			return error_result("Expected transform tracks");
+
 		if (additive_format != additive_clip_format8::none)
 		{
 			result = additive_base_track_list.is_valid();
 			if (result.any())
 				return result;
+
+			if (!additive_base_track_list.is_empty() && !is_transform_track_type(additive_base_track_list.get_track_type()))
+				return error_result("Expected transform tracks in the additive base");
 		}
 
 		// Disable floating point exceptions during compression because we leverage all SIMD lanes

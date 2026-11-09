@@ -29,6 +29,7 @@
 #include "acl/compression/track_array.h"
 #include "acl/compression/impl/clip_context.h"
 #include "acl/compression/impl/topology_metadata.h"
+#include "acl/compression/impl/transform_track_utils.h"
 
 #include <rtm/quatf.h>
 #include <rtm/vector4f.h>
@@ -174,23 +175,30 @@ namespace acl
 		struct transform_track_array_adapter_t final : transform_clip_adapter_t
 		{
 			// Set in constructor
-			const track_array_vqvf* track_list = nullptr;
+			const track_array* track_list = nullptr;
 			additive_clip_format8 additive_format = additive_clip_format8::none;
+
+			// A VQ track has no scale, each of its samples uses this scale
+			rtm::vector4f vq_scale = rtm::vector_set(1.0F);
 
 			// Set manually when needed
 			const uint32_t* sorted_transforms_parent_first = nullptr;
 			const rigid_shell_metadata_t* rigid_shell_metadata = nullptr;
 			const clip_topology_t* topology = nullptr;
 
-			explicit transform_track_array_adapter_t(const track_array_vqvf& track_list_)
+			explicit transform_track_array_adapter_t(const track_array& track_list_)
 				: track_list(&track_list_)
 			{
+				ACL_ASSERT(track_list_.is_empty() || is_transform_track_type(track_list_.get_track_type()), "Expected transform tracks");
 			}
 
-			transform_track_array_adapter_t(const track_array_vqvf* track_list_, additive_clip_format8 additive_format_)
+			// The additive base of a clip has no additive format: use 'additive_clip_format8::none' with it
+			transform_track_array_adapter_t(const track_array* track_list_, additive_clip_format8 additive_format_)
 				: track_list(track_list_)
 				, additive_format(additive_format_)
+				, vq_scale(rtm::vector_set(get_additive_default_scale(additive_format_)))
 			{
+				ACL_ASSERT(track_list_ == nullptr || track_list_->is_empty() || is_transform_track_type(track_list_->get_track_type()), "Expected transform tracks");
 			}
 
 			bool is_valid() const { return track_list != nullptr; }
@@ -210,19 +218,19 @@ namespace acl
 			// Per transform metadata
 			float get_transform_shell_distance(uint32_t transform_index) const
 			{
-				const track_desc_transformf& desc = (*track_list)[transform_index].get_description();
+				const track_desc_transformf& desc = (*track_list)[transform_index].get_description<track_desc_transformf>();
 				return desc.shell_distance;
 			}
 
 			float get_transform_precision(uint32_t transform_index) const
 			{
-				const track_desc_transformf& desc = (*track_list)[transform_index].get_description();
+				const track_desc_transformf& desc = (*track_list)[transform_index].get_description<track_desc_transformf>();
 				return desc.precision;
 			}
 
 			uint32_t get_transform_parent_index(uint32_t transform_index) const
 			{
-				const track_desc_transformf& desc = (*track_list)[transform_index].get_description();
+				const track_desc_transformf& desc = (*track_list)[transform_index].get_description<track_desc_transformf>();
 				return desc.parent_index;
 			}
 
@@ -230,19 +238,19 @@ namespace acl
 			rtm::quatf RTM_SIMD_CALL get_transform_rotation(uint32_t transform_index, uint32_t sample_index) const
 			{
 				sample_index = std::min<uint32_t>(sample_index, track_list->get_num_samples_per_track() - 1);
-				return (*track_list)[transform_index][sample_index].rotation;
+				return get_transform_track_sample((*track_list)[transform_index], sample_index, vq_scale).rotation;
 			}
 
 			rtm::vector4f RTM_SIMD_CALL get_transform_translation(uint32_t transform_index, uint32_t sample_index) const
 			{
 				sample_index = std::min<uint32_t>(sample_index, track_list->get_num_samples_per_track() - 1);
-				return (*track_list)[transform_index][sample_index].translation;
+				return get_transform_track_sample((*track_list)[transform_index], sample_index, vq_scale).translation;
 			}
 
 			rtm::vector4f RTM_SIMD_CALL get_transform_scale(uint32_t transform_index, uint32_t sample_index) const
 			{
 				sample_index = std::min<uint32_t>(sample_index, track_list->get_num_samples_per_track() - 1);
-				return (*track_list)[transform_index][sample_index].scale;
+				return get_transform_track_sample((*track_list)[transform_index], sample_index, vq_scale).scale;
 			}
 		};
 	}

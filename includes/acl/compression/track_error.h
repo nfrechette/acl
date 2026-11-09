@@ -81,11 +81,12 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// Calculates the worst compression error between a raw track array and its
 	// compressed tracks.
-	// Supports transform tracks with an additive base.
+	// Supports transform tracks (vqvf or vqf) with an additive base.
+	// The additive base can have a different transform type than the raw tracks.
 	//
 	// Note: This function uses SFINAE to prevent it from matching when it shouldn't.
 	template<class decompression_context_type, acl_impl::is_decompression_context<decompression_context_type> = nullptr>
-	track_error calculate_compression_error(iallocator& allocator, const track_array_vqvf& raw_tracks, decompression_context_type& context, const itransform_error_metric& error_metric, const track_array_vqvf& additive_base_tracks);
+	track_error calculate_compression_error(iallocator& allocator, const track_array& raw_tracks, decompression_context_type& context, const itransform_error_metric& error_metric, const track_array& additive_base_tracks);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Calculates the worst compression error between two compressed tracks instances.

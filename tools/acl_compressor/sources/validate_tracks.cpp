@@ -91,8 +91,8 @@ void validate_transform_tracks(const acl::acl_impl::debug_track_writer& referenc
 
 void validate_accuracy(
 	iallocator& allocator,
-	const track_array_vqvf& raw_tracks,
-	const track_array_vqvf& additive_base_tracks,
+	const track_array& raw_tracks,
+	const track_array& additive_base_tracks,
 	const itransform_error_metric& error_metric,
 	const compressed_tracks& compressed_tracks_,
 	double regression_error_threshold
@@ -153,6 +153,18 @@ void validate_accuracy(
 	debug_track_writer_per_track_rounding track_writer_per_track_rounding(allocator, track_type8::vqvf, num_tracks);
 	track_writer_per_track_rounding.initialize_with_defaults(raw_tracks);
 
+	// A VQ clip has no scale: decompression must not write it
+	// We set the scale of each writer to a value that decompression never writes and we check it at the end
+	const bool is_vq = compressed_tracks_.get_track_type() == track_type8::vqf;
+	const rtm::vector4f vq_sentinel_scale = rtm::vector_set(-123.0F);
+	if (is_vq)
+	{
+		track_writer.set_all_scales(vq_sentinel_scale);
+		track_writer_constant.set_all_scales(vq_sentinel_scale);
+		track_writer_variable.set_all_scales(vq_sentinel_scale);
+		track_writer_per_track_rounding.set_all_scales(vq_sentinel_scale);
+	}
+
 	{
 		// Try to decompress something at 0.0, if we have no tracks or samples, it should be handled
 		context.seek(0.0F, rounding_policy);
@@ -166,6 +178,9 @@ void validate_accuracy(
 	{
 		debug_track_writer track_writer_clamped(allocator, track_type8::vqvf, num_tracks);
 		track_writer_clamped.initialize_with_defaults(raw_tracks);
+
+		if (is_vq)
+			track_writer_clamped.set_all_scales(vq_sentinel_scale);
 
 		// Make sure clamping works properly at the start of the clip
 		context.seek(-0.2F, rounding_policy);
@@ -255,6 +270,17 @@ void validate_accuracy(
 				track_index, sample_index,
 				(float)rtm::vector_get_x(transform0.scale), (float)rtm::vector_get_y(transform0.scale), (float)rtm::vector_get_z(transform0.scale),
 				(float)rtm::vector_get_x(transform1.scale), (float)rtm::vector_get_y(transform1.scale), (float)rtm::vector_get_z(transform1.scale));
+		}
+	}
+
+	if (is_vq)
+	{
+		for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+		{
+			ACL_ASSERT(rtm::vector_all_near_equal3(track_writer.read_vqv(track_index).scale, vq_sentinel_scale, 0.0F), "Decompression wrote the scale of a VQ track");
+			ACL_ASSERT(rtm::vector_all_near_equal3(track_writer_constant.read_vqv(track_index).scale, vq_sentinel_scale, 0.0F), "Decompression wrote the scale of a VQ track");
+			ACL_ASSERT(rtm::vector_all_near_equal3(track_writer_variable.read_vqv(track_index).scale, vq_sentinel_scale, 0.0F), "Decompression wrote the scale of a VQ track");
+			ACL_ASSERT(rtm::vector_all_near_equal3(track_writer_per_track_rounding.read_vqv(track_index).scale, vq_sentinel_scale, 0.0F), "Decompression wrote the scale of a VQ track");
 		}
 	}
 }
@@ -539,21 +565,22 @@ void validate_metadata(const track_array& raw_tracks, const compressed_tracks& t
 		ACL_ASSERT(raw_name == compressed_name, "Unexpected track name");
 	}
 
-	if (raw_tracks.get_track_type() == track_type8::vqvf)
+	if (raw_tracks.get_track_category() == track_category8::transformf)
 	{
 		// Specific to transform tracks
-		const track_array_vqvf& transform_tracks = track_array_cast<track_array_vqvf>(raw_tracks);
+		// A VQ track has no scale, the compressed description has the identity scale
+		const bool is_vq = raw_tracks.get_track_type() == track_type8::vqf;
 
 		for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 		{
-			const track_vqvf& raw_track = transform_tracks[track_index];
+			const track& raw_track = raw_tracks[track_index];
 			const uint32_t output_index = raw_track.get_output_index();
 			if (output_index == k_invalid_track_index)
 				continue;	// Stripped
 
-			const track_desc_transformf& raw_desc = raw_track.get_description();
+			const track_desc_transformf& raw_desc = raw_track.get_description<track_desc_transformf>();
 			const uint32_t parent_track_index = raw_desc.parent_index;
-			const uint32_t parent_track_output_index = parent_track_index != k_invalid_track_index ? transform_tracks[parent_track_index].get_output_index() : k_invalid_track_index;
+			const uint32_t parent_track_output_index = parent_track_index != k_invalid_track_index ? raw_tracks[parent_track_index].get_output_index() : k_invalid_track_index;
 
 			const uint32_t compressed_parent_track_index = tracks.get_parent_track_index(output_index);
 			ACL_ASSERT(parent_track_output_index == compressed_parent_track_index, "Unexpected parent track index");
@@ -568,7 +595,7 @@ void validate_metadata(const track_array& raw_tracks, const compressed_tracks& t
 
 			ACL_ASSERT(rtm::quat_near_equal(raw_desc.default_value.rotation, compressed_desc.default_value.rotation, 0.0F), "Unexpected default_value.rotation");
 			ACL_ASSERT(rtm::vector_all_near_equal3(raw_desc.default_value.translation, compressed_desc.default_value.translation, 0.0F), "Unexpected default_value.translation");
-			ACL_ASSERT(rtm::vector_all_near_equal3(raw_desc.default_value.scale, compressed_desc.default_value.scale, 0.0F), "Unexpected default_value.scale");
+			ACL_ASSERT(rtm::vector_all_near_equal3(is_vq ? rtm::vector_set(1.0F) : raw_desc.default_value.scale, compressed_desc.default_value.scale, 0.0F), "Unexpected default_value.scale");
 		}
 	}
 	else
@@ -643,7 +670,8 @@ static void compare_raw_with_compressed(iallocator& allocator, const track_array
 			ACL_ASSERT(raw_desc.shell_distance == desc.shell_distance, "Unexpected shell_distance");
 			ACL_ASSERT(rtm::quat_near_equal(raw_desc.default_value.rotation, desc.default_value.rotation, 0.0F), "Unexpected default_value.rotation");
 			ACL_ASSERT(rtm::vector_all_near_equal3(raw_desc.default_value.translation, desc.default_value.translation, 0.0F), "Unexpected default_value.translation");
-			ACL_ASSERT(rtm::vector_all_near_equal3(raw_desc.default_value.scale, desc.default_value.scale, 0.0F), "Unexpected default_value.scale");
+			if (raw_tracks.get_track_type() != track_type8::vqf)	// A VQ track has no scale
+				ACL_ASSERT(rtm::vector_all_near_equal3(raw_desc.default_value.scale, desc.default_value.scale, 0.0F), "Unexpected default_value.scale");
 		}
 	}
 
@@ -659,7 +687,9 @@ static void compare_raw_with_compressed(iallocator& allocator, const track_array
 	ACL_ASSERT(is_bound_to_tracks, "Failed to bind to correct compressed tracks instance"); (void)is_bound_to_tracks;
 
 	const track_type8 track_type = raw_tracks.get_track_type();
-	acl_impl::debug_track_writer writer(allocator, track_type, num_tracks);
+
+	// The debug writer holds each transform as a VQV transform
+	acl_impl::debug_track_writer writer(allocator, track_category == track_category8::transformf ? track_type8::vqvf : track_type, num_tracks);
 
 	if (track_category == track_category8::transformf)
 		writer.initialize_with_defaults(raw_tracks);
@@ -728,6 +758,16 @@ static void compare_raw_with_compressed(iallocator& allocator, const track_array
 				ACL_ASSERT(rtm::quat_near_equal(raw_sample.rotation, compressed_sample.rotation, 0.0001F), "Unexpected sample");
 				ACL_ASSERT(rtm::vector_all_near_equal3(raw_sample.translation, compressed_sample.translation, 0.0F), "Unexpected sample");
 				ACL_ASSERT(rtm::vector_all_near_equal3(raw_sample.scale, compressed_sample.scale, 0.0F), "Unexpected sample");
+				break;
+			}
+			case track_type8::vqf:
+			{
+				const rtm::vqf raw_sample = *acl_impl::bit_cast<const rtm::vqf*>(raw_track[sample_index]);
+				const rtm::vqvf compressed_sample = writer.read_vqv(track_index);
+
+				// Rotations can differ a bit due to how we normalize during interpolation
+				ACL_ASSERT(rtm::quat_near_equal(raw_sample.rotation, compressed_sample.rotation, 0.0001F), "Unexpected sample");
+				ACL_ASSERT(rtm::vector_all_near_equal3(raw_sample.translation, compressed_sample.translation, 0.0F), "Unexpected sample");
 				break;
 			}
 			default:

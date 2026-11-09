@@ -90,18 +90,31 @@ namespace acl
 			// This assumes that the debug_track_writer was allocated with the number of tracks
 			// from the compressed tracks instance used to populate it and that the provided
 			// track_array remaps to it properly with matching output indices.
+			// The track_array can contain vqvf or vqf tracks.
 			void initialize_with_defaults(const track_array& tracks)
 			{
-				const track_array_vqvf& tracks_ = track_array_cast<track_array_vqvf>(tracks);
+				ACL_ASSERT(type == track_type8::vqvf, "Unexpected track type access");
+				ACL_ASSERT(tracks.is_empty() || is_transform_track_type(tracks.get_track_type()), "Expected transform tracks");
 
-				for (const track_vqvf& track : tracks_)
+				for (const track& track_ : tracks)
 				{
-					const track_desc_transformf& desc = track.get_description();
+					const track_desc_transformf& desc = track_.get_description<track_desc_transformf>();
 					if (desc.output_index == k_invalid_track_index)
 						continue;	// Stripped, skip it
 
 					tracks_typed.vqvf[desc.output_index] = desc.default_value;
 				}
+			}
+
+			//////////////////////////////////////////////////////////////////////////
+			// Sets the scale of each transform.
+			// A VQ track has no scale, thus its sampling does not write it.
+			void RTM_SIMD_CALL set_all_scales(rtm::vector4f_arg0 scale)
+			{
+				ACL_ASSERT(type == track_type8::vqvf, "Unexpected track type access");
+
+				for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+					tracks_typed.vqvf[track_index].scale = scale;
 			}
 
 			//////////////////////////////////////////////////////////////////////////

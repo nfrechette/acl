@@ -52,7 +52,7 @@ namespace acl
 		// Ensures every rotation quaternion is normalized.
 		// A quaternion will be normalized only if it isn't already normalized to preserve
 		// its original value where possible.
-		// VQV transform tracks only.
+		// Transform tracks only.
 		// This is lossy.
 		normalize_rotations = 0x01,
 
@@ -61,7 +61,7 @@ namespace acl
 		// facilitate interpolation by avoiding wrapping around.
 		// Because both halves of the hyper-sphere represent equivalent rotations,
 		// this operation is considered lossless.
-		// VQV transform tracks only.
+		// Transform tracks only.
 		// This is lossless.
 		ensure_quat_w_positive = 0x02,
 
@@ -78,6 +78,19 @@ namespace acl
 		// Sanitizes every default track (and sub-track) by duplicating the default sample.
 		// This is lossy.
 		sanitize_default_tracks = 0x10,
+
+		// Converts the transform tracks into the transform type of 'pre_process_settings_t::transform_type'.
+		// A promotion (for example vqf -> vqvf) always succeeds and is lossless. Each new scale is the
+		// identity of the additive format (1.0, or 0.0 with additive1).
+		// A demotion (for example vqvf -> vqf) removes the scale. It happens only when no track needs its scale:
+		//    - With the lossless policy, each scale sample must be exactly the identity.
+		//    - With the lossy policy, the error must stay within the precision when each scale becomes the identity.
+		// When a track needs its scale, the tracks keep their type.
+		// The track list must be a 'track_array' instance: a typed track array (for example 'track_array_vqvf')
+		// cannot change its type, thus pre-processing returns an error.
+		// Transform tracks only.
+		// This is lossy with the lossy policy.
+		convert_transform_type = 0x20,
 
 		// Performs all recommended pre-process actions
 		recommended = normalize_rotations | optimize_looping | sanitize_constant_tracks | sanitize_default_tracks,
@@ -112,10 +125,16 @@ namespace acl
 		// Transform tracks only
 		const itransform_error_metric* error_metric = nullptr;
 
-		// The optional additive track list to use with transform tracks
+		// The transform type to convert the transform tracks into (vqvf or vqf)
+		// 'convert_transform_type' action only
+		// Transform tracks only
+		track_type8 transform_type = track_type8::vqvf;
+
+		// The optional additive track list to use with transform tracks (vqvf or vqf)
+		// It can have a different type than the track list to pre-process
 		// Lossy pre-processing only
 		// Transform tracks only
-		track_array_vqvf* additive_base = nullptr;
+		const track_array* additive_base = nullptr;
 		additive_clip_format8 additive_format = additive_clip_format8::none;
 	};
 
@@ -140,6 +159,13 @@ namespace acl
 	// may have mutated partially.
 	//////////////////////////////////////////////////////////////////////////
 	error_result pre_process_track_list(iallocator& allocator, const pre_process_settings_t& settings, track_array& track_list);
+
+	//////////////////////////////////////////////////////////////////////////
+	// Pre-processes a typed transform track array, see above.
+	// A typed track array cannot change its type: the 'convert_transform_type' action returns an error.
+	//////////////////////////////////////////////////////////////////////////
+	error_result pre_process_track_list(iallocator& allocator, const pre_process_settings_t& settings, track_array_vqvf& track_list);
+	error_result pre_process_track_list(iallocator& allocator, const pre_process_settings_t& settings, track_array_vqf& track_list);
 
 	ACL_IMPL_VERSION_NAMESPACE_END
 }

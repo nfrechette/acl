@@ -315,6 +315,7 @@ namespace acl
 	using track_array_float4f	= track_array_typed<track_type8::float4f, track_interpolator_t::linear>;
 	using track_array_vector4f	= track_array_typed<track_type8::vector4f, track_interpolator_t::linear>;
 	using track_array_vqvf		= track_array_typed<track_type8::vqvf, track_interpolator_t::linear>;
+	using track_array_vqf		= track_array_typed<track_type8::vqf, track_interpolator_t::linear>;
 
 	using track_array_float1f_ex	= track_array_typed<track_type8::float1f, track_interpolator_t::extended>;
 	using track_array_float2f_ex	= track_array_typed<track_type8::float2f, track_interpolator_t::extended>;

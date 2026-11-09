@@ -31,6 +31,7 @@
 #include "acl/core/error.h"
 #include "acl/core/scope_profiler.h"
 #include "acl/compression/impl/clip_context.h"
+#include "acl/compression/impl/transform_track_utils.h"
 #include "acl/compression/impl/compression_stats.h"
 #include "acl/compression/impl/rigid_shell_utils.h"
 #include "acl/compression/transform_error_metrics.h"
@@ -356,11 +357,14 @@ namespace acl
 			iallocator& allocator,
 			clip_context& context,
 			const clip_context& additive_base_clip_context,
-			const track_array_vqvf& track_list,
+			const track_array& track_list,
 			const compression_settings& settings,
 			compression_stats_t& compression_stats)
 		{
 			(void)compression_stats;
+
+			// A VQ track has no scale, its default value uses this scale
+			const rtm::vector4f vq_scale = rtm::vector_set(get_additive_default_scale(context.additive_format));
 
 #if defined(ACL_USE_SJSON)
 			scope_profiler compact_constant_sub_tracks_time;
@@ -384,7 +388,7 @@ namespace acl
 			// Iterate in any order, doesn't matter
 			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 			{
-				const track_desc_transformf& desc = track_list[transform_index].get_description();
+				const track_desc_transformf desc = get_transform_track_desc(track_list[transform_index], vq_scale);
 
 				transform_streams& bone_stream = segment.bone_streams[transform_index];
 
@@ -526,7 +530,7 @@ namespace acl
 						transform_streams& bone_stream = segment.bone_streams[bone_index];
 						transform_streams& raw_bone_stream = raw_segment.bone_streams[bone_index];
 
-						const track_desc_transformf& desc = track_list[bone_index].get_description();
+						const track_desc_transformf desc = get_transform_track_desc(track_list[bone_index], vq_scale);
 						const uint32_t parent_bone_index = desc.parent_index;
 						const rtm::vqvf original_local_transform = rtm::vqv_set(
 							raw_bone_stream.rotations.get_raw_sample<rtm::quatf>(sample_index),
@@ -787,11 +791,14 @@ namespace acl
 			iallocator& allocator,
 			clip_context& lossy_clip_context,
 			const clip_context& additive_base_clip_context,
-			const track_array_vqvf& track_list,
+			const track_array& track_list,
 			const compression_settings& settings,
 			compression_stats_t& compression_stats)
 		{
 			(void)compression_stats;
+
+			// A VQ track has no scale, its default value uses this scale
+			const rtm::vector4f vq_scale = rtm::vector_set(get_additive_default_scale(lossy_clip_context.additive_format));
 
 			const uint32_t num_transforms = lossy_clip_context.num_bones;
 			if (num_transforms == 0)
@@ -834,7 +841,7 @@ namespace acl
 			// Start compacting at the leaves and work towards the root
 			for (uint32_t transform_index_to_test : topology->leaves_first_iterator())
 			{
-				const track_desc_transformf& transform_desc_to_test = track_list[transform_index_to_test].get_description();
+				const track_desc_transformf transform_desc_to_test = get_transform_track_desc(track_list[transform_index_to_test], vq_scale);
 
 				transform_streams& bone_stream_to_test = segment.bone_streams[transform_index_to_test];
 				transform_range& bone_range_to_test = lossy_clip_context.ranges[transform_index_to_test];

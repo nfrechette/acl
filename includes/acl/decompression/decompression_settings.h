@@ -185,7 +185,7 @@ namespace acl
 	{
 		//////////////////////////////////////////////////////////////////////////
 		// Only support scalar tracks
-		static constexpr bool is_track_type_supported(track_type8 type) { return type != track_type8::vqvf; }
+		static constexpr bool is_track_type_supported(track_type8 type) { return !acl_impl::is_transform_track_type(type); }
 	};
 
 	//////////////////////////////////////////////////////////////////////////
@@ -195,8 +195,8 @@ namespace acl
 	struct debug_transform_decompression_settings : public decompression_settings
 	{
 		//////////////////////////////////////////////////////////////////////////
-		// Only support transform tracks
-		static constexpr bool is_track_type_supported(track_type8 type) { return type == track_type8::vqvf; }
+		// Only support transform tracks: vqvf and vqf
+		static constexpr bool is_track_type_supported(track_type8 type) { return acl_impl::is_transform_track_type(type); }
 	};
 
 	//////////////////////////////////////////////////////////////////////////
@@ -208,7 +208,7 @@ namespace acl
 	{
 		//////////////////////////////////////////////////////////////////////////
 		// Only support scalar tracks
-		static constexpr bool is_track_type_supported(track_type8 type) { return type != track_type8::vqvf; }
+		static constexpr bool is_track_type_supported(track_type8 type) { return !acl_impl::is_transform_track_type(type); }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Disabled by default since it is an uncommon feature
@@ -223,8 +223,8 @@ namespace acl
 	struct default_transform_decompression_settings : public decompression_settings
 	{
 		//////////////////////////////////////////////////////////////////////////
-		// Only support transform tracks
-		static constexpr bool is_track_type_supported(track_type8 type) { return type == track_type8::vqvf; }
+		// Only support transform tracks: vqvf and vqf
+		static constexpr bool is_track_type_supported(track_type8 type) { return acl_impl::is_transform_track_type(type); }
 
 		//////////////////////////////////////////////////////////////////////////
 		// By default, we only support the variable bit rates as they are generally optimal

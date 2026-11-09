@@ -37,6 +37,7 @@
 #include "acl/compression/track_array.h"
 #include "acl/compression/impl/segment_context.h"
 #include "acl/compression/impl/transform_clip_adapters.h"
+#include "acl/compression/impl/transform_track_utils.h"
 #include "acl/math/quatf.h"
 
 #include <rtm/quatf.h>
@@ -80,8 +81,14 @@ namespace acl
 			std::sort(sorted_transforms_parent_first, sorted_transforms_parent_first + num_transforms, sort_predicate);
 		}
 
-		inline bool initialize_clip_context(iallocator& allocator, const track_array_vqvf& track_list, const compression_settings& settings, additive_clip_format8 additive_format, clip_context& out_clip_context)
+		inline bool initialize_clip_context(iallocator& allocator, const track_array& track_list, const compression_settings& settings, additive_clip_format8 additive_format, clip_context& out_clip_context, bool is_additive_base)
 		{
+			ACL_ASSERT(track_list.is_empty() || is_transform_track_type(track_list.get_track_type()), "Expected transform tracks");
+
+			// A VQ track has no scale, each of its samples uses this scale
+			// An additive base has no additive format
+			const rtm::vector4f vq_scale = rtm::vector_set(get_additive_default_scale(is_additive_base ? additive_clip_format8::none : additive_format));
+
 			const uint32_t num_transforms = track_list.get_num_tracks();
 			const uint32_t num_samples = track_list.get_num_samples_per_track();
 			const float sample_rate = track_list.get_sample_rate();
@@ -119,8 +126,8 @@ namespace acl
 
 			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 			{
-				const track_vqvf& track = track_list[transform_index];
-				const track_desc_transformf& desc = track.get_description();
+				const track& track_ = track_list[transform_index];
+				const track_desc_transformf desc = get_transform_track_desc(track_, vq_scale);
 
 				transform_streams& bone_stream = bone_streams[transform_index];
 
@@ -144,7 +151,7 @@ namespace acl
 
 				for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 				{
-					const rtm::vqvf& transform = track[sample_index];
+					const rtm::vqvf transform = get_transform_track_sample(track_, sample_index, vq_scale);
 
 					// If we request raw data and we are already normalized, retain the original value
 					// otherwise we normalize for safety
