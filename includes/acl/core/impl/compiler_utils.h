@@ -41,6 +41,7 @@
 //
 // Options we use:
 //    - Disable fast math, it can hurt precision for little to no performance gain due to the high level of hand tuned optimizations.
+//    - Disable floating point contraction (GCC only), the compiler must not merge a multiply and an add into one FMA instruction.
 //////////////////////////////////////////////////////////////////////////
 #if defined(RTM_COMPILER_MSVC)
 	#define ACL_IMPL_FILE_PRAGMA_PUSH \
@@ -69,9 +70,13 @@
 		_Pragma("float_control(pop)") \
 		_Pragma("clang diagnostic pop")
 #elif defined(RTM_COMPILER_GCC)
+	// GCC defaults to -ffp-contract=fast in the GNU dialects (for example -std=gnu++11).
+	// With that option, GCC can merge a multiply and an add into one FMA instruction.
+	// The FMA does not round the product, thus the result can change with the compiler flags and the target.
+	// We set -ffp-contract=off to stop this.
 	#define ACL_IMPL_FILE_PRAGMA_PUSH \
 		_Pragma("GCC push_options") \
-		_Pragma("GCC optimize (\"no-fast-math\")")
+		_Pragma("GCC optimize (\"no-fast-math\", \"fp-contract=off\")")
 
 	#define ACL_IMPL_FILE_PRAGMA_POP \
 		_Pragma("GCC pop_options")
