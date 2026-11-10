@@ -29,7 +29,9 @@
 #include "acl/core/enum_utils.h"
 #include "acl/core/error_result.h"
 #include "acl/core/impl/compiler_utils.h"
+#include "acl/compression/transform_adapters.h"
 #include "acl/compression/transform_error_metrics.h"
+#include "acl/compression/transform_metrics.h"
 #include "acl/compression/track_array.h"
 
 #include <cstdint>
@@ -123,8 +125,21 @@ namespace acl
 		// The precision policy to follow
 		pre_process_precision_policy precision_policy = pre_process_precision_policy::lossless;
 
-		// The optional error metric to use with transform tracks when lossy
-		// When 'null', pre-processing uses the same default error metric as compression
+		// The runtime transform type, the custom transform adapter, and the transform metric
+		// to use with transform tracks when lossy
+		// They have the same meaning and the same defaults as in the compression settings, see 'compression_settings'
+		// Use the same values as for compression
+		// Lossy pre-processing only
+		// Transform tracks only
+		transform_runtime_type_t transform_runtime_type = transform_runtime_type_t::automatic;
+		const itransform_adapter* custom_transform_adapter = nullptr;
+		const itransform_metric* transform_metric = nullptr;
+
+		// DEPRECATED: use 'transform_runtime_type', 'custom_transform_adapter', and 'transform_metric' instead.
+		// This value will be removed in v2.3.
+		// The optional legacy error metric to use with transform tracks when lossy
+		// When it is not 'null', you cannot set 'transform_runtime_type', 'custom_transform_adapter', or 'transform_metric'
+		// When all are 'null', pre-processing uses the same default as compression
 		// Lossy pre-processing only
 		// Transform tracks only
 		const itransform_error_metric* error_metric = nullptr;

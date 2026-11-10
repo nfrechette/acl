@@ -29,6 +29,7 @@
 #include "acl/version.h"
 #include "acl/core/floating_point_control.h"
 #include "acl/compression/impl/pre_process.scalar.h"
+#include "acl/compression/impl/transform_runtime.h"
 #include "acl/compression/impl/pre_process.transform.h"
 
 #include <rtm/quatf.h>
@@ -186,6 +187,20 @@ namespace acl
 		track_array& track_list)
 	{
 		using namespace acl_impl;
+
+		if (input_settings.error_metric != nullptr)
+		{
+			// The legacy error metric selects the runtime transform type and the error measurement
+			if (input_settings.transform_runtime_type != transform_runtime_type_t::automatic || input_settings.custom_transform_adapter != nullptr || input_settings.transform_metric != nullptr)
+				return error_result("Cannot use the legacy error metric with a transform runtime type, a custom transform adapter, or a transform metric");
+		}
+		else
+		{
+			const transform_runtime_selector selector;
+			const error_result transform_runtime_result = selector.validate(input_settings.transform_runtime_type, input_settings.custom_transform_adapter, input_settings.transform_metric);
+			if (transform_runtime_result.any())
+				return transform_runtime_result;
+		}
 
 		// When the settings do not supply an error metric, we use the default for the additive format
 		// This is the same error metric that compression uses by default

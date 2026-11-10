@@ -86,6 +86,12 @@ namespace acl
 		// A 3x4 affine matrix, stored as rtm::matrix3x4f.
 		// The product of two matrices keeps the shear. Thus the product is exact and associative.
 		matrix3x4f	= 5,
+
+		//////////////////////////////////////////////////////////////////////////
+		// For the compression settings only: compression selects the runtime transform type
+		// from the raw tracks. See 'compression_settings::transform_runtime_type'.
+		// A transform adapter never returns this value.
+		automatic	= 6,
 	};
 
 	//////////////////////////////////////////////////////////////////////////
