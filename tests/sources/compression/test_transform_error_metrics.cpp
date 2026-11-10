@@ -77,10 +77,11 @@ namespace
 		const uint32_t parent_transform_indices[k_num_transforms] = { k_invalid_track_index, 0, 1 };
 
 		// Big enough for 3 transforms of any built-in error metric
-		alignas(64) uint8_t raw_local_converted[1024];
-		alignas(64) uint8_t lossy_local_converted[1024];
-		alignas(64) uint8_t raw_object_transforms[1024];
-		alignas(64) uint8_t lossy_object_transforms[1024];
+		// We zero the buffers: GCC cannot prove that a parent transform is written before its children read it
+		alignas(64) uint8_t raw_local_converted[1024] = { 0 };
+		alignas(64) uint8_t lossy_local_converted[1024] = { 0 };
+		alignas(64) uint8_t raw_object_transforms[1024] = { 0 };
+		alignas(64) uint8_t lossy_object_transforms[1024] = { 0 };
 
 		const size_t transform_size = error_metric.get_transform_size(true);
 		REQUIRE(transform_size * k_num_transforms <= sizeof(raw_local_converted));
