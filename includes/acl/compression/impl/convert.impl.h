@@ -108,7 +108,7 @@ namespace acl
 		const bool is_transform = acl_impl::is_transform_track_type(track_type);
 		const bool has_extended_samples = !is_transform && header.get_has_extended_samples();
 
-		// The debug writer holds each transform as a VQV transform, a VQ track has no scale
+		// The debug writer holds each transform as a VQV transform, a VQ track has no scale, a VQS track has a uniform scale
 		const track_type8 writer_type = is_transform ? track_type8::vqvf : track_type;
 
 		// Setup our track metadata and allocate memory
@@ -165,6 +165,10 @@ namespace acl
 			case track_type8::vqf:
 				got_description = tracks.get_track_description(track_index, desc_transform);
 				track_ = track_vqf::make_reserve(desc_transform, allocator, num_samples, sample_rate);
+				break;
+			case track_type8::vqsf:
+				got_description = tracks.get_track_description(track_index, desc_transform);
+				track_ = track_vqsf::make_reserve(desc_transform, allocator, num_samples, sample_rate);
 				break;
 			default:
 				ACL_ASSERT(false, "Unexpected track type");
@@ -234,6 +238,12 @@ namespace acl
 						*acl_impl::bit_cast<rtm::vqf*>(track_[sample_index]) = rtm::vq_set(transform.rotation, transform.translation);
 						break;
 					}
+					case track_type8::vqsf:
+					{
+						const rtm::vqvf& transform = writer.read_vqv(track_index);
+						*acl_impl::bit_cast<rtm::vqsf*>(track_[sample_index]) = rtm::vqs_set(transform.rotation, transform.translation, rtm::vector_get_x_as_scalar(transform.scale));
+						break;
+					}
 					default:
 						ACL_ASSERT(false, "Unexpected track type");
 						break;
@@ -288,6 +298,12 @@ namespace acl
 					{
 						const rtm::vqvf& transform = writer.read_vqv(track_index);
 						*acl_impl::bit_cast<rtm::vqf*>(track_[sample_index]) = rtm::vq_set(transform.rotation, transform.translation);
+						break;
+					}
+					case track_type8::vqsf:
+					{
+						const rtm::vqvf& transform = writer.read_vqv(track_index);
+						*acl_impl::bit_cast<rtm::vqsf*>(track_[sample_index]) = rtm::vqs_set(transform.rotation, transform.translation, rtm::vector_get_x_as_scalar(transform.scale));
 						break;
 					}
 					default:

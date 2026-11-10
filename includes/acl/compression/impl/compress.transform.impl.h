@@ -495,7 +495,7 @@ namespace acl
 			if (range_reduction != range_reduction_flags8::none)
 				written_clip_range_data_size = write_clip_range_data(lossy_clip_context, range_reduction, transforms_header->get_clip_range_data(), clip_range_data_size, output_bone_mapping, num_output_bones);
 
-			const uint32_t written_segment_data_size = write_segment_data(lossy_clip_context, settings, range_reduction, transforms_header->get_segment_headers(), *transforms_header, output_bone_mapping, num_output_bones);
+			const uint32_t written_segment_data_size = write_segment_data(lossy_clip_context, settings, range_reduction, transforms_header->get_segment_headers(), *header, *transforms_header, output_bone_mapping, num_output_bones);
 
 			// Optional metadata header is last
 			uint32_t writter_metadata_track_list_name_size = 0;

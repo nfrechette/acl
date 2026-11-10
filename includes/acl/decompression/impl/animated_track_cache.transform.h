@@ -31,6 +31,7 @@
 #include "acl/decompression/impl/decompression_context.transform.h"
 #include "acl/decompression/impl/steps/animated_unpack_config.h"
 #include "acl/decompression/impl/steps/animated_unpack_types.h"
+#include "acl/decompression/impl/steps/animated_unpack_uniform_scale.h"
 #include "acl/decompression/impl/steps/animated_unpack_vec3.h"
 #include "acl/math/quatf.h"
 #include "acl/math/vector4f.h"
@@ -1708,8 +1709,9 @@ namespace acl
 				return translations.cached_samples[static_cast<int>(policy)][cache_read_index % 8];
 			}
 
+			// A uniform scale (vqsf) stores a single component, see 'animated_unpack_uniform_scale.h'
 			template<class decompression_settings_adapter_type>
-			RTM_DISABLE_SECURITY_COOKIE_CHECK void unpack_scale_group(const persistent_transform_decompression_context_v0& decomp_context)
+			RTM_DISABLE_SECURITY_COOKIE_CHECK void unpack_scale_group(const persistent_transform_decompression_context_v0& decomp_context, bool is_uniform_scale)
 			{
 				const uint32_t num_left_to_unpack = scales.num_left_to_unpack;
 				if (num_left_to_unpack == 0)
@@ -1727,8 +1729,16 @@ namespace acl
 				const uint32_t cache_write_index = scales.cache_write_index % 8;
 				scales.cache_write_index += num_to_unpack;
 
-				unpack_grouped_animated_vector3<decompression_settings_adapter_type>(decomp_context, scratch0, num_to_unpack, clip_sampling_context_scales, segment_sampling_context_scales[0]);
-				unpack_grouped_animated_vector3<decompression_settings_adapter_type>(decomp_context, scratch1, num_to_unpack, clip_sampling_context_scales, segment_sampling_context_scales[1]);
+				if (is_uniform_scale)
+				{
+					unpack_grouped_animated_uniform_scale<decompression_settings_adapter_type>(decomp_context, scratch0, num_to_unpack, clip_sampling_context_scales, segment_sampling_context_scales[0]);
+					unpack_grouped_animated_uniform_scale<decompression_settings_adapter_type>(decomp_context, scratch1, num_to_unpack, clip_sampling_context_scales, segment_sampling_context_scales[1]);
+				}
+				else
+				{
+					unpack_grouped_animated_vector3<decompression_settings_adapter_type>(decomp_context, scratch0, num_to_unpack, clip_sampling_context_scales, segment_sampling_context_scales[0]);
+					unpack_grouped_animated_vector3<decompression_settings_adapter_type>(decomp_context, scratch1, num_to_unpack, clip_sampling_context_scales, segment_sampling_context_scales[1]);
+				}
 
 				const rtm::vector4f interpolation_alpha = rtm::vector_set(decomp_context.interpolation_alpha);
 				const rtm::mask4f use_sample0 = rtm::vector_less_than(interpolation_alpha, rtm::vector_set(0.5F));
@@ -1764,7 +1774,8 @@ namespace acl
 				const vector_format8 format = get_vector_format<decompression_settings_adapter_type>(decompression_settings_adapter_type::get_vector_format(decomp_context));
 				if (format == vector_format8::vector3f_variable && decompression_settings_adapter_type::is_vector_format_supported(vector_format8::vector3f_variable))
 				{
-					clip_sampling_context_scales.clip_range_data += num_to_unpack * sizeof(rtm::float3f) * 2;
+					const uint32_t clip_range_data_size = is_uniform_scale ? k_uniform_scale_clip_range_data_size : uint32_t(sizeof(rtm::float3f) * 2);
+					clip_sampling_context_scales.clip_range_data += num_to_unpack * clip_range_data_size;
 
 					// Clip range data is 24 bytes per sub-track and as such we need to prefetch two cache lines ahead to process 4 sub-tracks
 					ACL_IMPL_ANIMATED_PREFETCH(clip_sampling_context_scales.clip_range_data + 64);
@@ -1773,8 +1784,11 @@ namespace acl
 			}
 
 			template<class decompression_settings_adapter_type>
-			RTM_DISABLE_SECURITY_COOKIE_CHECK void skip_scale_groups(const persistent_transform_decompression_context_v0& decomp_context, uint32_t num_groups_to_skip)
+			RTM_DISABLE_SECURITY_COOKIE_CHECK void skip_scale_groups(const persistent_transform_decompression_context_v0& decomp_context, uint32_t num_groups_to_skip, bool is_uniform_scale)
 			{
+				// A uniform scale (vqsf) stores a single component
+				const uint32_t num_components = is_uniform_scale ? 1 : 3;
+
 				const uint32_t num_left_to_unpack = scales.num_left_to_unpack;
 				const uint32_t num_to_skip = num_groups_to_skip * 4;
 				ACL_ASSERT(num_to_skip < num_left_to_unpack, "Cannot skip scales that aren't present");
@@ -1792,30 +1806,38 @@ namespace acl
 					count_animated_group_bit_size<decompression_settings_adapter_type>(decomp_context, format_per_track_data0, format_per_track_data1, num_groups_to_skip, group_bit_size_per_component0, group_bit_size_per_component1);
 
 					const uint32_t format_per_track_data_skip_size = num_groups_to_skip * 4;
-					const uint32_t segment_range_data_skip_size = num_groups_to_skip * 6 * 4;
+					const uint32_t segment_range_data_skip_size = num_groups_to_skip * 2 * num_components * 4;
 
 					segment_sampling_context_scales[0].format_per_track_data = format_per_track_data0 + format_per_track_data_skip_size;
 					segment_sampling_context_scales[0].segment_range_data += segment_range_data_skip_size;
-					segment_sampling_context_scales[0].animated_track_data_bit_offset += group_bit_size_per_component0 * 3;
+					segment_sampling_context_scales[0].animated_track_data_bit_offset += group_bit_size_per_component0 * num_components;
 
 					segment_sampling_context_scales[1].format_per_track_data = format_per_track_data1 + format_per_track_data_skip_size;
 					segment_sampling_context_scales[1].segment_range_data += segment_range_data_skip_size;
-					segment_sampling_context_scales[1].animated_track_data_bit_offset += group_bit_size_per_component1 * 3;
+					segment_sampling_context_scales[1].animated_track_data_bit_offset += group_bit_size_per_component1 * num_components;
 
-					clip_sampling_context_scales.clip_range_data += sizeof(rtm::float3f) * 2 * 4 * num_groups_to_skip;
+					clip_sampling_context_scales.clip_range_data += sizeof(float) * 2 * num_components * 4 * num_groups_to_skip;
 				}
 				else
 				{
-					const uint32_t group_bit_size = 32 * 3 * 4 * num_groups_to_skip;
+					const uint32_t group_bit_size = 32 * num_components * 4 * num_groups_to_skip;
 					segment_sampling_context_scales[0].animated_track_data_bit_offset += group_bit_size;
 					segment_sampling_context_scales[1].animated_track_data_bit_offset += group_bit_size;
 				}
 			}
 
 			template<class decompression_settings_adapter_type>
-			RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL unpack_scale_within_group(const persistent_transform_decompression_context_v0& decomp_context, uint32_t unpack_index)
+			RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL unpack_scale_within_group(const persistent_transform_decompression_context_v0& decomp_context, uint32_t unpack_index, bool is_uniform_scale)
 			{
 				ACL_ASSERT(unpack_index < scales.num_left_to_unpack && unpack_index < 4, "Cannot unpack sample that isn't present");
+
+				if (is_uniform_scale)
+				{
+					const rtm::vector4f uniform_sample0 = unpack_single_animated_uniform_scale<decompression_settings_adapter_type>(decomp_context, unpack_index, clip_sampling_context_scales, segment_sampling_context_scales[0]);
+					const rtm::vector4f uniform_sample1 = unpack_single_animated_uniform_scale<decompression_settings_adapter_type>(decomp_context, unpack_index, clip_sampling_context_scales, segment_sampling_context_scales[1]);
+
+					return rtm::vector_lerp(uniform_sample0, uniform_sample1, decomp_context.interpolation_alpha);
+				}
 
 				const rtm::vector4f sample0 = unpack_single_animated_vector3<decompression_settings_adapter_type>(decomp_context, unpack_index, clip_sampling_context_scales, segment_sampling_context_scales[0]);
 				const rtm::vector4f sample1 = unpack_single_animated_vector3<decompression_settings_adapter_type>(decomp_context, unpack_index, clip_sampling_context_scales, segment_sampling_context_scales[1]);

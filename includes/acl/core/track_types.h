@@ -73,7 +73,7 @@ namespace acl
 		qvvf		= vqvf,
 
 		vqf			= 14,
-		//vqsf		= 15,
+		vqsf		= 15,
 		//vqmf		= 16,
 
 		//int1i		= 17,
@@ -92,10 +92,10 @@ namespace acl
 	namespace acl_impl
 	{
 		//////////////////////////////////////////////////////////////////////////
-		// Returns true if the track type is a transform type that ACL supports: vqvf or vqf.
+		// Returns true if the track type is a transform type that ACL supports: vqvf, vqf, or vqsf.
 		constexpr bool is_transform_track_type(track_type8 type)
 		{
-			return type == track_type8::vqvf || type == track_type8::vqf;
+			return type == track_type8::vqvf || type == track_type8::vqf || type == track_type8::vqsf;
 		}
 	}
 
@@ -138,6 +138,7 @@ namespace acl
 		case track_type8::vector4f:			return "vector4f";
 		case track_type8::vqvf:				return "vqvf";
 		case track_type8::vqf:				return "vqf";
+		case track_type8::vqsf:				return "vqsf";
 		default:							return "<Invalid>";
 		}
 	}
@@ -169,9 +170,10 @@ namespace acl
 			"vqvd",
 
 			"vqf",
+			"vqsf",
 		};
 
-		static_assert(get_array_size(k_track_type_names) == (size_t)track_type8::vqf + 1, "Unexpected array size");
+		static_assert(get_array_size(k_track_type_names) == (size_t)track_type8::vqsf + 1, "Unexpected array size");
 
 		ACL_ASSERT(type != nullptr, "Track type name cannot be null");
 		if (type == nullptr)
@@ -223,12 +225,13 @@ namespace acl
 			track_category8::transformd,	// vqvd
 
 			track_category8::transformf,	// vqf
+			track_category8::transformf,	// vqsf
 		};
 
-		static_assert(get_array_size(k_track_type_to_category) == (size_t)track_type8::vqf + 1, "Unexpected array size");
+		static_assert(get_array_size(k_track_type_to_category) == (size_t)track_type8::vqsf + 1, "Unexpected array size");
 
-		ACL_ASSERT(type <= track_type8::vqf, "Unexpected track type");
-		return type <= track_type8::vqf ? k_track_type_to_category[static_cast<uint32_t>(type)] : track_category8::scalarf;
+		ACL_ASSERT(type <= track_type8::vqsf, "Unexpected track type");
+		return type <= track_type8::vqsf ? k_track_type_to_category[static_cast<uint32_t>(type)] : track_category8::scalarf;
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -301,12 +304,13 @@ namespace acl
 			12,	// vqvd
 
 			8,	// vqf
+			8,	// vqsf
 		};
 
-		static_assert(get_array_size(k_track_type_to_num_elements) == (size_t)track_type8::vqf + 1, "Unexpected array size");
+		static_assert(get_array_size(k_track_type_to_num_elements) == (size_t)track_type8::vqsf + 1, "Unexpected array size");
 
-		ACL_ASSERT(type <= track_type8::vqf, "Unexpected track type");
-		return type <= track_type8::vqf ? k_track_type_to_num_elements[static_cast<uint32_t>(type)] : 0;
+		ACL_ASSERT(type <= track_type8::vqsf, "Unexpected track type");
+		return type <= track_type8::vqsf ? k_track_type_to_num_elements[static_cast<uint32_t>(type)] : 0;
 	}
 
 	ACL_IMPL_VERSION_NAMESPACE_END

@@ -88,7 +88,7 @@ namespace acl
 			}
 			else if (track_category == track_category8::transformf)
 			{
-				ACL_ASSERT(is_transform_track_type(track_type), "Expected vqvf or vqf");
+				ACL_ASSERT(is_transform_track_type(track_type), "Expected vqvf, vqf, or vqsf");
 
 				// Transform tracks are looping if replacing the last keyframe with the first satisfies
 				// the error metric.
@@ -146,7 +146,7 @@ namespace acl
 			}
 			else if (track_category == track_category8::transformf)
 			{
-				ACL_ASSERT(is_transform_track_type(track_type), "Expected vqvf or vqf");
+				ACL_ASSERT(is_transform_track_type(track_type), "Expected vqvf, vqf, or vqsf");
 
 				// Transform tracks are constant when the error metric is satisfied when the first
 				// sample is repeated
@@ -170,7 +170,7 @@ namespace acl
 			}
 			else if (track_category == track_category8::transformf)
 			{
-				ACL_ASSERT(is_transform_track_type(track_list.get_track_type()), "Expected vqvf or vqf");
+				ACL_ASSERT(is_transform_track_type(track_list.get_track_type()), "Expected vqvf, vqf, or vqsf");
 
 				// Transform tracks are default when the error metric is satisfied when the default
 				// sample is repeated
@@ -217,7 +217,7 @@ namespace acl
 
 		const bool is_transform = is_transform_track_type(track_list.get_track_type());
 		if (is_transform && are_any_enum_flags_set(settings.actions, pre_process_actions::convert_transform_type) && !is_transform_track_type(settings.transform_type))
-			return error_result("'transform_type' must be a transform track type: vqvf or vqf");
+			return error_result("'transform_type' must be a transform track type: vqvf, vqf, or vqsf");
 
 		// Disable floating point exceptions during compression because we leverage all SIMD lanes
 		// and we might intentionally divide by zero, etc.
@@ -284,6 +284,18 @@ namespace acl
 	{
 		// A typed track array cannot change its type
 		if (are_any_enum_flags_set(settings.actions, pre_process_actions::convert_transform_type) && settings.transform_type != track_type8::vqf)
+			return error_result("'convert_transform_type' cannot change the type of a typed track array, use 'track_array'");
+
+		return pre_process_track_list(allocator, settings, static_cast<track_array&>(track_list));
+	}
+
+	inline error_result pre_process_track_list(
+		iallocator& allocator,
+		const pre_process_settings_t& settings,
+		track_array_vqsf& track_list)
+	{
+		// A typed track array cannot change its type
+		if (are_any_enum_flags_set(settings.actions, pre_process_actions::convert_transform_type) && settings.transform_type != track_type8::vqsf)
 			return error_result("'convert_transform_type' cannot change the type of a typed track array, use 'track_array'");
 
 		return pre_process_track_list(allocator, settings, static_cast<track_array&>(track_list));

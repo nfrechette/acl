@@ -135,6 +135,11 @@ namespace acl
 			void set_has_metadata(bool has_metadata) { misc_packed = (misc_packed & ~(1 << 31)) | (static_cast<uint32_t>(has_metadata) << 31); }
 		};
 
+		//////////////////////////////////////////////////////////////////////////
+		// Returns true if the scale sub-tracks store a single component (a uniform scale).
+		// VQS clips (vqsf) have a uniform scale. Decompression writes it with 'write_scale(uint32_t, rtm::scalarf_arg0)'.
+		constexpr bool has_uniform_scale(const tracks_header& header) { return header.track_type == track_type8::vqsf; }
+
 		// How the samples of a scalar track interpolate.
 		// These values are serialized, do not change them once assigned.
 		enum class sample_interpolation_mode_t : uint8_t
@@ -324,15 +329,31 @@ namespace acl
 			uint8_t*						get_clip_range_data() { return clip_range_data_offset.add_to(this); }
 			const uint8_t*					get_clip_range_data() const { return clip_range_data_offset.add_to(this); }
 
+			//////////////////////////////////////////////////////////////////////////
+			// Returns the size in bytes of the range data of a segment.
+			// Each variable sub-track has 6 bytes: min.xyz and extent.xyz on 8 bits each.
+			// A uniform scale (vqsf) has 2 bytes: min.x and extent.x.
+			uint32_t						get_segment_range_data_size(const tracks_header& header_) const
+			{
+				if (!has_multiple_segments())
+					return 0;
+
+				uint32_t num_range_components = 6 * num_animated_variable_sub_tracks;
+				if (has_uniform_scale(header_) && is_vector_format_variable(header_.get_scale_format()))
+					num_range_components -= 4 * num_animated_scale_sub_tracks;
+
+				return k_segment_range_reduction_num_bytes_per_component * num_range_components;
+			}
+
 			template<class segment_header_type>
-			void							get_segment_data(const segment_header_type& header, uint8_t*& out_format_per_track_data, uint8_t*& out_range_data, uint8_t*& out_animated_data)
+			void							get_segment_data(const tracks_header& header_, const segment_header_type& header, uint8_t*& out_format_per_track_data, uint8_t*& out_range_data, uint8_t*& out_animated_data)
 			{
 				uint8_t* segment_data = header.segment_data.add_to(this);
 
 				uint8_t* format_per_track_data = segment_data;
 
 				uint8_t* range_data = align_to(format_per_track_data + num_animated_variable_sub_tracks, 2);
-				const uint32_t range_data_size = has_multiple_segments() ? (k_segment_range_reduction_num_bytes_per_component * 6 * num_animated_variable_sub_tracks) : 0;
+				const uint32_t range_data_size = get_segment_range_data_size(header_);
 
 				uint8_t* animated_data = align_to(range_data + range_data_size, 4);
 
@@ -342,14 +363,14 @@ namespace acl
 			}
 
 			template<class segment_header_type>
-			void							get_segment_data(const segment_header_type& header, const uint8_t*& out_format_per_track_data, const uint8_t*& out_range_data, const uint8_t*& out_animated_data) const
+			void							get_segment_data(const tracks_header& header_, const segment_header_type& header, const uint8_t*& out_format_per_track_data, const uint8_t*& out_range_data, const uint8_t*& out_animated_data) const
 			{
 				const uint8_t* segment_data = header.segment_data.add_to(this);
 
 				const uint8_t* format_per_track_data = segment_data;
 
 				const uint8_t* range_data = align_to(format_per_track_data + num_animated_variable_sub_tracks, 2);
-				const uint32_t range_data_size = has_multiple_segments() ? (k_segment_range_reduction_num_bytes_per_component * 6 * num_animated_variable_sub_tracks) : 0;
+				const uint32_t range_data_size = get_segment_range_data_size(header_);
 
 				const uint8_t* animated_data = align_to(range_data + range_data_size, 4);
 

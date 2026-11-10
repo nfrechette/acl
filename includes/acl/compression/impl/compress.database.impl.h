@@ -260,6 +260,7 @@ namespace acl
 				for (uint32_t list_index = 0; list_index < context.num_compressed_tracks; ++list_index)
 				{
 					const compressed_tracks* tracks = context.compressed_tracks_list[list_index];
+					const tracks_header& header = get_tracks_header(*tracks);
 					const transform_tracks_header& transforms_header = get_transform_tracks_header(*tracks);
 					const bool has_multiple_segments = transforms_header.has_multiple_segments();
 					const uint32_t* segment_start_indices = has_multiple_segments ? transforms_header.get_segment_start_indices() : nullptr;
@@ -285,7 +286,7 @@ namespace acl
 						const uint8_t* format_per_track_data;
 						const uint8_t* range_data;
 						const uint8_t* animated_data;
-						transforms_header.get_segment_data(segment_headers[segment_index], format_per_track_data, range_data, animated_data);
+						transforms_header.get_segment_data(header, segment_headers[segment_index], format_per_track_data, range_data, animated_data);
 
 						const uint32_t segment_start_frame_index = has_multiple_segments ? segment_start_indices[segment_index] : 0;
 
@@ -463,7 +464,7 @@ namespace acl
 			return sample_indices;
 		}
 
-		inline void rewrite_segment_headers(const database_tier_mapping& tier_mapping, uint32_t tracks_index, const transform_tracks_header& input_transforms_header, const segment_header* headers, uint32_t segment_data_base_offset, stripped_segment_header_t* out_headers)
+		inline void rewrite_segment_headers(const database_tier_mapping& tier_mapping, uint32_t tracks_index, const tracks_header& input_header, const transform_tracks_header& input_transforms_header, const segment_header* headers, uint32_t segment_data_base_offset, stripped_segment_header_t* out_headers)
 		{
 			const bitset_description desc = bitset_description::make_from_num_bits<32>();
 
@@ -481,7 +482,7 @@ namespace acl
 				const uint8_t* format_per_track_data;
 				const uint8_t* range_data;
 				const uint8_t* animated_data;
-				input_transforms_header.get_segment_data(headers[segment_index], format_per_track_data, range_data, animated_data);
+				input_transforms_header.get_segment_data(input_header, headers[segment_index], format_per_track_data, range_data, animated_data);
 
 				// Range data, whether present or not, follows the per track metadata, use it to calculate our size
 				const uint32_t format_per_track_data_size = uint32_t(range_data - format_per_track_data);
@@ -506,7 +507,7 @@ namespace acl
 		}
 
 		inline void rewrite_segment_data(const database_tier_mapping& tier_mapping, uint32_t tracks_index,
-			const transform_tracks_header& input_transforms_header, const segment_header* input_headers,
+			const tracks_header& input_header, const transform_tracks_header& input_transforms_header, const segment_header* input_headers,
 			transform_tracks_header& output_transforms_header, const stripped_segment_header_t* output_headers)
 		{
 			for (uint32_t segment_index = 0; segment_index < input_transforms_header.num_segments; ++segment_index)
@@ -514,12 +515,12 @@ namespace acl
 				const uint8_t* input_format_per_track_data;
 				const uint8_t* input_range_data;
 				const uint8_t* input_animated_data;
-				input_transforms_header.get_segment_data(input_headers[segment_index], input_format_per_track_data, input_range_data, input_animated_data);
+				input_transforms_header.get_segment_data(input_header, input_headers[segment_index], input_format_per_track_data, input_range_data, input_animated_data);
 
 				uint8_t* output_format_per_track_data;
 				uint8_t* output_range_data;
 				uint8_t* output_animated_data;
-				output_transforms_header.get_segment_data(output_headers[segment_index], output_format_per_track_data, output_range_data, output_animated_data);
+				output_transforms_header.get_segment_data(input_header, output_headers[segment_index], output_format_per_track_data, output_range_data, output_animated_data);
 
 				// Range data, whether present or not, follows the per track metadata, use it to calculate our size
 				const uint32_t format_per_track_data_size = uint32_t(input_range_data - input_format_per_track_data);
@@ -619,7 +620,7 @@ namespace acl
 					const uint8_t* format_per_track_data;
 					const uint8_t* range_data;
 					const uint8_t* animated_data;
-					input_transforms_header.get_segment_data(input_segment_headers[segment_index], format_per_track_data, range_data, animated_data);
+					input_transforms_header.get_segment_data(input_header, input_segment_headers[segment_index], format_per_track_data, range_data, animated_data);
 
 					// Range data, whether present or not, follows the per track metadata, use it to calculate our size
 					const uint32_t format_per_track_data_size = uint32_t(range_data - format_per_track_data);
@@ -724,7 +725,7 @@ namespace acl
 
 				// Write our new segment headers
 				const uint32_t segment_data_base_offset = transforms_header->clip_range_data_offset + clip_range_data_size;
-				rewrite_segment_headers(tier_mapping, list_index, input_transforms_header, input_segment_headers, segment_data_base_offset, transforms_header->get_stripped_segment_headers());
+				rewrite_segment_headers(tier_mapping, list_index, input_header, input_transforms_header, input_segment_headers, segment_data_base_offset, transforms_header->get_stripped_segment_headers());
 
 				// Copy our sub-track types, they do not change
 				std::memcpy(transforms_header->get_sub_track_types(), input_transforms_header.get_sub_track_types(), packed_sub_track_buffer_size);
@@ -736,7 +737,7 @@ namespace acl
 				std::memcpy(transforms_header->get_clip_range_data(), input_transforms_header.get_clip_range_data(), clip_range_data_size);
 
 				// Write our new segment data
-				rewrite_segment_data(tier_mapping, list_index, input_transforms_header, input_segment_headers, *transforms_header, transforms_header->get_stripped_segment_headers());
+				rewrite_segment_data(tier_mapping, list_index, input_header, input_transforms_header, input_segment_headers, *transforms_header, transforms_header->get_stripped_segment_headers());
 
 				if (metadata_size != 0)
 				{

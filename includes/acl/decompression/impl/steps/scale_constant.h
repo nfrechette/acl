@@ -25,7 +25,9 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/version.h"
+#include "acl/core/track_writer.h"
 #include "acl/core/impl/compiler_utils.h"
+#include "acl/core/impl/bit_cast.impl.h"
 #include "acl/decompression/impl/steps/step_context.h"
 
 #include <rtm/math.h>
@@ -52,10 +54,14 @@ namespace acl
 			const packed_sub_track_types* scale_sub_track_types,
 			uint32_t last_entry_index,
 			const uint8_t* constant_data_scales,
+			bool is_uniform_scale,
 			track_writer_type& writer)
 		{
 			if (track_writer_type::skip_all_scales())
 				return;
+
+			// A uniform scale stores only its X component
+			const uint32_t scale_sample_size = is_uniform_scale ? uint32_t(sizeof(float)) : uint32_t(sizeof(rtm::float3f));
 
 			const packed_sub_track_types* scale_sub_track_types_last = scale_sub_track_types + last_entry_index;
 
@@ -91,14 +97,14 @@ namespace acl
 						const uint32_t track_index0 = curr_group_track_index + 0;
 
 						const uint8_t* scale_ptr = constant_data_scales;
-						constant_data_scales += sizeof(rtm::float3f);
+						constant_data_scales += scale_sample_size;
 
 						if (!writer.skip_track_scale(track_index0))
 						{
-							const rtm::vector4f scale = rtm::vector_load(scale_ptr);
+							const rtm::vector4f scale = is_uniform_scale ? rtm::vector_broadcast(bit_cast<const float*>(scale_ptr)) : rtm::vector_load(scale_ptr);
 							ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
 
-							writer.write_scale(track_index0, scale);
+							acl_impl::write_scale(writer, track_index0, scale, is_uniform_scale);
 						}
 					}
 
@@ -107,14 +113,14 @@ namespace acl
 						const uint32_t track_index1 = curr_group_track_index + 1;
 
 						const uint8_t* scale_ptr = constant_data_scales;
-						constant_data_scales += sizeof(rtm::float3f);
+						constant_data_scales += scale_sample_size;
 
 						if (!writer.skip_track_scale(track_index1))
 						{
-							const rtm::vector4f scale = rtm::vector_load(scale_ptr);
+							const rtm::vector4f scale = is_uniform_scale ? rtm::vector_broadcast(bit_cast<const float*>(scale_ptr)) : rtm::vector_load(scale_ptr);
 							ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
 
-							writer.write_scale(track_index1, scale);
+							acl_impl::write_scale(writer, track_index1, scale, is_uniform_scale);
 						}
 					}
 
@@ -123,14 +129,14 @@ namespace acl
 						const uint32_t track_index2 = curr_group_track_index + 2;
 
 						const uint8_t* scale_ptr = constant_data_scales;
-						constant_data_scales += sizeof(rtm::float3f);
+						constant_data_scales += scale_sample_size;
 
 						if (!writer.skip_track_scale(track_index2))
 						{
-							const rtm::vector4f scale = rtm::vector_load(scale_ptr);
+							const rtm::vector4f scale = is_uniform_scale ? rtm::vector_broadcast(bit_cast<const float*>(scale_ptr)) : rtm::vector_load(scale_ptr);
 							ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
 
-							writer.write_scale(track_index2, scale);
+							acl_impl::write_scale(writer, track_index2, scale, is_uniform_scale);
 						}
 					}
 
@@ -139,14 +145,14 @@ namespace acl
 						const uint32_t track_index3 = curr_group_track_index + 3;
 
 						const uint8_t* scale_ptr = constant_data_scales;
-						constant_data_scales += sizeof(rtm::float3f);
+						constant_data_scales += scale_sample_size;
 
 						if (!writer.skip_track_scale(track_index3))
 						{
-							const rtm::vector4f scale = rtm::vector_load(scale_ptr);
+							const rtm::vector4f scale = is_uniform_scale ? rtm::vector_broadcast(bit_cast<const float*>(scale_ptr)) : rtm::vector_load(scale_ptr);
 							ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
 
-							writer.write_scale(track_index3, scale);
+							acl_impl::write_scale(writer, track_index3, scale, is_uniform_scale);
 						}
 					}
 				}
@@ -159,10 +165,14 @@ namespace acl
 			const packed_sub_track_types* scale_sub_track_types,
 			uint32_t last_entry_index,
 			const uint8_t* constant_data_scales,
+			bool is_uniform_scale,
 			track_writer_type& writer)
 		{
 			if (track_writer_type::skip_all_scales())
 				return;
+
+			// A uniform scale stores only its X component
+			const uint32_t scale_sample_size = is_uniform_scale ? uint32_t(sizeof(float)) : uint32_t(sizeof(rtm::float3f));
 
 			const packed_sub_track_types* scale_sub_track_types_last = scale_sub_track_types + last_entry_index;
 
@@ -200,14 +210,14 @@ namespace acl
 							const uint32_t track_index0 = curr_group_track_index + 0;
 
 							const uint8_t* scale_ptr = constant_data_scales;
-							constant_data_scales += sizeof(rtm::float3f);
+							constant_data_scales += scale_sample_size;
 
 							if (!writer.skip_track_scale(track_index0))
 							{
-								const rtm::vector4f scale = rtm::vector_load(scale_ptr);
+								const rtm::vector4f scale = is_uniform_scale ? rtm::vector_broadcast(bit_cast<const float*>(scale_ptr)) : rtm::vector_load(scale_ptr);
 								ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
 
-								writer.write_scale(track_index0, scale);
+								acl_impl::write_scale(writer, track_index0, scale, is_uniform_scale);
 							}
 						}
 
@@ -216,14 +226,14 @@ namespace acl
 							const uint32_t track_index1 = curr_group_track_index + 1;
 
 							const uint8_t* scale_ptr = constant_data_scales;
-							constant_data_scales += sizeof(rtm::float3f);
+							constant_data_scales += scale_sample_size;
 
 							if (!writer.skip_track_scale(track_index1))
 							{
-								const rtm::vector4f scale = rtm::vector_load(scale_ptr);
+								const rtm::vector4f scale = is_uniform_scale ? rtm::vector_broadcast(bit_cast<const float*>(scale_ptr)) : rtm::vector_load(scale_ptr);
 								ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
 
-								writer.write_scale(track_index1, scale);
+								acl_impl::write_scale(writer, track_index1, scale, is_uniform_scale);
 							}
 						}
 
@@ -232,14 +242,14 @@ namespace acl
 							const uint32_t track_index2 = curr_group_track_index + 2;
 
 							const uint8_t* scale_ptr = constant_data_scales;
-							constant_data_scales += sizeof(rtm::float3f);
+							constant_data_scales += scale_sample_size;
 
 							if (!writer.skip_track_scale(track_index2))
 							{
-								const rtm::vector4f scale = rtm::vector_load(scale_ptr);
+								const rtm::vector4f scale = is_uniform_scale ? rtm::vector_broadcast(bit_cast<const float*>(scale_ptr)) : rtm::vector_load(scale_ptr);
 								ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
 
-								writer.write_scale(track_index2, scale);
+								acl_impl::write_scale(writer, track_index2, scale, is_uniform_scale);
 							}
 						}
 
@@ -248,14 +258,14 @@ namespace acl
 							const uint32_t track_index3 = curr_group_track_index + 3;
 
 							const uint8_t* scale_ptr = constant_data_scales;
-							constant_data_scales += sizeof(rtm::float3f);
+							constant_data_scales += scale_sample_size;
 
 							if (!writer.skip_track_scale(track_index3))
 							{
-								const rtm::vector4f scale = rtm::vector_load(scale_ptr);
+								const rtm::vector4f scale = is_uniform_scale ? rtm::vector_broadcast(bit_cast<const float*>(scale_ptr)) : rtm::vector_load(scale_ptr);
 								ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
 
-								writer.write_scale(track_index3, scale);
+								acl_impl::write_scale(writer, track_index3, scale, is_uniform_scale);
 							}
 						}
 					}
@@ -276,14 +286,14 @@ namespace acl
 						const uint32_t curr_track_index = curr_entry_track_index + (set_bit_index / 2);
 
 						const uint8_t* scale_ptr = constant_data_scales;
-						constant_data_scales += sizeof(rtm::float3f);
+						constant_data_scales += scale_sample_size;
 
 						if (!writer.skip_track_scale(curr_track_index))
 						{
-							const rtm::vector4f scale = rtm::vector_load(scale_ptr);
+							const rtm::vector4f scale = is_uniform_scale ? rtm::vector_broadcast(bit_cast<const float*>(scale_ptr)) : rtm::vector_load(scale_ptr);
 							ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
 
-							writer.write_scale(curr_track_index, scale);
+							acl_impl::write_scale(writer, curr_track_index, scale, is_uniform_scale);
 						}
 					}
 				}

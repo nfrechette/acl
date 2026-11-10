@@ -33,6 +33,7 @@
 
 #include <rtm/vector4f.h>
 #include <rtm/vqf.h>
+#include <rtm/vqsf.h>
 #include <rtm/vqvf.h>
 
 #include <cstdint>
@@ -47,10 +48,15 @@ namespace acl
 	{
 		// A VQ track has no scale. ACL uses the default scale of the additive format for each of its
 		// samples, see 'get_additive_default_scale'. An additive base has no additive format, thus its scale is 1.0.
+		//
+		// A VQS track has a uniform scale. ACL compresses it as a 3D scale with the same value in [xyz].
+		// Each component then has the same range and the same bit rate, thus the lossy components stay equal.
+		// The compressed tracks store only the X component, see 'has_uniform_scale'.
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the description of a transform track.
 		// For a VQ track, the scale of the default value is 'vq_scale'.
+		// For a VQS track, the scale of the default value is uniform: its X component in [xyzw].
 		inline track_desc_transformf get_transform_track_desc(const track& track_, rtm::vector4f_arg0 vq_scale)
 		{
 			ACL_ASSERT(is_transform_track_type(track_.get_type()), "Expected a transform track");
@@ -58,6 +64,8 @@ namespace acl
 			track_desc_transformf desc = track_.get_description<track_desc_transformf>();
 			if (track_.get_type() == track_type8::vqf)
 				desc.default_value.scale = vq_scale;
+			else if (track_.get_type() == track_type8::vqsf)
+				desc.default_value.scale = rtm::vector_dup_x(desc.default_value.scale);
 
 			return desc;
 		}
@@ -65,6 +73,7 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Returns a sample of a transform track as a VQV transform.
 		// For a VQ track, the scale is 'vq_scale'.
+		// For a VQS track, the scale is uniform: its value is in [xyzw].
 		inline rtm::vqvf RTM_SIMD_CALL get_transform_track_sample(const track& track_, uint32_t sample_index, rtm::vector4f_arg0 vq_scale)
 		{
 			ACL_ASSERT(is_transform_track_type(track_.get_type()), "Expected a transform track");
@@ -73,6 +82,11 @@ namespace acl
 			{
 				const rtm::vqf& sample = *static_cast<const rtm::vqf*>(track_[sample_index]);
 				return rtm::vqv_set(sample.rotation, sample.translation, vq_scale);
+			}
+			else if (track_.get_type() == track_type8::vqsf)
+			{
+				const rtm::vqsf& sample = *static_cast<const rtm::vqsf*>(track_[sample_index]);
+				return rtm::vqv_set(sample.rotation, sample.translation_scale, rtm::vector_dup_w(sample.translation_scale));
 			}
 
 			return *static_cast<const rtm::vqvf*>(track_[sample_index]);

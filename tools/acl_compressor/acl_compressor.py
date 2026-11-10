@@ -36,6 +36,7 @@ def parse_argv():
 	options['strip_keyframe_proportion'] = None
 	options['strip_keyframe_threshold'] = None
 	options['source_vq'] = False
+	options['source_vqs'] = False
 	options['print_help'] = False
 
 	for i in range(1, len(sys.argv)):
@@ -92,6 +93,9 @@ def parse_argv():
 
 		if value == '-source_vq':
 			options['source_vq'] = True
+
+		if value == '-source_vqs':
+			options['source_vqs'] = True
 
 		if value == '-help':
 			options['print_help'] = True
@@ -153,6 +157,7 @@ def print_help():
 	print('  -strip_keyframe_proportion: Enables keyframe stripping and sets the desired strip proportion')
 	print('  -strip_keyframe_threshold: Enables keyframe stripping and sets the desired strip threshold')
 	print('  -source_vq: Compresses the transform clips without scale as VQ tracks (vqf)')
+	print('  -source_vqs: Compresses the transform clips without scale or with a uniform scale as VQS tracks (vqsf)')
 	print('  -help: Prints this help message.')
 
 def print_stat(stat):
@@ -383,6 +388,9 @@ def compress_clips(options):
 
 			if options['source_vq']:
 				cmd = '{} -source_vq'.format(cmd)
+
+			if options['source_vqs']:
+				cmd = '{} -source_vqs'.format(cmd)
 
 			if platform.system() == 'Windows':
 				cmd = cmd.replace('/', '\\')

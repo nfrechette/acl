@@ -90,11 +90,14 @@ namespace acl
 			// This assumes that the debug_track_writer was allocated with the number of tracks
 			// from the compressed tracks instance used to populate it and that the provided
 			// track_array remaps to it properly with matching output indices.
-			// The track_array can contain vqvf or vqf tracks.
+			// The track_array can contain vqvf, vqf, or vqsf tracks.
+			// With vqsf, the default scale is uniform: we use the X component of the default value scale.
 			void initialize_with_defaults(const track_array& tracks)
 			{
 				ACL_ASSERT(type == track_type8::vqvf, "Unexpected track type access");
 				ACL_ASSERT(tracks.is_empty() || is_transform_track_type(tracks.get_track_type()), "Expected transform tracks");
+
+				const bool is_vqs = !tracks.is_empty() && tracks.get_track_type() == track_type8::vqsf;
 
 				for (const track& track_ : tracks)
 				{
@@ -102,7 +105,11 @@ namespace acl
 					if (desc.output_index == k_invalid_track_index)
 						continue;	// Stripped, skip it
 
-					tracks_typed.vqvf[desc.output_index] = desc.default_value;
+					rtm::vqvf default_value = desc.default_value;
+					if (is_vqs)
+						default_value.scale = rtm::vector_dup_x(default_value.scale);
+
+					tracks_typed.vqvf[desc.output_index] = default_value;
 				}
 			}
 
@@ -209,6 +216,15 @@ namespace acl
 			{
 				ACL_ASSERT(type == track_type8::vqvf, "Unexpected track type access");
 				tracks_typed.vqvf[track_index].scale = scale;
+			}
+
+			//////////////////////////////////////////////////////////////////////////
+			// Called by the decoder to write out a uniform scale value for a specified bone index.
+			// The decoder calls it for vqsf tracks. We store the value in [xyz].
+			void RTM_SIMD_CALL write_scale(uint32_t track_index, rtm::scalarf_arg0 scale)
+			{
+				ACL_ASSERT(type == track_type8::vqvf, "Unexpected track type access");
+				tracks_typed.vqvf[track_index].scale = rtm::vector_set(scale);
 			}
 
 			const rtm::vqvf& RTM_SIMD_CALL read_vqv(uint32_t track_index) const

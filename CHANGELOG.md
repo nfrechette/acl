@@ -28,6 +28,13 @@
 *  `pre_process_settings_t::additive_base` is now a `const track_array*`
 *  The clip reader and writer support `vqf` tracks in the track list format
 *  Add the `-source_vq` option to `acl_compressor` and its python script, it compresses the clips without scale as `vqf` tracks
+*  Add the `vqsf` transform track type (rotation, translation, and uniform scale) with `track_vqsf` and `track_array_vqsf`, the compressed data version `v02_02_99_1` also covers it
+*  A compressed `vqsf` clip stores one scale component for each scale sub-track: the constant samples, the clip and segment ranges, and the animated samples are smaller than with `vqvf`
+*  Decompression writes the scale of a `vqsf` clip with the new `track_writer::write_scale(uint32_t, rtm::scalarf_arg0)` overload when the track writer has it, otherwise with the `rtm::vector4f_arg0` overload and the value in [xyzw]
+*  The default transform decompression settings accept `vqsf`
+*  The `convert_transform_type` pre-process action converts between `vqvf`, `vqsf`, and `vqf`
+*  The clip reader and writer support `vqsf` tracks in the track list format
+*  Add the `-source_vqs` option to `acl_compressor` and its python script, it compresses the clips without scale or with a uniform scale as `vqsf` tracks
 
 ## 2.1.0
 

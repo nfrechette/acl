@@ -41,6 +41,7 @@ namespace acl
 	constexpr uint8_t k_segment_range_reduction_num_bits_per_component = 8;
 	constexpr uint8_t k_segment_range_reduction_num_bytes_per_component = 1;
 	constexpr uint32_t k_clip_range_reduction_vector3_range_size = sizeof(float) * 6;
+	constexpr uint32_t k_clip_range_reduction_scalar_range_size = sizeof(float) * 2;
 
 	////////////////////////////////////////////////////////////////////////////////
 	// range_reduction_flags8 represents the types of range reduction we support as a bit field.

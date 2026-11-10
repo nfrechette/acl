@@ -80,11 +80,15 @@ namespace acl
 		sanitize_default_tracks = 0x10,
 
 		// Converts the transform tracks into the transform type of 'pre_process_settings_t::transform_type'.
-		// A promotion (for example vqf -> vqvf) always succeeds and is lossless. Each new scale is the
-		// identity of the additive format (1.0, or 0.0 with additive1).
-		// A demotion (for example vqvf -> vqf) removes the scale. It happens only when no track needs its scale:
+		// The types hold more and more scale information: vqf (no scale), vqsf (uniform scale), vqvf (3D scale).
+		// A promotion (for example vqf -> vqsf, or vqsf -> vqvf) always succeeds and is lossless. When the source
+		// has no scale, each new scale is the identity of the additive format (1.0, or 0.0 with additive1).
+		// A demotion to vqf removes the scale. It happens only when no track needs its scale:
 		//    - With the lossless policy, each scale sample must be exactly the identity.
 		//    - With the lossy policy, the error must stay within the precision when each scale becomes the identity.
+		// A demotion from vqvf to vqsf makes each scale uniform. It happens only when no track needs a non-uniform scale:
+		//    - With the lossless policy, the [xyz] components of each scale sample must be exactly equal.
+		//    - With the lossy policy, the error must stay within the precision when each scale becomes the mean of [xyz].
 		// When a track needs its scale, the tracks keep their type.
 		// The track list must be a 'track_array' instance: a typed track array (for example 'track_array_vqvf')
 		// cannot change its type, thus pre-processing returns an error.
@@ -125,12 +129,12 @@ namespace acl
 		// Transform tracks only
 		const itransform_error_metric* error_metric = nullptr;
 
-		// The transform type to convert the transform tracks into (vqvf or vqf)
+		// The transform type to convert the transform tracks into (vqvf, vqf, or vqsf)
 		// 'convert_transform_type' action only
 		// Transform tracks only
 		track_type8 transform_type = track_type8::vqvf;
 
-		// The optional additive track list to use with transform tracks (vqvf or vqf)
+		// The optional additive track list to use with transform tracks (vqvf, vqf, or vqsf)
 		// It can have a different type than the track list to pre-process
 		// Lossy pre-processing only
 		// Transform tracks only
@@ -166,6 +170,7 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	error_result pre_process_track_list(iallocator& allocator, const pre_process_settings_t& settings, track_array_vqvf& track_list);
 	error_result pre_process_track_list(iallocator& allocator, const pre_process_settings_t& settings, track_array_vqf& track_list);
+	error_result pre_process_track_list(iallocator& allocator, const pre_process_settings_t& settings, track_array_vqsf& track_list);
 
 	ACL_IMPL_VERSION_NAMESPACE_END
 }

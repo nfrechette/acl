@@ -889,13 +889,15 @@ namespace acl
 				return sample;
 			}
 
-			RTM_DISABLE_SECURITY_COOKIE_CHECK void skip_scale_groups(uint32_t num_groups_to_skip)
+			// A uniform scale (vqsf) stores only its X component
+			RTM_DISABLE_SECURITY_COOKIE_CHECK void skip_scale_groups(uint32_t num_groups_to_skip, bool is_uniform_scale)
 			{
 				const uint8_t* constant_track_data = constant_data_scales;
 
 				// We only support skipping full groups
 				const uint32_t num_to_skip = num_groups_to_skip * 4;
-				constant_track_data += num_to_skip * sizeof(rtm::float3f);
+				const uint32_t sample_size = is_uniform_scale ? uint32_t(sizeof(float)) : uint32_t(sizeof(rtm::float3f));
+				constant_track_data += num_to_skip * sample_size;
 
 				constant_data_scales = constant_track_data;
 
@@ -903,9 +905,18 @@ namespace acl
 				ACL_IMPL_CONSTANT_PREFETCH(constant_track_data);
 			}
 
-			RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL unpack_scale_within_group(uint32_t unpack_index) const
+			// A uniform scale (vqsf) stores only its X component, we return it in [xyzw]
+			RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL unpack_scale_within_group(uint32_t unpack_index, bool is_uniform_scale) const
 			{
 				ACL_ASSERT(unpack_index < 4, "Cannot unpack sample that isn't present");
+
+				if (is_uniform_scale)
+				{
+					const uint8_t* uniform_track_data = constant_data_scales + (unpack_index * sizeof(float));
+					const rtm::vector4f uniform_sample = rtm::vector_broadcast(bit_cast<const float*>(uniform_track_data));
+					ACL_ASSERT(rtm::vector_is_finite3(uniform_sample), "Sample is not valid!");
+					return uniform_sample;
+				}
 
 				const uint8_t* constant_track_data = constant_data_scales + (unpack_index * sizeof(rtm::float3f));
 				const rtm::vector4f sample = rtm::vector_load(constant_track_data);

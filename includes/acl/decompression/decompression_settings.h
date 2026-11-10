@@ -195,7 +195,7 @@ namespace acl
 	struct debug_transform_decompression_settings : public decompression_settings
 	{
 		//////////////////////////////////////////////////////////////////////////
-		// Only support transform tracks: vqvf and vqf
+		// Only support transform tracks: vqvf, vqf, and vqsf
 		static constexpr bool is_track_type_supported(track_type8 type) { return acl_impl::is_transform_track_type(type); }
 	};
 
@@ -223,7 +223,7 @@ namespace acl
 	struct default_transform_decompression_settings : public decompression_settings
 	{
 		//////////////////////////////////////////////////////////////////////////
-		// Only support transform tracks: vqvf and vqf
+		// Only support transform tracks: vqvf, vqf, and vqsf
 		static constexpr bool is_track_type_supported(track_type8 type) { return acl_impl::is_transform_track_type(type); }
 
 		//////////////////////////////////////////////////////////////////////////

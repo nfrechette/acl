@@ -74,9 +74,9 @@ namespace acl
 	// as contiguous as possible for optimal cache locality during decompression.
 	//
 	//    allocator:				The allocator instance to use to allocate and free memory.
-	//    track_list:				The transform track list to compress (vqvf or vqf).
+	//    track_list:				The transform track list to compress (vqvf, vqf, or vqsf).
 	//    settings:					The compression settings to use.
-	//    additive_base_track_list:	The transform track list of the additive base (vqvf or vqf). It can have a different type than 'track_list'.
+	//    additive_base_track_list:	The transform track list of the additive base (vqvf, vqf, or vqsf). It can have a different type than 'track_list'.
 	//    additive_format:			The additive format of 'track_list'.
 	//    out_compressed_tracks:	The resulting compressed tracks. The caller owns the returned memory and must free it.
 	//    out_stats:				Stat output structure.

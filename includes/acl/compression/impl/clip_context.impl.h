@@ -180,6 +180,7 @@ namespace acl
 			}
 
 			out_clip_context.has_scale = true;	// Scale detection is handled during sub-track compacting
+			out_clip_context.has_uniform_scale = !track_list.is_empty() && track_list.get_track_type() == track_type8::vqsf;
 			out_clip_context.decomp_touched_bytes = 0;
 			out_clip_context.decomp_touched_cache_lines = 0;
 

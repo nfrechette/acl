@@ -32,10 +32,15 @@ pre_process_track_list(allocator, settings, transform_tracks);
 
 ## Transform type conversion
 
-The `convert_transform_type` action converts transform tracks into the type of `settings.transform_type` (`vqvf` or `vqf`). It is not part of the recommended actions, because it changes the type of the compressed tracks. Compression never changes the type of the raw tracks.
+The `convert_transform_type` action converts transform tracks into the type of `settings.transform_type` (`vqvf`, `vqsf`, or `vqf`). It is not part of the recommended actions, because it changes the type of the compressed tracks. Compression never changes the type of the raw tracks.
 
-*  A promotion (`vqf` -> `vqvf`) always succeeds and is lossless. Each new scale is the identity of the additive format: 0.0 with `additive1`, 1.0 otherwise.
-*  A demotion (`vqvf` -> `vqf`) removes the scale. It happens only when no track needs its scale. With the lossless policy, each scale sample must be exactly the identity. With the lossy policy, the error must stay within the precision of each track when its scale becomes the identity. When a track needs its scale, the tracks keep their type.
+The three types hold more and more scale information: `vqf` has no scale, `vqsf` has a uniform scale, and `vqvf` has a 3D scale.
+
+*  A promotion (for example `vqf` -> `vqsf`, or `vqsf` -> `vqvf`) always succeeds and is lossless. When the source has no scale, each new scale is the identity of the additive format: 0.0 with `additive1`, 1.0 otherwise.
+*  A demotion to `vqf` removes the scale. It happens only when no track needs its scale. With the lossless policy, each scale sample must be exactly the identity. With the lossy policy, the error must stay within the precision of each track when its scale becomes the identity.
+*  A demotion from `vqvf` to `vqsf` makes each scale uniform. It happens only when no track needs a non-uniform scale. With the lossless policy, the X, Y, and Z components of each scale sample must be exactly equal. With the lossy policy, the error must stay within the precision of each track when its scale becomes the mean of its X, Y, and Z components.
+
+When a track needs its scale, the tracks keep their type.
 
 This action runs last. Thus, with the lossy policy, `sanitize_constant_tracks` and `sanitize_default_tracks` run first.
 

@@ -161,6 +161,7 @@ struct Options
 	bool			use_vqv_error_metric			= false;
 
 	bool			use_vq_source					= false;
+	bool			use_vqs_source					= false;
 
 	bool			is_bind_pose_relative			= false;
 	bool			is_bind_pose_additive0			= false;
@@ -219,6 +220,7 @@ static constexpr const char* k_matrix_error_metric_option = "-error_mtx";
 static constexpr const char* k_precise_error_metric_option = "-error_precise";
 static constexpr const char* k_vqv_error_metric_option = "-error_vqv";
 static constexpr const char* k_vq_source_option = "-source_vq";
+static constexpr const char* k_vqs_source_option = "-source_vqs";
 static constexpr const char* k_split_into_database_option = "-db";
 static constexpr const char* k_strip_keyframe_proportion_option = "-strip_keyframe_proportion=";
 static constexpr const char* k_strip_keyframe_threshold_option = "-strip_keyframe_threshold=";
@@ -353,6 +355,14 @@ static bool parse_options(int argc, char** argv, Options& options)
 		if (std::strncmp(argument, k_vqv_error_metric_option, option_length) == 0)
 		{
 			options.use_vqv_error_metric = true;
+			continue;
+		}
+
+		// Test '-source_vqs' first, '-source_vq' is a prefix of it
+		option_length = std::strlen(k_vqs_source_option);
+		if (std::strncmp(argument, k_vqs_source_option, option_length) == 0)
+		{
+			options.use_vqs_source = true;
 			continue;
 		}
 
@@ -998,6 +1008,10 @@ static void create_additive_base_clip(const Options& options, track_array& clip,
 	// The scale of the result is the identity of the additive format, thus we can drop it
 	const bool is_vq = clip.get_track_type() == track_type8::vqf;
 
+	// A VQS track has a uniform scale, we convert through a VQV transform with the scale in [xyz]
+	// The scale of the result stays uniform
+	const bool is_vqs = clip.get_track_type() == track_type8::vqsf;
+
 	out_base_clip = track_array_vqvf(*clip.get_allocator(), num_bones);
 
 	additive_clip_format8 additive_format = additive_clip_format8::none;
@@ -1017,6 +1031,8 @@ static void create_additive_base_clip(const Options& options, track_array& clip,
 		rtm::vqvf bind_transform = desc.default_value;
 		if (is_vq)
 			bind_transform.scale = rtm::vector_set(1.0F);
+		else if (is_vqs)
+			bind_transform.scale = rtm::vector_dup_x(bind_transform.scale);
 
 		// Reset our default value to the additive identity
 		desc.default_value = rtm::vqv_identity();
@@ -1031,6 +1047,11 @@ static void create_additive_base_clip(const Options& options, track_array& clip,
 				const rtm::vqf& sample = *static_cast<const rtm::vqf*>(track_[sample_index]);
 				bone_transform = rtm::vqv_set(sample.rotation, sample.translation, rtm::vector_set(1.0F));
 			}
+			else if (is_vqs)
+			{
+				const rtm::vqsf& sample = *static_cast<const rtm::vqsf*>(track_[sample_index]);
+				bone_transform = rtm::vqv_set(sample.rotation, sample.translation_scale, rtm::vector_dup_w(sample.translation_scale));
+			}
 			else
 				bone_transform = *static_cast<const rtm::vqvf*>(track_[sample_index]);
 
@@ -1044,6 +1065,8 @@ static void create_additive_base_clip(const Options& options, track_array& clip,
 
 			if (is_vq)
 				*static_cast<rtm::vqf*>(track_[sample_index]) = rtm::vq_set(bind_local_transform.rotation, bind_local_transform.translation);
+			else if (is_vqs)
+				*static_cast<rtm::vqsf*>(track_[sample_index]) = rtm::vqs_set(bind_local_transform.rotation, bind_local_transform.translation, rtm::vector_get_x(bind_local_transform.scale));
 			else
 				*static_cast<rtm::vqvf*>(track_[sample_index]) = bind_local_transform;
 		}
@@ -1278,6 +1301,13 @@ static int safe_main_impl(int argc, char* argv[])
 			{
 				pre_process_settings.actions |= pre_process_actions::convert_transform_type;
 				pre_process_settings.transform_type = track_type8::vqf;
+			}
+
+			// Compress the clips without scale or with a uniform scale as VQS tracks
+			if (options.use_vqs_source)
+			{
+				pre_process_settings.actions |= pre_process_actions::convert_transform_type;
+				pre_process_settings.transform_type = track_type8::vqsf;
 			}
 		}
 

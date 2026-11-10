@@ -96,6 +96,7 @@
 #include <acl/io/clip_writer.h>
 
 #include <rtm/vqf.h>
+#include <rtm/vqsf.h>
 #include <rtm/vqvd.h>
 #include <rtm/vqvf.h>
 #include <rtm/scalarf.h>
@@ -1559,6 +1560,144 @@ TEST_CASE("sjson_track_list_reader_writer vqf", "[io]")
 			const rtm::vqf& file_sample = file_track[sample_index];
 			CHECK(rtm::quat_near_equal(ref_sample.rotation, file_sample.rotation, 0.0F));
 			CHECK(rtm::vector_all_near_equal3(ref_sample.translation, file_sample.translation, 0.0F));
+		}
+	}
+#endif
+}
+
+TEST_CASE("sjson_track_list_reader_writer vqsf", "[io]")
+{
+#if defined(ACL_IMPL_ENABLE_IO_UNIT_TESTS)
+	ansi_allocator allocator;
+
+	const uint32_t num_tracks = 3;
+	const uint32_t num_samples = 4;
+	track_array_vqsf track_list(allocator, num_tracks);
+
+	track_desc_transformf desc0;
+	desc0.output_index = 0;
+	desc0.precision = 0.001F;
+	desc0.shell_distance = 0.1233F;
+	desc0.default_value = rtm::vqv_set(rtm::quat_from_euler(0.1F, 0.5F, 1.2F), rtm::vector_set(1.0F, 2.0F, 3.0F), rtm::vector_set(1.5F, 2.0F, 2.5F));
+
+	track_desc_transformf desc1;
+	desc1.output_index = 2;
+	desc1.parent_index = 0;
+	desc1.precision = 0.01F;
+	desc1.shell_distance = 3.5F;
+
+	track_vqsf track0 = track_vqsf::make_reserve(desc0, allocator, num_samples, 32.0F);
+	track0[0] = rtm::vqs_set(rtm::quat_from_euler(0.1F, 0.5F, 1.2F), rtm::vector_set(0.0F, 0.6F, 2.3F), 1.0F);
+	track0[1] = rtm::vqs_set(rtm::quat_from_euler(1.1F, 1.5F, 1.7F), rtm::vector_set(0.02F, 0.13F, 3.123F), 1.5F);
+	track0[2] = rtm::vqs_set(rtm::quat_from_euler(2.1F, 2.5F, 2.2F), rtm::vector_set(0.21F, 2.66F, 1.33F), 0.5F);
+	track0[3] = rtm::vqs_set(rtm::quat_from_euler(3.1F, 3.5F, 3.2F), rtm::vector_set(1.21F, 9.66F, 21.33F), 2.0F);
+	track_list[0] = track0.get_ref();
+
+	track_vqsf track1 = track_vqsf::make_reserve(desc1, allocator, num_samples, 32.0F);
+	track1[0] = rtm::vqs_set(rtm::quat_from_euler(10.1F, 0.25F, 91.2F), rtm::vector_set(81.0F, 0.6F, 2.33F), 0.25F);
+	track1[1] = rtm::vqs_set(rtm::quat_from_euler(21.1F, 11.5F, 13.2F), rtm::vector_set(8.02F, 2.13F, 13.13F), 3.0F);
+	track1[2] = rtm::vqs_set(rtm::quat_from_euler(32.1F, 2.53F, 2.24F), rtm::vector_set(8.21F, 12.66F, 41.33F), 1.25F);
+	track1[3] = rtm::vqs_set(rtm::quat_from_euler(43.1F, 3.25F, 73.2F), rtm::vector_set(81.21F, 91.66F, 51.33F), 0.75F);
+	track_list[1] = track1.get_ref();
+
+	track_vqsf track2 = track_vqsf::make_reserve(desc0, allocator, num_samples, 32.0F);
+	track2.get_description().output_index = 1;
+	track2.get_description().parent_index = 1;
+	track2[0] = rtm::vqs_set(rtm::quat_from_euler(1.1F, 0.5F, 1.2F), rtm::vector_set(-5.0F, 0.0F, 9.0F), 1.0F);
+	track2[1] = rtm::vqs_set(rtm::quat_from_euler(2.1F, 1.5F, 1.7F), rtm::vector_set(-4.0F, 0.5F, 8.0F), 2.5F);
+	track2[2] = rtm::vqs_set(rtm::quat_from_euler(3.1F, 2.5F, 2.2F), rtm::vector_set(-3.0F, 1.0F, 7.0F), 0.1F);
+	track2[3] = rtm::vqs_set(rtm::quat_from_euler(4.1F, 3.5F, 3.2F), rtm::vector_set(-2.0F, 1.5F, 6.0F), 4.0F);
+	track_list[2] = track2.get_ref();
+
+	REQUIRE(track_list.is_valid().empty());
+
+	const uint32_t filename_size = k_max_filename_size;
+	char filename[filename_size] = { 0 };
+
+	error_result error;
+	for (uint32_t try_count = 0; try_count < 20; ++try_count)
+	{
+		get_temporary_filename(filename, filename_size, "list_vqsf_");
+
+		// Write the clip to a temporary file
+		error = write_track_list(track_list, filename);
+
+		if (error.empty())
+			break;	// Everything worked, stop trying
+	}
+	REQUIRE(error.empty());
+
+	std::FILE* file = nullptr;
+	for (uint32_t try_count = 0; try_count < 20; ++try_count)
+	{
+#ifdef _WIN32
+		fopen_s(&file, filename, "rb");
+#else
+		file = fopen(filename, "rb");
+#endif
+
+		if (file != nullptr)
+			break;	// File is open, all good
+
+		// Sleep a bit before tring again
+		std::this_thread::sleep_for(std::chrono::seconds(1));
+	}
+	REQUIRE(file != nullptr);
+
+	char sjson_file_buffer[256 * 1024];
+	const size_t buffer_size = fread(sjson_file_buffer, 1, get_array_size(sjson_file_buffer), file);
+	fclose(file);
+
+	std::remove(filename);
+
+	// The file has a uniform scale: the type is vqsf
+	const std::string file_content(sjson_file_buffer, buffer_size);
+	CHECK(file_content.find("\"vqsf\"") != std::string::npos);
+	CHECK(file_content.find("bind_scale") != std::string::npos);
+
+	// Read back the clip
+	clip_reader reader(allocator, sjson_file_buffer, buffer_size - 1);
+
+	REQUIRE(reader.get_file_type() == sjson_file_type::raw_track_list);
+
+	sjson_raw_track_list file_track_list;
+	const bool success = reader.read_raw_track_list(file_track_list);
+	REQUIRE(success);
+
+	CHECK(file_track_list.track_list.get_num_samples_per_track() == track_list.get_num_samples_per_track());
+	CHECK(file_track_list.track_list.get_sample_rate() == track_list.get_sample_rate());
+	CHECK(file_track_list.track_list.get_num_tracks() == track_list.get_num_tracks());
+	CHECK(rtm::scalar_near_equal(file_track_list.track_list.get_duration(), track_list.get_duration(), 1.0E-8F));
+	CHECK(file_track_list.track_list.get_track_type() == track_type8::vqsf);
+	CHECK(file_track_list.track_list.get_track_category() == track_category8::transformf);
+
+	for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+	{
+		const track_vqsf& ref_track = track_list[track_index];
+		const track_vqsf& file_track = track_cast<track_vqsf>(file_track_list.track_list[track_index]);
+
+		const track_desc_transformf& ref_desc = ref_track.get_description();
+		const track_desc_transformf& file_desc = file_track.get_description();
+		CHECK(file_desc.output_index == ref_desc.output_index);
+		CHECK(file_desc.parent_index == ref_desc.parent_index);
+		CHECK(rtm::scalar_near_equal(file_desc.precision, ref_desc.precision, 0.0F));
+		CHECK(rtm::scalar_near_equal(file_desc.shell_distance, ref_desc.shell_distance, 0.0F));
+		CHECK(rtm::quat_near_equal(file_desc.default_value.rotation, ref_desc.default_value.rotation, 0.0F));
+		CHECK(rtm::vector_all_near_equal3(file_desc.default_value.translation, ref_desc.default_value.translation, 0.0F));
+		// A VQS track has a uniform scale: the file has the X component of the default scale
+		CHECK(rtm::vector_all_near_equal3(file_desc.default_value.scale, rtm::vector_dup_x(ref_desc.default_value.scale), 0.0F));
+		CHECK(file_track.get_num_samples() == ref_track.get_num_samples());
+		CHECK(file_track.get_output_index() == ref_track.get_output_index());
+		CHECK(file_track.get_sample_rate() == ref_track.get_sample_rate());
+		CHECK(file_track.get_type() == track_type8::vqsf);
+		CHECK(file_track.get_category() == track_category8::transformf);
+
+		for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+		{
+			const rtm::vqsf& ref_sample = ref_track[sample_index];
+			const rtm::vqsf& file_sample = file_track[sample_index];
+			CHECK(rtm::quat_near_equal(ref_sample.rotation, file_sample.rotation, 0.0F));
+			CHECK(rtm::vector_all_near_equal(ref_sample.translation_scale, file_sample.translation_scale, 0.0F));
 		}
 	}
 #endif

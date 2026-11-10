@@ -67,16 +67,25 @@ You can override the looping policy by calling `raw_track_list.set_looping_polic
 
 ## Transform tracks
 
-ACL supports two transform track types:
+ACL supports three transform track types:
 
 *  `vqvf` (`track_vqvf`, `track_array_vqvf`): each sample is a `rtm::vqvf` with a rotation, a translation, and a 3D scale.
+*  `vqsf` (`track_vqsf`, `track_array_vqsf`): each sample is a `rtm::vqsf` with a rotation, a translation, and a uniform scale. The scale is in the W component of `translation_scale`.
 *  `vqf` (`track_vqf`, `track_array_vqf`): each sample is a `rtm::vqf` with a rotation and a translation. A VQ track has no scale.
 
-Both types use `track_desc_transformf` as their description. With `vqf`, ACL ignores the scale of `default_value`.
+The three types use `track_desc_transformf` as their description. With `vqf`, ACL ignores the scale of `default_value`. With `vqsf`, ACL uses the X component of the scale of `default_value`.
 
-The compressed tracks keep the type of the raw tracks. Thus a VQV clip without scale gives a compressed VQV clip. To convert the raw tracks from one type to the other, use the `convert_transform_type` [pre-process action](pre_processing_raw_tracks.md).
+The compressed tracks keep the type of the raw tracks. Thus a VQV clip without scale gives a compressed VQV clip. To convert the raw tracks from one type to another, use the `convert_transform_type` [pre-process action](pre_processing_raw_tracks.md).
 
-When you decompress a VQ clip, ACL does not write the scale: it does not call `write_scale` on your track writer. The default decompression settings for transform tracks accept both types. If you use your own decompression settings, `is_track_type_supported` must return `true` for `track_type8::vqf` to decompress a VQ clip.
+When you decompress a VQ clip, ACL does not write the scale: it does not call `write_scale` on your track writer. If you use your own decompression settings, `is_track_type_supported` must return `true` for `track_type8::vqf` to decompress a VQ clip.
+
+A compressed VQS clip stores one value for each scale sample, thus an animated uniform scale uses a third of the memory of a VQV scale. When you decompress a VQS clip, ACL writes the scale with this overload of your track writer:
+
+```c++
+void RTM_SIMD_CALL write_scale(uint32_t track_index, rtm::scalarf_arg0 scale);
+```
+
+When your track writer does not have this overload, ACL calls `write_scale(uint32_t, rtm::vector4f_arg0)` with the uniform scale in [xyzw]. If you use your own decompression settings, `is_track_type_supported` must return `true` for `track_type8::vqsf` to decompress a VQS clip. The default decompression settings for transform tracks accept the three types.
 
 ```c++
 track_desc_transformf desc;
@@ -98,13 +107,13 @@ If the clip you are compressing is an additive clip, you will also need to creat
 
 The library assumes that the raw clip data has already been transformed to be in additive or relative space.
 
-The additive clip and its base clip can have different transform types (`vqvf` or `vqf`). A VQ track has no scale: in an additive clip, ACL uses the identity scale of the additive format (0.0 with `additive1`, 1.0 otherwise). In the base clip, ACL uses a scale of 1.0.
+The additive clip and its base clip can have different transform types (`vqvf`, `vqsf`, or `vqf`). A VQ track has no scale: in an additive clip, ACL uses the identity scale of the additive format (0.0 with `additive1`, 1.0 otherwise). In the base clip, ACL uses a scale of 1.0.
 
 Note that if your additive format does not use a scale of 1.0 as its default value, you will need to provide the desired value to ACL. See [default sub-track handling](default_sub_track_handling.md) for details.
 
 ## Re-ordering or stripping bones
 
-Sometimes it is desirable to re-order the bones being outputted or strip them altogether. This could be to facilitate LOD support or various forms of skeleton changes without needing to re-import the clips. This is easily achieved by setting the desired `output_index` on each `track_desc_transformf` contained in a `track_vqvf` or a `track_vqf`. The default value is the track index. You can use `k_invalid_track_index` to strip the track from the final compressed output.
+Sometimes it is desirable to re-order the bones being outputted or strip them altogether. This could be to facilitate LOD support or various forms of skeleton changes without needing to re-import the clips. This is easily achieved by setting the desired `output_index` on each `track_desc_transformf` contained in a `track_vqvf`, a `track_vqsf`, or a `track_vqf`. The default value is the track index. You can use `k_invalid_track_index` to strip the track from the final compressed output.
 
 *Note that each `output_index` needs to be unique and there can be no gaps. If **20** bones are outputted, the indices must run from **[0 .. 20)**.*
 

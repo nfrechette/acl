@@ -68,6 +68,7 @@ namespace acl
 	using track_array_vector4f	= track_array_typed<track_type8::vector4f, track_interpolator_t::linear>;
 	using track_array_vqvf		= track_array_typed<track_type8::vqvf, track_interpolator_t::linear>;
 	using track_array_vqf		= track_array_typed<track_type8::vqf, track_interpolator_t::linear>;
+	using track_array_vqsf		= track_array_typed<track_type8::vqsf, track_interpolator_t::linear>;
 
 	using track_array_qvvf ACL_DEPRECATED("Use 'track_array_vqvf' instead, to be removed in v2.3") = track_array_vqvf;
 
@@ -81,6 +82,7 @@ namespace acl
 	using track_vector4f		= track_typed<track_type8::vector4f, track_interpolator_t::linear>;
 	using track_vqvf			= track_typed<track_type8::vqvf, track_interpolator_t::linear>;
 	using track_vqf				= track_typed<track_type8::vqf, track_interpolator_t::linear>;
+	using track_vqsf			= track_typed<track_type8::vqsf, track_interpolator_t::linear>;
 
 	using track_qvvf ACL_DEPRECATED("Use 'track_vqvf' instead, to be removed in v2.3") = track_vqvf;
 

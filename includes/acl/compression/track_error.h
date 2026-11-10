@@ -81,7 +81,7 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// Calculates the worst compression error between a raw track array and its
 	// compressed tracks.
-	// Supports transform tracks (vqvf or vqf) with an additive base.
+	// Supports transform tracks (vqvf, vqf, or vqsf) with an additive base.
 	// The additive base can have a different transform type than the raw tracks.
 	//
 	// Note: This function uses SFINAE to prevent it from matching when it shouldn't.

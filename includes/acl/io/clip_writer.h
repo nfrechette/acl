@@ -140,6 +140,16 @@ namespace acl
 			if (track_type == track_type8::vqf)
 				return;
 
+			// A VQS track has a uniform scale, we write the X component
+			if (track_type == track_type8::vqsf)
+			{
+				writer["bind_scale"] = [&](sjson::ArrayWriter& scale_writer)
+				{
+					scale_writer.push(acl_impl::format_hex_float(rtm::vector_get_x(desc.default_value.scale), buffer, sizeof(buffer)));
+				};
+				return;
+			}
+
 			writer["bind_scale"] = [&](sjson::ArrayWriter& scale_writer)
 			{
 				scale_writer.push(acl_impl::format_hex_float(rtm::vector_get_x(desc.default_value.scale), buffer, sizeof(buffer)));
@@ -219,6 +229,28 @@ namespace acl
 					translation_writer.push(acl_impl::format_hex_float(rtm::vector_get_x(sample.translation), buffer, sizeof(buffer)));
 					translation_writer.push(acl_impl::format_hex_float(rtm::vector_get_y(sample.translation), buffer, sizeof(buffer)));
 					translation_writer.push(acl_impl::format_hex_float(rtm::vector_get_z(sample.translation), buffer, sizeof(buffer)));
+				});
+		}
+
+		inline void write_sjson_scalar_track_sample_value(const rtm::vqsf& sample, char (&buffer)[32], sjson::ArrayWriter& sample_writer)
+		{
+			sample_writer.push([&](sjson::ArrayWriter& rotation_writer)
+				{
+					rotation_writer.push(acl_impl::format_hex_float(rtm::quat_get_x(sample.rotation), buffer, sizeof(buffer)));
+					rotation_writer.push(acl_impl::format_hex_float(rtm::quat_get_y(sample.rotation), buffer, sizeof(buffer)));
+					rotation_writer.push(acl_impl::format_hex_float(rtm::quat_get_z(sample.rotation), buffer, sizeof(buffer)));
+					rotation_writer.push(acl_impl::format_hex_float(rtm::quat_get_w(sample.rotation), buffer, sizeof(buffer)));
+				});
+			sample_writer.push([&](sjson::ArrayWriter& translation_writer)
+				{
+					translation_writer.push(acl_impl::format_hex_float(rtm::vector_get_x(sample.translation_scale), buffer, sizeof(buffer)));
+					translation_writer.push(acl_impl::format_hex_float(rtm::vector_get_y(sample.translation_scale), buffer, sizeof(buffer)));
+					translation_writer.push(acl_impl::format_hex_float(rtm::vector_get_z(sample.translation_scale), buffer, sizeof(buffer)));
+				});
+			sample_writer.push([&](sjson::ArrayWriter& scale_writer)
+				{
+					// A VQS sample has a uniform scale in [w]
+					scale_writer.push(acl_impl::format_hex_float(rtm::vector_get_w(sample.translation_scale), buffer, sizeof(buffer)));
 				});
 		}
 
@@ -339,6 +371,12 @@ namespace acl
 							{
 								ACL_ASSERT(track_.get_interpolator() == track_interpolator_t::linear, "Unsupported track interpolator for vqf track type");
 								write_sjson_scalar_track<track_vqf>(track_, buffer, track_writer);
+								break;
+							}
+							case track_type8::vqsf:
+							{
+								ACL_ASSERT(track_.get_interpolator() == track_interpolator_t::linear, "Unsupported track interpolator for vqsf track type");
+								write_sjson_scalar_track<track_vqsf>(track_, buffer, track_writer);
 								break;
 							}
 							default:

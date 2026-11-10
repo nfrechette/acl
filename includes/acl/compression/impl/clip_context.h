@@ -208,6 +208,7 @@ namespace acl
 			bool are_translations_normalized			= false;
 			bool are_scales_normalized					= false;
 			bool has_scale								= false;
+			bool has_uniform_scale						= false;	// True with vqsf tracks: the compressed tracks store one scale component
 			bool has_additive_base						= false;
 			bool has_stripped_keyframes					= false;
 

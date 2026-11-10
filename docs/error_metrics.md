@@ -16,7 +16,7 @@ An error metric uses a runtime transform type to compose the local space transfo
 
 Without scale, the built-in error metrics use `rtm::vqvf` as a VQ transform (a rotation and a translation): they ignore the scale.
 
-The error metric functions always receive `rtm::vqvf` source transforms, also with VQ raw tracks (`vqf`). For a VQ track, ACL gives a scale of 1.0, or 0.0 in an `additive1` clip.
+The error metric functions always receive `rtm::vqvf` source transforms, also with VQ raw tracks (`vqf`) and VQS raw tracks (`vqsf`). For a VQ track, ACL gives a scale of 1.0, or 0.0 in an `additive1` clip. For a VQS track, ACL gives the uniform scale in [xyz].
 
 The bit rate algorithm uses the runtime type. With scale and `vqvf`, it must compose each transform chain again for each permutation that it tests, because the product is not associative. With scale and `vqmf`, it uses the same cached transforms as a clip without scale.
 

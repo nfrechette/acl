@@ -395,9 +395,9 @@ namespace acl
 				if (bone_stream.is_stripped_from_output())
 					continue;
 
-				// Range data
+				// Range data, a uniform scale stores only its X component
 				if (are_any_enum_flags_set(range_reduction, range_reduction_flags8::scales) && !bone_stream.is_scale_constant)
-					result += k_segment_range_reduction_num_bytes_per_component * 6;
+					result += k_segment_range_reduction_num_bytes_per_component * (clip.has_uniform_scale ? 2 : 6);
 			}
 
 			return result * clip.num_segments;
@@ -576,7 +576,8 @@ namespace acl
 				const uint32_t clip_metadata_common_size = calculate_clip_metadata_common_size(clip, compressed_clip);
 				const uint32_t clip_metadata_rotation_constant_size = get_packed_rotation_size(get_highest_variant_precision(get_rotation_variant(settings.rotation_format))) * num_constant_rotation_tracks;
 				const uint32_t clip_metadata_translation_constant_size = get_packed_vector_size(vector_format8::vector3f_full) * num_constant_translation_tracks;
-				const uint32_t clip_metadata_scale_constant_size = get_packed_vector_size(vector_format8::vector3f_full) * num_constant_scale_tracks;
+				const uint32_t scale_constant_size = clip.has_uniform_scale ? uint32_t(sizeof(float)) : get_packed_vector_size(vector_format8::vector3f_full);
+				const uint32_t clip_metadata_scale_constant_size = scale_constant_size * num_constant_scale_tracks;
 				writer["clip_header_size"] = clip_header_size;
 				writer["clip_metadata_common_size"] = clip_metadata_common_size;
 				writer["clip_metadata_rotation_constant_size"] = clip_metadata_rotation_constant_size;
@@ -585,7 +586,8 @@ namespace acl
 
 				const uint32_t range_rotation_size = are_any_enum_flags_set(range_reduction, range_reduction_flags8::rotations) ? get_range_reduction_rotation_size(settings.rotation_format) : 0;
 				const uint32_t range_translation_size = are_any_enum_flags_set(range_reduction, range_reduction_flags8::translations) ? k_clip_range_reduction_vector3_range_size : 0;
-				const uint32_t range_scale_size = are_any_enum_flags_set(range_reduction, range_reduction_flags8::scales) ? k_clip_range_reduction_vector3_range_size : 0;
+				const uint32_t scale_range_size = clip.has_uniform_scale ? k_clip_range_reduction_scalar_range_size : k_clip_range_reduction_vector3_range_size;
+				const uint32_t range_scale_size = are_any_enum_flags_set(range_reduction, range_reduction_flags8::scales) ? scale_range_size : 0;
 				const uint32_t clip_metadata_rotation_animated_size = range_rotation_size * num_animated_rotation_tracks;
 				const uint32_t clip_metadata_translation_animated_size = range_translation_size * num_animated_translation_tracks;
 				const uint32_t clip_metadata_scale_animated_size = range_scale_size * num_animated_scale_tracks;

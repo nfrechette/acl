@@ -77,7 +77,7 @@ namespace acl
 		v02_01_00	= 10,			// ACL v2.1.0
 
 		v02_02_99_0	= 11,			// ACL v2.2.0-wip (extended scalar sample support)
-		v02_02_99_1	= 12,			// ACL v2.2.0-wip (vqf transform track type)
+		v02_02_99_1	= 12,			// ACL v2.2.0-wip (vqf and vqsf transform track types)
 
 		//////////////////////////////////////////////////////////////////////////
 		// First version marker, this is equal to the first version supported: ACL 2.0.0
