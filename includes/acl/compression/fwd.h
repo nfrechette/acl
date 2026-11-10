@@ -90,6 +90,13 @@ namespace acl
 
 	enum class transform_runtime_type8 : uint8_t;
 
+	class itransform_adapter;
+	class vqf_transform_adapter;
+	class vqsf_transform_adapter;
+	class vqvf_transform_adapter;
+	class vqmf_transform_adapter;
+	class matrix3x4f_transform_adapter;
+
 	class itransform_error_metric;
 	class vqvf_transform_error_metric;
 	class vqvf_precise_transform_error_metric;

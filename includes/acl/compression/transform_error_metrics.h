@@ -30,6 +30,7 @@
 #include "acl/core/hash.h"
 #include "acl/core/track_types.h"
 #include "acl/compression/fwd.h"
+#include "acl/compression/transform_adapters.h"
 #include "acl/math/vector4f.h"
 #include "acl/math/quatf.h"
 #include "acl/math/vqmf.h"
@@ -59,28 +60,6 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
-
-	//////////////////////////////////////////////////////////////////////////
-	// The transform types that an error metric uses at runtime to compose transforms
-	// and to measure the error. The type applies to the functions with scale.
-	// Without scale, the built-in error metrics use rtm::vqvf as a VQ transform: they ignore the scale.
-	enum class transform_runtime_type8 : uint8_t
-	{
-		//////////////////////////////////////////////////////////////////////////
-		// The error metric uses a transform type that ACL does not know.
-		// ACL uses this transform type only through the functions of the error metric.
-		custom		= 0,
-
-		//////////////////////////////////////////////////////////////////////////
-		// The error metric uses rtm::vqvf: a rotation, a translation, and a 3D scale.
-		// The product of two rtm::vqvf transforms discards the shear. Thus the product is not associative.
-		vqvf		= 1,
-
-		//////////////////////////////////////////////////////////////////////////
-		// The error metric uses rtm::vqmf: a rotation, a translation, and a 3x3 scale/shear matrix.
-		// The product of two rtm::vqmf transforms keeps the shear. Thus the product is exact and associative.
-		vqmf		= 2,
-	};
 
 	//////////////////////////////////////////////////////////////////////////
 	// Interface for all skeletal error metrics.
