@@ -31,6 +31,7 @@
 #include "acl/core/track_types.h"
 #include "acl/compression/fwd.h"
 #include "acl/compression/transform_adapters.h"
+#include "acl/compression/transform_metrics.h"
 #include "acl/math/vector4f.h"
 #include "acl/math/quatf.h"
 #include "acl/math/vqmf.h"
@@ -99,7 +100,7 @@ namespace acl
 		// Returns the transform type that the functions with scale use.
 		// The bit rate algorithm v2 uses it to select its transform arithmetic.
 		// When the error metric supports that algorithm and returns 'custom', the algorithm uses rtm::vqvf.
-		virtual transform_runtime_type8 get_runtime_type() const { return transform_runtime_type8::custom; }
+		virtual transform_runtime_type_t get_runtime_type() const { return transform_runtime_type_t::custom; }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Whether or not this error metric supports the new bit rate algorithm v2
@@ -368,7 +369,7 @@ namespace acl
 
 		virtual size_t get_transform_size(bool has_scale) const override { (void)has_scale; return sizeof(rtm::vqvf); }
 		virtual bool needs_conversion(bool has_scale) const override { (void)has_scale; return false; }
-		virtual transform_runtime_type8 get_runtime_type() const override { return transform_runtime_type8::vqvf; }
+		virtual transform_runtime_type_t get_runtime_type() const override { return transform_runtime_type_t::vqvf; }
 		virtual bool supports_bit_rate_algorithm_v2() const override { return true; }
 
 		virtual RTM_DISABLE_SECURITY_COOKIE_CHECK void local_to_object_space(const local_to_object_space_args& args, void* out_object_transforms) const override
@@ -578,50 +579,8 @@ namespace acl
 			const rtm::vqvd raw_transform_d = rtm::vqv_normalize(rtm::vqv_cast(raw_transform_));
 			const rtm::vqvd lossy_transform_d = rtm::vqv_normalize(rtm::vqv_cast(lossy_transform_));
 
-			// Our result
-			double max_delta_transform_error_sq = 0.0;
-
-			// We use the quaternion dot product to determine the cosine of the half angle between the raw
-			// and lossy rotations. If the angle is very small, the absolute value of the dot product will
-			// be very close to 1.0
-			// Due to floating point precision, we use a threshold value to determine if we have any delta between the two
-			const double raw_lossy_quat_dot = rtm::quat_dot(raw_transform_d.rotation, lossy_transform_d.rotation);
-			const bool has_rotation_delta = rtm::scalar_abs(raw_lossy_quat_dot) < 0.99999999999999822;	// 0x3feffffffffffff0
-			if (has_rotation_delta)
-			{
-				// We remove the raw transform from the lossy transform to form a delta transform between the two
-				// We remove the raw transform instead of the lossy because this ensures that we always see consistent results
-				// It would also allow us to compute the raw inverse ahead of time if we wanted to
-				const rtm::vqvd delta_transform = rtm::vqv_normalize(rtm::vqv_mul_no_scale(lossy_transform_d, rtm::vqv_inverse_no_scale(raw_transform_d)));
-
-				// We first calculate the contribution from the rotation delta
-				const rtm::vector4d rotation_plane_normal = rtm::vector_normalize3(rtm::quat_to_vector(delta_transform.rotation));
-				ACL_ASSERT(rtm::vector_is_finite3(rotation_plane_normal), "Delta rotation plane must exist");
-
-				// Using the unit circle to compute the sine of our half rotation angle
-				// 1^2 = cos(a)^2 + sin(a)^2
-				const double half_sin_angle = rtm::scalar_sqrt(1.0 - (raw_lossy_quat_dot * raw_lossy_quat_dot));
-
-				// We can then compute the rotation error delta by scaling it with the sphere radius
-				const double sphere_radius = (double)rtm::vector_get_x(args.shell_point_x);
-				const double max_delta_rotation_error = half_sin_angle * sphere_radius * 2.0;
-
-				// We then calculate the full transform error by incorporating the translation contribution
-				const rtm::vector4d delta_translation = delta_transform.translation;
-				const double delta_translation_len_sq = rtm::vector_length_squared3(delta_translation);
-				const double delta_translation_along_rotation_plane = rtm::vector_dot3(delta_translation, rotation_plane_normal);
-				const double delta_translation_along_rotation_plane_sq = delta_translation_along_rotation_plane * delta_translation_along_rotation_plane;
-				const double inner_translation_side = rtm::scalar_sqrt(rtm::scalar_max(delta_translation_len_sq - delta_translation_along_rotation_plane_sq, 0.0));
-
-				const double inner_full_side = inner_translation_side + max_delta_rotation_error;
-				const double inner_full_side_sq = inner_full_side * inner_full_side;
-				max_delta_transform_error_sq = delta_translation_along_rotation_plane_sq + inner_full_side_sq;
-			}
-			else
-			{
-				// If we have no rotation delta, then the transform error is just the translation error: the delta length
-				max_delta_transform_error_sq = rtm::scalar_cast(rtm::vector_distance_squared3_as_scalar(raw_transform_d.translation, lossy_transform_d.translation));
-			}
+			const double sphere_radius = (double)rtm::vector_get_x(args.shell_point_x);
+			const double max_delta_transform_error_sq = acl_impl::calculate_rigid_error_squared_precise(raw_transform_d, lossy_transform_d, sphere_radius);
 
 			return rtm::scalar_set((float)max_delta_transform_error_sq);
 		}
@@ -642,7 +601,7 @@ namespace acl
 
 		virtual size_t get_transform_size(bool has_scale) const override { return has_scale ? sizeof(rtm::matrix3x4f) : sizeof(rtm::vqvf); }
 		virtual bool needs_conversion(bool has_scale) const override { return has_scale; }
-		virtual transform_runtime_type8 get_runtime_type() const override { return transform_runtime_type8::custom; }
+		virtual transform_runtime_type_t get_runtime_type() const override { return transform_runtime_type_t::custom; }
 		virtual bool supports_bit_rate_algorithm_v2() const override { return false; }
 
 		virtual RTM_DISABLE_SECURITY_COOKIE_CHECK void convert_transforms(const convert_transforms_args& args, void* out_transforms) const override
@@ -796,7 +755,7 @@ namespace acl
 
 		virtual size_t get_transform_size(bool has_scale) const override { return has_scale ? sizeof(rtm::vqmf) : sizeof(rtm::vqvf); }
 		virtual bool needs_conversion(bool has_scale) const override { return has_scale; }
-		virtual transform_runtime_type8 get_runtime_type() const override { return transform_runtime_type8::vqmf; }
+		virtual transform_runtime_type_t get_runtime_type() const override { return transform_runtime_type_t::vqmf; }
 		virtual bool supports_bit_rate_algorithm_v2() const override { return true; }
 
 		virtual RTM_DISABLE_SECURITY_COOKIE_CHECK void convert_transforms(const convert_transforms_args& args, void* out_transforms) const override

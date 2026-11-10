@@ -188,9 +188,9 @@ TEST_CASE("vqmf_transform_error_metric", "[compression][error_metric]")
 	const vqvf_matrix3x4f_transform_error_metric matrix_error_metric;
 	const vqvf_transform_error_metric vqv_error_metric;
 
-	CHECK(vqm_error_metric.get_runtime_type() == transform_runtime_type8::vqmf);
-	CHECK(vqv_error_metric.get_runtime_type() == transform_runtime_type8::vqvf);
-	CHECK(matrix_error_metric.get_runtime_type() == transform_runtime_type8::custom);
+	CHECK(vqm_error_metric.get_runtime_type() == transform_runtime_type_t::vqmf);
+	CHECK(vqv_error_metric.get_runtime_type() == transform_runtime_type_t::vqvf);
+	CHECK(matrix_error_metric.get_runtime_type() == transform_runtime_type_t::custom);
 	CHECK(vqm_error_metric.supports_bit_rate_algorithm_v2());
 	CHECK(vqm_error_metric.needs_conversion(true));
 	CHECK(!vqm_error_metric.needs_conversion(false));

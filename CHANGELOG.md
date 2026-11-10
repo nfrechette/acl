@@ -15,7 +15,7 @@
 *  Fix `split_database_bulk_data` that gave a null pointer to `std::memcpy` when a quality tier is empty
 *  Add `vqmf_transform_error_metric` and `additive_vqmf_transform_error_metric`, they use exact VQM arithmetic when scale is present
 *  `compression_settings::error_metric` and `pre_process_settings_t::error_metric` are now optional, when null ACL uses `vqmf_transform_error_metric` (or its additive variant)
-*  Add `transform_runtime_type8` and `itransform_error_metric::get_runtime_type()`, the bit rate algorithm v2 uses the cached transforms with scale when the type is `vqmf`
+*  Add `transform_runtime_type_t` and `itransform_error_metric::get_runtime_type()`, the bit rate algorithm v2 uses the cached transforms with scale when the type is `vqmf`
 *  ACL now applies the additive base to the `rtm::vqvf` source transforms before `convert_transforms`, `apply_additive_to_base` always receives `rtm::vqvf` transforms
 *  Loop optimization and the detailed segment stats now support error metrics that convert transforms
 *  Fix the SoA quaternion rotation of the error metrics, two terms had the wrong sign

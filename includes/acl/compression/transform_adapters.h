@@ -55,7 +55,7 @@ namespace acl
 	// and to measure the error.
 	// The runtime type is not the type of the raw tracks: compression converts
 	// each rtm::vqvf source transform into the runtime type.
-	enum class transform_runtime_type8 : uint8_t
+	enum class transform_runtime_type_t : uint8_t
 	{
 		//////////////////////////////////////////////////////////////////////////
 		// A transform type that ACL does not know.
@@ -119,7 +119,7 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the runtime transform type of the adapter.
 		// A custom transform adapter returns 'custom'.
-		virtual transform_runtime_type8 get_type() const { return transform_runtime_type8::custom; }
+		virtual transform_runtime_type_t get_type() const { return transform_runtime_type_t::custom; }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the size in bytes of the runtime transform type.
@@ -262,7 +262,7 @@ namespace acl
 		{
 			using transform_type = rtm::vqvf;
 
-			static constexpr transform_runtime_type8 get_type() { return transform_runtime_type8::vqf; }
+			static constexpr transform_runtime_type_t get_type() { return transform_runtime_type_t::vqf; }
 			static constexpr bool is_associative() { return true; }
 
 			static rtm::vqvf identity() { return rtm::vqv_identity(); }
@@ -284,7 +284,7 @@ namespace acl
 		{
 			using transform_type = rtm::vqsf;
 
-			static constexpr transform_runtime_type8 get_type() { return transform_runtime_type8::vqsf; }
+			static constexpr transform_runtime_type_t get_type() { return transform_runtime_type_t::vqsf; }
 			static constexpr bool is_associative() { return true; }
 
 			static rtm::vqsf identity() { return rtm::vqs_identity(); }
@@ -310,7 +310,7 @@ namespace acl
 		{
 			using transform_type = rtm::vqvf;
 
-			static constexpr transform_runtime_type8 get_type() { return transform_runtime_type8::vqvf; }
+			static constexpr transform_runtime_type_t get_type() { return transform_runtime_type_t::vqvf; }
 			static constexpr bool is_associative() { return false; }
 
 			static rtm::vqvf identity() { return rtm::vqv_identity(); }
@@ -332,7 +332,7 @@ namespace acl
 		{
 			using transform_type = rtm::vqmf;
 
-			static constexpr transform_runtime_type8 get_type() { return transform_runtime_type8::vqmf; }
+			static constexpr transform_runtime_type_t get_type() { return transform_runtime_type_t::vqmf; }
 			static constexpr bool is_associative() { return true; }
 
 			static rtm::vqmf identity() { return rtm::vqm_identity(); }
@@ -354,7 +354,7 @@ namespace acl
 		{
 			using transform_type = rtm::matrix3x4f;
 
-			static constexpr transform_runtime_type8 get_type() { return transform_runtime_type8::matrix3x4f; }
+			static constexpr transform_runtime_type_t get_type() { return transform_runtime_type_t::matrix3x4f; }
 			static constexpr bool is_associative() { return true; }
 
 			static rtm::matrix3x4f identity() { return rtm::matrix_identity(); }
@@ -379,7 +379,7 @@ namespace acl
 			using transform_math = transform_math_type;
 			using transform_type = typename transform_math_type::transform_type;
 
-			virtual transform_runtime_type8 get_type() const override { return transform_math_type::get_type(); }
+			virtual transform_runtime_type_t get_type() const override { return transform_math_type::get_type(); }
 			virtual size_t get_transform_size() const override { return sizeof(transform_type); }
 			virtual bool is_associative() const override { return transform_math_type::is_associative(); }
 			virtual bool needs_conversion() const override { return !std::is_same<transform_type, rtm::vqvf>::value; }

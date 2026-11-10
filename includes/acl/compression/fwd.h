@@ -88,7 +88,7 @@ namespace acl
 
 	enum class additive_clip_format8 : uint8_t;
 
-	enum class transform_runtime_type8 : uint8_t;
+	enum class transform_runtime_type_t : uint8_t;
 
 	class itransform_adapter;
 	class vqf_transform_adapter;
@@ -96,6 +96,10 @@ namespace acl
 	class vqvf_transform_adapter;
 	class vqmf_transform_adapter;
 	class matrix3x4f_transform_adapter;
+
+	class itransform_metric;
+	class shell_transform_metric;
+	class precise_transform_metric;
 
 	class itransform_error_metric;
 	class vqvf_transform_error_metric;

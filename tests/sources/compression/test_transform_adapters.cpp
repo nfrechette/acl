@@ -135,14 +135,14 @@ namespace
 
 	// Checks the properties and the math that all built-in adapters share
 	template<class adapter_type>
-	void check_builtin_adapter(const adapter_type& adapter, transform_runtime_type8 expected_type, bool expected_associative, bool is_uniform_scale)
+	void check_builtin_adapter(const adapter_type& adapter, transform_runtime_type_t expected_type, bool expected_associative, bool is_uniform_scale)
 	{
 		using transform_type = typename adapter_type::transform_type;
 
 		CHECK(adapter.get_type() == expected_type);
 		CHECK(adapter.get_transform_size() == sizeof(transform_type));
 		CHECK(adapter.is_associative() == expected_associative);
-		CHECK(adapter.needs_conversion() == (expected_type != transform_runtime_type8::vqf && expected_type != transform_runtime_type8::vqvf));
+		CHECK(adapter.needs_conversion() == (expected_type != transform_runtime_type_t::vqf && expected_type != transform_runtime_type_t::vqvf));
 
 		rtm::vqvf transforms_vqv[k_num_transforms];
 		make_transforms(is_uniform_scale, transforms_vqv);
@@ -261,14 +261,14 @@ TEST_CASE("transform adapter names", "[compression][transform]")
 	}
 
 	const custom_vqm_transform_adapter custom_adapter;
-	CHECK(custom_adapter.get_type() == transform_runtime_type8::custom);
+	CHECK(custom_adapter.get_type() == transform_runtime_type_t::custom);
 	CHECK(custom_adapter.needs_conversion());
 }
 
 TEST_CASE("vqf transform adapter", "[compression][transform]")
 {
 	const vqf_transform_adapter adapter;
-	check_builtin_adapter(adapter, transform_runtime_type8::vqf, true, false);
+	check_builtin_adapter(adapter, transform_runtime_type_t::vqf, true, false);
 
 	// The VQ adapter does not use the scale
 	rtm::vqvf transforms[k_num_transforms];
@@ -291,7 +291,7 @@ TEST_CASE("vqf transform adapter", "[compression][transform]")
 TEST_CASE("vqsf transform adapter", "[compression][transform]")
 {
 	const vqsf_transform_adapter adapter;
-	check_builtin_adapter(adapter, transform_runtime_type8::vqsf, true, true);
+	check_builtin_adapter(adapter, transform_runtime_type_t::vqsf, true, true);
 
 	rtm::vqvf transforms_vqv[k_num_transforms];
 	make_transforms(true, transforms_vqv);
@@ -322,7 +322,7 @@ TEST_CASE("vqsf transform adapter", "[compression][transform]")
 TEST_CASE("vqvf transform adapter", "[compression][transform]")
 {
 	const vqvf_transform_adapter adapter;
-	check_builtin_adapter(adapter, transform_runtime_type8::vqvf, false, false);
+	check_builtin_adapter(adapter, transform_runtime_type_t::vqvf, false, false);
 
 	rtm::vqvf transforms[k_num_transforms];
 	make_transforms(false, transforms);
@@ -346,7 +346,7 @@ TEST_CASE("vqvf transform adapter", "[compression][transform]")
 TEST_CASE("vqmf transform adapter", "[compression][transform]")
 {
 	const vqmf_transform_adapter adapter;
-	check_builtin_adapter(adapter, transform_runtime_type8::vqmf, true, false);
+	check_builtin_adapter(adapter, transform_runtime_type_t::vqmf, true, false);
 
 	rtm::vqvf transforms_vqv[k_num_transforms];
 	make_transforms(false, transforms_vqv);
@@ -388,7 +388,7 @@ TEST_CASE("vqmf transform adapter", "[compression][transform]")
 TEST_CASE("matrix3x4f transform adapter", "[compression][transform]")
 {
 	const matrix3x4f_transform_adapter adapter;
-	check_builtin_adapter(adapter, transform_runtime_type8::matrix3x4f, true, false);
+	check_builtin_adapter(adapter, transform_runtime_type_t::matrix3x4f, true, false);
 
 	rtm::vqvf transforms_vqv[k_num_transforms];
 	make_transforms(false, transforms_vqv);

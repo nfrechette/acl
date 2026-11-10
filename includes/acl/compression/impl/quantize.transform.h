@@ -2282,7 +2282,7 @@ namespace acl
 			// With 3D scale, the transform arithmetic depends on the error metric
 			// With rtm::vqmf, the product keeps the shear and it is associative: we use the cached transforms
 			// With rtm::vqvf, the product discards the shear and it is not associative: we fall back to the transform chain
-			const bool use_vqm = has_scale && context.error_metric->get_runtime_type() == transform_runtime_type8::vqmf;
+			const bool use_vqm = has_scale && context.error_metric->get_runtime_type() == transform_runtime_type_t::vqmf;
 			const bool use_transform_chains = has_scale && !use_vqm;
 
 			if (use_vqm)

@@ -8,7 +8,7 @@ When `compression_settings::error_metric` is `nullptr` (the default), compressio
 
 ## Runtime transform types
 
-An error metric uses a runtime transform type to compose the local space transforms into object space and to measure the error. `itransform_error_metric::get_runtime_type()` returns this type (`transform_runtime_type8`):
+An error metric uses a runtime transform type to compose the local space transforms into object space and to measure the error. `itransform_error_metric::get_runtime_type()` returns this type (`transform_runtime_type_t`):
 
 *  `vqvf`: a rotation, a translation, and a 3D scale. The product of two transforms discards the shear. Thus the product is not associative.
 *  `vqmf`: a rotation, a translation, and a 3x3 scale/shear matrix. The product of two transforms keeps the shear. Thus the object space transforms are exact, and the product is associative.
@@ -56,5 +56,5 @@ In order to implement your own error metric you need to figure out how your host
 
 Fundamentally the interface requires you to implement two versions of the error metric: with or without scale. The variants with no scale are only present as an optimization to avoid unnecessary computation when a clip does not contain any scale. It is common enough to warrant an optimized code path.
 
-If your error metric uses a different type than `rtm::vqvf`, you can implement the other functions as needed. See the interface for details. Return `transform_runtime_type8::custom` from `get_runtime_type()` unless your error metric uses `rtm::vqvf` or `rtm::vqmf` with scale.
+If your error metric uses a different type than `rtm::vqvf`, you can implement the other functions as needed. See the interface for details. Return `transform_runtime_type_t::custom` from `get_runtime_type()` unless your error metric uses `rtm::vqvf` or `rtm::vqmf` with scale.
 
