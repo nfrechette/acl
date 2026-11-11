@@ -108,7 +108,7 @@ namespace acl
 			// This means we need 3-4 cache lines to unpack. If we cache miss, we'll be able to queue up as many uops as we can before we stall.
 			// We can also queue up enough independent uops to avoid stalling on the square-root (6-21 cycles depending on the platform).
 			// Constant rotation samples are fairly common, see here: https://nfrechette.github.io/2020/08/09/animation_data_numbers/
-			// CMU has 64.41%, Paragon has 47.69%, and Fortnite has 62.84%.
+			// The data sets of that post have between 47.69% and 64.41% constant rotation samples.
 			// Following these numbers, it is common for clips to have at least 10 constant rotation samples to unpack.
 
 #if ACL_IMPL_CONSTANT_ROTATION_UNPACKING_VARIANT == 2	// AVX 8-wide
