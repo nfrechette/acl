@@ -32,9 +32,9 @@ The compression level used will dictate how much time to spend optimizing the va
 
 While we support various [rotation and vector quantization formats](rotation_and_vector_formats.md), the *variable* variants are generally the best. It is safe to use them for all your clips but if you do happen to run into issues with some exotic clips, you can easily fallback to less aggressive variants.
 
-Selecting the right [error metric](error_metrics.md) is important and you will want to carefully pick the one that best approximates how your game engine performs skinning. When `settings.error_metric` is `nullptr` (the default), compression uses `vqmf_transform_error_metric` (or its additive variant). It composes transforms with exact VQM arithmetic when scale is present. Set an error metric only when your game engine composes transforms differently (for example, `vqvf_transform_error_metric` for VQV arithmetic).
+Selecting the right [runtime transform type](error_metrics.md) is important: select the one that your game engine uses to compose transforms. With `transform_runtime_type_t::automatic` (the default), compression uses exact VQM arithmetic when scale is present (or VQS arithmetic with `vqsf` raw tracks). Without scale, it uses VQ arithmetic and measures the exact error. Select another type only when your game engine composes transforms differently (for example, `transform_runtime_type_t::vqvf` for VQV arithmetic that discards the shear).
 
-The last important setting to choose is the `error_threshold`. This is used in conjunction with the error metric and the virtual vertex distance (shell distance) in order to guarantee that a certain quality is maintained. A default value of **0.01cm** is safe to use and it most likely should never be changed unless the units you are using differ. If you do run into issues where compression artifacts are visible, in all likelihood the virtual vertex distance used on the problematic bones is not conservative enough.
+The last important setting to choose is the `error_threshold`. This is used in conjunction with the transform metric and the virtual vertex distance (shell distance) in order to guarantee that a certain quality is maintained. A default value of **0.01cm** is safe to use and it most likely should never be changed unless the units you are using differ. If you do run into issues where compression artifacts are visible, in all likelihood the virtual vertex distance used on the problematic bones is not conservative enough.
 
 ```c++
 #include <acl/compression/compress.h>
@@ -47,9 +47,8 @@ settings.rotation_format = rotation_format8::quatf_drop_w_variable;
 settings.translation_format = vector_format8::vector3f_variable;
 settings.scale_format = vector_format8::vector3f_variable;
 
-// Optional: when null, compression uses vqmf_transform_error_metric
-// vqvf_transform_error_metric error_metric;
-// settings.error_metric = &error_metric;
+// Optional: the default 'automatic' uses VQM arithmetic with scale
+// settings.transform_runtime_type = transform_runtime_type_t::vqvf;
 
 output_stats stats;
 compressed_tracks* out_compressed_tracks = nullptr;

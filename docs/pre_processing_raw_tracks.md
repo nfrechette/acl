@@ -12,7 +12,7 @@ Pre-processing actions can be *lossy* or *lossless*. See `pre_process_actions` a
 
 With [extended samples](extended_samples.md), `pre_process_track_list(..)` changes only the sample values. The sample interpolators do not change.
 
-When pre-processing transform tracks, selecting the right [error metric](error_metrics.md) is important and you will want to carefully pick the one that best approximates how your game engine performs skinning. You will need to use the same error metric for pre-processing and compression. When `settings.error_metric` is `nullptr` (the default), pre-processing uses the same default error metric as compression.
+When pre-processing transform tracks, selecting the right [runtime transform type](error_metrics.md) is important: select the one that your game engine uses to compose transforms. Use the same `transform_runtime_type`, `custom_transform_adapter`, and `transform_metric` for pre-processing and compression. They have the same defaults as in the compression settings.
 
 ```c++
 #include <acl/compression/pre_process.h>
@@ -23,9 +23,8 @@ pre_process_settings_t settings;
 settings.actions = pre_process_actions::recommended;
 settings.precision_policy = pre_process_precision_policy::lossy;
 
-// Optional: when null, pre-processing uses the same default error metric as compression
-// vqvf_transform_error_metric error_metric;
-// settings.error_metric = &error_metric;
+// Optional: use the same runtime transform type as compression
+// settings.transform_runtime_type = transform_runtime_type_t::vqvf;
 
 pre_process_track_list(allocator, settings, transform_tracks);
 ```
