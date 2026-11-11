@@ -132,8 +132,8 @@ namespace acl
 		// Lossy pre-processing only
 		// Transform tracks only
 		transform_runtime_type_t transform_runtime_type = transform_runtime_type_t::automatic;
-		const itransform_adapter* custom_transform_adapter = nullptr;
-		const itransform_metric* transform_metric = nullptr;
+		itransform_adapter* custom_transform_adapter = nullptr;
+		itransform_metric* transform_metric = nullptr;
 
 		// DEPRECATED: use 'transform_runtime_type', 'custom_transform_adapter', and 'transform_metric' instead.
 		// This value will be removed in v2.3.
