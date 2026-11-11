@@ -167,6 +167,8 @@ namespace acl
 			uint32_t num_bones_in_chain = 0;
 			uint32_t padding1 = 0;								// unused
 
+			uint32_t* target_chain_bone_indices = nullptr;		// 1 per transform, the chain of the transform that we measure in calculate_max_error_at_bit_rate_object
+
 			quantization_context(iallocator& allocator_, clip_context& clip_, const clip_context& raw_clip_, const clip_context& additive_base_clip_, const compression_settings& settings_, const compression_segmenting_settings& segmenting_settings_)
 				: allocator(allocator_)
 				, clip(clip_)
@@ -212,6 +214,7 @@ namespace acl
 				shell_metadata_per_transform = allocate_type_array<rigid_shell_metadata_t>(allocator, num_bones);
 				bit_rate_per_bone = allocate_type_array<transform_bit_rates>(allocator, num_bones);
 				chain_bone_indices = allocate_type_array<uint32_t>(allocator, num_bones);
+				target_chain_bone_indices = allocate_type_array<uint32_t>(allocator, num_bones);
 			}
 
 			~quantization_context()
@@ -242,6 +245,7 @@ namespace acl
 				deallocate_type_array(allocator, parent_transform_indices, num_bones);
 				deallocate_type_array(allocator, self_transform_indices, num_bones);
 				deallocate_type_array(allocator, chain_bone_indices, num_bones);
+				deallocate_type_array(allocator, target_chain_bone_indices, num_bones);
 			}
 
 			void set_segment(segment_context& segment_)
@@ -794,9 +798,17 @@ namespace acl
 			const auto local_to_object_space_impl = std::mem_fn(context.metric_has_scale ? &itransform_error_metric::local_to_object_space : &itransform_error_metric::local_to_object_space_no_scale);
 			const auto calculate_error_squared_impl = std::mem_fn(context.metric_has_scale ? &itransform_error_metric::calculate_error_squared : &itransform_error_metric::calculate_error_squared_no_scale);
 
+			// The hierarchical sample below writes the target transform and its parents only
+			// We apply the additive base, convert, and compose only these transforms
+			// The chain in the context can belong to another transform: the callers loop over it
+			uint32_t* target_chain_bone_indices = context.target_chain_bone_indices;
+			uint32_t num_bones_in_target_chain = 0;
+			for (const uint32_t chain_bone_index : context.clip.get_bone_chain(target_bone_index))
+				target_chain_bone_indices[num_bones_in_target_chain++] = chain_bone_index;
+
 			itransform_error_metric::convert_transforms_args convert_transforms_args_lossy;
-			convert_transforms_args_lossy.dirty_transform_indices = context.chain_bone_indices;
-			convert_transforms_args_lossy.num_dirty_transforms = context.num_bones_in_chain;
+			convert_transforms_args_lossy.dirty_transform_indices = target_chain_bone_indices;
+			convert_transforms_args_lossy.num_dirty_transforms = num_bones_in_target_chain;
 			convert_transforms_args_lossy.transforms = context.lossy_local_pose;
 			convert_transforms_args_lossy.num_transforms = context.num_bones;
 			convert_transforms_args_lossy.sample_index = 0;
@@ -804,15 +816,15 @@ namespace acl
 			convert_transforms_args_lossy.is_additive_base = false;
 
 			itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args_lossy;
-			apply_additive_to_base_args_lossy.dirty_transform_indices = context.chain_bone_indices;
-			apply_additive_to_base_args_lossy.num_dirty_transforms = context.num_bones_in_chain;
+			apply_additive_to_base_args_lossy.dirty_transform_indices = target_chain_bone_indices;
+			apply_additive_to_base_args_lossy.num_dirty_transforms = num_bones_in_target_chain;
 			apply_additive_to_base_args_lossy.local_transforms = context.lossy_local_pose;
 			apply_additive_to_base_args_lossy.base_transforms = nullptr;
 			apply_additive_to_base_args_lossy.num_transforms = context.num_bones;
 
 			itransform_error_metric::local_to_object_space_args local_to_object_space_args_lossy;
-			local_to_object_space_args_lossy.dirty_transform_indices = context.chain_bone_indices;
-			local_to_object_space_args_lossy.num_dirty_transforms = context.num_bones_in_chain;
+			local_to_object_space_args_lossy.dirty_transform_indices = target_chain_bone_indices;
+			local_to_object_space_args_lossy.num_dirty_transforms = num_bones_in_target_chain;
 			local_to_object_space_args_lossy.parent_transform_indices = context.parent_transform_indices;
 			local_to_object_space_args_lossy.local_transforms = needs_conversion ? (const void*)(context.local_transforms_converted) : (const void*)context.lossy_local_pose;
 			local_to_object_space_args_lossy.num_transforms = context.num_bones;
