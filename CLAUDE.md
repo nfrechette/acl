@@ -30,7 +30,7 @@ Regression tests (`-regression_test`) use a zip of regression clips in `test_dat
 
 ### Compression statistics on a full data set
 
-`tools/acl_compressor/acl_compressor.py` compresses each `.acl` and `.acl.sjson` file in a directory tree. It writes one `<clip>_stats.sjson` file for each clip and prints the aggregate stats to stdout. Use it to measure the effect of a change on size, error, and compression time (for example on the CMU or Paragon raw data).
+`tools/acl_compressor/acl_compressor.py` compresses each `.acl` and `.acl.sjson` file in a directory tree. It writes one `<clip>_stats.sjson` file for each clip and prints the aggregate stats to stdout. Use it to measure the effect of a change on size, error, and compression time (for example on a large set of raw clips).
 
 ```bash
 cd tools/acl_compressor && python3 acl_compressor.py -acl=<clip dir> -stats=<stats dir> -parallel=10
