@@ -224,6 +224,56 @@ namespace
 			acl_impl::vqm_mul_point3_x4(point_xxxx, point_yyyy, point_zzzz, *static_cast<const rtm::vqmf*>(transform), out_result_xxxx, out_result_yyyy, out_result_zzzz);
 		}
 	};
+
+	// A custom adapter that forwards each function to a built-in adapter
+	// ACL compiles the built-in adapter code with its floating point settings (no FMA contraction)
+	// Thus compression gives the exact same result with this adapter and with the built-in adapter
+	template<class builtin_adapter_t>
+	struct forwarding_adapter final : public itransform_adapter
+	{
+		builtin_adapter_t builtin_adapter;
+
+		virtual const char* get_name() const override { return "forwarding_adapter"; }
+		virtual size_t get_transform_size() const override { return builtin_adapter.get_transform_size(); }
+		virtual bool is_associative() const override { return builtin_adapter.is_associative(); }
+		virtual bool needs_conversion() const override { return builtin_adapter.needs_conversion(); }
+		virtual void convert_transforms(const convert_transforms_args& args, void* out_transforms) const override { builtin_adapter.convert_transforms(args, out_transforms); }
+		virtual void identity(void* out_transform) const override { builtin_adapter.identity(out_transform); }
+		virtual void mul(const void* lhs, const void* rhs, void* out_transform) const override { builtin_adapter.mul(lhs, rhs, out_transform); }
+
+		virtual void RTM_SIMD_CALL mul_point3_x4(
+			rtm::vector4f_arg0 point_xxxx, rtm::vector4f_arg1 point_yyyy, rtm::vector4f_arg2 point_zzzz,
+			const void* transform,
+			rtm::vector4f& out_result_xxxx, rtm::vector4f& out_result_yyyy, rtm::vector4f& out_result_zzzz) const override
+		{
+			builtin_adapter.mul_point3_x4(point_xxxx, point_yyyy, point_zzzz, transform, out_result_xxxx, out_result_yyyy, out_result_zzzz);
+		}
+	};
+
+	// A custom adapter: VQV math through the interface, the product is not associative
+	// It uses rtm::vqvf, thus it needs no conversion
+	struct custom_vqv_adapter final : public itransform_adapter
+	{
+		virtual const char* get_name() const override { return "custom_vqv_adapter"; }
+		virtual size_t get_transform_size() const override { return sizeof(rtm::vqvf); }
+		virtual bool is_associative() const override { return false; }
+		virtual bool needs_conversion() const override { return false; }
+
+		virtual void identity(void* out_transform) const override { *static_cast<rtm::vqvf*>(out_transform) = rtm::vqv_identity(); }
+
+		virtual void mul(const void* lhs, const void* rhs, void* out_transform) const override
+		{
+			*static_cast<rtm::vqvf*>(out_transform) = rtm::vqv_normalize(rtm::vqv_mul(*static_cast<const rtm::vqvf*>(lhs), *static_cast<const rtm::vqvf*>(rhs)));
+		}
+
+		virtual void RTM_SIMD_CALL mul_point3_x4(
+			rtm::vector4f_arg0 point_xxxx, rtm::vector4f_arg1 point_yyyy, rtm::vector4f_arg2 point_zzzz,
+			const void* transform,
+			rtm::vector4f& out_result_xxxx, rtm::vector4f& out_result_yyyy, rtm::vector4f& out_result_zzzz) const override
+		{
+			acl_impl::vqv_mul_point3_x4(point_xxxx, point_yyyy, point_zzzz, *static_cast<const rtm::vqvf*>(transform), out_result_xxxx, out_result_yyyy, out_result_zzzz);
+		}
+	};
 }
 
 TEST_CASE("transform runtime compression matches the legacy error metrics", "[compression][transform]")
@@ -338,6 +388,67 @@ TEST_CASE("transform runtime compression keeps the precision", "[compression][tr
 			CHECK(error < 0.01F);
 
 			allocator.deallocate(tracks, tracks->get_size());
+		}
+	}
+}
+
+TEST_CASE("transform runtime compression gives the same result with virtual functions", "[compression][transform]")
+{
+	ansi_allocator allocator;
+
+	const track_array_vqvf track_list = make_vqv_clip(allocator, scale_kind::non_uniform);
+	const track_array_vqvf base_track_list = make_base(allocator);
+
+	// The custom adapters forward to the built-in adapters: the custom transform type uses the same math
+	// We cannot use 'custom_vqm_adapter' here: the test code can use FMA contraction, and the result can change by one bit
+	forwarding_adapter<vqmf_transform_adapter> custom_vqm;
+	forwarding_adapter<vqvf_transform_adapter> custom_vqv;
+
+	// A transform metric that ACL does not own: compression uses its virtual functions
+	shell_transform_metric shell_metric;
+
+	struct test_case
+	{
+		transform_runtime_type_t builtin_type;
+		itransform_adapter* custom_adapter;
+	};
+
+	// A built-in type with the built-in metric uses code without virtual functions
+	// A custom adapter with the same math uses the virtual functions, the result is the same
+	const test_case test_cases[] =
+	{
+		{ transform_runtime_type_t::vqmf, &custom_vqm },
+		{ transform_runtime_type_t::vqvf, &custom_vqv },
+	};
+
+	const additive_clip_format8 additive_formats[] = { additive_clip_format8::none, additive_clip_format8::additive0 };
+	for (const additive_clip_format8 additive_format : additive_formats)
+	{
+		const track_array* base_track_list_ptr = additive_format != additive_clip_format8::none ? &base_track_list : nullptr;
+
+		for (const test_case& case_ : test_cases)
+		{
+			compression_settings builtin_settings = get_default_compression_settings();
+			builtin_settings.transform_runtime_type = case_.builtin_type;
+
+			compression_settings builtin_virtual_metric_settings = builtin_settings;
+			builtin_virtual_metric_settings.transform_metric = &shell_metric;
+
+			compression_settings custom_settings = get_default_compression_settings();
+			custom_settings.transform_runtime_type = transform_runtime_type_t::custom;
+			custom_settings.custom_transform_adapter = case_.custom_adapter;
+			custom_settings.transform_metric = &shell_metric;
+
+			compressed_tracks* builtin_tracks = compress(allocator, track_list, builtin_settings, base_track_list_ptr, additive_format);
+			compressed_tracks* builtin_virtual_metric_tracks = compress(allocator, track_list, builtin_virtual_metric_settings, base_track_list_ptr, additive_format);
+			compressed_tracks* custom_tracks = compress(allocator, track_list, custom_settings, base_track_list_ptr, additive_format);
+
+			CHECK(builtin_virtual_metric_tracks->get_hash() == builtin_tracks->get_hash());
+			CHECK(custom_tracks->get_hash() == builtin_tracks->get_hash());
+
+			allocator.deallocate(builtin_tracks, builtin_tracks->get_size());
+			allocator.deallocate(builtin_virtual_metric_tracks, builtin_virtual_metric_tracks->get_size());
+			allocator.deallocate(custom_tracks, custom_tracks->get_size());
 		}
 	}
 }

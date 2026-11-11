@@ -318,7 +318,9 @@ namespace acl
 			}
 
 			// Find how many bits we need per sub-track and quantize everything
-			quantize_streams(allocator, lossy_clip_context, settings, segmenting_settings, raw_clip_context, additive_base_clip_context, out_stats, compression_stats);
+			// The bit rate algorithm v2 uses the transform adapters and the transform metrics of the runtime error metric directly
+			const transform_runtime_error_metric* quantization_runtime_error_metric = use_runtime_error_metric ? &runtime_error_metric : nullptr;
+			quantize_streams(allocator, lossy_clip_context, settings, segmenting_settings, raw_clip_context, additive_base_clip_context, quantization_runtime_error_metric, out_stats, compression_stats);
 
 			uint32_t num_output_bones = 0;
 			uint32_t* output_bone_mapping = create_output_track_mapping(allocator, track_list, num_output_bones);

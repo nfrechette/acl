@@ -222,6 +222,48 @@ namespace acl
 			const double error = rtm::scalar_min(raw_rigid_error, lossy_rigid_error) + scale_error;
 			return error * error;
 		}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the largest squared distance between two VQ transforms on a sphere.
+		// The scale of the rtm::vqvf transforms is not used. The result is exact.
+		inline double calculate_vq_error_squared_precise(const rtm::vqvf& raw_transform, const rtm::vqvf& lossy_transform, double sphere_radius)
+		{
+			// We use float64 for the added precision otherwise floating point noise in the rotation
+			// can cause instability
+			const rtm::vqvd raw_transform_d = rtm::vqv_normalize(rtm::vqv_cast(raw_transform));
+			const rtm::vqvd lossy_transform_d = rtm::vqv_normalize(rtm::vqv_cast(lossy_transform));
+			return calculate_rigid_error_squared_precise(raw_transform_d, lossy_transform_d, sphere_radius);
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the largest squared distance between the raw and lossy points of the rigid shell.
+		// The points are stored transposed, see 'itransform_metric::calculate_error_args'.
+		// Without a scale ('is_vq' is true), we use the first two points only.
+		inline rtm::scalarf RTM_SIMD_CALL calculate_shell_error_squared(
+			rtm::vector4f_arg0 raw_points_xxxx, rtm::vector4f_arg1 raw_points_yyyy, rtm::vector4f_arg2 raw_points_zzzz,
+			rtm::vector4f_arg3 lossy_points_xxxx, rtm::vector4f_arg4 lossy_points_yyyy, rtm::vector4f_arg5 lossy_points_zzzz,
+			bool is_vq)
+		{
+			const rtm::vector4f error_sq_xyzw = vector_distance_squared3_x4(
+				raw_points_xxxx, raw_points_yyyy, raw_points_zzzz,
+				lossy_points_xxxx, lossy_points_yyyy, lossy_points_zzzz);
+
+#if defined(ACL_IMPL_METRIC_USE_4_POINTS)
+			(void)is_vq;
+			return rtm::vector_get_max_component_as_scalar(error_sq_xyzw);
+#else
+	#if !defined(ACL_IMPL_METRIC_USE_3_POINTS_WITHOUT_SCALE)
+			// Without a scale, two points are enough
+			if (is_vq)
+				return rtm::scalar_max(rtm::vector_get_x_as_scalar(error_sq_xyzw), rtm::vector_get_y_as_scalar(error_sq_xyzw));
+	#else
+			(void)is_vq;
+	#endif
+
+			// Because we have a scale, we must measure all three axes
+			return rtm::vector_get_max_component_as_scalar(rtm::vector_set_w(error_sq_xyzw, 0.0F));
+#endif
+		}
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -258,22 +300,10 @@ namespace acl
 				args.transform1,
 				lossy_points_xxxx, lossy_points_yyyy, lossy_points_zzzz);
 
-			const rtm::vector4f error_sq_xyzw = acl_impl::vector_distance_squared3_x4(
+			return acl_impl::calculate_shell_error_squared(
 				raw_points_xxxx, raw_points_yyyy, raw_points_zzzz,
-				lossy_points_xxxx, lossy_points_yyyy, lossy_points_zzzz);
-
-#if defined(ACL_IMPL_METRIC_USE_4_POINTS)
-			return rtm::vector_get_max_component_as_scalar(error_sq_xyzw);
-#else
-	#if !defined(ACL_IMPL_METRIC_USE_3_POINTS_WITHOUT_SCALE)
-			// Without a scale, two points are enough
-			if (adapter.get_type() == transform_runtime_type_t::vqf)
-				return rtm::scalar_max(rtm::vector_get_x_as_scalar(error_sq_xyzw), rtm::vector_get_y_as_scalar(error_sq_xyzw));
-	#endif
-
-			// Because we have a scale, we must measure all three axes
-			return rtm::vector_get_max_component_as_scalar(rtm::vector_set_w(error_sq_xyzw, 0.0F));
-#endif
+				lossy_points_xxxx, lossy_points_yyyy, lossy_points_zzzz,
+				adapter.get_type() == transform_runtime_type_t::vqf);
 		}
 	};
 
@@ -314,12 +344,7 @@ namespace acl
 				// The VQ adapter uses rtm::vqvf and we do not use the scale
 				const rtm::vqvf& raw_transform = *static_cast<const rtm::vqvf*>(args.transform0);
 				const rtm::vqvf& lossy_transform = *static_cast<const rtm::vqvf*>(args.transform1);
-
-				// We use float64 for the added precision otherwise floating point noise in the rotation
-				// can cause instability
-				const rtm::vqvd raw_transform_d = rtm::vqv_normalize(rtm::vqv_cast(raw_transform));
-				const rtm::vqvd lossy_transform_d = rtm::vqv_normalize(rtm::vqv_cast(lossy_transform));
-				error_sq = acl_impl::calculate_rigid_error_squared_precise(raw_transform_d, lossy_transform_d, sphere_radius);
+				error_sq = acl_impl::calculate_vq_error_squared_precise(raw_transform, lossy_transform, sphere_radius);
 			}
 
 			return rtm::scalar_set(float(error_sq));

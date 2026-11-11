@@ -86,6 +86,12 @@ namespace acl
 			}
 
 			//////////////////////////////////////////////////////////////////////////
+			// Returns the built-in transform metrics.
+			// Compression uses a faster code path when the selection uses them with a built-in transform adapter.
+			const itransform_metric* get_shell_metric() const { return &m_shell_metric; }
+			const itransform_metric* get_precise_metric() const { return &m_precise_metric; }
+
+			//////////////////////////////////////////////////////////////////////////
 			// Validates the runtime transform type settings without a clip.
 			// We validate what depends on the clip in 'select'.
 			error_result validate(transform_runtime_type_t type, const itransform_adapter* custom_adapter, const itransform_metric* metric) const

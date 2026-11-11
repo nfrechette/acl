@@ -65,8 +65,9 @@ namespace acl
 		// Until 'set_clip_has_scale' is called, the functions with scale use the selection with scale.
 		// After, a clip without scale uses the selection without scale for all functions.
 		//
-		// 'get_runtime_type' and 'supports_bit_rate_algorithm_v2' always describe the transform layout
-		// of the functions with scale. Thus the bit rate algorithm v2 uses the correct layout.
+		// 'get_runtime_type' always describes the transform layout of the functions with scale.
+		// The bit rate algorithm v2 does not use the functions of this interface: it uses the
+		// selections directly, see 'get_selection'.
 		//////////////////////////////////////////////////////////////////////////
 		class transform_runtime_error_metric final : public itransform_error_metric
 		{
@@ -137,15 +138,12 @@ namespace acl
 			virtual bool needs_conversion(bool has_scale) const override { return get_selection(has_scale).adapter->needs_conversion(); }
 			virtual transform_runtime_type_t get_runtime_type() const override { return m_scale_function_selection->adapter->get_type(); }
 
-			virtual bool supports_bit_rate_algorithm_v2() const override
-			{
-				// The bit rate algorithm v2 knows three transform layouts:
-				//    - without scale: VQ math with rtm::vqvf
-				//    - with scale: VQM math with rtm::vqmf, or VQV math with rtm::vqvf
-				const transform_runtime_type_t scale_type = m_scale_function_selection->adapter->get_type();
-				const bool is_scale_type_supported = scale_type == transform_runtime_type_t::vqf || scale_type == transform_runtime_type_t::vqvf || scale_type == transform_runtime_type_t::vqmf;
-				return is_scale_type_supported && m_no_scale_selection.adapter->get_type() == transform_runtime_type_t::vqf;
-			}
+			// The bit rate algorithm v2 uses the transform adapters and the transform metrics directly, see 'get_selection'
+			virtual bool supports_bit_rate_algorithm_v2() const override { return true; }
+
+			//////////////////////////////////////////////////////////////////////////
+			// Returns the selector that holds the built-in transform adapters and metrics.
+			const transform_runtime_selector& get_selector() const { return m_selector; }
 
 			virtual void convert_transforms(const convert_transforms_args& args, void* out_transforms) const override { convert_transforms_impl(get_selection(true), args, out_transforms); }
 			virtual void convert_transforms_no_scale(const convert_transforms_args& args, void* out_transforms) const override { convert_transforms_impl(get_selection(false), args, out_transforms); }
