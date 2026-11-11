@@ -4,7 +4,7 @@
 
 ### Error metrics
 
-`compression_settings::error_metric` and `pre_process_settings_t::error_metric` are deprecated. ACL 2.3 will remove them. Use these settings instead:
+`compression_settings::error_metric` and `pre_process_settings_t::error_metric` are deprecated. ACL 2.3 will remove them. The compiler gives a deprecation warning when your code uses them. To disable all ACL deprecation warnings, define `ACL_NO_DEPRECATION`. Use these settings instead:
 
 *  `transform_runtime_type`: the transform type that your runtime uses to compose transforms. The default, `automatic`, uses VQM arithmetic with scale.
 *  `custom_transform_adapter`: your own transform type, with `transform_runtime_type_t::custom`.

@@ -1238,7 +1238,10 @@ static int safe_main_impl(int argc, char* argv[])
 	if (options.compression_level_specified)
 		settings.level = options.compression_level;
 
+	// The '-error_precise' option still uses the deprecated legacy error metric
+	ACL_IMPL_DEPRECATION_WARNING_PUSH
 	settings.error_metric = error_metric;
+	ACL_IMPL_DEPRECATION_WARNING_POP
 	settings.transform_runtime_type = transform_runtime_type;
 
 	// Pre-process
@@ -1256,7 +1259,9 @@ static int safe_main_impl(int argc, char* argv[])
 
 		if (sjson_type == sjson_file_type::raw_clip)
 		{
+			ACL_IMPL_DEPRECATION_WARNING_PUSH
 			pre_process_settings.error_metric = settings.error_metric;
+			ACL_IMPL_DEPRECATION_WARNING_POP
 			pre_process_settings.transform_runtime_type = settings.transform_runtime_type;
 			pre_process_settings.custom_transform_adapter = settings.custom_transform_adapter;
 			pre_process_settings.transform_metric = settings.transform_metric;

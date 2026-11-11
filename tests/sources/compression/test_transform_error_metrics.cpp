@@ -215,6 +215,9 @@ TEST_CASE("vqmf_transform_error_metric", "[compression][error_metric]")
 	CHECK(rtm::scalar_near_equal(vqm_errors[0], vqv_errors[0], 1.0E-4F));
 }
 
+// This test uses the deprecated legacy error metric of the settings
+ACL_IMPL_DEPRECATION_WARNING_PUSH
+
 TEST_CASE("compression with the default error metric", "[compression][error_metric]")
 {
 	ansi_allocator allocator;
@@ -294,3 +297,5 @@ TEST_CASE("compression with the default error metric", "[compression][error_metr
 		allocator.deallocate(compressed_tracks_, compressed_tracks_->get_size());
 	}
 }
+
+ACL_IMPL_DEPRECATION_WARNING_POP

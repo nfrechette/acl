@@ -276,6 +276,9 @@ namespace
 	};
 }
 
+// This test uses the deprecated legacy error metric of the settings
+ACL_IMPL_DEPRECATION_WARNING_PUSH
+
 TEST_CASE("transform runtime compression matches the legacy error metrics", "[compression][transform]")
 {
 	ansi_allocator allocator;
@@ -336,6 +339,8 @@ TEST_CASE("transform runtime compression matches the legacy error metrics", "[co
 		}
 	}
 }
+
+ACL_IMPL_DEPRECATION_WARNING_POP
 
 TEST_CASE("transform runtime compression keeps the precision", "[compression][transform]")
 {
@@ -476,6 +481,9 @@ TEST_CASE("transform runtime compression with vqsf tracks", "[compression][trans
 	allocator.deallocate(tracks, tracks->get_size());
 }
 
+// This test uses the deprecated legacy error metric of the settings
+ACL_IMPL_DEPRECATION_WARNING_PUSH
+
 TEST_CASE("transform runtime error with the legacy error metric", "[compression][transform]")
 {
 	ansi_allocator allocator;
@@ -499,3 +507,5 @@ TEST_CASE("transform runtime error with the legacy error metric", "[compression]
 
 	allocator.deallocate(tracks, tracks->get_size());
 }
+
+ACL_IMPL_DEPRECATION_WARNING_POP

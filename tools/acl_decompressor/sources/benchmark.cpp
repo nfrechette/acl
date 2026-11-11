@@ -593,13 +593,18 @@ bool prepare_clip(const std::string& clip_name, const acl::compressed_tracks& ra
 		acl::pre_process_settings_t pre_process_settings;
 		pre_process_settings.actions = acl::pre_process_actions::recommended;
 		pre_process_settings.precision_policy = acl::pre_process_precision_policy::lossy;
+		// The benchmark data uses the deprecated legacy error metric, the data must not change
+		ACL_IMPL_DEPRECATION_WARNING_PUSH
 		pre_process_settings.error_metric = &error_metric;
+		ACL_IMPL_DEPRECATION_WARNING_POP
 
 		acl::pre_process_track_list(s_allocator, pre_process_settings, track_list);
 	}
 
 	acl::compression_settings settings = acl::get_default_compression_settings();
+	ACL_IMPL_DEPRECATION_WARNING_PUSH
 	settings.error_metric = &error_metric;
+	ACL_IMPL_DEPRECATION_WARNING_POP
 
 	acl::output_stats stats;
 

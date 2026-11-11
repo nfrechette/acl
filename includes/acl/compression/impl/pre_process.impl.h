@@ -39,6 +39,9 @@
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
+// This file reads the deprecated error metric of the settings
+ACL_IMPL_DEPRECATION_WARNING_PUSH
+
 namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
@@ -330,5 +333,7 @@ namespace acl
 
 	ACL_IMPL_VERSION_NAMESPACE_END
 }
+
+ACL_IMPL_DEPRECATION_WARNING_POP
 
 ACL_IMPL_FILE_PRAGMA_POP

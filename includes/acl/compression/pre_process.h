@@ -38,6 +38,9 @@
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
+// This file reads the deprecated error metric of the settings
+ACL_IMPL_DEPRECATION_WARNING_PUSH
+
 namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
@@ -142,6 +145,7 @@ namespace acl
 		// When all are 'null', pre-processing uses the same default as compression
 		// Lossy pre-processing only
 		// Transform tracks only
+		ACL_DEPRECATED("Use transform_runtime_type, custom_transform_adapter, and transform_metric instead, to be removed in v2.3")
 		const itransform_error_metric* error_metric = nullptr;
 
 		// The transform type to convert the transform tracks into (vqvf, vqf, or vqsf)
@@ -191,5 +195,7 @@ namespace acl
 }
 
 #include "acl/compression/impl/pre_process.impl.h"
+
+ACL_IMPL_DEPRECATION_WARNING_POP
 
 ACL_IMPL_FILE_PRAGMA_POP

@@ -248,6 +248,9 @@ TEST_CASE("transform runtime selection", "[compression][transform]")
 	}
 }
 
+// This test uses the deprecated legacy error metric of the settings
+ACL_IMPL_DEPRECATION_WARNING_PUSH
+
 TEST_CASE("transform runtime settings", "[compression][transform]")
 {
 	test_custom_adapter custom_adapter;
@@ -321,3 +324,5 @@ TEST_CASE("transform runtime settings", "[compression][transform]")
 		CHECK(pre_process_track_list(allocator, settings, track_list).any());
 	}
 }
+
+ACL_IMPL_DEPRECATION_WARNING_POP

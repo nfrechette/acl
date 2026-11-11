@@ -42,6 +42,9 @@
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
+// This file reads the deprecated error metric of the settings
+ACL_IMPL_DEPRECATION_WARNING_PUSH
+
 namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
@@ -273,6 +276,7 @@ namespace acl
 		// 'custom_transform_adapter', or 'transform_metric'.
 		// Defaults to 'null'.
 		// Transform tracks only.
+		ACL_DEPRECATED("Use transform_runtime_type, custom_transform_adapter, and transform_metric instead, to be removed in v2.3")
 		itransform_error_metric* error_metric = nullptr;
 
 		//////////////////////////////////////////////////////////////////////////
@@ -321,5 +325,7 @@ namespace acl
 }
 
 #include "acl/compression/impl/compression_settings.impl.h"
+
+ACL_IMPL_DEPRECATION_WARNING_POP
 
 ACL_IMPL_FILE_PRAGMA_POP
