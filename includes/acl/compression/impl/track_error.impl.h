@@ -35,6 +35,7 @@
 #include "acl/compression/track_array.h"
 #include "acl/compression/transform_error_metrics.h"
 #include "acl/compression/impl/track_list_context.h"
+#include "acl/compression/impl/transform_runtime_error_metric.h"
 #include "acl/decompression/decompress.h"
 
 #include <rtm/scalarf.h>
@@ -860,6 +861,53 @@ namespace acl
 		args.are_tracks1_vq = raw_tracks1.get_track_type() == track_type8::vqf;
 
 		return calculate_transform_track_error(allocator, args);
+	}
+
+	template<class decompression_context_type, acl_impl::is_decompression_context<decompression_context_type>>
+	inline track_error calculate_compression_error(iallocator& allocator, const track_array& raw_tracks, decompression_context_type& context, const compression_settings& settings)
+	{
+		using namespace acl_impl;
+
+		if (raw_tracks.is_empty() || !is_transform_track_type(raw_tracks.get_track_type()))
+			return calculate_compression_error(allocator, raw_tracks, context);	// Scalar tracks do not use an error metric
+
+		transform_runtime_error_metric runtime_error_metric;
+		const itransform_error_metric* error_metric = get_settings_error_metric(settings, raw_tracks, additive_clip_format8::none, nullptr, runtime_error_metric);
+		ACL_ASSERT(error_metric != nullptr, "The compression settings are not valid for these tracks");
+		if (error_metric == nullptr)
+			return invalid_track_error();
+
+		return calculate_compression_error(allocator, raw_tracks, context, *error_metric);
+	}
+
+	template<class decompression_context_type, acl_impl::is_decompression_context<decompression_context_type>>
+	inline track_error calculate_compression_error(iallocator& allocator, const track_array& raw_tracks, decompression_context_type& context, const compression_settings& settings, const track_array& additive_base_tracks, additive_clip_format8 additive_format)
+	{
+		using namespace acl_impl;
+
+		transform_runtime_error_metric runtime_error_metric;
+		const itransform_error_metric* error_metric = get_settings_error_metric(settings, raw_tracks, additive_format, &additive_base_tracks, runtime_error_metric);
+		ACL_ASSERT(error_metric != nullptr, "The compression settings are not valid for these tracks");
+		if (error_metric == nullptr)
+			return invalid_track_error();
+
+		return calculate_compression_error(allocator, raw_tracks, context, *error_metric, additive_base_tracks);
+	}
+
+	inline track_error calculate_compression_error(iallocator& allocator, const track_array& raw_tracks0, const track_array& raw_tracks1, const compression_settings& settings)
+	{
+		using namespace acl_impl;
+
+		if (raw_tracks0.is_empty() || !is_transform_track_type(raw_tracks0.get_track_type()))
+			return calculate_compression_error(allocator, raw_tracks0, raw_tracks1);	// Scalar tracks do not use an error metric
+
+		transform_runtime_error_metric runtime_error_metric;
+		const itransform_error_metric* error_metric = get_settings_error_metric(settings, raw_tracks0, additive_clip_format8::none, nullptr, runtime_error_metric);
+		ACL_ASSERT(error_metric != nullptr, "The compression settings are not valid for these tracks");
+		if (error_metric == nullptr)
+			return invalid_track_error();
+
+		return calculate_compression_error(allocator, raw_tracks0, raw_tracks1, *error_metric);
 	}
 
 	ACL_IMPL_VERSION_NAMESPACE_END

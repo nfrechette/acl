@@ -462,7 +462,6 @@ static bool parse_options(int argc, char** argv, Options& options)
 static void try_algorithm(const Options& options, iallocator& allocator, const track_array& transform_tracks,
 	const track_array& additive_base, additive_clip_format8 additive_format,
 	compression_settings settings, const compression_database_settings& database_settings,
-	const itransform_error_metric& error_metric,
 	stat_logging logging, sjson::ArrayWriter* runs_writer, double regression_error_threshold)
 {
 	(void)runs_writer;
@@ -501,7 +500,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 			const bool initialized = context.initialize(*compressed_tracks_);
 			ACL_ASSERT(initialized, "Failed to initialize decompression context"); (void)initialized;
 
-			const track_error error = calculate_compression_error(allocator, transform_tracks, context, error_metric);
+			const track_error error = calculate_compression_error(allocator, transform_tracks, context, settings);
 
 			stats_writer->insert("max_error", error.error);
 			stats_writer->insert("worst_track", error.index);
@@ -521,7 +520,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 #if defined(ACL_HAS_ASSERT_CHECKS)
 		if (options.regression_testing)
 		{
-			validate_accuracy(allocator, transform_tracks, additive_base, error_metric, *compressed_tracks_, regression_error_threshold);
+			validate_accuracy(allocator, transform_tracks, additive_base, additive_format, settings, *compressed_tracks_, regression_error_threshold);
 			validate_metadata(transform_tracks, *compressed_tracks_);
 			validate_convert(allocator, transform_tracks);
 
@@ -545,7 +544,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 				ACL_ASSERT(compressed_tracks1->is_valid(true).empty(), "Compressed tracks are invalid");
 				ACL_ASSERT(compressed_tracks_->get_hash() != compressed_tracks1->get_hash(), "Hashes should not match");
 
-				validate_db(allocator, transform_tracks, additive_base, database_settings, error_metric, *compressed_tracks_, *compressed_tracks1);
+				validate_db(allocator, transform_tracks, additive_base, additive_format, database_settings, settings, *compressed_tracks_, *compressed_tracks1);
 
 				allocator.deallocate(compressed_tracks1, compressed_tracks1->get_size());
 			}
@@ -960,39 +959,6 @@ static bool read_config(iallocator& allocator, Options& options, compression_set
 	return true;
 }
 
-static itransform_error_metric* create_vqvf_error_metric(iallocator& allocator, additive_clip_format8 format)
-{
-	switch (format)
-	{
-	case additive_clip_format8::relative:
-		return allocate_type<additive_vqvf_transform_error_metric<additive_clip_format8::relative>>(allocator);
-	case additive_clip_format8::additive0:
-		return allocate_type<additive_vqvf_transform_error_metric<additive_clip_format8::additive0>>(allocator);
-	case additive_clip_format8::additive1:
-		return allocate_type<additive_vqvf_transform_error_metric<additive_clip_format8::additive1>>(allocator);
-	case additive_clip_format8::none:
-	default:
-		return allocate_type<vqvf_transform_error_metric>(allocator);
-	}
-}
-
-// Creates the error metric that compression uses by default
-static itransform_error_metric* create_vqmf_error_metric(iallocator& allocator, additive_clip_format8 format)
-{
-	switch (format)
-	{
-	case additive_clip_format8::relative:
-		return allocate_type<additive_vqmf_transform_error_metric<additive_clip_format8::relative>>(allocator);
-	case additive_clip_format8::additive0:
-		return allocate_type<additive_vqmf_transform_error_metric<additive_clip_format8::additive0>>(allocator);
-	case additive_clip_format8::additive1:
-		return allocate_type<additive_vqmf_transform_error_metric<additive_clip_format8::additive1>>(allocator);
-	case additive_clip_format8::none:
-	default:
-		return allocate_type<vqmf_transform_error_metric>(allocator);
-	}
-}
-
 static void create_additive_base_clip(const Options& options, track_array& clip, track_array_vqvf& out_base_clip, additive_clip_format8& out_additive_format)
 {
 	// Disable floating point exceptions since conversion requires it
@@ -1231,11 +1197,11 @@ static int safe_main_impl(int argc, char* argv[])
 		use_external_config = true;
 	}
 
-	// The error metric that compression uses, null to use the default error metric
+	// The legacy error metric that compression uses, null to use the runtime transform type and the transform metric
 	itransform_error_metric* error_metric = nullptr;
 
-	// The error metric that measures the error, never null for transform tracks
-	itransform_error_metric* validation_error_metric = nullptr;
+	// The runtime transform type that compression uses
+	transform_runtime_type_t transform_runtime_type = transform_runtime_type_t::automatic;
 
 	if (sjson_type == sjson_file_type::raw_clip)
 	{
@@ -1245,16 +1211,13 @@ static int safe_main_impl(int argc, char* argv[])
 				create_additive_base_clip(options, transform_tracks, base_clip, additive_format);
 		}
 
-		// The matrix and precise error metrics do not support additive clips, those use the default error metric
+		// The legacy precise error metric does not support additive clips, those use the default runtime transform type
 		if (options.use_vqv_error_metric)
-			error_metric = create_vqvf_error_metric(allocator, additive_format);
-		else if (additive_format == additive_clip_format8::none && options.use_matrix_error_metric)
-			error_metric = allocate_type<vqvf_matrix3x4f_transform_error_metric>(allocator);
+			transform_runtime_type = transform_runtime_type_t::vqvf;
+		else if (options.use_matrix_error_metric)
+			transform_runtime_type = transform_runtime_type_t::matrix3x4f;
 		else if (additive_format == additive_clip_format8::none && options.use_precise_error_metric)
 			error_metric = allocate_type<vqvf_precise_transform_error_metric>(allocator);
-
-		// When compression uses the default error metric, we measure the error with the same one
-		validation_error_metric = error_metric != nullptr ? error_metric : create_vqmf_error_metric(allocator, additive_format);
 	}
 
 	// Fix-up our compression settings
@@ -1276,6 +1239,7 @@ static int safe_main_impl(int argc, char* argv[])
 		settings.level = options.compression_level;
 
 	settings.error_metric = error_metric;
+	settings.transform_runtime_type = transform_runtime_type;
 
 	// Pre-process
 	{
@@ -1293,6 +1257,9 @@ static int safe_main_impl(int argc, char* argv[])
 		if (sjson_type == sjson_file_type::raw_clip)
 		{
 			pre_process_settings.error_metric = settings.error_metric;
+			pre_process_settings.transform_runtime_type = settings.transform_runtime_type;
+			pre_process_settings.custom_transform_adapter = settings.custom_transform_adapter;
+			pre_process_settings.transform_metric = settings.transform_metric;
 			pre_process_settings.additive_base = &base_clip;
 			pre_process_settings.additive_format = additive_format;
 
@@ -1326,7 +1293,7 @@ static int safe_main_impl(int argc, char* argv[])
 			logging |= stat_logging::exhaustive;
 
 		if (sjson_type == sjson_file_type::raw_clip)
-			try_algorithm(options, allocator, transform_tracks, base_clip, additive_format, settings, database_settings, *validation_error_metric, logging, runs_writer, regression_error_threshold);
+			try_algorithm(options, allocator, transform_tracks, base_clip, additive_format, settings, database_settings, logging, runs_writer, regression_error_threshold);
 		else if (sjson_type == sjson_file_type::raw_track_list)
 			try_algorithm(options, allocator, scalar_tracks, settings, logging, runs_writer, regression_error_threshold);
 	};
@@ -1343,8 +1310,6 @@ static int safe_main_impl(int argc, char* argv[])
 #endif
 		exec_algos(nullptr);
 
-	if (validation_error_metric != error_metric)
-		deallocate_type(allocator, validation_error_metric);
 	deallocate_type(allocator, error_metric);
 #endif	// defined(ACL_USE_SJSON)
 

@@ -30,6 +30,7 @@
 #include "acl/core/floating_point_control.h"
 #include "acl/compression/impl/pre_process.scalar.h"
 #include "acl/compression/impl/transform_runtime.h"
+#include "acl/compression/impl/transform_runtime_error_metric.h"
 #include "acl/compression/impl/pre_process.transform.h"
 
 #include <rtm/quatf.h>
@@ -202,12 +203,23 @@ namespace acl
 				return transform_runtime_result;
 		}
 
-		// When the settings do not supply an error metric, we use the default for the additive format
-		// This is the same error metric that compression uses by default
-		default_transform_error_metrics default_error_metrics;
+		// When the settings do not supply a legacy error metric, we use the runtime transform type
+		// and the transform metric of the settings, as compression does
+		// Pre-processing does not know whether the clip has scale: it uses the selection with scale
+		transform_runtime_error_metric runtime_error_metric;
 		pre_process_settings_t settings = input_settings;
 		if (settings.error_metric == nullptr)
-			settings.error_metric = default_error_metrics.get(settings.additive_format);
+		{
+			// An empty track array has no type, we use vqvf
+			const track_type8 track_type = track_list.is_empty() ? track_type8::vqvf : track_list.get_track_type();
+			const error_result runtime_error_metric_result = runtime_error_metric.initialize(
+				settings.transform_runtime_type, settings.custom_transform_adapter, settings.transform_metric,
+				track_type, settings.additive_format, settings.additive_base);
+			if (runtime_error_metric_result.any())
+				return runtime_error_metric_result;
+
+			settings.error_metric = &runtime_error_metric;
+		}
 
 		if (track_list.is_empty())
 			return error_result();	// No tracks, nothing to do

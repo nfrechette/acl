@@ -208,10 +208,15 @@ namespace
 		const track_array_vqvf base_tracks = make_base(allocator);
 		const track_array* base_tracks_ptr = is_additive ? &base_tracks : nullptr;
 
+		// We compare the storage of VQS and VQV tracks: both use the same runtime transform type
+		// Thus compression makes the same decisions for both. With 'automatic', VQS tracks would use 'vqsf'
+		compression_settings vqm_settings = settings;
+		vqm_settings.transform_runtime_type = transform_runtime_type_t::vqmf;
+
 		compressed_tracks* vqs_compressed = nullptr;
 		compressed_tracks* vqv_compressed = nullptr;
-		compress(allocator, vqs_tracks, settings, base_tracks_ptr, additive_format, vqs_compressed);
-		compress(allocator, vqv_tracks, settings, base_tracks_ptr, additive_format, vqv_compressed);
+		compress(allocator, vqs_tracks, vqm_settings, base_tracks_ptr, additive_format, vqs_compressed);
+		compress(allocator, vqv_tracks, vqm_settings, base_tracks_ptr, additive_format, vqv_compressed);
 
 		CHECK(vqs_compressed->get_track_type() == track_type8::vqsf);
 		CHECK(vqv_compressed->get_track_type() == track_type8::vqvf);

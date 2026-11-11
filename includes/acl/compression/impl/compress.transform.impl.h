@@ -50,6 +50,7 @@
 #include "acl/compression/impl/quantize.transform.h"
 #include "acl/compression/impl/segment.transform.h"
 #include "acl/compression/impl/topology_metadata.h"
+#include "acl/compression/impl/transform_runtime_error_metric.h"
 #include "acl/compression/impl/transform_track_utils.h"
 #include "acl/compression/impl/write_segment_data.h"
 #include "acl/compression/impl/write_stats.h"
@@ -153,10 +154,25 @@ namespace acl
 			if (result.any())
 				return result;
 
-			// When the settings do not supply an error metric, we use the default for the additive format
-			default_transform_error_metrics default_error_metrics;
-			if (settings.error_metric == nullptr)
-				settings.error_metric = default_error_metrics.get(additive_format);
+			// When the settings do not supply a legacy error metric, we use the runtime transform type
+			// and the transform metric of the settings
+			transform_runtime_error_metric runtime_error_metric;
+			const bool use_runtime_error_metric = settings.error_metric == nullptr;
+			if (use_runtime_error_metric)
+			{
+				result = runtime_error_metric.initialize(
+					settings.transform_runtime_type, settings.custom_transform_adapter, settings.transform_metric,
+					track_type, additive_format, additive_base_track_list);
+				if (result.any())
+					return result;
+
+				// The runtime error metric holds the selection, the settings now use it as their error metric
+				// We clear the other values: the settings cannot have both
+				settings.error_metric = &runtime_error_metric;
+				settings.transform_runtime_type = transform_runtime_type_t::automatic;
+				settings.custom_transform_adapter = nullptr;
+				settings.transform_metric = nullptr;
+			}
 
 			compression_stats_t compression_stats;
 			(void)compression_stats;
@@ -276,6 +292,10 @@ namespace acl
 
 			// Compact and collapse the constant streams
 			compact_constant_streams(allocator, lossy_clip_context, additive_base_clip_context, track_list, settings, compression_stats);
+
+			// We now know whether the clip has scale
+			if (use_runtime_error_metric)
+				runtime_error_metric.set_clip_has_scale(lossy_clip_context.has_scale);
 
 			uint32_t clip_range_data_size = 0;
 			if (range_reduction != range_reduction_flags8::none)
