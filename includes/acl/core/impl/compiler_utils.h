@@ -86,6 +86,37 @@
 #endif
 
 //////////////////////////////////////////////////////////////////////////
+// ACL code must still read the deprecated values that the user can set.
+// That code must not give deprecation warnings: we wrap it in these two macros.
+// The user code that sets a deprecated value still gives a warning.
+//////////////////////////////////////////////////////////////////////////
+#if defined(RTM_COMPILER_MSVC)
+	#define ACL_IMPL_DEPRECATION_WARNING_PUSH \
+		__pragma(warning(push)) \
+		__pragma(warning(disable : 4996))
+
+	#define ACL_IMPL_DEPRECATION_WARNING_POP \
+		__pragma(warning(pop))
+#elif defined(RTM_COMPILER_CLANG)
+	#define ACL_IMPL_DEPRECATION_WARNING_PUSH \
+		_Pragma("clang diagnostic push") \
+		_Pragma("clang diagnostic ignored \"-Wdeprecated-declarations\"")
+
+	#define ACL_IMPL_DEPRECATION_WARNING_POP \
+		_Pragma("clang diagnostic pop")
+#elif defined(RTM_COMPILER_GCC)
+	#define ACL_IMPL_DEPRECATION_WARNING_PUSH \
+		_Pragma("GCC diagnostic push") \
+		_Pragma("GCC diagnostic ignored \"-Wdeprecated-declarations\"")
+
+	#define ACL_IMPL_DEPRECATION_WARNING_POP \
+		_Pragma("GCC diagnostic pop")
+#else
+	#define ACL_IMPL_DEPRECATION_WARNING_PUSH
+	#define ACL_IMPL_DEPRECATION_WARNING_POP
+#endif
+
+//////////////////////////////////////////////////////////////////////////
 // Wraps the __has_feature pre-processor macro to handle non-clang and early
 // GCC compilers
 //////////////////////////////////////////////////////////////////////////
