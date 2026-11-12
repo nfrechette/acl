@@ -297,9 +297,11 @@ namespace
 
 		CHECK(vqs_error.error >= 0.0F);
 		CHECK(vqs_error.error < 0.01F);
-		CHECK(vqs_error.error == vqv_error.error);
-		CHECK(vqs_error.index == vqv_error.index);
-		CHECK(vqs_error.sample_time == vqv_error.sample_time);
+
+		// With x87 math, the scales can be different by 1 ULP (see 'check_same_pose'), thus the errors can be different too.
+		// When two samples have almost the same largest error, such a difference can change which sample has the largest error.
+		// Thus we compare only the value of the largest error, with a threshold 10x smaller than the precision of the tracks.
+		CHECK(rtm::scalar_near_equal(vqs_error.error, vqv_error.error, 1.0E-4F));
 
 		allocator.deallocate(vqs_compressed, vqs_compressed->get_size());
 		allocator.deallocate(vqv_compressed, vqv_compressed->get_size());
