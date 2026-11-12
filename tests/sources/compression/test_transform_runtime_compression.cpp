@@ -199,6 +199,15 @@ namespace
 		mutable uint32_t num_raw_mismatches = 0;
 		mutable uint32_t max_sample_index = 0;
 
+		void reset_counters()
+		{
+			num_raw_conversions = 0;
+			num_lossy_conversions = 0;
+			num_invalid_arguments = 0;
+			num_raw_mismatches = 0;
+			max_sample_index = 0;
+		}
+
 		virtual const char* get_name() const override { return "checking_adapter"; }
 		virtual size_t get_transform_size() const override { return builtin_adapter.get_transform_size(); }
 		virtual bool is_associative() const override { return builtin_adapter.is_associative(); }
@@ -506,44 +515,60 @@ TEST_CASE("transform runtime conversion arguments", "[compression][transform]")
 	checking_adapter adapter;
 	shell_transform_metric shell_metric;
 
-	// The clip has more than one segment: the sample index must be the index in the clip, not in the segment
-	const track_array_vqvf track_list = make_vqv_clip(allocator, scale_kind::non_uniform);
-
-	// Pre-processing converts the samples of the track list that it changes
+	// Without scale, compression must still use the custom transform adapter
+	const scale_kind scale_kinds[] = { scale_kind::none, scale_kind::non_uniform };
+	for (const scale_kind kind : scale_kinds)
 	{
-		track_array_vqvf pre_processed_track_list = make_vqv_clip(allocator, scale_kind::non_uniform);
-		adapter.raw_tracks = &pre_processed_track_list;
+		adapter.reset_counters();
 
-		pre_process_settings_t pre_process_settings;
-		pre_process_settings.actions = pre_process_actions::recommended;
-		pre_process_settings.precision_policy = pre_process_precision_policy::lossy;
-		pre_process_settings.transform_runtime_type = transform_runtime_type_t::custom;
-		pre_process_settings.custom_transform_adapter = &adapter;
-		pre_process_settings.transform_metric = &shell_metric;
+		// The clip has more than one segment: the sample index must be the index in the clip, not in the segment
+		const track_array_vqvf track_list = make_vqv_clip(allocator, kind);
 
-		CHECK(pre_process_track_list(allocator, pre_process_settings, pre_processed_track_list).empty());
+		// Pre-processing converts the samples of the track list that it changes
+		{
+			track_array_vqvf pre_processed_track_list = make_vqv_clip(allocator, kind);
+			adapter.raw_tracks = &pre_processed_track_list;
+
+			pre_process_settings_t pre_process_settings;
+			pre_process_settings.actions = pre_process_actions::recommended;
+			pre_process_settings.precision_policy = pre_process_precision_policy::lossy;
+			pre_process_settings.transform_runtime_type = transform_runtime_type_t::custom;
+			pre_process_settings.custom_transform_adapter = &adapter;
+			pre_process_settings.transform_metric = &shell_metric;
+
+			CHECK(pre_process_track_list(allocator, pre_process_settings, pre_processed_track_list).empty());
+		}
+
+		// Compression and the error measurement convert the samples of the raw track list
+		adapter.raw_tracks = &track_list;
+
+		compression_settings settings = get_default_compression_settings();
+		settings.transform_runtime_type = transform_runtime_type_t::custom;
+		settings.custom_transform_adapter = &adapter;
+		settings.transform_metric = &shell_metric;
+
+		compressed_tracks* tracks = compress(allocator, track_list, settings, nullptr, additive_clip_format8::none);
+
+		CHECK(adapter.num_invalid_arguments == 0);
+		CHECK(adapter.num_raw_mismatches == 0);
+		CHECK(adapter.num_raw_conversions != 0);
+		CHECK(adapter.num_lossy_conversions != 0);
+		CHECK(adapter.max_sample_index == k_num_samples - 1);
+
+		// The error measurement must also use the custom transform adapter
+		adapter.reset_counters();
+
+		const float error = measure_error(allocator, track_list, *tracks, settings, nullptr, additive_clip_format8::none);
+		CHECK(error < 0.01F);
+
+		allocator.deallocate(tracks, tracks->get_size());
+
+		CHECK(adapter.num_invalid_arguments == 0);
+		CHECK(adapter.num_raw_mismatches == 0);
+		CHECK(adapter.num_raw_conversions != 0);
+		CHECK(adapter.num_lossy_conversions != 0);
+		CHECK(adapter.max_sample_index == k_num_samples - 1);
 	}
-
-	// Compression and the error measurement convert the samples of the raw track list
-	adapter.raw_tracks = &track_list;
-
-	compression_settings settings = get_default_compression_settings();
-	settings.transform_runtime_type = transform_runtime_type_t::custom;
-	settings.custom_transform_adapter = &adapter;
-	settings.transform_metric = &shell_metric;
-
-	compressed_tracks* tracks = compress(allocator, track_list, settings, nullptr, additive_clip_format8::none);
-
-	const float error = measure_error(allocator, track_list, *tracks, settings, nullptr, additive_clip_format8::none);
-	CHECK(error < 0.01F);
-
-	allocator.deallocate(tracks, tracks->get_size());
-
-	CHECK(adapter.num_invalid_arguments == 0);
-	CHECK(adapter.num_raw_mismatches == 0);
-	CHECK(adapter.num_raw_conversions != 0);
-	CHECK(adapter.num_lossy_conversions != 0);
-	CHECK(adapter.max_sample_index == k_num_samples - 1);
 }
 
 TEST_CASE("transform runtime compression with vqsf tracks", "[compression][transform]")

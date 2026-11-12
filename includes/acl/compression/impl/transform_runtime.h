@@ -129,9 +129,10 @@ namespace acl
 				if (result.any())
 					return result;
 
-				// Without scale, each runtime transform type gives the same transforms: we use the cheapest
-				// We keep the selected type only when the transform metric does not support VQ transforms
-				if (!has_scale && (metric == nullptr || metric->is_supported(m_vqf_adapter)))
+				// Without scale, each built-in runtime transform type gives the same transforms: we use the cheapest
+				// We keep the selected type when the transform metric does not support VQ transforms
+				// We always keep a custom transform adapter: its transforms can use data that the source scale does not show
+				if (!has_scale && type != transform_runtime_type_t::custom && (metric == nullptr || metric->is_supported(m_vqf_adapter)))
 				{
 					out_selection.adapter = &m_vqf_adapter;
 					out_selection.metric = metric != nullptr ? metric : get_default_metric(transform_runtime_type_t::vqf);

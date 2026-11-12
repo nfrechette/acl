@@ -169,7 +169,7 @@ TEST_CASE("transform runtime selection", "[compression][transform]")
 	const precise_transform_metric precise_metric;
 	const shell_transform_metric shell_metric;
 
-	// Without scale, we use VQ with the precise metric, for every runtime type
+	// Without scale, we use VQ with the precise metric, for every built-in runtime type
 	{
 		const transform_runtime_type_t types[] = { transform_runtime_type_t::automatic, transform_runtime_type_t::vqvf, transform_runtime_type_t::vqmf, transform_runtime_type_t::matrix3x4f };
 		for (transform_runtime_type_t type : types)
@@ -180,9 +180,16 @@ TEST_CASE("transform runtime selection", "[compression][transform]")
 			CHECK(result.metric->get_hash() == precise_metric.get_hash());
 		}
 
+		// A custom adapter can use data that the source scale does not show: we keep it with the shell metric
 		const selection_result custom_result = select(selector, transform_runtime_type_t::custom, &custom_adapter, nullptr, track_type8::vqvf, false, false);
 		CHECK(custom_result.is_valid);
-		CHECK(custom_result.adapter_type == transform_runtime_type_t::vqf);
+		CHECK(custom_result.adapter_type == transform_runtime_type_t::custom);
+		CHECK(custom_result.metric->get_hash() == shell_metric.get_hash());
+
+		const selection_result custom_shell_result = select(selector, transform_runtime_type_t::custom, &custom_adapter, &shell_metric, track_type8::vqvf, false, false);
+		CHECK(custom_shell_result.is_valid);
+		CHECK(custom_shell_result.adapter_type == transform_runtime_type_t::custom);
+		CHECK(custom_shell_result.metric == &shell_metric);
 
 		// The metric that we select applies with VQ too
 		const selection_result shell_result = select(selector, transform_runtime_type_t::vqmf, nullptr, &shell_metric, track_type8::vqvf, false, false);
@@ -190,7 +197,7 @@ TEST_CASE("transform runtime selection", "[compression][transform]")
 		CHECK(shell_result.adapter_type == transform_runtime_type_t::vqf);
 		CHECK(shell_result.metric == &shell_metric);
 
-		// A metric that does not support VQ keeps the custom adapter
+		// A metric that does not support VQ also keeps the custom adapter
 		const selection_result custom_metric_result = select(selector, transform_runtime_type_t::custom, &custom_adapter, &custom_metric, track_type8::vqvf, false, false);
 		CHECK(custom_metric_result.is_valid);
 		CHECK(custom_metric_result.adapter_type == transform_runtime_type_t::custom);

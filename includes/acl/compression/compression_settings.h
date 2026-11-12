@@ -238,8 +238,9 @@ namespace acl
 		// transforms into object space and to measure the error. Select the type that
 		// your runtime uses to compose transforms. See 'transform_runtime_type_t'.
 		//
-		// When a clip has no scale, compression always uses 'vqf': without scale,
-		// each runtime transform type gives the same transforms.
+		// When a clip has no scale, compression uses 'vqf' in place of a built-in type:
+		// without scale, each built-in runtime transform type gives the same transforms.
+		// Compression always uses a custom transform adapter, also without scale.
 		//
 		// With 'automatic', compression selects the type from the raw tracks:
 		//    - 'vqsf' for 'vqsf' raw tracks, when the additive base (if any) has a uniform scale

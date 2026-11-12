@@ -21,7 +21,9 @@ Select the runtime transform type that your runtime uses. When the error that AC
 *  `custom`: your own type. Compression uses `compression_settings::custom_transform_adapter`.
 *  `automatic` (the default): compression selects the type from the raw tracks. It selects `vqsf` for `vqsf` raw tracks when the additive base (if any) has a uniform scale. Otherwise, it selects `vqmf`.
 
-When a clip has no scale, each runtime transform type gives the same transforms. Thus compression uses `vqf`, the fastest type, when the transform metric supports it. Compression makes this selection for each segment: a segment without scale uses `vqf`, also when other segments of the clip have scale.
+When a clip has no scale, each built-in runtime transform type gives the same transforms. Thus compression uses `vqf`, the fastest type, when the transform metric supports it. Compression makes this selection for each segment: a segment without scale uses `vqf`, also when other segments of the clip have scale.
+
+Compression always uses a custom transform adapter, also in a segment without scale. Your transforms can use data that the source scale does not show. For example, your adapter can add a value that you compress in another track.
 
 Compression always converts `rtm::vqvf` source transforms into the runtime transform type. With VQ raw tracks (`vqf`), the source scale is 1.0, or 0.0 in an `additive1` clip. With VQS raw tracks (`vqsf`), the source scale holds the uniform scale in [xyz].
 

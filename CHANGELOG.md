@@ -38,6 +38,7 @@
 *  Add the `transform_runtime_type`, `custom_transform_adapter`, and `transform_metric` settings to `compression_settings` and `pre_process_settings_t`
 *  The default runtime transform type `automatic` uses VQM arithmetic with scale, or VQS arithmetic with `vqsf` raw tracks
 *  Compression uses VQ arithmetic and the precise metric for each segment without scale, it measures the exact error: the compressed size can be slightly larger and fewer clips have an error above the threshold
+*  Compression always uses a custom transform adapter, also for a segment without scale
 *  Deprecate `compression_settings::error_metric` and `pre_process_settings_t::error_metric` with `ACL_DEPRECATED`, the compiler warns when you use them and ACL 2.3 will remove them, see [migrating](docs/migrating.md)
 *  Deprecate `itransform_error_metric`, the legacy error metrics, and the `calculate_compression_error` overloads that take one, ACL 2.3 will remove them
 *  Add the `calculate_compression_error` overloads that take the compression settings, they measure the error as compression does
