@@ -732,10 +732,14 @@ namespace acl
 					// Find the closest loaded samples
 					// Mask all trailing samples to find the first sample by counting trailing zeros
 					const uint32_t candidate_indices0 = sample_indices0 & (0xFFFFFFFFU << (31 - clip_key_frame0));
+					// Compression never strips the first sample of a segment, thus we always find a sample
+					ACL_ASSERT(candidate_indices0 != 0, "The first sample of the segment is missing");
 					clip_key_frame0 = 31 - count_trailing_zeros(candidate_indices0);
 
 					// Mask all leading samples to find the second sample by counting leading zeros
 					const uint32_t candidate_indices1 = sample_indices0 & (0xFFFFFFFFU >> clip_key_frame1);
+					// Compression never strips the last sample of a segment, thus we always find a sample
+					ACL_ASSERT(candidate_indices1 != 0, "The last sample of the segment is missing");
 					clip_key_frame1 = count_leading_zeros(candidate_indices1);
 
 					// Calculate our new interpolation alpha
@@ -892,10 +896,14 @@ namespace acl
 					// Find the closest loaded samples
 					// Mask all trailing samples to find the first sample by counting trailing zeros
 					const uint32_t candidate_indices0 = sample_indices0 & (0xFFFFFFFFU << (31 - segment_key_frame0));
+					// Compression never strips the first sample of a segment, thus we always find a sample
+					ACL_ASSERT(candidate_indices0 != 0, "The first sample of the segment is missing");
 					segment_key_frame0 = 31 - count_trailing_zeros(candidate_indices0);
 
 					// Mask all leading samples to find the second sample by counting leading zeros
 					const uint32_t candidate_indices1 = sample_indices1 & (0xFFFFFFFFU >> segment_key_frame1);
+					// Compression never strips the last sample of a segment, thus we always find a sample
+					ACL_ASSERT(candidate_indices1 != 0, "The last sample of the segment is missing");
 					segment_key_frame1 = count_leading_zeros(candidate_indices1);
 
 					// Calculate our clip relative sample indices
