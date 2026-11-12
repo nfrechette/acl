@@ -37,7 +37,6 @@
 #include <rtm/vqvf.h>
 
 #include <cmath>
-#include <cstring>
 #include <cstdint>
 
 using namespace acl;
@@ -97,10 +96,8 @@ namespace
 		args.sample_index = 0;
 		args.is_lossy = false;
 
-		if (adapter.needs_conversion())
-			adapter.convert_transforms(args, out_transforms);
-		else
-			std::memcpy(out_transforms, &transforms[0], sizeof(transforms));
+		// A built-in adapter can always convert, also when its runtime type is rtm::vqvf and it needs no conversion
+		adapter.convert_transforms(args, out_transforms);
 	}
 
 	template<class adapter_type>

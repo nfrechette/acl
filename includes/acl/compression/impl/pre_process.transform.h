@@ -55,7 +55,7 @@ namespace acl
 		// Sets the scale of a transform sample, a VQ sample has no scale
 		// A VQS sample has a uniform scale: we use the X component, its value is in [w]
 		inline void RTM_SIMD_CALL pre_process_set_sample_scale(rtm::vqvf& sample, rtm::vector4f_arg0 scale) { sample.scale = scale; }
-		inline void RTM_SIMD_CALL pre_process_set_sample_scale(rtm::vqf& sample, rtm::vector4f_arg0 scale) { (void)sample; (void)scale; }
+		inline void RTM_SIMD_CALL pre_process_set_sample_scale(const rtm::vqf& sample, rtm::vector4f_arg0 scale) { (void)sample; (void)scale; }
 		inline void RTM_SIMD_CALL pre_process_set_sample_scale(rtm::vqsf& sample, rtm::vector4f_arg0 scale) { sample.translation_scale = rtm::vector_set_w(sample.translation_scale, rtm::vector_get_x(scale)); }
 
 		// Returns the translation of a transform sample, a VQS sample has its scale in [w]
