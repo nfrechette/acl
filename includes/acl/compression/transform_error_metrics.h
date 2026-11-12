@@ -28,6 +28,7 @@
 #include "acl/core/additive_utils.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/hash.h"
+#include "acl/core/iallocator.h"
 #include "acl/core/track_types.h"
 #include "acl/compression/fwd.h"
 #include "acl/compression/transform_adapters.h"
@@ -40,6 +41,9 @@
 #include <rtm/vqvd.h>
 #include <rtm/vqvf.h>
 #include <rtm/scalarf.h>
+
+#include <cstdint>
+#include <cstring>
 
 // By default, we use an optimize version of error metrics that leverages SIMD by
 // computing the error in Structure Of Array form (xxxx, yyyy, zzzz). This means that we can generally
@@ -124,7 +128,7 @@ namespace acl
 			uint32_t num_transforms;
 
 			//////////////////////////////////////////////////////////////////////////
-			// The sample index these transforms come from.
+			// The index in the clip of the sample these transforms come from.
 			uint32_t sample_index;
 
 			//////////////////////////////////////////////////////////////////////////
@@ -745,6 +749,74 @@ namespace acl
 			return error_metric.get_transform_size(false) != error_metric.get_transform_size(true) ||
 				error_metric.needs_conversion(false) != error_metric.needs_conversion(true);
 		}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Converts one transform with the functions with or without scale of an error metric.
+		// The error metric reads and writes the transform at its index in a full pose: it can use
+		// the transform index to read its own data. Thus we keep a full pose for the input and the output.
+		class single_transform_converter
+		{
+		public:
+			single_transform_converter(iallocator& allocator, const itransform_error_metric& error_metric, bool has_scale, uint32_t num_transforms)
+				: m_allocator(allocator)
+				, m_error_metric(error_metric)
+				, m_transform_size(error_metric.get_transform_size(has_scale))
+				, m_num_transforms(num_transforms)
+				, m_has_scale(has_scale)
+			{
+				if (error_metric.needs_conversion(has_scale))
+				{
+					m_pose = allocate_type_array<rtm::vqvf>(allocator, num_transforms);
+					m_pose_converted = allocate_type_array_aligned<uint8_t>(allocator, m_transform_size * num_transforms, 64);
+				}
+			}
+
+			~single_transform_converter()
+			{
+				deallocate_type_array(m_allocator, m_pose, m_num_transforms);
+				deallocate_type_array(m_allocator, m_pose_converted, m_transform_size * m_num_transforms);
+			}
+
+			single_transform_converter(const single_transform_converter&) = delete;
+			single_transform_converter& operator=(const single_transform_converter&) = delete;
+
+			// Writes the converted transform in 'out_transform'
+			// 'sample_index' is the index of the sample in the clip
+			void convert(const rtm::vqvf& transform, uint32_t transform_index, uint32_t sample_index, bool is_lossy, void* out_transform) const
+			{
+				ACL_ASSERT(m_pose != nullptr, "The error metric does not need a conversion");
+				ACL_ASSERT(transform_index < m_num_transforms, "Invalid transform index");
+
+				m_pose[transform_index] = transform;
+
+				itransform_error_metric::convert_transforms_args args;
+				args.dirty_transform_indices = &transform_index;
+				args.num_dirty_transforms = 1;
+				args.transforms = m_pose;
+				args.num_transforms = m_num_transforms;
+				args.sample_index = sample_index;
+				args.is_lossy = is_lossy;
+				args.is_additive_base = false;
+
+				if (m_has_scale)
+					m_error_metric.convert_transforms(args, m_pose_converted);
+				else
+					m_error_metric.convert_transforms_no_scale(args, m_pose_converted);
+
+				std::memcpy(out_transform, m_pose_converted + (transform_index * m_transform_size), m_transform_size);
+			}
+
+		private:
+			iallocator& m_allocator;
+			const itransform_error_metric& m_error_metric;
+			size_t m_transform_size;
+			uint32_t m_num_transforms;
+			bool m_has_scale;
+
+			// We write them in the const function
+			rtm::vqvf* m_pose = nullptr;
+			uint8_t* m_pose_converted = nullptr;
+		};
 	}
 
 	ACL_IMPL_VERSION_NAMESPACE_END

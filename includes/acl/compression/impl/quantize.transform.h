@@ -144,6 +144,8 @@ namespace acl
 			uint8_t* object_transforms_raw_runtime = nullptr;		// 1 per transform, per sample, in segment (only when the runtime type is not rtm::vqvf)
 			uint8_t* cached_transforms_lossy_runtime = nullptr;		// 1 per transform, per sample, in segment (only when the runtime type is not rtm::vqvf)
 			uint8_t* scratch_transforms_runtime = nullptr;			// v2_adapter_policy::k_num_scratch_transforms
+			rtm::vqvf* scratch_pose_vqvf = nullptr;					// 1 per transform, for v2_adapter_policy
+			uint8_t* scratch_pose_runtime = nullptr;				// 1 per transform, for v2_adapter_policy
 			size_t runtime_transform_size = 0;						// The size of a transform in the runtime buffers above
 			uint32_t* critical_transform_indices = nullptr;			// 1 per transform
 
@@ -317,6 +319,13 @@ namespace acl
 				object_transforms_raw_runtime = allocate_type_array_aligned<uint8_t>(allocator, transform_size * num_bones * segmenting_settings.max_num_samples, 64);
 				cached_transforms_lossy_runtime = allocate_type_array_aligned<uint8_t>(allocator, transform_size * num_bones * segmenting_settings.max_num_samples, 64);
 				scratch_transforms_runtime = allocate_type_array_aligned<uint8_t>(allocator, transform_size * v2_adapter_policy::k_num_scratch_transforms, 64);
+				scratch_pose_vqvf = allocate_type_array<rtm::vqvf>(allocator, num_bones);
+				scratch_pose_runtime = allocate_type_array_aligned<uint8_t>(allocator, transform_size * num_bones, 64);
+			}
+
+			v2_adapter_policy_scratch get_v2_adapter_policy_scratch() const
+			{
+				return v2_adapter_policy_scratch{ scratch_transforms_runtime, scratch_pose_vqvf, scratch_pose_runtime, num_bones };
 			}
 
 			void deallocate_runtime_buffers()
@@ -324,9 +333,13 @@ namespace acl
 				deallocate_type_array(allocator, object_transforms_raw_runtime, runtime_transform_size * num_bones * segmenting_settings.max_num_samples);
 				deallocate_type_array(allocator, cached_transforms_lossy_runtime, runtime_transform_size * num_bones * segmenting_settings.max_num_samples);
 				deallocate_type_array(allocator, scratch_transforms_runtime, runtime_transform_size * v2_adapter_policy::k_num_scratch_transforms);
+				deallocate_type_array(allocator, scratch_pose_vqvf, num_bones);
+				deallocate_type_array(allocator, scratch_pose_runtime, runtime_transform_size * num_bones);
 				object_transforms_raw_runtime = nullptr;
 				cached_transforms_lossy_runtime = nullptr;
 				scratch_transforms_runtime = nullptr;
+				scratch_pose_vqvf = nullptr;
+				scratch_pose_runtime = nullptr;
 				runtime_transform_size = 0;
 			}
 
@@ -770,7 +783,7 @@ namespace acl
 
 				if (needs_conversion)
 				{
-					convert_transforms_args_lossy.sample_index = sample_index;
+					convert_transforms_args_lossy.sample_index = context.segment_sample_start_index + sample_index;	// In the clip
 					convert_transforms_impl(error_metric, convert_transforms_args_lossy, context.local_transforms_converted);
 				}
 
@@ -890,7 +903,7 @@ namespace acl
 
 				if (needs_conversion)
 				{
-					convert_transforms_args_lossy.sample_index = sample_index;
+					convert_transforms_args_lossy.sample_index = context.segment_sample_start_index + sample_index;	// In the clip
 					convert_transforms_impl(error_metric, convert_transforms_args_lossy, context.local_transforms_converted);
 				}
 
@@ -998,7 +1011,7 @@ namespace acl
 
 				if (needs_conversion)
 				{
-					convert_transforms_args_lossy.sample_index = sample_index;
+					convert_transforms_args_lossy.sample_index = context.segment_sample_start_index + sample_index;	// In the clip
 					convert_transforms_impl(error_metric, convert_transforms_args_lossy, context.local_transforms_converted);
 				}
 
@@ -1073,6 +1086,7 @@ namespace acl
 					local_transform_lossy = rtm::vqv_normalize(acl::apply_additive_to_base(additive_format, additive_base_local_transforms[(sample_index * num_transforms) + transform_index_being_optimized], local_transform_lossy));
 
 				const uint8_t* cached_pose_lossy = cached_transforms_lossy + (sample_index * pose_size);
+				const uint32_t clip_sample_index = context.segment_sample_start_index + sample_index;
 				const void* measured_to_root_raw = object_transforms_raw + (sample_index * pose_size) + (transform_index_to_measure * transform_size);
 
 				// Use our local transform being optimized and convert the transform to measure into object space
@@ -1088,12 +1102,12 @@ namespace acl
 					if (transform_index_being_optimized != transform_index_to_measure)
 						measured_to_transform_lossy = cached_pose_lossy + (transform_index_to_measure * transform_size);
 
-					error_sq = policy.measure_cached(error_args, local_transform_lossy, parent_transform_to_root_lossy, measured_to_transform_lossy, measured_to_root_raw);
+					error_sq = policy.measure_cached(error_args, local_transform_lossy, transform_index_being_optimized, clip_sample_index, parent_transform_to_root_lossy, measured_to_transform_lossy, measured_to_root_raw);
 				}
 				else
 				{
 					// The cached transforms of the chain hold local space transforms, we multiply them one by one
-					error_sq = policy.measure_chain(error_args, local_transform_lossy, parent_transform_to_root_lossy, cached_pose_lossy, transform_chain_indices, transform_chain_length, measured_to_root_raw);
+					error_sq = policy.measure_chain(error_args, local_transform_lossy, transform_index_being_optimized, clip_sample_index, parent_transform_to_root_lossy, cached_pose_lossy, transform_chain_indices, transform_chain_length, measured_to_root_raw);
 				}
 
 				max_error_sq = rtm::scalar_max(max_error_sq, error_sq);
@@ -1144,18 +1158,19 @@ namespace acl
 					local_transform_lossy = rtm::vqv_normalize(acl::apply_additive_to_base(additive_format, additive_base_local_transforms[(sample_index * num_transforms) + transform_index_being_optimized], local_transform_lossy));
 
 				uint8_t* cached_pose_lossy = cached_transforms_lossy + (sample_index * pose_size);
+				const uint32_t clip_sample_index = context.segment_sample_start_index + sample_index;
 
 				if (is_associative)
 				{
 					// Our cached transforms contain the combined measured_to_transform from some parent transform in the chain up to
 					// the transform we measure (e.g. leaf)
 					for (const uint32_t critical_transform_index : make_iterator(critical_transform_indices, num_critical_transforms))
-						policy.update_cached(local_transform_lossy, cached_pose_lossy + (critical_transform_index * transform_size), critical_transform_index == transform_index_being_optimized);
+						policy.update_cached(local_transform_lossy, transform_index_being_optimized, clip_sample_index, cached_pose_lossy + (critical_transform_index * transform_size), critical_transform_index == transform_index_being_optimized);
 				}
 				else
 				{
 					// Without associativity, our cached transforms after optimization contain the local space transform
-					policy.store_local(local_transform_lossy, cached_pose_lossy + (transform_index_being_optimized * transform_size));
+					policy.store_local(local_transform_lossy, transform_index_being_optimized, clip_sample_index, cached_pose_lossy + (transform_index_being_optimized * transform_size));
 				}
 
 				sample_indexf += 1.0F;
@@ -1483,7 +1498,7 @@ namespace acl
 
 				if (needs_conversion)
 				{
-					convert_transforms_args_raw.sample_index = sample_index;
+					convert_transforms_args_raw.sample_index = segment_sample_start_index + sample_index;	// In the clip
 					convert_transforms_impl(error_metric_, convert_transforms_args_raw, sample_raw_local_transforms);
 				}
 				else
@@ -2145,8 +2160,9 @@ namespace acl
 				const rtm::vqvf* local_pose_raw = context.object_transforms_raw + (sample_index * num_transforms);
 				const rtm::vqvf* local_pose_lossy = context.cached_transforms_lossy + (sample_index * num_transforms);
 
-				policy.local_to_object_space(*context.topology, local_pose_raw, object_transforms_raw + (sample_index * pose_size));
-				policy.local_to_object_space(*context.topology, local_pose_lossy, cached_transforms_lossy + (sample_index * pose_size));
+				const uint32_t clip_sample_index = context.segment_sample_start_index + sample_index;
+				policy.local_to_object_space(*context.topology, local_pose_raw, object_transforms_raw + (sample_index * pose_size), clip_sample_index, false);
+				policy.local_to_object_space(*context.topology, local_pose_lossy, cached_transforms_lossy + (sample_index * pose_size), clip_sample_index, true);
 			}
 
 			// Compute our dominant transforms
@@ -2592,7 +2608,7 @@ namespace acl
 				{
 					// A custom transform adapter or a custom transform metric, we use their virtual functions
 					context.initialize_v2_runtime(selection.adapter->get_transform_size());
-					find_optimal_bit_rates_v2_impl(context, v2_adapter_policy(*selection.adapter, *selection.metric, context.scratch_transforms_runtime));
+					find_optimal_bit_rates_v2_impl(context, v2_adapter_policy(*selection.adapter, *selection.metric, context.get_v2_adapter_policy_scratch()));
 				}
 			}
 			else
@@ -2824,7 +2840,7 @@ namespace acl
 						// Convert to our object space representation
 						if (needs_conversion)
 						{
-							convert_transforms_args_lossy.sample_index = interp_frame_index;
+							convert_transforms_args_lossy.sample_index = segment_sample_start_index + interp_frame_index;	// In the clip
 							convert_transforms_impl(error_metric, convert_transforms_args_lossy, context.local_transforms_converted);
 						}
 

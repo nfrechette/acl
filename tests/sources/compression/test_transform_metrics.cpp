@@ -94,6 +94,8 @@ namespace
 		args.num_dirty_transforms = 2;
 		args.transforms = &transforms[0];
 		args.num_transforms = 2;
+		args.sample_index = 0;
+		args.is_lossy = false;
 
 		if (adapter.needs_conversion())
 			adapter.convert_transforms(args, out_transforms);

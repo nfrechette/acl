@@ -25,6 +25,7 @@
 #include "catch2.impl.h"
 
 #include <acl/compression/compress.h>
+#include <acl/compression/pre_process.h>
 #include <acl/compression/track_array.h>
 #include <acl/compression/track_error.h>
 #include <acl/compression/transform_adapters.h>
@@ -39,6 +40,7 @@
 #include <rtm/vqsf.h>
 #include <rtm/vqvf.h>
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <utility>
@@ -183,6 +185,75 @@ namespace
 		}
 	}
 	ACL_IMPL_DEPRECATION_WARNING_POP
+
+	// A custom adapter that checks the arguments of each conversion, then forwards to the VQM adapter
+	// A raw transform must be the raw sample at its transform index and at its sample index in the clip
+	struct checking_adapter final : public itransform_adapter
+	{
+		vqmf_transform_adapter builtin_adapter;
+		const track_array_vqvf* raw_tracks = nullptr;
+
+		mutable uint32_t num_raw_conversions = 0;
+		mutable uint32_t num_lossy_conversions = 0;
+		mutable uint32_t num_invalid_arguments = 0;
+		mutable uint32_t num_raw_mismatches = 0;
+		mutable uint32_t max_sample_index = 0;
+
+		virtual const char* get_name() const override { return "checking_adapter"; }
+		virtual size_t get_transform_size() const override { return builtin_adapter.get_transform_size(); }
+		virtual bool is_associative() const override { return builtin_adapter.is_associative(); }
+		virtual void identity(void* out_transform) const override { builtin_adapter.identity(out_transform); }
+		virtual void mul(const void* lhs, const void* rhs, void* out_transform) const override { builtin_adapter.mul(lhs, rhs, out_transform); }
+
+		virtual void RTM_SIMD_CALL mul_point3_x4(
+			rtm::vector4f_arg0 point_xxxx, rtm::vector4f_arg1 point_yyyy, rtm::vector4f_arg2 point_zzzz,
+			const void* transform,
+			rtm::vector4f& out_result_xxxx, rtm::vector4f& out_result_yyyy, rtm::vector4f& out_result_zzzz) const override
+		{
+			builtin_adapter.mul_point3_x4(point_xxxx, point_yyyy, point_zzzz, transform, out_result_xxxx, out_result_yyyy, out_result_zzzz);
+		}
+
+		virtual void convert_transforms(const convert_transforms_args& args, void* out_transforms) const override
+		{
+			const uint32_t num_tracks = raw_tracks->get_num_tracks();
+			const uint32_t num_samples = raw_tracks->get_num_samples_per_track();
+
+			if (args.num_transforms != num_tracks || args.sample_index >= num_samples)
+				num_invalid_arguments++;
+			else
+				max_sample_index = std::max(max_sample_index, args.sample_index);
+
+			for (uint32_t dirty_transform_index = 0; dirty_transform_index < args.num_dirty_transforms; ++dirty_transform_index)
+			{
+				const uint32_t transform_index = args.dirty_transform_indices[dirty_transform_index];
+				if (transform_index >= args.num_transforms || transform_index >= num_tracks || args.sample_index >= num_samples)
+				{
+					num_invalid_arguments++;
+					continue;
+				}
+
+				if (args.is_lossy)
+				{
+					num_lossy_conversions++;
+					continue;
+				}
+
+				num_raw_conversions++;
+
+				const track_vqvf& raw_track = (*raw_tracks)[transform_index];
+				const rtm::vqvf& expected = raw_track[args.sample_index];
+				const rtm::vqvf& actual = args.transforms[transform_index];
+
+				const bool is_same_rotation = rtm::scalar_abs(rtm::quat_dot(expected.rotation, actual.rotation)) >= 0.99999F;
+				const bool is_same_translation = rtm::vector_all_near_equal3(expected.translation, actual.translation, 1.0E-4F);
+				const bool is_same_scale = rtm::vector_all_near_equal3(expected.scale, actual.scale, 1.0E-4F);
+				if (!is_same_rotation || !is_same_translation || !is_same_scale)
+					num_raw_mismatches++;
+			}
+
+			builtin_adapter.convert_transforms(args, out_transforms);
+		}
+	};
 
 	// A custom adapter: VQM math through the interface, with the default 'local_to_object_space'
 	struct custom_vqm_adapter final : public itransform_adapter
@@ -426,6 +497,53 @@ TEST_CASE("transform runtime compression gives the same result with virtual func
 			allocator.deallocate(custom_tracks, custom_tracks->get_size());
 		}
 	}
+}
+
+TEST_CASE("transform runtime conversion arguments", "[compression][transform]")
+{
+	ansi_allocator allocator;
+
+	checking_adapter adapter;
+	shell_transform_metric shell_metric;
+
+	// The clip has more than one segment: the sample index must be the index in the clip, not in the segment
+	const track_array_vqvf track_list = make_vqv_clip(allocator, scale_kind::non_uniform);
+
+	// Pre-processing converts the samples of the track list that it changes
+	{
+		track_array_vqvf pre_processed_track_list = make_vqv_clip(allocator, scale_kind::non_uniform);
+		adapter.raw_tracks = &pre_processed_track_list;
+
+		pre_process_settings_t pre_process_settings;
+		pre_process_settings.actions = pre_process_actions::recommended;
+		pre_process_settings.precision_policy = pre_process_precision_policy::lossy;
+		pre_process_settings.transform_runtime_type = transform_runtime_type_t::custom;
+		pre_process_settings.custom_transform_adapter = &adapter;
+		pre_process_settings.transform_metric = &shell_metric;
+
+		CHECK(pre_process_track_list(allocator, pre_process_settings, pre_processed_track_list).empty());
+	}
+
+	// Compression and the error measurement convert the samples of the raw track list
+	adapter.raw_tracks = &track_list;
+
+	compression_settings settings = get_default_compression_settings();
+	settings.transform_runtime_type = transform_runtime_type_t::custom;
+	settings.custom_transform_adapter = &adapter;
+	settings.transform_metric = &shell_metric;
+
+	compressed_tracks* tracks = compress(allocator, track_list, settings, nullptr, additive_clip_format8::none);
+
+	const float error = measure_error(allocator, track_list, *tracks, settings, nullptr, additive_clip_format8::none);
+	CHECK(error < 0.01F);
+
+	allocator.deallocate(tracks, tracks->get_size());
+
+	CHECK(adapter.num_invalid_arguments == 0);
+	CHECK(adapter.num_raw_mismatches == 0);
+	CHECK(adapter.num_raw_conversions != 0);
+	CHECK(adapter.num_lossy_conversions != 0);
+	CHECK(adapter.max_sample_index == k_num_samples - 1);
 }
 
 TEST_CASE("transform runtime compression with vqsf tracks", "[compression][transform]")

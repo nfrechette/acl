@@ -193,6 +193,8 @@ namespace acl
 				adapter_args.num_dirty_transforms = args.num_dirty_transforms;
 				adapter_args.transforms = args.transforms;
 				adapter_args.num_transforms = args.num_transforms;
+				adapter_args.sample_index = args.sample_index;
+				adapter_args.is_lossy = args.is_lossy;
 
 				selection.adapter->convert_transforms(adapter_args, out_transforms);
 			}

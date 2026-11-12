@@ -218,8 +218,11 @@ namespace acl
 			static constexpr bool needs_conversion() { return !std::is_same<transform_type, rtm::vqvf>::value; }
 
 			// The output can be the input when the transform type is rtm::vqvf
-			void local_to_object_space(const clip_topology_t& topology, const rtm::vqvf* local_pose, void* out_object_pose) const
+			// The built-in transform types do not use the sample index or whether or not the pose is lossy
+			void local_to_object_space(const clip_topology_t& topology, const rtm::vqvf* local_pose, void* out_object_pose, uint32_t sample_index, bool is_lossy) const
 			{
+				(void)sample_index;
+				(void)is_lossy;
 				transform_type* object_pose = static_cast<transform_type*>(out_object_pose);
 
 				for (const uint32_t transform_index : topology.roots_first_iterator())
@@ -242,9 +245,11 @@ namespace acl
 			// result = measured_to_transform * transform_being_optimized * parent_transform_to_root
 			// A null 'parent_transform_to_root' or 'measured_to_transform' is the identity
 			rtm::scalarf RTM_SIMD_CALL measure_cached(
-				const error_args_type& args, const rtm::vqvf& local_transform_vqv,
+				const error_args_type& args, const rtm::vqvf& local_transform_vqv, uint32_t transform_index, uint32_t sample_index,
 				const void* parent_transform_to_root, const void* measured_to_transform, const void* measured_to_root_raw) const
 			{
+				(void)transform_index;
+				(void)sample_index;
 				const transform_type local_transform = transform_math_t::from_vqv(local_transform_vqv);
 
 				const transform_type parent_transform_to_root_ = parent_transform_to_root != nullptr ? *static_cast<const transform_type*>(parent_transform_to_root) : transform_math_t::identity();
@@ -259,11 +264,13 @@ namespace acl
 			// The chain holds the measured transform first and the transform being optimized last
 			// The cached transforms of the chain hold local space transforms
 			rtm::scalarf RTM_SIMD_CALL measure_chain(
-				const error_args_type& args, const rtm::vqvf& local_transform_vqv,
+				const error_args_type& args, const rtm::vqvf& local_transform_vqv, uint32_t transform_index, uint32_t sample_index,
 				const void* parent_transform_to_root, const void* cached_pose,
 				const uint32_t* transform_chain_indices, uint32_t transform_chain_length,
 				const void* measured_to_root_raw) const
 			{
+				(void)transform_index;
+				(void)sample_index;
 				const transform_type* cached_pose_ = static_cast<const transform_type*>(cached_pose);
 				const transform_type local_transform = transform_math_t::from_vqv(local_transform_vqv);
 
@@ -278,8 +285,10 @@ namespace acl
 			}
 
 			// measured_to_transform = measured_to_transform * transform_being_optimized
-			void update_cached(const rtm::vqvf& local_transform_vqv, void* measured_to_transform, bool is_measured_transform_optimized) const
+			void update_cached(const rtm::vqvf& local_transform_vqv, uint32_t transform_index, uint32_t sample_index, void* measured_to_transform, bool is_measured_transform_optimized) const
 			{
+				(void)transform_index;
+				(void)sample_index;
 				transform_type& measured_to_transform_ = *static_cast<transform_type*>(measured_to_transform);
 				const transform_type local_transform = transform_math_t::from_vqv(local_transform_vqv);
 
@@ -287,8 +296,10 @@ namespace acl
 				measured_to_transform_ = transform_math_t::mul(old_measured_to_transform, local_transform);
 			}
 
-			void store_local(const rtm::vqvf& local_transform_vqv, void* out_transform) const
+			void store_local(const rtm::vqvf& local_transform_vqv, uint32_t transform_index, uint32_t sample_index, void* out_transform) const
 			{
+				(void)transform_index;
+				(void)sample_index;
 				*static_cast<transform_type*>(out_transform) = transform_math_t::from_vqv(local_transform_vqv);
 			}
 
@@ -358,9 +369,20 @@ namespace acl
 		};
 
 		//////////////////////////////////////////////////////////////////////////
+		// The scratch memory of 'v2_adapter_policy'
+		struct v2_adapter_policy_scratch
+		{
+			uint8_t* transforms;			// v2_adapter_policy::k_num_scratch_transforms runtime transforms
+			rtm::vqvf* pose_vqvf;			// 1 rtm::vqvf per transform
+			uint8_t* pose_runtime;			// 1 runtime transform per transform
+			uint32_t num_transforms;
+		};
+
+		//////////////////////////////////////////////////////////////////////////
 		// A policy that uses a transform adapter and a transform metric through their virtual functions.
 		// Compression uses it with a custom transform adapter or a custom transform metric.
-		// It needs scratch memory for 'k_num_scratch_transforms' transforms.
+		// The conversion receives the index of each transform, the index of its sample in the clip, and
+		// whether or not it is lossy: a custom transform adapter can use them.
 		class v2_adapter_policy
 		{
 		public:
@@ -368,16 +390,19 @@ namespace acl
 
 			static constexpr uint32_t k_num_scratch_transforms = 4;
 
-			v2_adapter_policy(const itransform_adapter& adapter, const itransform_metric& metric, uint8_t* scratch_transforms)
+			v2_adapter_policy(const itransform_adapter& adapter, const itransform_metric& metric, const v2_adapter_policy_scratch& scratch)
 				: m_adapter(adapter)
 				, m_metric(metric)
 				, m_transform_size(adapter.get_transform_size())
 				, m_is_associative(adapter.is_associative())
 				, m_needs_conversion(adapter.needs_conversion())
-				, m_local_transform(scratch_transforms)
-				, m_transform_to_root(scratch_transforms + m_transform_size)
-				, m_measured_to_root(scratch_transforms + (m_transform_size * 2))
-				, m_identity(scratch_transforms + (m_transform_size * 3))
+				, m_num_transforms(scratch.num_transforms)
+				, m_local_transform(scratch.transforms)
+				, m_transform_to_root(scratch.transforms + m_transform_size)
+				, m_measured_to_root(scratch.transforms + (m_transform_size * 2))
+				, m_identity(scratch.transforms + (m_transform_size * 3))
+				, m_pose_vqvf(scratch.pose_vqvf)
+				, m_pose_runtime(scratch.pose_runtime)
 			{
 				ACL_ASSERT(m_needs_conversion || m_transform_size == sizeof(rtm::vqvf), "A transform adapter without conversion must use rtm::vqvf");
 				adapter.identity(m_identity);
@@ -399,20 +424,36 @@ namespace acl
 			bool needs_conversion() const { return m_needs_conversion; }
 
 			// The output can be the input when the transform type is rtm::vqvf
-			void local_to_object_space(const clip_topology_t& topology, const rtm::vqvf* local_pose, void* out_object_pose) const
+			void local_to_object_space(const clip_topology_t& topology, const rtm::vqvf* local_pose, void* out_object_pose, uint32_t sample_index, bool is_lossy) const
 			{
 				uint8_t* object_pose = static_cast<uint8_t*>(out_object_pose);
 
+				// We convert the whole pose with one call
+				const uint8_t* local_pose_runtime = reinterpret_cast<const uint8_t*>(local_pose);
+				if (m_needs_conversion)
+				{
+					itransform_adapter::convert_transforms_args args;
+					args.dirty_transform_indices = topology.roots_first_iterator().begin();
+					args.num_dirty_transforms = m_num_transforms;
+					args.transforms = local_pose;
+					args.num_transforms = m_num_transforms;
+					args.sample_index = sample_index;
+					args.is_lossy = is_lossy;
+
+					m_adapter.convert_transforms(args, m_pose_runtime);
+					local_pose_runtime = m_pose_runtime;
+				}
+
 				for (const uint32_t transform_index : topology.roots_first_iterator())
 				{
+					const uint8_t* local_transform = local_pose_runtime + (transform_index * m_transform_size);
 					uint8_t* object_transform = object_pose + (transform_index * m_transform_size);
-					convert(local_pose[transform_index], m_local_transform);
 
 					const uint32_t parent_transform_index = topology.transforms[transform_index].parent_index;
 					if (parent_transform_index != k_invalid_track_index)
-						m_adapter.mul(m_local_transform, object_pose + (parent_transform_index * m_transform_size), object_transform);
-					else
-						std::memcpy(object_transform, m_local_transform, m_transform_size);	// The root has no parent: its local and object space transforms are equal
+						m_adapter.mul(local_transform, object_pose + (parent_transform_index * m_transform_size), object_transform);
+					else if (object_transform != local_transform)
+						std::memcpy(object_transform, local_transform, m_transform_size);	// The root has no parent: its local and object space transforms are equal
 				}
 			}
 
@@ -423,10 +464,10 @@ namespace acl
 			}
 
 			rtm::scalarf RTM_SIMD_CALL measure_cached(
-				const error_args_type& args, const rtm::vqvf& local_transform_vqv,
+				const error_args_type& args, const rtm::vqvf& local_transform_vqv, uint32_t transform_index, uint32_t sample_index,
 				const void* parent_transform_to_root, const void* measured_to_transform, const void* measured_to_root_raw) const
 			{
-				convert(local_transform_vqv, m_local_transform);
+				convert_lossy(local_transform_vqv, transform_index, sample_index, m_local_transform);
 
 				const void* parent_transform_to_root_ = parent_transform_to_root != nullptr ? parent_transform_to_root : m_identity;
 				m_adapter.mul(m_local_transform, parent_transform_to_root_, m_transform_to_root);
@@ -438,13 +479,13 @@ namespace acl
 			}
 
 			rtm::scalarf RTM_SIMD_CALL measure_chain(
-				const error_args_type& args, const rtm::vqvf& local_transform_vqv,
+				const error_args_type& args, const rtm::vqvf& local_transform_vqv, uint32_t transform_index, uint32_t sample_index,
 				const void* parent_transform_to_root, const void* cached_pose,
 				const uint32_t* transform_chain_indices, uint32_t transform_chain_length,
 				const void* measured_to_root_raw) const
 			{
 				const uint8_t* cached_pose_ = static_cast<const uint8_t*>(cached_pose);
-				convert(local_transform_vqv, m_local_transform);
+				convert_lossy(local_transform_vqv, transform_index, sample_index, m_local_transform);
 
 				const void* parent_transform_to_root_ = parent_transform_to_root != nullptr ? parent_transform_to_root : m_identity;
 				m_adapter.mul(m_local_transform, parent_transform_to_root_, m_measured_to_root);
@@ -457,22 +498,24 @@ namespace acl
 				return calculate_error_squared(args, measured_to_root_raw, m_measured_to_root);
 			}
 
-			void update_cached(const rtm::vqvf& local_transform_vqv, void* measured_to_transform, bool is_measured_transform_optimized) const
+			void update_cached(const rtm::vqvf& local_transform_vqv, uint32_t transform_index, uint32_t sample_index, void* measured_to_transform, bool is_measured_transform_optimized) const
 			{
-				convert(local_transform_vqv, m_local_transform);
+				convert_lossy(local_transform_vqv, transform_index, sample_index, m_local_transform);
 
 				// The output of 'mul' can be one of its inputs
 				const void* old_measured_to_transform = is_measured_transform_optimized ? m_identity : measured_to_transform;
 				m_adapter.mul(old_measured_to_transform, m_local_transform, measured_to_transform);
 			}
 
-			void store_local(const rtm::vqvf& local_transform_vqv, void* out_transform) const
+			void store_local(const rtm::vqvf& local_transform_vqv, uint32_t transform_index, uint32_t sample_index, void* out_transform) const
 			{
-				convert(local_transform_vqv, out_transform);
+				convert_lossy(local_transform_vqv, transform_index, sample_index, out_transform);
 			}
 
 		private:
-			void convert(const rtm::vqvf& transform, void* out_transform) const
+			// Converts one lossy transform
+			// We place it in a full pose: the adapter reads and writes the transform at its index
+			void convert_lossy(const rtm::vqvf& transform, uint32_t transform_index, uint32_t sample_index, void* out_transform) const
 			{
 				if (!m_needs_conversion)
 				{
@@ -480,15 +523,18 @@ namespace acl
 					return;
 				}
 
-				const uint32_t transform_index = 0;
+				m_pose_vqvf[transform_index] = transform;
 
 				itransform_adapter::convert_transforms_args args;
 				args.dirty_transform_indices = &transform_index;
 				args.num_dirty_transforms = 1;
-				args.transforms = &transform;
-				args.num_transforms = 1;
+				args.transforms = m_pose_vqvf;
+				args.num_transforms = m_num_transforms;
+				args.sample_index = sample_index;
+				args.is_lossy = true;
 
-				m_adapter.convert_transforms(args, out_transform);
+				m_adapter.convert_transforms(args, m_pose_runtime);
+				std::memcpy(out_transform, m_pose_runtime + (transform_index * m_transform_size), m_transform_size);
 			}
 
 			rtm::scalarf RTM_SIMD_CALL calculate_error_squared(const error_args_type& args, const void* raw_transform, const void* lossy_transform) const
@@ -505,12 +551,15 @@ namespace acl
 			size_t m_transform_size;
 			bool m_is_associative;
 			bool m_needs_conversion;
+			uint32_t m_num_transforms;
 
 			// Scratch memory, we write it in the const functions
 			uint8_t* m_local_transform;
 			uint8_t* m_transform_to_root;
 			uint8_t* m_measured_to_root;
 			uint8_t* m_identity;
+			rtm::vqvf* m_pose_vqvf;
+			uint8_t* m_pose_runtime;
 		};
 	}
 

@@ -97,6 +97,8 @@ namespace
 			convert_transforms_args.num_dirty_transforms = k_num_transforms;
 			convert_transforms_args.transforms = raw_local_transforms;
 			convert_transforms_args.num_transforms = k_num_transforms;
+			convert_transforms_args.sample_index = 0;
+			convert_transforms_args.is_lossy = false;
 			adapter.convert_transforms(convert_transforms_args, raw_local_converted);
 
 			convert_transforms_args.transforms = lossy_local_transforms;

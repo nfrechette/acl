@@ -263,11 +263,8 @@ namespace acl
 			const size_t metric_transform_size = error_metric.get_transform_size(has_scale);
 			ACL_ASSERT(metric_transform_size * 2 <= sizeof(local_transforms_converted), "Transform size is too large");
 
-			itransform_error_metric::convert_transforms_args convert_transforms_args_local;
-			convert_transforms_args_local.dirty_transform_indices = &dirty_transform_indices[0];
-			convert_transforms_args_local.num_dirty_transforms = 1;
-			convert_transforms_args_local.num_transforms = 1;
-			convert_transforms_args_local.is_additive_base = false;
+			// The error metric receives the real transform index and the index of the sample in the clip
+			const single_transform_converter converter(context.allocator, error_metric, has_scale, track_list.get_num_tracks());
 
 			itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args;
 			apply_additive_to_base_args.dirty_transform_indices = &dirty_transform_indices[0];
@@ -320,17 +317,8 @@ namespace acl
 
 				if (needs_conversion)
 				{
-					convert_transforms_args_local.sample_index = sample_index;
-
-					convert_transforms_args_local.transforms = &local_transforms[0];
-					convert_transforms_args_local.is_lossy = false;
-
-					error_metric.convert_transforms(convert_transforms_args_local, &local_transforms_converted[metric_transform_size * 0]);
-
-					convert_transforms_args_local.transforms = &local_transforms[1];
-					convert_transforms_args_local.is_lossy = true;
-
-					error_metric.convert_transforms(convert_transforms_args_local, &local_transforms_converted[metric_transform_size * 1]);
+					converter.convert(local_transforms[0], track_index, sample_index, false, &local_transforms_converted[metric_transform_size * 0]);
+					converter.convert(local_transforms[1], track_index, sample_index, true, &local_transforms_converted[metric_transform_size * 1]);
 				}
 				else
 					std::memcpy(&local_transforms_converted[0], &local_transforms[0], metric_transform_size * 2);

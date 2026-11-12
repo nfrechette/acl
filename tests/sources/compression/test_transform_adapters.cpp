@@ -129,6 +129,8 @@ namespace
 		args.num_dirty_transforms = k_num_transforms;
 		args.transforms = transforms;
 		args.num_transforms = k_num_transforms;
+		args.sample_index = 0;
+		args.is_lossy = false;
 
 		adapter.convert_transforms(args, out_transforms);
 	}

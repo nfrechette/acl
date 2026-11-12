@@ -163,6 +163,18 @@ namespace acl
 			//////////////////////////////////////////////////////////////////////////
 			// The number of transforms in the input and output buffers.
 			uint32_t num_transforms;
+
+			//////////////////////////////////////////////////////////////////////////
+			// The index in the clip of the sample these transforms come from.
+			// The sample time is 'sample_index / sample_rate', clamped to the clip duration.
+			uint32_t sample_index;
+
+			//////////////////////////////////////////////////////////////////////////
+			// True if these transforms come from the lossy data that compression tests.
+			// False if these transforms come from the raw data.
+			// A transform adapter can use it with data that compression does not see: for example,
+			// a value that you compress in another track and that you add to the lossy transforms only.
+			bool is_lossy;
 		};
 
 		//////////////////////////////////////////////////////////////////////////
