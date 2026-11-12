@@ -1157,7 +1157,7 @@ static int safe_main_impl(int argc, char* argv[])
 		for (uint32_t track_index = 0; track_index < new_transforms.get_num_tracks(); ++track_index)
 		{
 			track_vqvf& track = new_transforms[track_index];
-			track[sample_index] = dummy_writer.tracks_typed.vqvf[track_index];
+			track[sample_index] = dummy_writer.get_vqvf_tracks()[track_index];
 		}
 	}
 

@@ -126,7 +126,7 @@ namespace acl
 			virtual void remap_output(debug_track_writer& track_writer0, debug_track_writer& track_writer1, debug_track_writer& track_writer_remapped)
 			{
 				(void)track_writer0;
-				std::memcpy(track_writer_remapped.tracks_typed.vqvf, track_writer1.tracks_typed.vqvf, sizeof(rtm::vqvf) * track_writer1.num_tracks);
+				std::memcpy(track_writer_remapped.get_vqvf_tracks(), track_writer1.get_vqvf_tracks(), sizeof(rtm::vqvf) * track_writer1.num_tracks);
 			}
 
 			// Transform only, optional, additive base support
@@ -284,31 +284,31 @@ namespace acl
 			}
 
 			// The additive applies to the rtm::vqvf source transforms, before the conversion
-			const void* raw_local_pose_ = needs_conversion ? (void*)raw_local_pose_converted : (void*)tracks_writer0.tracks_typed.vqvf;
-			const void* lossy_local_pose_ = needs_conversion ? (void*)lossy_local_pose_converted : (void*)tracks_writer1_remapped.tracks_typed.vqvf;
+			const void* raw_local_pose_ = needs_conversion ? (void*)raw_local_pose_converted : (void*)tracks_writer0.get_vqvf_tracks();
+			const void* lossy_local_pose_ = needs_conversion ? (void*)lossy_local_pose_converted : (void*)tracks_writer1_remapped.get_vqvf_tracks();
 
 			itransform_error_metric::convert_transforms_args convert_transforms_args_raw;
 			convert_transforms_args_raw.dirty_transform_indices = self_transform_indices;
 			convert_transforms_args_raw.num_dirty_transforms = num_tracks;
-			convert_transforms_args_raw.transforms = tracks_writer0.tracks_typed.vqvf;
+			convert_transforms_args_raw.transforms = tracks_writer0.get_vqvf_tracks();
 			convert_transforms_args_raw.num_transforms = num_tracks;
 			convert_transforms_args_raw.sample_index = 0;
 			convert_transforms_args_raw.is_lossy = false;
 			convert_transforms_args_raw.is_additive_base = false;
 
 			itransform_error_metric::convert_transforms_args convert_transforms_args_lossy = convert_transforms_args_raw;
-			convert_transforms_args_lossy.transforms = tracks_writer1_remapped.tracks_typed.vqvf;
+			convert_transforms_args_lossy.transforms = tracks_writer1_remapped.get_vqvf_tracks();
 			convert_transforms_args_lossy.is_lossy = true;
 
 			itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args_raw;
 			apply_additive_to_base_args_raw.dirty_transform_indices = self_transform_indices;
 			apply_additive_to_base_args_raw.num_dirty_transforms = num_tracks;
-			apply_additive_to_base_args_raw.local_transforms = tracks_writer0.tracks_typed.vqvf;
-			apply_additive_to_base_args_raw.base_transforms = tracks_writer_base.tracks_typed.vqvf;
+			apply_additive_to_base_args_raw.local_transforms = tracks_writer0.get_vqvf_tracks();
+			apply_additive_to_base_args_raw.base_transforms = tracks_writer_base.get_vqvf_tracks();
 			apply_additive_to_base_args_raw.num_transforms = num_tracks;
 
 			itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args_lossy = apply_additive_to_base_args_raw;
-			apply_additive_to_base_args_lossy.local_transforms = tracks_writer1_remapped.tracks_typed.vqvf;
+			apply_additive_to_base_args_lossy.local_transforms = tracks_writer1_remapped.get_vqvf_tracks();
 
 			itransform_error_metric::local_to_object_space_args local_to_object_space_args_raw;
 			local_to_object_space_args_raw.dirty_transform_indices = self_transform_indices;
@@ -350,8 +350,8 @@ namespace acl
 					if (args.are_base_tracks_vq)
 						tracks_writer_base.set_all_scales(rtm::vector_set(1.0F));
 
-					error_metric.apply_additive_to_base(apply_additive_to_base_args_raw, tracks_writer0.tracks_typed.vqvf);
-					error_metric.apply_additive_to_base(apply_additive_to_base_args_lossy, tracks_writer1_remapped.tracks_typed.vqvf);
+					error_metric.apply_additive_to_base(apply_additive_to_base_args_raw, tracks_writer0.get_vqvf_tracks());
+					error_metric.apply_additive_to_base(apply_additive_to_base_args_lossy, tracks_writer1_remapped.get_vqvf_tracks());
 				}
 
 				if (needs_conversion)
@@ -540,11 +540,11 @@ namespace acl
 			{
 				// Perform remapping by copying the raw pose first and we overwrite with the decompressed pose if
 				// the data is available
-				std::memcpy(track_writer_remapped.tracks_typed.vqvf, track_writer0.tracks_typed.vqvf, sizeof(rtm::vqvf) * track_writer_remapped.num_tracks);
+				std::memcpy(track_writer_remapped.get_vqvf_tracks(), track_writer0.get_vqvf_tracks(), sizeof(rtm::vqvf) * track_writer_remapped.num_tracks);
 				for (uint32_t output_index = 0; output_index < num_output_bones; ++output_index)
 				{
 					const uint32_t bone_index = output_bone_mapping[output_index];
-					track_writer_remapped.tracks_typed.vqvf[bone_index] = track_writer1.tracks_typed.vqvf[output_index];
+					track_writer_remapped.get_vqvf_tracks()[bone_index] = track_writer1.get_vqvf_tracks()[output_index];
 				}
 			}
 		};
@@ -647,11 +647,11 @@ namespace acl
 			{
 				// Perform remapping by copying the raw pose first and we overwrite with the decompressed pose if
 				// the data is available
-				std::memcpy(track_writer_remapped.tracks_typed.vqvf, track_writer0.tracks_typed.vqvf, sizeof(rtm::vqvf) * track_writer_remapped.num_tracks);
+				std::memcpy(track_writer_remapped.get_vqvf_tracks(), track_writer0.get_vqvf_tracks(), sizeof(rtm::vqvf) * track_writer_remapped.num_tracks);
 				for (uint32_t output_index = 0; output_index < num_output_bones; ++output_index)
 				{
 					const uint32_t bone_index = output_bone_mapping[output_index];
-					track_writer_remapped.tracks_typed.vqvf[bone_index] = track_writer1.tracks_typed.vqvf[output_index];
+					track_writer_remapped.get_vqvf_tracks()[bone_index] = track_writer1.get_vqvf_tracks()[output_index];
 				}
 			}
 

@@ -373,7 +373,7 @@ void benchmark_decompression(benchmark::State& state)
 				context.decompress_track(0, pose_writer);
 				break;
 			case DecompressionFunction::Memcpy:
-				std::memcpy(pose_writer.tracks_typed.vqvf, decompression_instances[0], pose_size);
+				std::memcpy(pose_writer.get_vqvf_tracks(), decompression_instances[0], pose_size);
 				break;
 			}
 
@@ -408,7 +408,7 @@ void benchmark_decompression(benchmark::State& state)
 					context.decompress_track(bone_index, pose_writer);
 				break;
 			case DecompressionFunction::Memcpy:
-				std::memcpy(pose_writer.tracks_typed.vqvf, decompression_instances[current_context_index], pose_size);
+				std::memcpy(pose_writer.get_vqvf_tracks(), decompression_instances[current_context_index], pose_size);
 				break;
 			}
 		}
@@ -450,7 +450,7 @@ void benchmark_decompression(benchmark::State& state)
 						context.decompress_track(0, pose_writer);
 						break;
 					case DecompressionFunction::Memcpy:
-						std::memcpy(pose_writer.tracks_typed.vqvf, decompression_instances[0], pose_size);
+						std::memcpy(pose_writer.get_vqvf_tracks(), decompression_instances[0], pose_size);
 						break;
 					}
 				}

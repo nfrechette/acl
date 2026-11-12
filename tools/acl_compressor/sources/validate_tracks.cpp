@@ -149,7 +149,7 @@ void validate_accuracy(
 
 	// Use the normal debug_track_writer since it skips default sub-tracks, we can use them
 	debug_track_writer_variable_defaults track_writer_variable(allocator, track_type8::vqvf, num_tracks);
-	track_writer_variable.default_sub_tracks = track_writer.tracks_typed.vqvf;
+	track_writer_variable.default_sub_tracks = track_writer.get_vqvf_tracks();
 
 	debug_track_writer_per_track_rounding track_writer_per_track_rounding(allocator, track_type8::vqvf, num_tracks);
 	track_writer_per_track_rounding.initialize_with_defaults(raw_tracks);
