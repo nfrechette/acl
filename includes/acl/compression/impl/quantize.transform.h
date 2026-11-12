@@ -2597,17 +2597,14 @@ namespace acl
 			}
 			else
 			{
-				// A legacy error metric that supports the bit rate algorithm v2
+				// A legacy error metric that supports the bit rate algorithm v2: the VQV error metrics
 				// Without 3D scale, we use VQ math and the functions without scale
-				// With 3D scale, the transform arithmetic depends on the error metric
-				// With rtm::vqmf, the product keeps the shear and it is associative: we use the cached transforms
-				// With rtm::vqvf, the product discards the shear and it is not associative: we fall back to the transform chain
+				// With 3D scale, we use VQV math: the product discards the shear and it is not associative,
+				// thus we fall back to the transform chain
 				const itransform_error_metric* error_metric = context.error_metric;
 
 				if (!has_scale)
 					find_optimal_bit_rates_v2_impl(context, v2_static_policy<vq_transform_math, v2_legacy_metric<false>>(v2_legacy_metric<false>{ error_metric }));
-				else if (error_metric->get_runtime_type() == transform_runtime_type_t::vqmf)
-					find_optimal_bit_rates_v2_impl(context, v2_static_policy<vqm_transform_math, v2_legacy_metric<true>>(v2_legacy_metric<true>{ error_metric }));
 				else
 					find_optimal_bit_rates_v2_impl(context, v2_static_policy<vqv_transform_math, v2_legacy_metric<true>>(v2_legacy_metric<true>{ error_metric }));
 			}

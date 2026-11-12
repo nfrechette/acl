@@ -79,13 +79,18 @@ Compression calls your transform metric through its virtual functions. This is a
 
 ## Legacy error metrics (deprecated)
 
-`compression_settings::error_metric` and `pre_process_settings_t::error_metric` are deprecated. ACL 2.3 will remove them. A legacy error metric (`itransform_error_metric`) combines the runtime transform type and the error measurement in one interface. When you set it, you cannot set `transform_runtime_type`, `custom_transform_adapter`, or `transform_metric`.
+A legacy error metric (`itransform_error_metric`) combines the runtime transform type and the error measurement in one interface. These parts of the API are deprecated, and ACL 2.3 will remove them:
+
+*  `compression_settings::error_metric` and `pre_process_settings_t::error_metric`
+*  `itransform_error_metric` and the legacy error metrics: `vqvf_transform_error_metric`, `vqvf_precise_transform_error_metric`, `vqvf_matrix3x4f_transform_error_metric`, and `additive_vqvf_transform_error_metric`
+*  The `calculate_compression_error` overloads that take an `itransform_error_metric`: use the overloads that take the compression settings
+
+When you set a legacy error metric in the settings, you cannot set `transform_runtime_type`, `custom_transform_adapter`, or `transform_metric`.
 
 To migrate, select the runtime transform type of your legacy error metric:
 
 | Legacy error metric | Runtime transform type | Transform metric |
 | --- | --- | --- |
-| `vqmf_transform_error_metric` and its additive variant | `vqmf` (or `automatic`) | `nullptr` (shell) |
 | `vqvf_transform_error_metric` and its additive variant | `vqvf` | `nullptr` (shell) |
 | `vqvf_matrix3x4f_transform_error_metric` | `matrix3x4f` | `nullptr` (shell) |
 | `vqvf_precise_transform_error_metric` | `vqf` or `automatic` (without scale) | `nullptr` (precise) |

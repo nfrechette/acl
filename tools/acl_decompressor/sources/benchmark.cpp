@@ -586,7 +586,10 @@ bool prepare_clip(const std::string& clip_name, const acl::compressed_tracks& ra
 		return false;
 	}
 
+	// The benchmark data uses the deprecated legacy error metric, the data must not change
+	ACL_IMPL_DEPRECATION_WARNING_PUSH
 	acl::vqvf_transform_error_metric error_metric;
+	ACL_IMPL_DEPRECATION_WARNING_POP
 
 	// Pre-process
 	{

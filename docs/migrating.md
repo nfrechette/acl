@@ -12,7 +12,9 @@
 
 With these settings, compression applies the additive base itself, and it always uses the faster bit rate algorithm. See [error metrics](error_metrics.md) for the runtime transform type of each legacy error metric.
 
-To measure the error as compression does, use the `calculate_compression_error` overloads that take the compression settings.
+To measure the error as compression does, use the `calculate_compression_error` overloads that take the compression settings. The overloads that take an `itransform_error_metric` are deprecated.
+
+`itransform_error_metric` and the legacy error metrics (`vqvf_transform_error_metric` and the others) are also deprecated. To measure the error with your own transform type, implement an `itransform_adapter`. To measure it in your own way, implement an `itransform_metric`.
 
 ## Migrating to ACL 2.0 from 1.3
 

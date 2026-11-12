@@ -117,6 +117,8 @@ namespace
 	}
 
 	// Measures the error with the old (2.1) interface, on rtm::vqvf or converted transforms
+	// The legacy error metrics are deprecated
+	ACL_IMPL_DEPRECATION_WARNING_PUSH
 	float calculate_legacy_error(const itransform_error_metric& metric, const void* raw_transform, const void* lossy_transform, bool has_scale)
 	{
 		itransform_error_metric::calculate_error_args args;
@@ -126,6 +128,7 @@ namespace
 
 		return rtm::scalar_cast(has_scale ? metric.calculate_error(args) : metric.calculate_error_no_scale(args));
 	}
+	ACL_IMPL_DEPRECATION_WARNING_POP
 
 	// Returns the largest error over many points of the sphere
 	// The points cover the sphere evenly (Fibonacci sphere)
@@ -194,6 +197,9 @@ TEST_CASE("transform metric support", "[compression][transform]")
 	CHECK(shell_metric.get_hash() != precise_metric.get_hash());
 }
 
+// This test compares with the deprecated legacy error metrics
+ACL_IMPL_DEPRECATION_WARNING_PUSH
+
 TEST_CASE("shell transform metric", "[compression][transform]")
 {
 	const shell_transform_metric metric;
@@ -204,7 +210,6 @@ TEST_CASE("shell transform metric", "[compression][transform]")
 	const matrix3x4f_transform_adapter matrix_adapter;
 
 	const vqvf_transform_error_metric legacy_vqv_metric;
-	const vqmf_transform_error_metric legacy_vqm_metric;
 	const vqvf_matrix3x4f_transform_error_metric legacy_matrix_metric;
 
 	for (uint32_t pair_index = 0; pair_index < k_num_pairs; ++pair_index)
@@ -215,19 +220,24 @@ TEST_CASE("shell transform metric", "[compression][transform]")
 		CHECK(is_near(calculate_error(metric, vq_adapter, pair), calculate_legacy_error(legacy_vqv_metric, &pair.raw, &pair.lossy, false)));
 		CHECK(is_near(calculate_error(metric, vqv_adapter, pair), calculate_legacy_error(legacy_vqv_metric, &pair.raw, &pair.lossy, true)));
 
-		rtm::vqmf vqm_transforms[2];
-		convert_pair(vqm_adapter, pair, vqm_transforms);
-		CHECK(is_near(calculate_error(metric, vqm_adapter, pair), calculate_legacy_error(legacy_vqm_metric, &vqm_transforms[0], &vqm_transforms[1], true)));
-
 		rtm::matrix3x4f matrix_transforms[2];
 		convert_pair(matrix_adapter, pair, matrix_transforms);
 		CHECK(is_near(calculate_error(metric, matrix_adapter, pair), calculate_legacy_error(legacy_matrix_metric, &matrix_transforms[0], &matrix_transforms[1], true)));
+
+		// VQM and matrix arithmetic give the same transforms
+		// The math is not the same, thus the rounding is not the same: we use an absolute threshold
+		CHECK(rtm::scalar_near_equal(calculate_error(metric, vqm_adapter, pair), calculate_error(metric, matrix_adapter, pair), 1.0E-5F));
 
 		// The shell points are on the sphere, thus the error is not above the largest error on the sphere
 		CHECK(calculate_error(metric, vqm_adapter, pair) <= calculate_brute_force_error(mul_point3_vqm, pair) + 1.0E-5F);
 		CHECK(calculate_error(metric, vq_adapter, pair) <= calculate_brute_force_error(mul_point3_no_scale, pair) + 1.0E-5F);
 	}
 }
+
+ACL_IMPL_DEPRECATION_WARNING_POP
+
+// This test compares with the deprecated legacy error metrics
+ACL_IMPL_DEPRECATION_WARNING_PUSH
 
 TEST_CASE("precise transform metric with vqf", "[compression][transform]")
 {
@@ -250,6 +260,8 @@ TEST_CASE("precise transform metric with vqf", "[compression][transform]")
 		CHECK(error <= brute_force_error * 1.01F + 1.0E-5F);
 	}
 }
+
+ACL_IMPL_DEPRECATION_WARNING_POP
 
 TEST_CASE("precise transform metric with vqsf", "[compression][transform]")
 {

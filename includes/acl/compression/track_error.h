@@ -38,6 +38,9 @@
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
+// This file names the deprecated legacy error metrics
+ACL_IMPL_DEPRECATION_WARNING_PUSH
+
 namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
@@ -77,6 +80,7 @@ namespace acl
 	//
 	// Note: This function uses SFINAE to prevent it from matching when it shouldn't.
 	template<class decompression_context_type, acl_impl::is_decompression_context<decompression_context_type> = nullptr>
+	ACL_DEPRECATED("Use the overload with the compression settings instead, to be removed in v2.3")
 	track_error calculate_compression_error(iallocator& allocator, const track_array& raw_tracks, decompression_context_type& context, const itransform_error_metric& error_metric);
 
 	//////////////////////////////////////////////////////////////////////////
@@ -87,6 +91,7 @@ namespace acl
 	//
 	// Note: This function uses SFINAE to prevent it from matching when it shouldn't.
 	template<class decompression_context_type, acl_impl::is_decompression_context<decompression_context_type> = nullptr>
+	ACL_DEPRECATED("Use the overload with the compression settings instead, to be removed in v2.3")
 	track_error calculate_compression_error(iallocator& allocator, const track_array& raw_tracks, decompression_context_type& context, const itransform_error_metric& error_metric, const track_array& additive_base_tracks);
 
 	//////////////////////////////////////////////////////////////////////////
@@ -128,6 +133,7 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// Calculates the worst compression error between two raw track arrays.
 	// Supports scalar and transform tracks.
+	ACL_DEPRECATED("Use the overload with the compression settings instead, to be removed in v2.3")
 	track_error calculate_compression_error(iallocator& allocator, const track_array& raw_tracks0, const track_array& raw_tracks1, const itransform_error_metric& error_metric);
 
 	//////////////////////////////////////////////////////////////////////////
@@ -141,5 +147,7 @@ namespace acl
 }
 
 #include "acl/compression/impl/track_error.impl.h"
+
+ACL_IMPL_DEPRECATION_WARNING_POP
 
 ACL_IMPL_FILE_PRAGMA_POP

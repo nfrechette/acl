@@ -13,8 +13,6 @@
 *  Add the `-fast_math` option to `make.py` to compile the public headers with fast math, and a CI workflow that uses it
 *  Add native Linux `riscv64` builds to `make.py`, they use the scalar code path of RTM
 *  Fix `split_database_bulk_data` that gave a null pointer to `std::memcpy` when a quality tier is empty
-*  Add `vqmf_transform_error_metric` and `additive_vqmf_transform_error_metric`, they use exact VQM arithmetic when scale is present
-*  Add `itransform_error_metric::get_runtime_type()`, the bit rate algorithm v2 uses the cached transforms with scale when a legacy error metric returns `vqmf`
 *  ACL now applies the additive base to the `rtm::vqvf` source transforms before `convert_transforms`, `apply_additive_to_base` always receives `rtm::vqvf` transforms
 *  Loop optimization and the detailed segment stats now support error metrics that convert transforms
 *  Fix the SoA quaternion rotation of the error metrics, two terms had the wrong sign
@@ -41,6 +39,7 @@
 *  The default runtime transform type `automatic` uses VQM arithmetic with scale, or VQS arithmetic with `vqsf` raw tracks
 *  Compression uses VQ arithmetic and the precise metric for each segment without scale, it measures the exact error: the compressed size can be slightly larger and fewer clips have an error above the threshold
 *  Deprecate `compression_settings::error_metric` and `pre_process_settings_t::error_metric` with `ACL_DEPRECATED`, the compiler warns when you use them and ACL 2.3 will remove them, see [migrating](docs/migrating.md)
+*  Deprecate `itransform_error_metric`, the legacy error metrics, and the `calculate_compression_error` overloads that take one, ACL 2.3 will remove them
 *  Add the `calculate_compression_error` overloads that take the compression settings, they measure the error as compression does
 *  The bit rate algorithm v2 supports each runtime transform type, VQS, matrix, and custom transform types no longer use the bit rate algorithm v1
 *  The built-in transform adapters and metrics use code without virtual function calls, compression is faster

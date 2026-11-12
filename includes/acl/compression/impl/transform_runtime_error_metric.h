@@ -68,7 +68,6 @@ namespace acl
 		// Until 'set_clip_has_scale' is called, the functions with scale use the selection with scale.
 		// After, a clip without scale uses the selection without scale for all functions.
 		//
-		// 'get_runtime_type' always describes the transform layout of the functions with scale.
 		// The bit rate algorithm v2 does not use the functions of this interface: it uses the
 		// selections directly, see 'get_selection'.
 		//////////////////////////////////////////////////////////////////////////
@@ -139,7 +138,6 @@ namespace acl
 
 			virtual size_t get_transform_size(bool has_scale) const override { return get_selection(has_scale).adapter->get_transform_size(); }
 			virtual bool needs_conversion(bool has_scale) const override { return get_selection(has_scale).adapter->needs_conversion(); }
-			virtual transform_runtime_type_t get_runtime_type() const override { return m_scale_function_selection->adapter->get_type(); }
 
 			// The bit rate algorithm v2 uses the transform adapters and the transform metrics directly, see 'get_selection'
 			virtual bool supports_bit_rate_algorithm_v2() const override { return true; }

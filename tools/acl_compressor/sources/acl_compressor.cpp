@@ -507,8 +507,11 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 			stats_writer->insert("worst_time", error.sample_time);
 			stats_writer->insert("worst_keyframe", error.keyframe_index);
 
+			// The precise error stat uses the deprecated legacy precise error metric
+			ACL_IMPL_DEPRECATION_WARNING_PUSH
 			const vqvf_precise_transform_error_metric precise_error_metric;
 			const track_error error_precise = calculate_compression_error(allocator, transform_tracks, context, precise_error_metric);
+			ACL_IMPL_DEPRECATION_WARNING_POP
 
 			stats_writer->insert("max_error_precise", error_precise.error);
 			stats_writer->insert("worst_track_precise", error_precise.index);
@@ -1198,7 +1201,10 @@ static int safe_main_impl(int argc, char* argv[])
 	}
 
 	// The legacy error metric that compression uses, null to use the runtime transform type and the transform metric
+	// The '-error_precise' option still uses the deprecated legacy error metric
+	ACL_IMPL_DEPRECATION_WARNING_PUSH
 	itransform_error_metric* error_metric = nullptr;
+	ACL_IMPL_DEPRECATION_WARNING_POP
 
 	// The runtime transform type that compression uses
 	transform_runtime_type_t transform_runtime_type = transform_runtime_type_t::automatic;
@@ -1217,7 +1223,11 @@ static int safe_main_impl(int argc, char* argv[])
 		else if (options.use_matrix_error_metric)
 			transform_runtime_type = transform_runtime_type_t::matrix3x4f;
 		else if (additive_format == additive_clip_format8::none && options.use_precise_error_metric)
+		{
+			ACL_IMPL_DEPRECATION_WARNING_PUSH
 			error_metric = allocate_type<vqvf_precise_transform_error_metric>(allocator);
+			ACL_IMPL_DEPRECATION_WARNING_POP
+		}
 	}
 
 	// Fix-up our compression settings

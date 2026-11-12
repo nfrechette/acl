@@ -274,28 +274,21 @@ namespace
 		CHECK(vqv_writer.num_vector_scale_writes != 0);
 
 		// The error is the same with both source types
+		// We measure with the VQM runtime transform type for both source types
+		compression_settings error_settings = get_default_compression_settings();
+		error_settings.transform_runtime_type = transform_runtime_type_t::vqmf;
+
 		track_error vqs_error;
 		track_error vqv_error;
 		if (is_additive)
 		{
-			if (additive_format == additive_clip_format8::additive1)
-			{
-				const additive_vqmf_transform_error_metric<additive_clip_format8::additive1> error_metric;
-				vqs_error = calculate_compression_error(allocator, vqs_tracks, vqs_context, error_metric, base_tracks);
-				vqv_error = calculate_compression_error(allocator, vqv_tracks, vqv_context, error_metric, base_tracks);
-			}
-			else
-			{
-				const additive_vqmf_transform_error_metric<additive_clip_format8::additive0> error_metric;
-				vqs_error = calculate_compression_error(allocator, vqs_tracks, vqs_context, error_metric, base_tracks);
-				vqv_error = calculate_compression_error(allocator, vqv_tracks, vqv_context, error_metric, base_tracks);
-			}
+			vqs_error = calculate_compression_error(allocator, vqs_tracks, vqs_context, error_settings, base_tracks, additive_format);
+			vqv_error = calculate_compression_error(allocator, vqv_tracks, vqv_context, error_settings, base_tracks, additive_format);
 		}
 		else
 		{
-			const vqmf_transform_error_metric error_metric;
-			vqs_error = calculate_compression_error(allocator, vqs_tracks, vqs_context, error_metric);
-			vqv_error = calculate_compression_error(allocator, vqv_tracks, vqv_context, error_metric);
+			vqs_error = calculate_compression_error(allocator, vqs_tracks, vqs_context, error_settings);
+			vqv_error = calculate_compression_error(allocator, vqv_tracks, vqv_context, error_settings);
 		}
 
 		CHECK(vqs_error.error >= 0.0F);

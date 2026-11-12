@@ -27,7 +27,8 @@
 #include <acl/compression/compress.h>
 #include <acl/compression/track_array.h>
 #include <acl/compression/track_error.h>
-#include <acl/compression/transform_error_metrics.h>
+#include <acl/compression/transform_adapters.h>
+#include <acl/compression/transform_metrics.h>
 #include <acl/core/ansi_allocator.h>
 #include <acl/decompression/decompress.h>
 #include <acl/math/vqmf.h>
@@ -66,8 +67,8 @@ namespace
 		}
 	}
 
-	// Measures the object space error of each transform with the functions with scale of an error metric
-	void calculate_object_space_errors(const itransform_error_metric& error_metric, float* out_errors)
+	// Measures the object space error of each transform with a transform adapter and a transform metric
+	void calculate_object_space_errors(const itransform_adapter& adapter, const itransform_metric& metric, float* out_errors)
 	{
 		rtm::vqvf raw_local_transforms[k_num_transforms];
 		rtm::vqvf lossy_local_transforms[k_num_transforms];
@@ -76,60 +77,82 @@ namespace
 		const uint32_t dirty_transform_indices[k_num_transforms] = { 0, 1, 2 };
 		const uint32_t parent_transform_indices[k_num_transforms] = { k_invalid_track_index, 0, 1 };
 
-		// Big enough for 3 transforms of any built-in error metric
+		// Big enough for 3 transforms of any built-in transform adapter
 		// We zero the buffers: GCC cannot prove that a parent transform is written before its children read it
 		alignas(64) uint8_t raw_local_converted[1024] = { 0 };
 		alignas(64) uint8_t lossy_local_converted[1024] = { 0 };
 		alignas(64) uint8_t raw_object_transforms[1024] = { 0 };
 		alignas(64) uint8_t lossy_object_transforms[1024] = { 0 };
 
-		const size_t transform_size = error_metric.get_transform_size(true);
+		const size_t transform_size = adapter.get_transform_size();
 		REQUIRE(transform_size * k_num_transforms <= sizeof(raw_local_converted));
 
 		const void* raw_local_transforms_ = raw_local_transforms;
 		const void* lossy_local_transforms_ = lossy_local_transforms;
 
-		if (error_metric.needs_conversion(true))
+		if (adapter.needs_conversion())
 		{
-			itransform_error_metric::convert_transforms_args convert_transforms_args;
+			itransform_adapter::convert_transforms_args convert_transforms_args;
 			convert_transforms_args.dirty_transform_indices = dirty_transform_indices;
 			convert_transforms_args.num_dirty_transforms = k_num_transforms;
 			convert_transforms_args.transforms = raw_local_transforms;
 			convert_transforms_args.num_transforms = k_num_transforms;
-			convert_transforms_args.sample_index = 0;
-			convert_transforms_args.is_lossy = false;
-			convert_transforms_args.is_additive_base = false;
-			error_metric.convert_transforms(convert_transforms_args, raw_local_converted);
+			adapter.convert_transforms(convert_transforms_args, raw_local_converted);
 
 			convert_transforms_args.transforms = lossy_local_transforms;
-			convert_transforms_args.is_lossy = true;
-			error_metric.convert_transforms(convert_transforms_args, lossy_local_converted);
+			adapter.convert_transforms(convert_transforms_args, lossy_local_converted);
 
 			raw_local_transforms_ = raw_local_converted;
 			lossy_local_transforms_ = lossy_local_converted;
 		}
 
-		itransform_error_metric::local_to_object_space_args local_to_object_space_args;
+		itransform_adapter::local_to_object_space_args local_to_object_space_args;
 		local_to_object_space_args.dirty_transform_indices = dirty_transform_indices;
 		local_to_object_space_args.num_dirty_transforms = k_num_transforms;
 		local_to_object_space_args.parent_transform_indices = parent_transform_indices;
 		local_to_object_space_args.local_transforms = raw_local_transforms_;
 		local_to_object_space_args.num_transforms = k_num_transforms;
-		error_metric.local_to_object_space(local_to_object_space_args, raw_object_transforms);
+		adapter.local_to_object_space(local_to_object_space_args, raw_object_transforms);
 
 		local_to_object_space_args.local_transforms = lossy_local_transforms_;
-		error_metric.local_to_object_space(local_to_object_space_args, lossy_object_transforms);
+		adapter.local_to_object_space(local_to_object_space_args, lossy_object_transforms);
 
 		for (uint32_t transform_index = 0; transform_index < k_num_transforms; ++transform_index)
 		{
-			itransform_error_metric::calculate_error_args calculate_error_args;
+			itransform_metric::calculate_error_args calculate_error_args;
 			calculate_error_args.construct_sphere_shell(3.0F);
+			calculate_error_args.adapter = &adapter;
 			calculate_error_args.transform0 = raw_object_transforms + (transform_index * transform_size);
 			calculate_error_args.transform1 = lossy_object_transforms + (transform_index * transform_size);
 
-			out_errors[transform_index] = rtm::scalar_cast(error_metric.calculate_error(calculate_error_args));
+			out_errors[transform_index] = rtm::scalar_cast(metric.calculate_error(calculate_error_args));
 		}
 	}
+}
+
+TEST_CASE("transform adapters keep the shear in object space", "[compression][transform]")
+{
+	const vqmf_transform_adapter vqm_adapter;
+	const matrix3x4f_transform_adapter matrix_adapter;
+	const vqvf_transform_adapter vqv_adapter;
+	const shell_transform_metric metric;
+
+	float vqm_errors[k_num_transforms];
+	float matrix_errors[k_num_transforms];
+	float vqv_errors[k_num_transforms];
+	calculate_object_space_errors(vqm_adapter, metric, vqm_errors);
+	calculate_object_space_errors(matrix_adapter, metric, matrix_errors);
+	calculate_object_space_errors(vqv_adapter, metric, vqv_errors);
+
+	// Both VQM and matrix arithmetic keep the shear, they must agree
+	for (uint32_t transform_index = 0; transform_index < k_num_transforms; ++transform_index)
+	{
+		CHECK(vqm_errors[transform_index] > 0.0F);
+		CHECK(rtm::scalar_near_equal(vqm_errors[transform_index], matrix_errors[transform_index], 1.0E-4F));
+	}
+
+	// The root has no parent, there is no shear and all three must agree
+	CHECK(rtm::scalar_near_equal(vqm_errors[0], vqv_errors[0], 1.0E-4F));
 }
 
 TEST_CASE("vqm_mul_point3_x4", "[math][vqm]")
@@ -180,39 +203,6 @@ TEST_CASE("vqm_mul_point3_x4", "[math][vqm]")
 			CHECK(rtm::scalar_near_equal(result_z[point_index], rtm::vector_get_z(expected), 1.0E-4F));
 		}
 	}
-}
-
-TEST_CASE("vqmf_transform_error_metric", "[compression][error_metric]")
-{
-	const vqmf_transform_error_metric vqm_error_metric;
-	const vqvf_matrix3x4f_transform_error_metric matrix_error_metric;
-	const vqvf_transform_error_metric vqv_error_metric;
-
-	CHECK(vqm_error_metric.get_runtime_type() == transform_runtime_type_t::vqmf);
-	CHECK(vqv_error_metric.get_runtime_type() == transform_runtime_type_t::vqvf);
-	CHECK(matrix_error_metric.get_runtime_type() == transform_runtime_type_t::custom);
-	CHECK(vqm_error_metric.supports_bit_rate_algorithm_v2());
-	CHECK(vqm_error_metric.needs_conversion(true));
-	CHECK(!vqm_error_metric.needs_conversion(false));
-	CHECK(vqm_error_metric.get_transform_size(true) == sizeof(rtm::vqmf));
-	CHECK(vqm_error_metric.get_transform_size(false) == sizeof(rtm::vqvf));
-
-	float vqm_errors[k_num_transforms];
-	float matrix_errors[k_num_transforms];
-	float vqv_errors[k_num_transforms];
-	calculate_object_space_errors(vqm_error_metric, vqm_errors);
-	calculate_object_space_errors(matrix_error_metric, matrix_errors);
-	calculate_object_space_errors(vqv_error_metric, vqv_errors);
-
-	// Both VQM and matrix arithmetic keep the shear, they must agree
-	for (uint32_t transform_index = 0; transform_index < k_num_transforms; ++transform_index)
-	{
-		CHECK(vqm_errors[transform_index] > 0.0F);
-		CHECK(rtm::scalar_near_equal(vqm_errors[transform_index], matrix_errors[transform_index], 1.0E-4F));
-	}
-
-	// The root has no parent, there is no shear and all three must agree
-	CHECK(rtm::scalar_near_equal(vqm_errors[0], vqv_errors[0], 1.0E-4F));
 }
 
 // This test uses the deprecated legacy error metric of the settings
@@ -278,18 +268,12 @@ TEST_CASE("compression with the default error metric", "[compression][error_metr
 		decompression_context<debug_transform_decompression_settings> context;
 		REQUIRE(context.initialize(*compressed_tracks_));
 
-		// We measure the error with the error metric that compression uses by default
+		// We measure the error as compression does with these settings
 		track_error error;
 		if (is_additive)
-		{
-			const additive_vqmf_transform_error_metric<additive_clip_format8::additive1> error_metric;
-			error = calculate_compression_error(allocator, track_list, context, error_metric, base_track_list);
-		}
+			error = calculate_compression_error(allocator, track_list, context, settings, base_track_list, additive_format);
 		else
-		{
-			const vqmf_transform_error_metric error_metric;
-			error = calculate_compression_error(allocator, track_list, context, error_metric);
-		}
+			error = calculate_compression_error(allocator, track_list, context, settings);
 
 		CHECK(error.error >= 0.0F);
 		CHECK(error.error < 0.01F);

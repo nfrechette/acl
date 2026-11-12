@@ -171,16 +171,8 @@ namespace
 		return error.error;
 	}
 
-	itransform_error_metric* create_legacy_vqmf_metric(iallocator& allocator, additive_clip_format8 additive_format)
-	{
-		switch (additive_format)
-		{
-		case additive_clip_format8::additive1:		return allocate_type<additive_vqmf_transform_error_metric<additive_clip_format8::additive1>>(allocator);
-		case additive_clip_format8::none:
-		default:									return allocate_type<vqmf_transform_error_metric>(allocator);
-		}
-	}
-
+	// The legacy error metrics are deprecated
+	ACL_IMPL_DEPRECATION_WARNING_PUSH
 	itransform_error_metric* create_legacy_vqvf_metric(iallocator& allocator, additive_clip_format8 additive_format)
 	{
 		switch (additive_format)
@@ -190,6 +182,7 @@ namespace
 		default:									return allocate_type<vqvf_transform_error_metric>(allocator);
 		}
 	}
+	ACL_IMPL_DEPRECATION_WARNING_POP
 
 	// A custom adapter: VQM math through the interface, with the default 'local_to_object_space'
 	struct custom_vqm_adapter final : public itransform_adapter
@@ -292,29 +285,6 @@ TEST_CASE("transform runtime compression matches the legacy error metrics", "[co
 	for (const additive_clip_format8 additive_format : additive_formats)
 	{
 		const track_array* base_track_list_ptr = additive_format != additive_clip_format8::none ? &base_track_list : nullptr;
-
-		// With scale, the default settings use VQM with the shell metric: as the legacy default
-		{
-			itransform_error_metric* legacy_metric = create_legacy_vqmf_metric(allocator, additive_format);
-
-			compression_settings legacy_settings = get_default_compression_settings();
-			legacy_settings.error_metric = legacy_metric;
-
-			const compression_settings settings = get_default_compression_settings();
-
-			compressed_tracks* legacy_tracks = compress(allocator, track_list, legacy_settings, base_track_list_ptr, additive_format);
-			compressed_tracks* tracks = compress(allocator, track_list, settings, base_track_list_ptr, additive_format);
-
-			CHECK(tracks->get_size() == legacy_tracks->get_size());
-			CHECK(tracks->get_hash() == legacy_tracks->get_hash());
-
-			// The error is the same as with the legacy error metric
-			CHECK(measure_error(allocator, track_list, *tracks, settings, base_track_list_ptr, additive_format) == measure_error(allocator, track_list, *legacy_tracks, legacy_settings, base_track_list_ptr, additive_format));
-
-			allocator.deallocate(legacy_tracks, legacy_tracks->get_size());
-			allocator.deallocate(tracks, tracks->get_size());
-			deallocate_type(allocator, legacy_metric);
-		}
 
 		// VQV with the shell metric gives the same result as the legacy VQV error metric
 		{
