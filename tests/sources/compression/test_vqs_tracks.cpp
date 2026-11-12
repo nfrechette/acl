@@ -188,8 +188,12 @@ namespace
 			CHECK(rtm::vector_all_near_equal3(vqs_transform.translation, vqv_transform.translation, 0.0F));
 
 			// The VQV clip has a uniform scale and the VQS clip has the same value
-			CHECK(rtm::vector_all_near_equal3(vqs_transform.scale, vqv_transform.scale, 0.0F));
-			CHECK(rtm::vector_all_near_equal3(vqv_transform.scale, rtm::vector_dup_x(vqv_transform.scale), 0.0F));
+			// A VQS clip unpacks one scale value, a VQV clip unpacks each component. On x86 with x87 math
+			// (for example without SIMD), a component can keep more precision than a stored float.
+			// Thus the values can be different by 1 ULP. The largest scale is 3.5: 1 ULP is 2.4E-7.
+			const float scale_threshold = 1.0E-6F;
+			CHECK(rtm::vector_all_near_equal3(vqs_transform.scale, vqv_transform.scale, scale_threshold));
+			CHECK(rtm::vector_all_near_equal3(vqv_transform.scale, rtm::vector_dup_x(vqv_transform.scale), scale_threshold));
 		}
 	}
 
