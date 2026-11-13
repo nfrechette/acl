@@ -152,6 +152,34 @@ namespace acl
 		using desc_type = track_desc_transformf;
 	};
 
+	//////////////////////////////////////////////////////////////////////////
+	// A VQ transform track has no scale.
+	// Its description is the same as with VQV: ACL ignores the scale of the default value.
+	template<track_interpolator_t track_interpolator>
+	struct track_traits<track_type8::vqf, track_interpolator>
+	{
+		static_assert(track_interpolator == track_interpolator_t::linear, "Extended interpolator is not supported for this type");
+
+		static constexpr track_category8 category = track_category8::transformf;
+
+		using sample_type = rtm::vqf;
+		using desc_type = track_desc_transformf;
+	};
+
+	//////////////////////////////////////////////////////////////////////////
+	// A VQS transform track has a uniform scale: one value in the W component of 'translation_scale'.
+	// Its description is the same as with VQV: ACL uses the X component of the default value scale.
+	template<track_interpolator_t track_interpolator>
+	struct track_traits<track_type8::vqsf, track_interpolator>
+	{
+		static_assert(track_interpolator == track_interpolator_t::linear, "Extended interpolator is not supported for this type");
+
+		static constexpr track_category8 category = track_category8::transformf;
+
+		using sample_type = rtm::vqsf;
+		using desc_type = track_desc_transformf;
+	};
+
 	ACL_IMPL_VERSION_NAMESPACE_END
 }
 

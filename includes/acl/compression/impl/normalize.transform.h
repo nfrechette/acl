@@ -427,8 +427,9 @@ namespace acl
 					if (are_any_enum_flags_set(range_reduction, range_reduction_flags8::translations) && !bone_stream.is_translation_constant)
 						range_data_size += k_segment_range_reduction_num_bytes_per_component * 6;
 
+					// A uniform scale stores only its X component
 					if (are_any_enum_flags_set(range_reduction, range_reduction_flags8::scales) && !bone_stream.is_scale_constant)
-						range_data_size += k_segment_range_reduction_num_bytes_per_component * 6;
+						range_data_size += k_segment_range_reduction_num_bytes_per_component * (segment.clip->has_uniform_scale ? 2 : 6);
 				}
 
 				// The last partial rotation group is padded to 4 elements to keep decompression fast

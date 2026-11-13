@@ -30,10 +30,14 @@
 #include "acl/core/error_result.h"
 #include "acl/core/hash.h"
 #include "acl/core/track_formats.h"
+#include "acl/compression/impl/transform_runtime.h"
 
 #include <cstdint>
 
 ACL_IMPL_FILE_PRAGMA_PUSH
+
+// This file reads the deprecated error metric of the settings
+ACL_IMPL_DEPRECATION_WARNING_PUSH
 
 namespace acl
 {
@@ -123,6 +127,14 @@ namespace acl
 		hash_value = hash_combine(hash_value, hash32(scale_format));
 		hash_value = hash_combine(hash_value, hash32(scalar_format));
 
+		hash_value = hash_combine(hash_value, hash32(transform_runtime_type));
+
+		if (custom_transform_adapter != nullptr)
+			hash_value = hash_combine(hash_value, custom_transform_adapter->get_hash());
+
+		if (transform_metric != nullptr)
+			hash_value = hash_combine(hash_value, transform_metric->get_hash());
+
 		if (error_metric != nullptr)
 			hash_value = hash_combine(hash_value, error_metric->get_hash());
 
@@ -136,9 +148,6 @@ namespace acl
 
 	inline error_result compression_settings::is_valid() const
 	{
-		if (error_metric == nullptr)
-			return error_result("error_metric cannot be NULL");
-
 		const error_result keyframe_stripping_result = keyframe_stripping.is_valid();
 		if (keyframe_stripping_result.any())
 			return keyframe_stripping_result;
@@ -149,6 +158,20 @@ namespace acl
 
 		if (keyframe_stripping.is_enabled() && enable_database_support)
 			return error_result("Cannot enable keyframe stripping with database support");
+
+		if (error_metric != nullptr)
+		{
+			// The legacy error metric selects the runtime transform type and the error measurement
+			if (transform_runtime_type != transform_runtime_type_t::automatic || custom_transform_adapter != nullptr || transform_metric != nullptr)
+				return error_result("Cannot use the legacy error metric with a transform runtime type, a custom transform adapter, or a transform metric");
+		}
+		else
+		{
+			const acl_impl::transform_runtime_selector selector;
+			const error_result transform_runtime_result = selector.validate(transform_runtime_type, custom_transform_adapter, transform_metric);
+			if (transform_runtime_result.any())
+				return transform_runtime_result;
+		}
 
 		return error_result();
 	}
@@ -173,5 +196,7 @@ namespace acl
 
 	ACL_IMPL_VERSION_NAMESPACE_END
 }
+
+ACL_IMPL_DEPRECATION_WARNING_POP
 
 ACL_IMPL_FILE_PRAGMA_POP

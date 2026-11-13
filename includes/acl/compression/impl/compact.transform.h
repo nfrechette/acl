@@ -31,6 +31,7 @@
 #include "acl/core/error.h"
 #include "acl/core/scope_profiler.h"
 #include "acl/compression/impl/clip_context.h"
+#include "acl/compression/impl/transform_track_utils.h"
 #include "acl/compression/impl/compression_stats.h"
 #include "acl/compression/impl/rigid_shell_utils.h"
 #include "acl/compression/transform_error_metrics.h"
@@ -66,6 +67,9 @@
 #endif
 
 ACL_IMPL_FILE_PRAGMA_PUSH
+
+// This file reads the deprecated error metric of the settings
+ACL_IMPL_DEPRECATION_WARNING_PUSH
 
 namespace acl
 {
@@ -104,30 +108,18 @@ namespace acl
 			rtm::vqvf local_transforms[2];
 			rtm::vqvf base_transforms[2];
 			alignas(16) uint8_t local_transforms_converted[1024];	// Big enough for 2 transforms for sure
-			alignas(16) uint8_t base_transforms_converted[1024];	// Big enough for 2 transforms for sure
 
 			const size_t metric_transform_size = error_metric.get_transform_size(has_scale);
 			ACL_ASSERT(metric_transform_size * 2 <= sizeof(local_transforms_converted), "Transform size is too large");
 
-			itransform_error_metric::convert_transforms_args convert_transforms_args_local;
-			convert_transforms_args_local.dirty_transform_indices = &dirty_transform_indices[0];
-			convert_transforms_args_local.num_dirty_transforms = 1;
-			convert_transforms_args_local.num_transforms = 1;
-			convert_transforms_args_local.is_additive_base = false;
-
-			itransform_error_metric::convert_transforms_args convert_transforms_args_base;
-			convert_transforms_args_base.dirty_transform_indices = &dirty_transform_indices[0];
-			convert_transforms_args_base.num_dirty_transforms = 2;
-			convert_transforms_args_base.num_transforms = 2;
-			convert_transforms_args_base.transforms = &base_transforms[0];
-			convert_transforms_args_base.is_additive_base = true;
-			convert_transforms_args_base.is_lossy = false;
+			// The error metric receives the real transform index and the index of the sample in the clip
+			const single_transform_converter converter(*lossy_clip_context.allocator, error_metric, has_scale, lossy_clip_context.num_bones);
 
 			itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args;
 			apply_additive_to_base_args.dirty_transform_indices = &dirty_transform_indices[0];
 			apply_additive_to_base_args.num_dirty_transforms = 2;
-			apply_additive_to_base_args.base_transforms = needs_conversion ? (const void*)&base_transforms_converted[0] : (const void*)&base_transforms[0];
-			apply_additive_to_base_args.local_transforms = needs_conversion ? (const void*)&local_transforms_converted[0] : (const void*)&local_transforms[0];
+			apply_additive_to_base_args.base_transforms = &base_transforms[0];
+			apply_additive_to_base_args.local_transforms = &local_transforms[0];
 			apply_additive_to_base_args.num_transforms = 2;
 
 			itransform_error_metric::calculate_error_args calculate_error_args;
@@ -165,23 +157,6 @@ namespace acl
 				local_transforms[0] = raw_transform;
 				local_transforms[1] = lossy_transform;
 
-				if (needs_conversion)
-				{
-					convert_transforms_args_local.sample_index = sample_index;
-
-					convert_transforms_args_local.transforms = &local_transforms[0];
-					convert_transforms_args_local.is_lossy = false;
-
-					error_metric.convert_transforms(convert_transforms_args_local, &local_transforms_converted[metric_transform_size * 0]);
-
-					convert_transforms_args_local.transforms = &local_transforms[1];
-					convert_transforms_args_local.is_lossy = true;
-
-					error_metric.convert_transforms(convert_transforms_args_local, &local_transforms_converted[metric_transform_size * 1]);
-				}
-				else
-					std::memcpy(&local_transforms_converted[0], &local_transforms[0], metric_transform_size * 2);
-
 				if (has_additive_base)
 				{
 					const segment_context& additive_base_segment = additive_base_clip_context.segments[0];
@@ -205,16 +180,17 @@ namespace acl
 					base_transforms[0] = base_transform;
 					base_transforms[1] = base_transform;
 
-					if (needs_conversion)
-					{
-						convert_transforms_args_base.sample_index = base_sample_index;
-						error_metric.convert_transforms(convert_transforms_args_base, &base_transforms_converted[0]);
-					}
-					else
-						std::memcpy(&base_transforms_converted[0], &base_transforms[0], metric_transform_size * 2);
-
-					error_metric.apply_additive_to_base(apply_additive_to_base_args, &local_transforms_converted[0]);
+					// The additive applies to the source transforms, before the conversion
+					error_metric.apply_additive_to_base(apply_additive_to_base_args, &local_transforms[0]);
 				}
+
+				if (needs_conversion)
+				{
+					converter.convert(local_transforms[0], transform_index, sample_index, false, &local_transforms_converted[metric_transform_size * 0]);
+					converter.convert(local_transforms[1], transform_index, sample_index, true, &local_transforms_converted[metric_transform_size * 1]);
+				}
+				else
+					std::memcpy(&local_transforms_converted[0], &local_transforms[0], metric_transform_size * 2);
 
 				const rtm::scalarf vtx_error_sq = error_metric.calculate_error_squared(calculate_error_args);
 
@@ -372,11 +348,14 @@ namespace acl
 			iallocator& allocator,
 			clip_context& context,
 			const clip_context& additive_base_clip_context,
-			const track_array_vqvf& track_list,
+			const track_array& track_list,
 			const compression_settings& settings,
 			compression_stats_t& compression_stats)
 		{
 			(void)compression_stats;
+
+			// A VQ track has no scale, its default value uses this scale
+			const rtm::vector4f vq_scale = rtm::vector_set(get_additive_default_scale(context.additive_format));
 
 #if defined(ACL_USE_SJSON)
 			scope_profiler compact_constant_sub_tracks_time;
@@ -400,7 +379,7 @@ namespace acl
 			// Iterate in any order, doesn't matter
 			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 			{
-				const track_desc_transformf& desc = track_list[transform_index].get_description();
+				const track_desc_transformf desc = get_transform_track_desc(track_list[transform_index], vq_scale);
 
 				transform_streams& bone_stream = segment.bone_streams[transform_index];
 
@@ -542,7 +521,7 @@ namespace acl
 						transform_streams& bone_stream = segment.bone_streams[bone_index];
 						transform_streams& raw_bone_stream = raw_segment.bone_streams[bone_index];
 
-						const track_desc_transformf& desc = track_list[bone_index].get_description();
+						const track_desc_transformf desc = get_transform_track_desc(track_list[bone_index], vq_scale);
 						const uint32_t parent_bone_index = desc.parent_index;
 						const rtm::vqvf original_local_transform = rtm::vqv_set(
 							raw_bone_stream.rotations.get_raw_sample<rtm::quatf>(sample_index),
@@ -803,11 +782,14 @@ namespace acl
 			iallocator& allocator,
 			clip_context& lossy_clip_context,
 			const clip_context& additive_base_clip_context,
-			const track_array_vqvf& track_list,
+			const track_array& track_list,
 			const compression_settings& settings,
 			compression_stats_t& compression_stats)
 		{
 			(void)compression_stats;
+
+			// A VQ track has no scale, its default value uses this scale
+			const rtm::vector4f vq_scale = rtm::vector_set(get_additive_default_scale(lossy_clip_context.additive_format));
 
 			const uint32_t num_transforms = lossy_clip_context.num_bones;
 			if (num_transforms == 0)
@@ -850,7 +832,7 @@ namespace acl
 			// Start compacting at the leaves and work towards the root
 			for (uint32_t transform_index_to_test : topology->leaves_first_iterator())
 			{
-				const track_desc_transformf& transform_desc_to_test = track_list[transform_index_to_test].get_description();
+				const track_desc_transformf transform_desc_to_test = get_transform_track_desc(track_list[transform_index_to_test], vq_scale);
 
 				transform_streams& bone_stream_to_test = segment.bone_streams[transform_index_to_test];
 				transform_range& bone_range_to_test = lossy_clip_context.ranges[transform_index_to_test];
@@ -1303,5 +1285,7 @@ namespace acl
 
 	ACL_IMPL_VERSION_NAMESPACE_END
 }
+
+ACL_IMPL_DEPRECATION_WARNING_POP
 
 ACL_IMPL_FILE_PRAGMA_POP

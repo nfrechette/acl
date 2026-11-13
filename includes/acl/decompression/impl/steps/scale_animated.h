@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/version.h"
+#include "acl/core/track_writer.h"
 #include "acl/core/impl/compiler_utils.h"
 
 #include <rtm/math.h>
@@ -52,6 +53,7 @@ namespace acl
 			uint32_t last_entry_index,
 			const persistent_transform_decompression_context_v0& decomp_context,
 			animated_track_cache_v0& animated_track_cache,
+			bool is_uniform_scale,
 			track_writer_type& writer)
 		{
 			if (track_writer_type::skip_all_scales())
@@ -89,7 +91,7 @@ namespace acl
 						continue;	// This group contains no default sub-tracks, skip it
 
 					// Unpack our next 4 tracks
-					animated_track_cache.unpack_scale_group<decompression_settings_adapter_type>(decomp_context);
+					animated_track_cache.unpack_scale_group<decompression_settings_adapter_type>(decomp_context, is_uniform_scale);
 
 					if ((packed_group & 0x80000000) != 0)
 					{
@@ -110,7 +112,7 @@ namespace acl
 						ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
 
 						if (!writer.skip_track_scale(track_index0))
-							writer.write_scale(track_index0, scale);
+							acl_impl::write_scale(writer, track_index0, scale, is_uniform_scale);
 					}
 
 					if ((packed_group & 0x20000000) != 0)
@@ -132,7 +134,7 @@ namespace acl
 						ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
 
 						if (!writer.skip_track_scale(track_index1))
-							writer.write_scale(track_index1, scale);
+							acl_impl::write_scale(writer, track_index1, scale, is_uniform_scale);
 					}
 
 					if ((packed_group & 0x08000000) != 0)
@@ -154,7 +156,7 @@ namespace acl
 						ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
 
 						if (!writer.skip_track_scale(track_index2))
-							writer.write_scale(track_index2, scale);
+							acl_impl::write_scale(writer, track_index2, scale, is_uniform_scale);
 					}
 
 					if ((packed_group & 0x02000000) != 0)
@@ -176,7 +178,7 @@ namespace acl
 						ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
 
 						if (!writer.skip_track_scale(track_index3))
-							writer.write_scale(track_index3, scale);
+							acl_impl::write_scale(writer, track_index3, scale, is_uniform_scale);
 					}
 				}
 			}
@@ -189,6 +191,7 @@ namespace acl
 			uint32_t last_entry_index,
 			const persistent_transform_decompression_context_v0& decomp_context,
 			animated_track_cache_v0& animated_track_cache,
+			bool is_uniform_scale,
 			track_writer_type& writer)
 		{
 			if (track_writer_type::skip_all_scales())
@@ -226,7 +229,7 @@ namespace acl
 						curr_entry_track_index += 4;
 
 						// Unpack our next 4 tracks
-						animated_track_cache.unpack_scale_group<decompression_settings_adapter_type>(decomp_context);
+						animated_track_cache.unpack_scale_group<decompression_settings_adapter_type>(decomp_context, is_uniform_scale);
 
 						if ((packed_group & 0x80000000) != 0)
 						{
@@ -247,7 +250,7 @@ namespace acl
 							ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
 
 							if (!writer.skip_track_scale(track_index0))
-								writer.write_scale(track_index0, scale);
+								acl_impl::write_scale(writer, track_index0, scale, is_uniform_scale);
 						}
 
 						if ((packed_group & 0x20000000) != 0)
@@ -269,7 +272,7 @@ namespace acl
 							ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
 
 							if (!writer.skip_track_scale(track_index1))
-								writer.write_scale(track_index1, scale);
+								acl_impl::write_scale(writer, track_index1, scale, is_uniform_scale);
 						}
 
 						if ((packed_group & 0x08000000) != 0)
@@ -291,7 +294,7 @@ namespace acl
 							ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
 
 							if (!writer.skip_track_scale(track_index2))
-								writer.write_scale(track_index2, scale);
+								acl_impl::write_scale(writer, track_index2, scale, is_uniform_scale);
 						}
 
 						if ((packed_group & 0x02000000) != 0)
@@ -313,7 +316,7 @@ namespace acl
 							ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
 
 							if (!writer.skip_track_scale(track_index3))
-								writer.write_scale(track_index3, scale);
+								acl_impl::write_scale(writer, track_index3, scale, is_uniform_scale);
 						}
 					}
 				}
@@ -334,7 +337,7 @@ namespace acl
 
 						// Unpack our next 4 tracks
 						// A bit unfortunate that we have to check for every bit..
-						animated_track_cache.unpack_scale_group<decompression_settings_adapter_type>(decomp_context);
+						animated_track_cache.unpack_scale_group<decompression_settings_adapter_type>(decomp_context, is_uniform_scale);
 
 						// We need the true rounding policy to be statically known when per track rounding is not supported
 						// When it isn't supported, we always use 'none' since the interpolation alpha was properly calculated
@@ -351,7 +354,7 @@ namespace acl
 						ACL_ASSERT(rtm::vector_is_finite3(scale), "Scale is not valid!");
 
 						if (!writer.skip_track_scale(curr_track_index))
-							writer.write_scale(curr_track_index, scale);
+							acl_impl::write_scale(writer, curr_track_index, scale, is_uniform_scale);
 					}
 				}
 			}

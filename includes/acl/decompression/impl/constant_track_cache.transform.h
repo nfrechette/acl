@@ -108,7 +108,7 @@ namespace acl
 			// This means we need 3-4 cache lines to unpack. If we cache miss, we'll be able to queue up as many uops as we can before we stall.
 			// We can also queue up enough independent uops to avoid stalling on the square-root (6-21 cycles depending on the platform).
 			// Constant rotation samples are fairly common, see here: https://nfrechette.github.io/2020/08/09/animation_data_numbers/
-			// CMU has 64.41%, Paragon has 47.69%, and Fortnite has 62.84%.
+			// The data sets of that post have between 47.69% and 64.41% constant rotation samples.
 			// Following these numbers, it is common for clips to have at least 10 constant rotation samples to unpack.
 
 #if ACL_IMPL_CONSTANT_ROTATION_UNPACKING_VARIANT == 2	// AVX 8-wide
@@ -889,13 +889,15 @@ namespace acl
 				return sample;
 			}
 
-			RTM_DISABLE_SECURITY_COOKIE_CHECK void skip_scale_groups(uint32_t num_groups_to_skip)
+			// A uniform scale (vqsf) stores only its X component
+			RTM_DISABLE_SECURITY_COOKIE_CHECK void skip_scale_groups(uint32_t num_groups_to_skip, bool is_uniform_scale)
 			{
 				const uint8_t* constant_track_data = constant_data_scales;
 
 				// We only support skipping full groups
 				const uint32_t num_to_skip = num_groups_to_skip * 4;
-				constant_track_data += num_to_skip * sizeof(rtm::float3f);
+				const uint32_t sample_size = is_uniform_scale ? uint32_t(sizeof(float)) : uint32_t(sizeof(rtm::float3f));
+				constant_track_data += num_to_skip * sample_size;
 
 				constant_data_scales = constant_track_data;
 
@@ -903,9 +905,18 @@ namespace acl
 				ACL_IMPL_CONSTANT_PREFETCH(constant_track_data);
 			}
 
-			RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL unpack_scale_within_group(uint32_t unpack_index) const
+			// A uniform scale (vqsf) stores only its X component, we return it in [xyzw]
+			RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL unpack_scale_within_group(uint32_t unpack_index, bool is_uniform_scale) const
 			{
 				ACL_ASSERT(unpack_index < 4, "Cannot unpack sample that isn't present");
+
+				if (is_uniform_scale)
+				{
+					const uint8_t* uniform_track_data = constant_data_scales + (unpack_index * sizeof(float));
+					const rtm::vector4f uniform_sample = rtm::vector_broadcast(bit_cast<const float*>(uniform_track_data));
+					ACL_ASSERT(rtm::vector_is_finite3(uniform_sample), "Sample is not valid!");
+					return uniform_sample;
+				}
 
 				const uint8_t* constant_track_data = constant_data_scales + (unpack_index * sizeof(rtm::float3f));
 				const rtm::vector4f sample = rtm::vector_load(constant_track_data);

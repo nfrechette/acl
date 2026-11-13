@@ -28,8 +28,11 @@
 #include "acl/core/additive_utils.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/hash.h"
+#include "acl/core/iallocator.h"
 #include "acl/core/track_types.h"
 #include "acl/compression/fwd.h"
+#include "acl/compression/transform_adapters.h"
+#include "acl/compression/transform_metrics.h"
 #include "acl/math/vector4f.h"
 #include "acl/math/quatf.h"
 #include "acl/math/vqvf.h"
@@ -38,6 +41,9 @@
 #include <rtm/vqvd.h>
 #include <rtm/vqvf.h>
 #include <rtm/scalarf.h>
+
+#include <cstdint>
+#include <cstring>
 
 // By default, we use an optimize version of error metrics that leverages SIMD by
 // computing the error in Structure Of Array form (xxxx, yyyy, zzzz). This means that we can generally
@@ -54,6 +60,9 @@
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
+// This file names the deprecated legacy error metrics
+ACL_IMPL_DEPRECATION_WARNING_PUSH
+
 namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
@@ -61,15 +70,15 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// Interface for all skeletal error metrics.
 	// An error metric is responsible for a few things:
+	//    - applying local space rtm::vqvf transforms on top of rtm::vqvf base transforms (optional)
 	//    - converting from rtm::vqvf into whatever transform type the metric uses (optional)
-	//    - applying local space transforms on top of base transforms (optional)
 	//    - transforming local space transforms into object space
 	//    - evaluating the error function
 	//
 	// Most functions require two implementations: with and without scale support.
 	// This is entirely for performance reasons as most clips do not have any scale.
 	//////////////////////////////////////////////////////////////////////////
-	class itransform_error_metric
+	class ACL_DEPRECATED("Use the transform adapters and the transform metrics instead, to be removed in v2.3") itransform_error_metric
 	{
 	public:
 		virtual ~itransform_error_metric() = default;
@@ -119,7 +128,7 @@ namespace acl
 			uint32_t num_transforms;
 
 			//////////////////////////////////////////////////////////////////////////
-			// The sample index these transforms come from.
+			// The index in the clip of the sample these transforms come from.
 			uint32_t sample_index;
 
 			//////////////////////////////////////////////////////////////////////////
@@ -128,9 +137,8 @@ namespace acl
 			bool is_lossy;
 
 			//////////////////////////////////////////////////////////////////////////
-			// True if these transforms are being converted from the additive base pose.
-			// False if these transforms are being converted from the additive pose.
-			// If not using a base, this value is always false.
+			// ACL applies the additive base pose before the conversion and does not convert the base pose.
+			// Thus this value is always false.
 			bool is_additive_base;
 		};
 
@@ -213,11 +221,11 @@ namespace acl
 			uint32_t num_dirty_transforms;
 
 			//////////////////////////////////////////////////////////////////////////
-			// The input local space transforms in the type expected by the error metric.
+			// The input local space transforms in rtm::vqvf format.
 			const void* local_transforms;
 
 			//////////////////////////////////////////////////////////////////////////
-			// The input base transforms in the type expected by the error metric.
+			// The input base transforms in rtm::vqvf format.
 			const void* base_transforms;
 
 			//////////////////////////////////////////////////////////////////////////
@@ -228,6 +236,8 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Applies local space transforms on top of base transforms.
 		// This is called when a clip has an additive base.
+		// The input and output transforms are in rtm::vqvf format. ACL calls this function
+		// before 'convert_transforms', thus the additive applies to the source transforms.
 		virtual void apply_additive_to_base(const apply_additive_to_base_args& args, void* out_transforms) const
 		{
 			(void)args;
@@ -238,6 +248,8 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Applies local space transforms on top of base transforms.
 		// This is called when a clip has an additive base.
+		// The input and output transforms are in rtm::vqvf format. ACL calls this function
+		// before 'convert_transforms_no_scale', thus the additive applies to the source transforms.
 		virtual void apply_additive_to_base_no_scale(const apply_additive_to_base_args& args, void* out_transforms) const
 		{
 			(void)args;
@@ -349,7 +361,7 @@ namespace acl
 	// Uses rtm::vqvf arithmetic for local and object space error.
 	// Note that this can cause inaccuracy when dealing with shear/skew.
 	//////////////////////////////////////////////////////////////////////////
-	class vqvf_transform_error_metric : public itransform_error_metric
+	class ACL_DEPRECATED("Use the transform adapters and the transform metrics instead, to be removed in v2.3") vqvf_transform_error_metric : public itransform_error_metric
 	{
 	public:
 		virtual const char* get_name() const override { return "vqvf_transform_error_metric"; }
@@ -550,7 +562,7 @@ namespace acl
 	// This computes the error on the point most impacted by the lossy transform
 	// which guarantees that all other points see the same or a lower error.
 	//////////////////////////////////////////////////////////////////////////
-	class vqvf_precise_transform_error_metric : public vqvf_transform_error_metric
+	class ACL_DEPRECATED("Use the transform adapters and the transform metrics instead, to be removed in v2.3") vqvf_precise_transform_error_metric : public vqvf_transform_error_metric
 	{
 	public:
 		virtual const char* get_name() const override { return "vqvf_precise_transform_error_metric"; }
@@ -565,50 +577,8 @@ namespace acl
 			const rtm::vqvd raw_transform_d = rtm::vqv_normalize(rtm::vqv_cast(raw_transform_));
 			const rtm::vqvd lossy_transform_d = rtm::vqv_normalize(rtm::vqv_cast(lossy_transform_));
 
-			// Our result
-			double max_delta_transform_error_sq = 0.0;
-
-			// We use the quaternion dot product to determine the cosine of the half angle between the raw
-			// and lossy rotations. If the angle is very small, the absolute value of the dot product will
-			// be very close to 1.0
-			// Due to floating point precision, we use a threshold value to determine if we have any delta between the two
-			const double raw_lossy_quat_dot = rtm::quat_dot(raw_transform_d.rotation, lossy_transform_d.rotation);
-			const bool has_rotation_delta = rtm::scalar_abs(raw_lossy_quat_dot) < 0.99999999999999822;	// 0x3feffffffffffff0
-			if (has_rotation_delta)
-			{
-				// We remove the raw transform from the lossy transform to form a delta transform between the two
-				// We remove the raw transform instead of the lossy because this ensures that we always see consistent results
-				// It would also allow us to compute the raw inverse ahead of time if we wanted to
-				const rtm::vqvd delta_transform = rtm::vqv_normalize(rtm::vqv_mul_no_scale(lossy_transform_d, rtm::vqv_inverse_no_scale(raw_transform_d)));
-
-				// We first calculate the contribution from the rotation delta
-				const rtm::vector4d rotation_plane_normal = rtm::vector_normalize3(rtm::quat_to_vector(delta_transform.rotation));
-				ACL_ASSERT(rtm::vector_is_finite3(rotation_plane_normal), "Delta rotation plane must exist");
-
-				// Using the unit circle to compute the sine of our half rotation angle
-				// 1^2 = cos(a)^2 + sin(a)^2
-				const double half_sin_angle = rtm::scalar_sqrt(1.0 - (raw_lossy_quat_dot * raw_lossy_quat_dot));
-
-				// We can then compute the rotation error delta by scaling it with the sphere radius
-				const double sphere_radius = (double)rtm::vector_get_x(args.shell_point_x);
-				const double max_delta_rotation_error = half_sin_angle * sphere_radius * 2.0;
-
-				// We then calculate the full transform error by incorporating the translation contribution
-				const rtm::vector4d delta_translation = delta_transform.translation;
-				const double delta_translation_len_sq = rtm::vector_length_squared3(delta_translation);
-				const double delta_translation_along_rotation_plane = rtm::vector_dot3(delta_translation, rotation_plane_normal);
-				const double delta_translation_along_rotation_plane_sq = delta_translation_along_rotation_plane * delta_translation_along_rotation_plane;
-				const double inner_translation_side = rtm::scalar_sqrt(rtm::scalar_max(delta_translation_len_sq - delta_translation_along_rotation_plane_sq, 0.0));
-
-				const double inner_full_side = inner_translation_side + max_delta_rotation_error;
-				const double inner_full_side_sq = inner_full_side * inner_full_side;
-				max_delta_transform_error_sq = delta_translation_along_rotation_plane_sq + inner_full_side_sq;
-			}
-			else
-			{
-				// If we have no rotation delta, then the transform error is just the translation error: the delta length
-				max_delta_transform_error_sq = rtm::scalar_cast(rtm::vector_distance_squared3_as_scalar(raw_transform_d.translation, lossy_transform_d.translation));
-			}
+			const double sphere_radius = (double)rtm::vector_get_x(args.shell_point_x);
+			const double max_delta_transform_error_sq = acl_impl::calculate_rigid_error_squared_precise(raw_transform_d, lossy_transform_d, sphere_radius);
 
 			return rtm::scalar_set((float)max_delta_transform_error_sq);
 		}
@@ -622,7 +592,7 @@ namespace acl
 	// Note that this can cause inaccuracy issues if there are very large or very small
 	// scale values.
 	//////////////////////////////////////////////////////////////////////////
-	class vqvf_matrix3x4f_transform_error_metric : public vqvf_transform_error_metric
+	class ACL_DEPRECATED("Use the transform adapters and the transform metrics instead, to be removed in v2.3") vqvf_matrix3x4f_transform_error_metric : public vqvf_transform_error_metric
 	{
 	public:
 		virtual const char* get_name() const override { return "vqvf_matrix3x4f_transform_error_metric"; }
@@ -712,7 +682,7 @@ namespace acl
 	// Note that this can cause inaccuracy when dealing with shear/skew.
 	//////////////////////////////////////////////////////////////////////////
 	template<additive_clip_format8 additive_format>
-	class additive_vqvf_transform_error_metric : public vqvf_transform_error_metric
+	class ACL_DEPRECATED("Use the transform adapters and the transform metrics instead, to be removed in v2.3") additive_vqvf_transform_error_metric : public vqvf_transform_error_metric
 	{
 	public:
 		virtual const char* get_name() const override
@@ -768,7 +738,90 @@ namespace acl
 		}
 	};
 
+	namespace acl_impl
+	{
+		//////////////////////////////////////////////////////////////////////////
+		// Returns true when the transform layout of the error metric depends on the scale.
+		// For example, the matrix error metric uses a vqvf without scale and a matrix3x4f with scale.
+		// When this is true, the caller must use the functions with scale, even when the clip has no scale.
+		inline bool is_error_metric_layout_scale_dependent(const itransform_error_metric& error_metric)
+		{
+			return error_metric.get_transform_size(false) != error_metric.get_transform_size(true) ||
+				error_metric.needs_conversion(false) != error_metric.needs_conversion(true);
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Converts one transform with the functions with or without scale of an error metric.
+		// The error metric reads and writes the transform at its index in a full pose: it can use
+		// the transform index to read its own data. Thus we keep a full pose for the input and the output.
+		class single_transform_converter
+		{
+		public:
+			single_transform_converter(iallocator& allocator, const itransform_error_metric& error_metric, bool has_scale, uint32_t num_transforms)
+				: m_allocator(allocator)
+				, m_error_metric(error_metric)
+				, m_transform_size(error_metric.get_transform_size(has_scale))
+				, m_num_transforms(num_transforms)
+				, m_has_scale(has_scale)
+			{
+				if (error_metric.needs_conversion(has_scale))
+				{
+					m_pose = allocate_type_array<rtm::vqvf>(allocator, num_transforms);
+					m_pose_converted = allocate_type_array_aligned<uint8_t>(allocator, m_transform_size * num_transforms, 64);
+				}
+			}
+
+			~single_transform_converter()
+			{
+				deallocate_type_array(m_allocator, m_pose, m_num_transforms);
+				deallocate_type_array(m_allocator, m_pose_converted, m_transform_size * m_num_transforms);
+			}
+
+			single_transform_converter(const single_transform_converter&) = delete;
+			single_transform_converter& operator=(const single_transform_converter&) = delete;
+
+			// Writes the converted transform in 'out_transform'
+			// 'sample_index' is the index of the sample in the clip
+			void convert(const rtm::vqvf& transform, uint32_t transform_index, uint32_t sample_index, bool is_lossy, void* out_transform) const
+			{
+				ACL_ASSERT(m_pose != nullptr, "The error metric does not need a conversion");
+				ACL_ASSERT(transform_index < m_num_transforms, "Invalid transform index");
+
+				m_pose[transform_index] = transform;
+
+				itransform_error_metric::convert_transforms_args args;
+				args.dirty_transform_indices = &transform_index;
+				args.num_dirty_transforms = 1;
+				args.transforms = m_pose;
+				args.num_transforms = m_num_transforms;
+				args.sample_index = sample_index;
+				args.is_lossy = is_lossy;
+				args.is_additive_base = false;
+
+				if (m_has_scale)
+					m_error_metric.convert_transforms(args, m_pose_converted);
+				else
+					m_error_metric.convert_transforms_no_scale(args, m_pose_converted);
+
+				std::memcpy(out_transform, m_pose_converted + (transform_index * m_transform_size), m_transform_size);
+			}
+
+		private:
+			iallocator& m_allocator;
+			const itransform_error_metric& m_error_metric;
+			size_t m_transform_size;
+			uint32_t m_num_transforms;
+			bool m_has_scale;
+
+			// We write them in the const function
+			rtm::vqvf* m_pose = nullptr;
+			uint8_t* m_pose_converted = nullptr;
+		};
+	}
+
 	ACL_IMPL_VERSION_NAMESPACE_END
 }
+
+ACL_IMPL_DEPRECATION_WARNING_POP
 
 ACL_IMPL_FILE_PRAGMA_POP

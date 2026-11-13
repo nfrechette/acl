@@ -32,13 +32,18 @@
 #include "acl/core/track_types.h"
 #include "acl/core/range_reduction_types.h"
 #include "acl/compression/compression_level.h"
+#include "acl/compression/transform_adapters.h"
 #include "acl/compression/transform_error_metrics.h"
+#include "acl/compression/transform_metrics.h"
 
 #include <rtm/scalarf.h>
 
 #include <cstdint>
 
 ACL_IMPL_FILE_PRAGMA_PUSH
+
+// This file reads the deprecated error metric of the settings
+ACL_IMPL_DEPRECATION_WARNING_PUSH
 
 namespace acl
 {
@@ -229,9 +234,50 @@ namespace acl
 		scalar_format8 scalar_format = scalar_format8::scalarf_full;
 
 		//////////////////////////////////////////////////////////////////////////
-		// The error metric to use.
-		// Defaults to 'null', this value must be set manually!
+		// The runtime transform type: the type that compression uses to compose
+		// transforms into object space and to measure the error. Select the type that
+		// your runtime uses to compose transforms. See 'transform_runtime_type_t'.
+		//
+		// When a clip has no scale, compression uses 'vqf' in place of a built-in type:
+		// without scale, each built-in runtime transform type gives the same transforms.
+		// Compression always uses a custom transform adapter, also without scale.
+		//
+		// With 'automatic', compression selects the type from the raw tracks:
+		//    - 'vqsf' for 'vqsf' raw tracks, when the additive base (if any) has a uniform scale
+		//    - 'vqmf' otherwise: it keeps the shear and gives exact object space transforms
+		// With 'custom', compression uses 'custom_transform_adapter'.
+		// You can select 'vqsf' only with 'vqsf' raw tracks.
+		// Defaults to 'automatic'.
 		// Transform tracks only.
+		transform_runtime_type_t transform_runtime_type = transform_runtime_type_t::automatic;
+
+		//////////////////////////////////////////////////////////////////////////
+		// The transform adapter of your own runtime transform type.
+		// Set it only with the 'custom' runtime transform type.
+		// Defaults to 'null'.
+		// Transform tracks only.
+		itransform_adapter* custom_transform_adapter = nullptr;
+
+		//////////////////////////////////////////////////////////////////////////
+		// The transform metric: it measures the error between the raw and lossy transforms.
+		// When 'null', compression uses the default metric of the runtime transform type:
+		//    - 'precise_transform_metric' with 'vqf' and 'vqsf': it gives the exact error
+		//    - 'shell_transform_metric' with the other types: it measures points on the rigid shell
+		// The metric must support the runtime transform type of the clip, see 'itransform_metric::is_supported'.
+		// Defaults to 'null'.
+		// Transform tracks only.
+		itransform_metric* transform_metric = nullptr;
+
+		//////////////////////////////////////////////////////////////////////////
+		// DEPRECATED: use 'transform_runtime_type', 'custom_transform_adapter', and 'transform_metric' instead.
+		// This value will be removed in v2.3.
+		//
+		// The legacy error metric to use. It combines the runtime transform type and the error measurement.
+		// When it is not 'null', compression uses it and you cannot set 'transform_runtime_type',
+		// 'custom_transform_adapter', or 'transform_metric'.
+		// Defaults to 'null'.
+		// Transform tracks only.
+		ACL_DEPRECATED("Use transform_runtime_type, custom_transform_adapter, and transform_metric instead, to be removed in v2.3")
 		itransform_error_metric* error_metric = nullptr;
 
 		//////////////////////////////////////////////////////////////////////////
@@ -280,5 +326,7 @@ namespace acl
 }
 
 #include "acl/compression/impl/compression_settings.impl.h"
+
+ACL_IMPL_DEPRECATION_WARNING_POP
 
 ACL_IMPL_FILE_PRAGMA_POP

@@ -45,6 +45,21 @@ namespace acl
 
 	namespace acl_impl
 	{
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the number of components that the compressed tracks store for each scale sample.
+		// A uniform scale (vqsf) stores only its X component. The compressor keeps the same value in [xyz].
+		inline uint32_t get_num_scale_components(const clip_context& clip)
+		{
+			return clip.has_uniform_scale ? 1 : 3;
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the size in bytes of a constant or full precision scale sample in the compressed tracks.
+		inline uint32_t get_scale_packed_sample_size(const clip_context& clip, const track_stream& scale_stream)
+		{
+			return clip.has_uniform_scale ? uint32_t(sizeof(float)) : scale_stream.get_packed_sample_size();
+		}
+
 		inline uint32_t get_constant_data_size(const clip_context& clip)
 		{
 			// Only use the first segment, it contains the necessary information
@@ -65,7 +80,7 @@ namespace acl
 					constant_data_size += bone_stream.translations.get_packed_sample_size();
 
 				if (clip.has_scale && !bone_stream.is_scale_default && bone_stream.is_scale_constant)
-					constant_data_size += bone_stream.scales.get_packed_sample_size();
+					constant_data_size += get_scale_packed_sample_size(clip, bone_stream.scales);
 			}
 
 			return constant_data_size;
@@ -101,18 +116,23 @@ namespace acl
 			out_num_constant_scale_samples = num_constant_scale_samples;
 		}
 
-		inline void get_animated_variable_bit_rate_data_size(const track_stream& track_stream, uint32_t& out_num_animated_pose_bits)
+		inline void get_animated_variable_bit_rate_data_size(const track_stream& track_stream, uint32_t num_components, uint32_t& out_num_animated_pose_bits)
 		{
 			const uint8_t bit_rate = track_stream.get_bit_rate();
-			const uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * 3;	// 3 components
+			const uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * num_components;
 			out_num_animated_pose_bits += num_bits_at_bit_rate;
 		}
 
-		inline void calculate_animated_data_size(const track_stream& track_stream, uint32_t& num_animated_pose_bits)
+		// 'num_components' is 3 with a vector3 or a rotation, or 1 with a uniform scale
+		inline void calculate_animated_data_size(const track_stream& track_stream, uint32_t num_components, uint32_t& num_animated_pose_bits)
 		{
 			if (track_stream.is_bit_rate_variable())
 			{
-				get_animated_variable_bit_rate_data_size(track_stream, num_animated_pose_bits);
+				get_animated_variable_bit_rate_data_size(track_stream, num_components, num_animated_pose_bits);
+			}
+			else if (num_components == 1)
+			{
+				num_animated_pose_bits += 32;
 			}
 			else
 			{
@@ -123,6 +143,8 @@ namespace acl
 
 		inline void calculate_animated_data_size(clip_context& clip, const uint32_t* output_bone_mapping, uint32_t num_output_bones)
 		{
+			const uint32_t num_scale_components = get_num_scale_components(clip);
+
 			for (segment_context& segment : clip.segment_iterator())
 			{
 				uint32_t num_animated_pose_rotation_data_bits = 0;
@@ -135,13 +157,13 @@ namespace acl
 					const transform_streams& bone_stream = segment.bone_streams[bone_index];
 
 					if (!bone_stream.is_rotation_constant)
-						calculate_animated_data_size(bone_stream.rotations, num_animated_pose_rotation_data_bits);
+						calculate_animated_data_size(bone_stream.rotations, 3, num_animated_pose_rotation_data_bits);
 
 					if (!bone_stream.is_translation_constant)
-						calculate_animated_data_size(bone_stream.translations, num_animated_pose_translation_data_bits);
+						calculate_animated_data_size(bone_stream.translations, 3, num_animated_pose_translation_data_bits);
 
 					if (!bone_stream.is_scale_constant)
-						calculate_animated_data_size(bone_stream.scales, num_animated_pose_scale_data_bits);
+						calculate_animated_data_size(bone_stream.scales, num_scale_components, num_animated_pose_scale_data_bits);
 				}
 
 				const uint32_t num_animated_pose_bits = num_animated_pose_rotation_data_bits + num_animated_pose_translation_data_bits + num_animated_pose_scale_data_bits;
@@ -297,6 +319,14 @@ namespace acl
 					{
 						const uint8_t* scale_ptr = bone_stream.scales.get_raw_sample_ptr(0);
 						uint32_t sample_size = bone_stream.scales.get_sample_size();
+
+						if (clip.has_uniform_scale)
+						{
+							// A uniform scale stores only its X component
+							ACL_ASSERT(rtm::vector_all_equal3(bone_stream.scales.get_raw_sample<rtm::vector4f>(0), rtm::vector_dup_x(bone_stream.scales.get_raw_sample<rtm::vector4f>(0))), "Expected a uniform scale");
+							sample_size = sizeof(float);
+						}
+
 						std::memcpy(constant_data, scale_ptr, sample_size);
 						constant_data += sample_size;
 
@@ -309,14 +339,16 @@ namespace acl
 			return safe_static_cast<uint32_t>(constant_data - constant_data_start);
 		}
 
-		inline void write_animated_sample(const track_stream& track_stream, uint32_t sample_index, uint8_t* animated_track_data_begin, uint64_t& out_bit_offset)
+		// 'num_components' is 3 with a vector3 or a rotation, or 1 with a uniform scale
+		// A uniform scale writes only its X component: the X bits come first in a packed sample
+		inline void write_animated_sample(const track_stream& track_stream, uint32_t sample_index, uint32_t num_components, uint8_t* animated_track_data_begin, uint64_t& out_bit_offset)
 		{
 			const uint8_t* raw_sample_ptr = track_stream.get_raw_sample_ptr(sample_index);
 
 			if (track_stream.is_bit_rate_variable())
 			{
 				const uint8_t bit_rate = track_stream.get_bit_rate();
-				const uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * 3;	// 3 components
+				const uint32_t num_bits_at_bit_rate = get_num_bits_at_bit_rate(bit_rate) * num_components;
 
 				// Track is constant, our constant sample is stored in the range information
 				ACL_ASSERT(!is_constant_bit_rate(bit_rate), "Cannot write constant variable track data");
@@ -327,10 +359,14 @@ namespace acl
 
 					const uint32_t x = byte_swap(raw_sample_u32[0]);
 					memcpy_bits(animated_track_data_begin, out_bit_offset + 0, &x, 0, 32);
-					const uint32_t y = byte_swap(raw_sample_u32[1]);
-					memcpy_bits(animated_track_data_begin, out_bit_offset + 32, &y, 0, 32);
-					const uint32_t z = byte_swap(raw_sample_u32[2]);
-					memcpy_bits(animated_track_data_begin, out_bit_offset + 64, &z, 0, 32);
+
+					if (num_components == 3)
+					{
+						const uint32_t y = byte_swap(raw_sample_u32[1]);
+						memcpy_bits(animated_track_data_begin, out_bit_offset + 32, &y, 0, 32);
+						const uint32_t z = byte_swap(raw_sample_u32[2]);
+						memcpy_bits(animated_track_data_begin, out_bit_offset + 64, &z, 0, 32);
+					}
 				}
 				else
 				{
@@ -339,6 +375,15 @@ namespace acl
 				}
 
 				out_bit_offset += num_bits_at_bit_rate;
+			}
+			else if (num_components == 1)
+			{
+				const uint32_t* raw_sample_u32 = safe_ptr_cast<const uint32_t>(raw_sample_ptr);
+
+				const uint32_t x = byte_swap(raw_sample_u32[0]);
+				memcpy_bits(animated_track_data_begin, out_bit_offset + 0, &x, 0, 32);
+
+				out_bit_offset += 32;
 			}
 			else
 			{
@@ -376,6 +421,8 @@ namespace acl
 			const bitset_description hard_keyframes_desc = bitset_description::make_from_num_bits<32>();
 
 			uint64_t bit_offset = 0;
+
+			const uint32_t num_scale_components = get_num_scale_components(*segment.clip);
 
 			// Data is sorted first by time, second by bone.
 			// This ensures that all bones are contiguous in memory when we sample a particular time.
@@ -420,7 +467,7 @@ namespace acl
 				if (has_stripped_keyframes && !bitset_test(&segment.hard_keyframes, hard_keyframes_desc, sample_index))
 					continue;	// This keyframe has been stripped, skip it
 
-				auto group_entry_action = [&segment, sample_index, &group_animated_track_data, &group_bit_offset](animation_track_type8 group_type, uint32_t group_size, uint32_t bone_index)
+				auto group_entry_action = [&segment, sample_index, num_scale_components, &group_animated_track_data, &group_bit_offset](animation_track_type8 group_type, uint32_t group_size, uint32_t bone_index)
 				{
 					(void)group_size;
 
@@ -428,17 +475,17 @@ namespace acl
 					if (group_type == animation_track_type8::rotation)
 					{
 						if (!is_constant_bit_rate(bone_stream.rotations.get_bit_rate()))
-							write_animated_sample(bone_stream.rotations, sample_index, group_animated_track_data, group_bit_offset);
+							write_animated_sample(bone_stream.rotations, sample_index, 3, group_animated_track_data, group_bit_offset);
 					}
 					else if (group_type == animation_track_type8::translation)
 					{
 						if (!is_constant_bit_rate(bone_stream.translations.get_bit_rate()))
-							write_animated_sample(bone_stream.translations, sample_index, group_animated_track_data, group_bit_offset);
+							write_animated_sample(bone_stream.translations, sample_index, 3, group_animated_track_data, group_bit_offset);
 					}
 					else
 					{
 						if (!is_constant_bit_rate(bone_stream.scales.get_bit_rate()))
-							write_animated_sample(bone_stream.scales, sample_index, group_animated_track_data, group_bit_offset);
+							write_animated_sample(bone_stream.scales, sample_index, num_scale_components, group_animated_track_data, group_bit_offset);
 					}
 				};
 

@@ -45,6 +45,9 @@
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
+// This file reads the deprecated error metric of the settings
+ACL_IMPL_DEPRECATION_WARNING_PUSH
+
 namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
@@ -128,13 +131,16 @@ namespace acl
 			writer["decomp_touched_cache_lines"] = segment.clip->decomp_touched_cache_lines + num_segment_header_cache_lines + num_animated_pose_cache_lines;
 		}
 
-		inline void write_exhaustive_segment_stats(iallocator& allocator, const segment_context& segment, const clip_context& raw_clip_context, const clip_context& additive_base_clip_context, const compression_settings& settings, const track_array_vqvf& track_list, sjson::ObjectWriter& writer)
+		inline void write_exhaustive_segment_stats(iallocator& allocator, const segment_context& segment, const clip_context& raw_clip_context, const clip_context& additive_base_clip_context, const compression_settings& settings, const track_array& track_list, sjson::ObjectWriter& writer)
 		{
 			const uint32_t num_bones = raw_clip_context.num_bones;
-			const bool has_scale = segment_context_has_scale(segment);
 
-			ACL_ASSERT(!settings.error_metric->needs_conversion(has_scale), "Error metric conversion not supported");
+			// When the transform layout of the error metric depends on the scale, we must use the functions with scale
+			const bool has_scale = segment_context_has_scale(segment) || is_error_metric_layout_scale_dependent(*settings.error_metric);
+			const bool needs_conversion = settings.error_metric->needs_conversion(has_scale);
+			const size_t metric_transform_size = settings.error_metric->get_transform_size(has_scale);
 
+			const auto convert_transforms_impl = std::mem_fn(has_scale ? &itransform_error_metric::convert_transforms : &itransform_error_metric::convert_transforms_no_scale);
 			const auto local_to_object_space_impl = std::mem_fn(has_scale ? &itransform_error_metric::local_to_object_space : &itransform_error_metric::local_to_object_space_no_scale);
 			const auto calculate_error_squared_impl = std::mem_fn(has_scale ? &itransform_error_metric::calculate_error_squared : &itransform_error_metric::calculate_error_squared_no_scale);
 			const auto apply_additive_to_base_impl = std::mem_fn(has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
@@ -143,16 +149,19 @@ namespace acl
 			rtm::vqvf* base_local_pose = allocate_type_array<rtm::vqvf>(allocator, num_bones);
 			rtm::vqvf* lossy_local_pose = allocate_type_array<rtm::vqvf>(allocator, num_bones);
 
-			rtm::vqvf* raw_object_pose = allocate_type_array<rtm::vqvf>(allocator, num_bones);
-			rtm::vqvf* lossy_object_pose = allocate_type_array<rtm::vqvf>(allocator, num_bones);
+			// The error metric functions use their own transform type after the conversion
+			uint8_t* raw_local_pose_converted = needs_conversion ? allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size * num_bones, 64) : nullptr;
+			uint8_t* lossy_local_pose_converted = needs_conversion ? allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size * num_bones, 64) : nullptr;
+
+			uint8_t* raw_object_pose = allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size * num_bones, 64);
+			uint8_t* lossy_object_pose = allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size * num_bones, 64);
 
 			uint32_t* parent_transform_indices = allocate_type_array<uint32_t>(allocator, num_bones);
 			uint32_t* self_transform_indices = allocate_type_array<uint32_t>(allocator, num_bones);
 
 			for (uint32_t transform_index = 0; transform_index < num_bones; ++transform_index)
 			{
-				const track_vqvf& track = track_list[transform_index];
-				const track_desc_transformf& desc = track.get_description();
+				const track_desc_transformf& desc = track_list[transform_index].get_description<track_desc_transformf>();
 
 				parent_transform_indices[transform_index] = desc.parent_index;
 				self_transform_indices[transform_index] = transform_index;
@@ -171,15 +180,28 @@ namespace acl
 			itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args_lossy = apply_additive_to_base_args_raw;
 			apply_additive_to_base_args_lossy.local_transforms = lossy_local_pose;
 
+			itransform_error_metric::convert_transforms_args convert_transforms_args_raw;
+			convert_transforms_args_raw.dirty_transform_indices = self_transform_indices;
+			convert_transforms_args_raw.num_dirty_transforms = num_bones;
+			convert_transforms_args_raw.transforms = raw_local_pose;
+			convert_transforms_args_raw.num_transforms = num_bones;
+			convert_transforms_args_raw.sample_index = 0;
+			convert_transforms_args_raw.is_lossy = false;
+			convert_transforms_args_raw.is_additive_base = false;
+
+			itransform_error_metric::convert_transforms_args convert_transforms_args_lossy = convert_transforms_args_raw;
+			convert_transforms_args_lossy.transforms = lossy_local_pose;
+			convert_transforms_args_lossy.is_lossy = true;
+
 			itransform_error_metric::local_to_object_space_args local_to_object_space_args_raw;
 			local_to_object_space_args_raw.dirty_transform_indices = self_transform_indices;
 			local_to_object_space_args_raw.num_dirty_transforms = num_bones;
 			local_to_object_space_args_raw.parent_transform_indices = parent_transform_indices;
-			local_to_object_space_args_raw.local_transforms = raw_local_pose;
+			local_to_object_space_args_raw.local_transforms = needs_conversion ? (const void*)raw_local_pose_converted : (const void*)raw_local_pose;
 			local_to_object_space_args_raw.num_transforms = num_bones;
 
 			itransform_error_metric::local_to_object_space_args local_to_object_space_args_lossy = local_to_object_space_args_raw;
-			local_to_object_space_args_lossy.local_transforms = lossy_local_pose;
+			local_to_object_space_args_lossy.local_transforms = needs_conversion ? (const void*)lossy_local_pose_converted : (const void*)lossy_local_pose;
 
 			track_error worst_bone_error;
 			worst_bone_error.error = -1.0F;		// Can never have a negative error, use -1 so the first sample is used
@@ -205,6 +227,14 @@ namespace acl
 						apply_additive_to_base_impl(settings.error_metric, apply_additive_to_base_args_lossy, lossy_local_pose);
 					}
 
+					if (needs_conversion)
+					{
+						convert_transforms_args_raw.sample_index = segment.clip_sample_offset + sample_index;
+						convert_transforms_args_lossy.sample_index = segment.clip_sample_offset + sample_index;
+						convert_transforms_impl(settings.error_metric, convert_transforms_args_raw, raw_local_pose_converted);
+						convert_transforms_impl(settings.error_metric, convert_transforms_args_lossy, lossy_local_pose_converted);
+					}
+
 					local_to_object_space_impl(settings.error_metric, local_to_object_space_args_raw, raw_object_pose);
 					local_to_object_space_impl(settings.error_metric, local_to_object_space_args_lossy, lossy_object_pose);
 
@@ -213,11 +243,11 @@ namespace acl
 						{
 							for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 							{
-								const track_desc_transformf& desc = track_list[bone_index].get_description();
+								const track_desc_transformf& desc = track_list[bone_index].get_description<track_desc_transformf>();
 
 								itransform_error_metric::calculate_error_args calculate_error_args;
-								calculate_error_args.transform0 = raw_object_pose + bone_index;
-								calculate_error_args.transform1 = lossy_object_pose + bone_index;
+								calculate_error_args.transform0 = raw_object_pose + (metric_transform_size * bone_index);
+								calculate_error_args.transform1 = lossy_object_pose + (metric_transform_size * bone_index);
 								calculate_error_args.construct_sphere_shell(desc.shell_distance);
 
 								const float error_sq = rtm::scalar_cast(calculate_error_squared_impl(settings.error_metric, calculate_error_args));
@@ -246,8 +276,11 @@ namespace acl
 			deallocate_type_array(allocator, base_local_pose, num_bones);
 			deallocate_type_array(allocator, lossy_local_pose, num_bones);
 
-			deallocate_type_array(allocator, raw_object_pose, num_bones);
-			deallocate_type_array(allocator, lossy_object_pose, num_bones);
+			deallocate_type_array(allocator, raw_local_pose_converted, metric_transform_size * num_bones);
+			deallocate_type_array(allocator, lossy_local_pose_converted, metric_transform_size * num_bones);
+
+			deallocate_type_array(allocator, raw_object_pose, metric_transform_size * num_bones);
+			deallocate_type_array(allocator, lossy_object_pose, metric_transform_size * num_bones);
 
 			deallocate_type_array(allocator, parent_transform_indices, num_bones);
 			deallocate_type_array(allocator, self_transform_indices, num_bones);
@@ -365,9 +398,9 @@ namespace acl
 				if (bone_stream.is_stripped_from_output())
 					continue;
 
-				// Range data
+				// Range data, a uniform scale stores only its X component
 				if (are_any_enum_flags_set(range_reduction, range_reduction_flags8::scales) && !bone_stream.is_scale_constant)
-					result += k_segment_range_reduction_num_bytes_per_component * 6;
+					result += k_segment_range_reduction_num_bytes_per_component * (clip.has_uniform_scale ? 2 : 6);
 			}
 
 			return result * clip.num_segments;
@@ -413,7 +446,7 @@ namespace acl
 			return result;
 		}
 
-		inline void write_stats(iallocator& allocator, const track_array_vqvf& track_list, const clip_context& clip,
+		inline void write_stats(iallocator& allocator, const track_array& track_list, const clip_context& clip,
 			const compressed_tracks& compressed_clip, const compression_settings& settings, const compression_segmenting_settings& segmenting_settings,
 			range_reduction_flags8 range_reduction, const clip_context& raw_clip,
 			const clip_context& additive_base_clip_context,
@@ -546,7 +579,8 @@ namespace acl
 				const uint32_t clip_metadata_common_size = calculate_clip_metadata_common_size(clip, compressed_clip);
 				const uint32_t clip_metadata_rotation_constant_size = get_packed_rotation_size(get_highest_variant_precision(get_rotation_variant(settings.rotation_format))) * num_constant_rotation_tracks;
 				const uint32_t clip_metadata_translation_constant_size = get_packed_vector_size(vector_format8::vector3f_full) * num_constant_translation_tracks;
-				const uint32_t clip_metadata_scale_constant_size = get_packed_vector_size(vector_format8::vector3f_full) * num_constant_scale_tracks;
+				const uint32_t scale_constant_size = clip.has_uniform_scale ? uint32_t(sizeof(float)) : get_packed_vector_size(vector_format8::vector3f_full);
+				const uint32_t clip_metadata_scale_constant_size = scale_constant_size * num_constant_scale_tracks;
 				writer["clip_header_size"] = clip_header_size;
 				writer["clip_metadata_common_size"] = clip_metadata_common_size;
 				writer["clip_metadata_rotation_constant_size"] = clip_metadata_rotation_constant_size;
@@ -555,7 +589,8 @@ namespace acl
 
 				const uint32_t range_rotation_size = are_any_enum_flags_set(range_reduction, range_reduction_flags8::rotations) ? get_range_reduction_rotation_size(settings.rotation_format) : 0;
 				const uint32_t range_translation_size = are_any_enum_flags_set(range_reduction, range_reduction_flags8::translations) ? k_clip_range_reduction_vector3_range_size : 0;
-				const uint32_t range_scale_size = are_any_enum_flags_set(range_reduction, range_reduction_flags8::scales) ? k_clip_range_reduction_vector3_range_size : 0;
+				const uint32_t scale_range_size = clip.has_uniform_scale ? k_clip_range_reduction_scalar_range_size : k_clip_range_reduction_vector3_range_size;
+				const uint32_t range_scale_size = are_any_enum_flags_set(range_reduction, range_reduction_flags8::scales) ? scale_range_size : 0;
 				const uint32_t clip_metadata_rotation_animated_size = range_rotation_size * num_animated_rotation_tracks;
 				const uint32_t clip_metadata_translation_animated_size = range_translation_size * num_animated_translation_tracks;
 				const uint32_t clip_metadata_scale_animated_size = range_scale_size * num_animated_scale_tracks;
@@ -680,6 +715,8 @@ namespace acl
 
 	ACL_IMPL_VERSION_NAMESPACE_END
 }
+
+ACL_IMPL_DEPRECATION_WARNING_POP
 
 ACL_IMPL_FILE_PRAGMA_POP
 

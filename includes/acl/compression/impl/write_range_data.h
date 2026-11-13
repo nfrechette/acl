@@ -56,7 +56,9 @@ namespace acl
 		{
 			const uint32_t rotation_size = are_any_enum_flags_set(range_reduction, range_reduction_flags8::rotations) ? get_range_reduction_rotation_size(rotation_format) : 0;
 			const uint32_t translation_size = are_any_enum_flags_set(range_reduction, range_reduction_flags8::translations) ? k_clip_range_reduction_vector3_range_size : 0;
-			const uint32_t scale_size = are_any_enum_flags_set(range_reduction, range_reduction_flags8::scales) ? k_clip_range_reduction_vector3_range_size : 0;
+			// A uniform scale stores only its X component: min.x and extent.x
+			const uint32_t scale_range_size = clip.has_uniform_scale ? k_clip_range_reduction_scalar_range_size : k_clip_range_reduction_vector3_range_size;
+			const uint32_t scale_size = are_any_enum_flags_set(range_reduction, range_reduction_flags8::scales) ? scale_range_size : 0;
 			uint32_t range_data_size = 0;
 
 			// Only use the first segment, it contains the necessary information
@@ -143,7 +145,9 @@ namespace acl
 				}
 			};
 
-			auto group_flush_action = [rotation_format, &range_data, range_data_end, &range_group_min, &range_group_extent](animation_track_type8 group_type, uint32_t group_size)
+			const bool has_uniform_scale = clip.has_uniform_scale;
+
+			auto group_flush_action = [rotation_format, has_uniform_scale, &range_data, range_data_end, &range_group_min, &range_group_extent](animation_track_type8 group_type, uint32_t group_size)
 			{
 				if (group_type == animation_track_type8::rotation)
 				{
@@ -183,6 +187,19 @@ namespace acl
 						std::memcpy(range_data + group_size * sizeof(float) * 5, &range_group_extent[2], group_size * sizeof(float));	// zzzz
 
 						range_data += group_size * sizeof(float) * 6;
+					}
+				}
+				else if (group_type == animation_track_type8::scale && has_uniform_scale)
+				{
+					// 2x float, a uniform scale stores only its X component
+					for (uint32_t group_index = 0; group_index < group_size; ++group_index)
+					{
+						ACL_ASSERT(rtm::vector_all_equal3(range_group_min[group_index], rtm::vector_dup_x(range_group_min[group_index])), "Expected a uniform scale");
+						ACL_ASSERT(rtm::vector_all_equal3(range_group_extent[group_index], rtm::vector_dup_x(range_group_extent[group_index])), "Expected a uniform scale");
+
+						std::memcpy(range_data, &range_group_min[group_index], sizeof(float));
+						std::memcpy(range_data + sizeof(float), &range_group_extent[group_index], sizeof(float));
+						range_data += sizeof(float) * 2;
 					}
 				}
 				else
@@ -225,8 +242,13 @@ namespace acl
 
 			// For rotations contains: min.xxxx, min.yyyy, min.zzzz, extent.xxxx, extent.yyyy, extent.zzzz
 			// For trans/scale: min0.xyz, extent0.xyz, min1.xyz, extent1.xyz, min2.xyz, extent2.xyz, min3.xyz, extent3.xyz
+			// For a uniform scale: min0.x, extent0.x, min1.x, extent1.x, min2.x, extent2.x, min3.x, extent3.x
 			// To keep decompression simpler, rotations are padded to 4 elements even if the last group is partial
 			alignas(16) uint8_t range_data_group[6 * 4] = { 0 };
+
+			// A uniform scale stores only its X component
+			const bool has_uniform_scale = segment.clip->has_uniform_scale;
+			const uint32_t scale_range_entry_size = has_uniform_scale ? 2 : 6;
 
 			auto group_filter_action = [range_reduction](animation_track_type8 group_type, uint32_t bone_index)
 			{
@@ -240,7 +262,7 @@ namespace acl
 					return are_any_enum_flags_set(range_reduction, range_reduction_flags8::scales);
 			};
 
-			auto group_entry_action = [&segment, &range_data_group](animation_track_type8 group_type, uint32_t group_size, uint32_t bone_index)
+			auto group_entry_action = [&segment, has_uniform_scale, &range_data_group](animation_track_type8 group_type, uint32_t group_size, uint32_t bone_index)
 			{
 				const transform_streams& bone_stream = segment.bone_streams[bone_index];
 				if (group_type == animation_track_type8::rotation)
@@ -299,6 +321,37 @@ namespace acl
 						pack_vector3_u24_unsafe(range_extent, sub_track_range_data + 3);
 					}
 				}
+				else if (has_uniform_scale)
+				{
+					// A uniform scale stores only its X component
+					uint8_t* sub_track_range_data = &range_data_group[group_size * 2];
+
+					if (is_constant_bit_rate(bone_stream.scales.get_bit_rate()))
+					{
+						// The sample has 16 bits per component, X comes first
+						const uint8_t* sample = bone_stream.scales.get_raw_sample_ptr(0);
+						ACL_ASSERT(sample[0] == sample[2] && sample[0] == sample[4] && sample[1] == sample[3] && sample[1] == sample[5], "Expected a uniform scale");
+						std::memcpy(sub_track_range_data, sample, 2);
+					}
+					else
+					{
+						const transform_range& bone_range = segment.ranges[bone_index];
+
+						const rtm::vector4f range_min = bone_range.scale.get_min();
+						const rtm::vector4f range_extent = bone_range.scale.get_extent();
+
+						alignas(16) uint8_t range_min_buffer[16];
+						alignas(16) uint8_t range_extent_buffer[16];
+						pack_vector3_u24_unsafe(range_min, range_min_buffer);
+						pack_vector3_u24_unsafe(range_extent, range_extent_buffer);
+
+						ACL_ASSERT(range_min_buffer[0] == range_min_buffer[1] && range_min_buffer[0] == range_min_buffer[2], "Expected a uniform scale");
+						ACL_ASSERT(range_extent_buffer[0] == range_extent_buffer[1] && range_extent_buffer[0] == range_extent_buffer[2], "Expected a uniform scale");
+
+						sub_track_range_data[0] = range_min_buffer[0];
+						sub_track_range_data[1] = range_extent_buffer[0];
+					}
+				}
 				else
 				{
 					if (is_constant_bit_rate(bone_stream.scales.get_bit_rate()))
@@ -321,11 +374,12 @@ namespace acl
 				}
 			};
 
-			auto group_flush_action = [&range_data, range_data_end, &range_data_group](animation_track_type8 group_type, uint32_t group_size)
+			auto group_flush_action = [scale_range_entry_size, &range_data, range_data_end, &range_data_group](animation_track_type8 group_type, uint32_t group_size)
 			{
 				const size_t copy_size = group_type == animation_track_type8::rotation ? 4 : group_size;
-				std::memcpy(range_data, &range_data_group[0], copy_size * 6);
-				range_data += copy_size * 6;
+				const size_t entry_size = group_type == animation_track_type8::scale ? scale_range_entry_size : 6;
+				std::memcpy(range_data, &range_data_group[0], copy_size * entry_size);
+				range_data += copy_size * entry_size;
 
 				// Zero out the temporary buffer for the final group to not contain partial garbage
 				std::memset(&range_data_group[0], 0, sizeof(range_data_group));

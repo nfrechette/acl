@@ -33,6 +33,8 @@
 #include <rtm/vector4f.h>
 
 #include <cstdint>
+#include <type_traits>
+#include <utility>
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
@@ -213,7 +215,63 @@ namespace acl
 			(void)track_index;
 			(void)scale;
 		}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Optional: a VQS clip (vqsf) has a uniform scale. To receive it as a single value,
+		// add this overload to your track writer:
+		//
+		//    void RTM_SIMD_CALL write_scale(uint32_t track_index, rtm::scalarf_arg0 scale);
+		//
+		// When your track writer does not have this overload, the decoder calls the
+		// vector4f overload above with the uniform scale in [xyzw].
+		// This base struct does not declare the overload: if it did, a track writer that
+		// only overrides the vector4f overload with a 'using' declaration would receive no scale.
 	};
+
+	namespace acl_impl
+	{
+		//////////////////////////////////////////////////////////////////////////
+		// Detects if a track writer has the 'write_scale(uint32_t, rtm::scalarf_arg0)' overload.
+		template<class track_writer_type, class enable_type = void>
+		struct has_uniform_scale_writer : std::false_type {};
+
+		template<class track_writer_type>
+		struct has_uniform_scale_writer<track_writer_type,
+			decltype(std::declval<track_writer_type&>().write_scale(uint32_t(0), std::declval<rtm::scalarf>()), void())> : std::true_type {};
+
+		template<class track_writer_type>
+		RTM_FORCE_INLINE void RTM_SIMD_CALL write_uniform_scale_impl(track_writer_type& writer, uint32_t track_index, rtm::scalarf_arg0 scale, std::true_type)
+		{
+			writer.write_scale(track_index, scale);
+		}
+
+		template<class track_writer_type>
+		RTM_FORCE_INLINE void RTM_SIMD_CALL write_uniform_scale_impl(track_writer_type& writer, uint32_t track_index, rtm::scalarf_arg0 scale, std::false_type)
+		{
+			writer.write_scale(track_index, rtm::vector_set(scale));
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Writes a uniform scale value with the scalarf overload of 'write_scale' when the track writer has it.
+		// Otherwise, it writes the value in [xyzw] with the vector4f overload.
+		template<class track_writer_type>
+		RTM_FORCE_INLINE void RTM_SIMD_CALL write_uniform_scale(track_writer_type& writer, uint32_t track_index, rtm::scalarf_arg0 scale)
+		{
+			write_uniform_scale_impl(writer, track_index, scale, has_uniform_scale_writer<track_writer_type>());
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Writes a scale value. When 'is_uniform' is true, the value must be in [xyz] and
+		// we write the X component as a uniform scale.
+		template<class track_writer_type>
+		RTM_FORCE_INLINE void RTM_SIMD_CALL write_scale(track_writer_type& writer, uint32_t track_index, rtm::vector4f_arg0 scale, bool is_uniform)
+		{
+			if (is_uniform)
+				write_uniform_scale(writer, track_index, rtm::vector_get_x_as_scalar(scale));
+			else
+				writer.write_scale(track_index, scale);
+		}
+	}
 
 	ACL_IMPL_VERSION_NAMESPACE_END
 }

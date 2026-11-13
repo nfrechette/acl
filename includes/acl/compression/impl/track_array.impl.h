@@ -340,6 +340,85 @@ namespace acl
 					writer.write_scale(track_index, scale);
 				}
 				break;
+			case track_type8::vqf:
+				for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+				{
+					const track_vqf& track_ = track_cast<track_vqf>(array[track_index]);
+
+					const sample_rounding_policy rounding_policy_ = writer.get_rounding_policy(rounding_policy, track_index);
+					ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
+					const float alpha = interpolation_alpha_per_policy[static_cast<int>(rounding_policy_)];
+
+					// True if interpolation alpha is 0.0, false otherwise
+					const rtm::mask4f no_rounding_mask = rtm::vector_equal(rtm::vector_set(alpha), rtm::vector_zero());
+
+					const rtm::vqf& value0 = track_[key_frame0];
+					const rtm::vqf& value1 = track_[key_frame1];
+
+					// We normalize rotations for safety, just like we do during compression when building the raw context
+					const rtm::quatf rotation0 = acl_impl::quat_normalize_stable(value0.rotation);
+					const rtm::quatf rotation1 = acl_impl::quat_normalize_stable(value1.rotation);
+
+					rtm::quatf rotation;
+					rtm::vector4f translation;
+
+					// Quat lerp isn't truly stable since we normalize, ensure we return a stable value explicitly
+					if (rounding_policy_ != sample_rounding_policy::none)
+					{
+						rotation = rtm::vector_to_quat(rtm::vector_select(no_rounding_mask, rtm::quat_to_vector(rotation0), rtm::quat_to_vector(rotation1)));
+						translation = rtm::vector_select(no_rounding_mask, value0.translation, value1.translation);
+					}
+					else
+					{
+						rotation = acl_impl::quat_lerp_stable(rotation0, rotation1, alpha);
+						translation = rtm::vector_lerp(value0.translation, value1.translation, alpha);
+					}
+
+					// A VQ track has no scale, we do not write it
+					writer.write_rotation(track_index, rotation);
+					writer.write_translation(track_index, translation);
+				}
+				break;
+			case track_type8::vqsf:
+				for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+				{
+					const track_vqsf& track_ = track_cast<track_vqsf>(array[track_index]);
+
+					const sample_rounding_policy rounding_policy_ = writer.get_rounding_policy(rounding_policy, track_index);
+					ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
+					const float alpha = interpolation_alpha_per_policy[static_cast<int>(rounding_policy_)];
+
+					// True if interpolation alpha is 0.0, false otherwise
+					const rtm::mask4f no_rounding_mask = rtm::vector_equal(rtm::vector_set(alpha), rtm::vector_zero());
+
+					const rtm::vqsf& value0 = track_[key_frame0];
+					const rtm::vqsf& value1 = track_[key_frame1];
+
+					// We normalize rotations for safety, just like we do during compression when building the raw context
+					const rtm::quatf rotation0 = acl_impl::quat_normalize_stable(value0.rotation);
+					const rtm::quatf rotation1 = acl_impl::quat_normalize_stable(value1.rotation);
+
+					rtm::quatf rotation;
+					rtm::vector4f translation_scale;
+
+					// Quat lerp isn't truly stable since we normalize, ensure we return a stable value explicitly
+					if (rounding_policy_ != sample_rounding_policy::none)
+					{
+						rotation = rtm::vector_to_quat(rtm::vector_select(no_rounding_mask, rtm::quat_to_vector(rotation0), rtm::quat_to_vector(rotation1)));
+						translation_scale = rtm::vector_select(no_rounding_mask, value0.translation_scale, value1.translation_scale);
+					}
+					else
+					{
+						rotation = acl_impl::quat_lerp_stable(rotation0, rotation1, alpha);
+						translation_scale = rtm::vector_lerp(value0.translation_scale, value1.translation_scale, alpha);
+					}
+
+					// A VQS track has a uniform scale in [w]
+					writer.write_rotation(track_index, rotation);
+					writer.write_translation(track_index, translation_scale);
+					acl_impl::write_uniform_scale(writer, track_index, rtm::vector_get_w_as_scalar(translation_scale));
+				}
+				break;
 			default:
 				ACL_ASSERT(false, "Invalid track type");
 				break;
@@ -597,6 +676,75 @@ namespace acl
 				writer.write_scale(track_index, scale);
 				break;
 			}
+			case track_type8::vqf:
+			{
+				const track_vqf& track__ = track_cast<track_vqf>(track_);
+
+				const rtm::vqf& value0 = track__[key_frame0];
+				const rtm::vqf& value1 = track__[key_frame1];
+
+				// We normalize rotations for safety, just like we do during compression when building the raw context
+				const rtm::quatf rotation0 = acl_impl::quat_normalize_stable(value0.rotation);
+				const rtm::quatf rotation1 = acl_impl::quat_normalize_stable(value1.rotation);
+
+				rtm::quatf rotation;
+				rtm::vector4f translation;
+
+				// Quat lerp isn't truly stable since we normalize, ensure we return a stable value explicitly
+				if (rounding_policy != sample_rounding_policy::none)
+				{
+					// True if interpolation alpha is 0.0, false otherwise
+					const rtm::mask4f no_rounding_mask = rtm::vector_equal(rtm::vector_set(interpolation_alpha), rtm::vector_zero());
+
+					rotation = rtm::vector_to_quat(rtm::vector_select(no_rounding_mask, rtm::quat_to_vector(rotation0), rtm::quat_to_vector(rotation1)));
+					translation = rtm::vector_select(no_rounding_mask, value0.translation, value1.translation);
+				}
+				else
+				{
+					rotation = acl_impl::quat_lerp_stable(rotation0, rotation1, interpolation_alpha);
+					translation = rtm::vector_lerp(value0.translation, value1.translation, interpolation_alpha);
+				}
+
+				// A VQ track has no scale, we do not write it
+				writer.write_rotation(track_index, rotation);
+				writer.write_translation(track_index, translation);
+				break;
+			}
+			case track_type8::vqsf:
+			{
+				const track_vqsf& track__ = track_cast<track_vqsf>(track_);
+
+				const rtm::vqsf& value0 = track__[key_frame0];
+				const rtm::vqsf& value1 = track__[key_frame1];
+
+				// We normalize rotations for safety, just like we do during compression when building the raw context
+				const rtm::quatf rotation0 = acl_impl::quat_normalize_stable(value0.rotation);
+				const rtm::quatf rotation1 = acl_impl::quat_normalize_stable(value1.rotation);
+
+				rtm::quatf rotation;
+				rtm::vector4f translation_scale;
+
+				// Quat lerp isn't truly stable since we normalize, ensure we return a stable value explicitly
+				if (rounding_policy != sample_rounding_policy::none)
+				{
+					// True if interpolation alpha is 0.0, false otherwise
+					const rtm::mask4f no_rounding_mask = rtm::vector_equal(rtm::vector_set(interpolation_alpha), rtm::vector_zero());
+
+					rotation = rtm::vector_to_quat(rtm::vector_select(no_rounding_mask, rtm::quat_to_vector(rotation0), rtm::quat_to_vector(rotation1)));
+					translation_scale = rtm::vector_select(no_rounding_mask, value0.translation_scale, value1.translation_scale);
+				}
+				else
+				{
+					rotation = acl_impl::quat_lerp_stable(rotation0, rotation1, interpolation_alpha);
+					translation_scale = rtm::vector_lerp(value0.translation_scale, value1.translation_scale, interpolation_alpha);
+				}
+
+				// A VQS track has a uniform scale in [w]
+				writer.write_rotation(track_index, rotation);
+				writer.write_translation(track_index, translation_scale);
+				acl_impl::write_uniform_scale(writer, track_index, rtm::vector_get_w_as_scalar(translation_scale));
+				break;
+			}
 			default:
 				ACL_ASSERT(false, "Invalid track type");
 				break;
@@ -727,6 +875,10 @@ namespace acl
 
 			if (track_type == track_type8::vqvf)
 				total_size += num_samples * 10 * uint32_t(sizeof(float));	// 4 rotation floats, 3 translation floats, 3 scale floats
+			else if (track_type == track_type8::vqf)
+				total_size += num_samples * 7 * uint32_t(sizeof(float));	// 4 rotation floats, 3 translation floats
+			else if (track_type == track_type8::vqsf)
+				total_size += num_samples * 8 * uint32_t(sizeof(float));	// 4 rotation floats, 3 translation floats, 1 scale float
 			else
 				total_size += num_samples * track_.get_sample_size();
 		}

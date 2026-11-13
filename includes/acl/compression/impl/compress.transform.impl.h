@@ -50,6 +50,8 @@
 #include "acl/compression/impl/quantize.transform.h"
 #include "acl/compression/impl/segment.transform.h"
 #include "acl/compression/impl/topology_metadata.h"
+#include "acl/compression/impl/transform_runtime_error_metric.h"
+#include "acl/compression/impl/transform_track_utils.h"
 #include "acl/compression/impl/write_segment_data.h"
 #include "acl/compression/impl/write_stats.h"
 #include "acl/compression/impl/write_stream_data.h"
@@ -67,14 +69,20 @@
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
+// This file reads the deprecated error metric of the settings
+ACL_IMPL_DEPRECATION_WARNING_PUSH
+
 namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
 	namespace acl_impl
 	{
-		inline bool has_trivial_default_values(const track_array_vqvf& track_list, additive_clip_format8 additive_format, const clip_context& lossy_clip_context)
+		inline bool has_trivial_default_values(const track_array& track_list, additive_clip_format8 additive_format, const clip_context& lossy_clip_context)
 		{
+			// A VQ track has no scale, its default value uses this scale
+			const rtm::vector4f vq_scale = rtm::vector_set(get_additive_default_scale(additive_format));
+
 			// Additive clips and regular clips can have zero/one scale and be trivial
 			bool all_scales_zero = true;
 			bool all_scales_one = true;
@@ -82,9 +90,9 @@ namespace acl
 			const rtm::vector4f zero = rtm::vector_zero();
 			const rtm::vector4f one = rtm::vector_set(1.0F);
 
-			for (const track_vqvf& track : track_list)
+			for (const track& track_ : track_list)
 			{
-				const track_desc_transformf& desc = track.get_description();
+				const track_desc_transformf desc = get_transform_track_desc(track_, vq_scale);
 
 				if (!rtm::quat_near_identity(desc.default_value.rotation, 0.0F))
 					return false;	// Not the identity
@@ -136,13 +144,38 @@ namespace acl
 				return compression_level8::medium;
 		}
 
-		inline error_result compress_transform_track_list(iallocator& allocator, const track_array_vqvf& track_list, compression_settings settings,
-			const track_array_vqvf* additive_base_track_list, additive_clip_format8 additive_format,
+		inline error_result compress_transform_track_list(iallocator& allocator, const track_array& track_list, compression_settings settings,
+			const track_array* additive_base_track_list, additive_clip_format8 additive_format,
 			compressed_tracks*& out_compressed_tracks, output_stats& out_stats)
 		{
+			ACL_ASSERT(track_list.is_empty() || is_transform_track_type(track_list.get_track_type()), "Expected transform tracks");
+
+			// An empty track array has no type, we use vqvf
+			const track_type8 track_type = track_list.is_empty() ? track_type8::vqvf : track_list.get_track_type();
+
 			error_result result = settings.is_valid();
 			if (result.any())
 				return result;
+
+			// When the settings do not supply a legacy error metric, we use the runtime transform type
+			// and the transform metric of the settings
+			transform_runtime_error_metric runtime_error_metric;
+			const bool use_runtime_error_metric = settings.error_metric == nullptr;
+			if (use_runtime_error_metric)
+			{
+				result = runtime_error_metric.initialize(
+					settings.transform_runtime_type, settings.custom_transform_adapter, settings.transform_metric,
+					track_type, additive_format, additive_base_track_list);
+				if (result.any())
+					return result;
+
+				// The runtime error metric holds the selection, the settings now use it as their error metric
+				// We clear the other values: the settings cannot have both
+				settings.error_metric = &runtime_error_metric;
+				settings.transform_runtime_type = transform_runtime_type_t::automatic;
+				settings.custom_transform_adapter = nullptr;
+				settings.transform_metric = nullptr;
+			}
 
 			compression_stats_t compression_stats;
 			(void)compression_stats;
@@ -211,7 +244,7 @@ namespace acl
 
 			const bool is_additive = additive_format != additive_clip_format8::none;
 			clip_context additive_base_clip_context;
-			if (is_additive && !initialize_clip_context(allocator, *additive_base_track_list, settings, additive_format, additive_base_clip_context))
+			if (is_additive && !initialize_clip_context(allocator, *additive_base_track_list, settings, additive_format, additive_base_clip_context, true))
 				return error_result("Some base samples are not finite");
 
 			if (settings.level == compression_level8::automatic)
@@ -263,6 +296,10 @@ namespace acl
 			// Compact and collapse the constant streams
 			compact_constant_streams(allocator, lossy_clip_context, additive_base_clip_context, track_list, settings, compression_stats);
 
+			// We now know whether the clip has scale
+			if (use_runtime_error_metric)
+				runtime_error_metric.set_clip_has_scale(lossy_clip_context.has_scale);
+
 			uint32_t clip_range_data_size = 0;
 			if (range_reduction != range_reduction_flags8::none)
 			{
@@ -284,7 +321,9 @@ namespace acl
 			}
 
 			// Find how many bits we need per sub-track and quantize everything
-			quantize_streams(allocator, lossy_clip_context, settings, segmenting_settings, raw_clip_context, additive_base_clip_context, out_stats, compression_stats);
+			// The bit rate algorithm v2 uses the transform adapters and the transform metrics of the runtime error metric directly
+			const transform_runtime_error_metric* quantization_runtime_error_metric = use_runtime_error_metric ? &runtime_error_metric : nullptr;
+			quantize_streams(allocator, lossy_clip_context, settings, segmenting_settings, raw_clip_context, additive_base_clip_context, quantization_runtime_error_metric, out_stats, compression_stats);
 
 			uint32_t num_output_bones = 0;
 			uint32_t* output_bone_mapping = create_output_track_mapping(allocator, track_list, num_output_bones);
@@ -430,7 +469,7 @@ namespace acl
 			header->tag = static_cast<uint32_t>(buffer_tag32::compressed_tracks);
 			header->version = compressed_tracks_version16::latest;
 			header->algorithm_type = algorithm_type8::uniformly_sampled;
-			header->track_type = track_list.get_track_type();
+			header->track_type = track_type;
 			header->num_tracks = num_output_bones;
 			header->num_samples = num_output_bones != 0 ? lossy_clip_context.num_samples : 0;
 			header->sample_rate = num_output_bones != 0 ? lossy_clip_context.sample_rate : 0.0F;
@@ -439,7 +478,7 @@ namespace acl
 			header->set_scale_format(settings.scale_format);
 			header->set_has_scale(lossy_clip_context.has_scale);
 			// Our default scale is 1.0 if we have no additive base or if we don't use 'additive1', otherwise it is 0.0
-			header->set_default_scale(!is_additive || additive_format != additive_clip_format8::additive1 ? 1U : 0U);
+			header->set_default_scale(uint32_t(get_additive_default_scale(additive_format)));
 			header->set_has_database(false);
 			header->set_has_trivial_default_values(has_trivial_defaults);
 			header->set_has_stripped_keyframes(lossy_clip_context.has_stripped_keyframes);
@@ -481,7 +520,7 @@ namespace acl
 			if (range_reduction != range_reduction_flags8::none)
 				written_clip_range_data_size = write_clip_range_data(lossy_clip_context, range_reduction, transforms_header->get_clip_range_data(), clip_range_data_size, output_bone_mapping, num_output_bones);
 
-			const uint32_t written_segment_data_size = write_segment_data(lossy_clip_context, settings, range_reduction, transforms_header->get_segment_headers(), *transforms_header, output_bone_mapping, num_output_bones);
+			const uint32_t written_segment_data_size = write_segment_data(lossy_clip_context, settings, range_reduction, transforms_header->get_segment_headers(), *header, *transforms_header, output_bone_mapping, num_output_bones);
 
 			// Optional metadata header is last
 			uint32_t writter_metadata_track_list_name_size = 0;
@@ -628,5 +667,7 @@ namespace acl
 
 	ACL_IMPL_VERSION_NAMESPACE_END
 }
+
+ACL_IMPL_DEPRECATION_WARNING_POP
 
 ACL_IMPL_FILE_PRAGMA_POP

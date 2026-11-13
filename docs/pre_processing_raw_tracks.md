@@ -12,7 +12,7 @@ Pre-processing actions can be *lossy* or *lossless*. See `pre_process_actions` a
 
 With [extended samples](extended_samples.md), `pre_process_track_list(..)` changes only the sample values. The sample interpolators do not change.
 
-When pre-processing transform tracks, selecting the right [error metric](error_metrics.md) is important and you will want to carefully pick the one that best approximates how your game engine performs skinning. You will need to use the same error metric for pre-processing and compression.
+When pre-processing transform tracks, selecting the right [runtime transform type](error_metrics.md) is important: select the one that your game engine uses to compose transforms. Use the same `transform_runtime_type`, `custom_transform_adapter`, and `transform_metric` for pre-processing and compression. They have the same defaults as in the compression settings.
 
 ```c++
 #include <acl/compression/pre_process.h>
@@ -23,11 +23,39 @@ pre_process_settings_t settings;
 settings.actions = pre_process_actions::recommended;
 settings.precision_policy = pre_process_precision_policy::lossy;
 
-// Required for transform track pre-processing
-vqvf_transform_error_metric error_metric;
-settings.error_metric = &error_metric;
+// Optional: use the same runtime transform type as compression
+// settings.transform_runtime_type = transform_runtime_type_t::vqvf;
 
 pre_process_track_list(allocator, settings, transform_tracks);
+```
+
+## Transform type conversion
+
+The `convert_transform_type` action converts transform tracks into the type of `settings.transform_type` (`vqvf`, `vqsf`, or `vqf`). It is not part of the recommended actions, because it changes the type of the compressed tracks. Compression never changes the type of the raw tracks.
+
+The three types hold more and more scale information: `vqf` has no scale, `vqsf` has a uniform scale, and `vqvf` has a 3D scale.
+
+*  A promotion (for example `vqf` -> `vqsf`, or `vqsf` -> `vqvf`) always succeeds and is lossless. When the source has no scale, each new scale is the identity of the additive format: 0.0 with `additive1`, 1.0 otherwise.
+*  A demotion to `vqf` removes the scale. It happens only when no track needs its scale. With the lossless policy, each scale sample must be exactly the identity. With the lossy policy, the error must stay within the precision of each track when its scale becomes the identity.
+*  A demotion from `vqvf` to `vqsf` makes each scale uniform. It happens only when no track needs a non-uniform scale. With the lossless policy, the X, Y, and Z components of each scale sample must be exactly equal. With the lossy policy, the error must stay within the precision of each track when its scale becomes the mean of its X, Y, and Z components.
+
+When a track needs its scale, the tracks keep their type.
+
+This action runs last. Thus, with the lossy policy, `sanitize_constant_tracks` and `sanitize_default_tracks` run first.
+
+A typed track array (for example `track_array_vqvf`) cannot change its type. To convert, give `pre_process_track_list(..)` a `track_array`. With a typed track array, the action returns an error when the type must change.
+
+```c++
+// Compress the clips without scale as VQ tracks
+pre_process_settings_t settings;
+settings.actions = pre_process_actions::recommended | pre_process_actions::convert_transform_type;
+settings.precision_policy = pre_process_precision_policy::lossy;
+settings.transform_type = track_type8::vqf;
+
+track_array transform_tracks = std::move(raw_vqv_tracks);
+pre_process_track_list(allocator, settings, transform_tracks);
+
+// transform_tracks.get_track_type() is now vqf if no track needs its scale
 ```
 
 See [pre_process.h](../includes/acl/compression/pre_process.h) for API and other usage details.

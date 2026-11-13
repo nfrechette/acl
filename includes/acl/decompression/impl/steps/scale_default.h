@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "acl/version.h"
+#include "acl/core/track_writer.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/decompression/impl/steps/step_context.h"
 
@@ -53,6 +54,7 @@ namespace acl
 			uint32_t last_entry_index,
 			uint32_t padding_mask,
 			rtm::vector4f_arg3 legacy_default_scale,
+			bool is_uniform_scale,
 			track_writer_type& writer)
 		{
 			if (track_writer_type::skip_all_scales())
@@ -118,9 +120,9 @@ namespace acl
 						if (!writer.skip_track_scale(track_index0))
 						{
 							if (default_mode == default_sub_track_mode::variable)
-								writer.write_scale(track_index0, writer.get_variable_default_scale(track_index0));
+								acl_impl::write_scale(writer, track_index0, writer.get_variable_default_scale(track_index0), is_uniform_scale);
 							else
-								writer.write_scale(track_index0, default_scale);
+								acl_impl::write_scale(writer, track_index0, default_scale, is_uniform_scale);
 						}
 					}
 
@@ -131,9 +133,9 @@ namespace acl
 						if (!writer.skip_track_scale(track_index1))
 						{
 							if (default_mode == default_sub_track_mode::variable)
-								writer.write_scale(track_index1, writer.get_variable_default_scale(track_index1));
+								acl_impl::write_scale(writer, track_index1, writer.get_variable_default_scale(track_index1), is_uniform_scale);
 							else
-								writer.write_scale(track_index1, default_scale);
+								acl_impl::write_scale(writer, track_index1, default_scale, is_uniform_scale);
 						}
 					}
 
@@ -144,9 +146,9 @@ namespace acl
 						if (!writer.skip_track_scale(track_index2))
 						{
 							if (default_mode == default_sub_track_mode::variable)
-								writer.write_scale(track_index2, writer.get_variable_default_scale(track_index2));
+								acl_impl::write_scale(writer, track_index2, writer.get_variable_default_scale(track_index2), is_uniform_scale);
 							else
-								writer.write_scale(track_index2, default_scale);
+								acl_impl::write_scale(writer, track_index2, default_scale, is_uniform_scale);
 						}
 					}
 
@@ -157,9 +159,9 @@ namespace acl
 						if (!writer.skip_track_scale(track_index3))
 						{
 							if (default_mode == default_sub_track_mode::variable)
-								writer.write_scale(track_index3, writer.get_variable_default_scale(track_index3));
+								acl_impl::write_scale(writer, track_index3, writer.get_variable_default_scale(track_index3), is_uniform_scale);
 							else
-								writer.write_scale(track_index3, default_scale);
+								acl_impl::write_scale(writer, track_index3, default_scale, is_uniform_scale);
 						}
 					}
 				}
@@ -173,6 +175,7 @@ namespace acl
 			uint32_t last_entry_index,
 			uint32_t padding_mask,
 			rtm::vector4f_arg3 legacy_default_scale,
+			bool is_uniform_scale,
 			track_writer_type& writer)
 		{
 			if (track_writer_type::skip_all_scales())
@@ -240,9 +243,9 @@ namespace acl
 							if (!writer.skip_track_scale(track_index0))
 							{
 								if (default_mode == default_sub_track_mode::variable)
-									writer.write_scale(track_index0, writer.get_variable_default_scale(track_index0));
+									acl_impl::write_scale(writer, track_index0, writer.get_variable_default_scale(track_index0), is_uniform_scale);
 								else
-									writer.write_scale(track_index0, default_scale);
+									acl_impl::write_scale(writer, track_index0, default_scale, is_uniform_scale);
 							}
 						}
 
@@ -253,9 +256,9 @@ namespace acl
 							if (!writer.skip_track_scale(track_index1))
 							{
 								if (default_mode == default_sub_track_mode::variable)
-									writer.write_scale(track_index1, writer.get_variable_default_scale(track_index1));
+									acl_impl::write_scale(writer, track_index1, writer.get_variable_default_scale(track_index1), is_uniform_scale);
 								else
-									writer.write_scale(track_index1, default_scale);
+									acl_impl::write_scale(writer, track_index1, default_scale, is_uniform_scale);
 							}
 						}
 
@@ -266,9 +269,9 @@ namespace acl
 							if (!writer.skip_track_scale(track_index2))
 							{
 								if (default_mode == default_sub_track_mode::variable)
-									writer.write_scale(track_index2, writer.get_variable_default_scale(track_index2));
+									acl_impl::write_scale(writer, track_index2, writer.get_variable_default_scale(track_index2), is_uniform_scale);
 								else
-									writer.write_scale(track_index2, default_scale);
+									acl_impl::write_scale(writer, track_index2, default_scale, is_uniform_scale);
 							}
 						}
 
@@ -279,9 +282,9 @@ namespace acl
 							if (!writer.skip_track_scale(track_index3))
 							{
 								if (default_mode == default_sub_track_mode::variable)
-									writer.write_scale(track_index3, writer.get_variable_default_scale(track_index3));
+									acl_impl::write_scale(writer, track_index3, writer.get_variable_default_scale(track_index3), is_uniform_scale);
 								else
-									writer.write_scale(track_index3, default_scale);
+									acl_impl::write_scale(writer, track_index3, default_scale, is_uniform_scale);
 							}
 						}
 					}
@@ -304,9 +307,9 @@ namespace acl
 						if (!writer.skip_track_scale(curr_track_index))
 						{
 							if (default_mode == default_sub_track_mode::variable)
-								writer.write_scale(curr_track_index, writer.get_variable_default_scale(curr_track_index));
+								acl_impl::write_scale(writer, curr_track_index, writer.get_variable_default_scale(curr_track_index), is_uniform_scale);
 							else
-								writer.write_scale(curr_track_index, default_scale);
+								acl_impl::write_scale(writer, curr_track_index, default_scale, is_uniform_scale);
 						}
 					}
 				}
@@ -319,6 +322,7 @@ namespace acl
 		void RTM_SIMD_CALL step_set_default_scales(
 			uint32_t num_tracks,
 			rtm::vector4f_arg1 legacy_default_scale,
+			bool is_uniform_scale,
 			track_writer_type& writer)
 		{
 			if (track_writer_type::skip_all_scales())
@@ -343,9 +347,9 @@ namespace acl
 				if (!writer.skip_track_scale(track_index))
 				{
 					if (default_mode == default_sub_track_mode::variable)
-						writer.write_scale(track_index, writer.get_variable_default_scale(track_index));
+						acl_impl::write_scale(writer, track_index, writer.get_variable_default_scale(track_index), is_uniform_scale);
 					else
-						writer.write_scale(track_index, scale);
+						acl_impl::write_scale(writer, track_index, scale, is_uniform_scale);
 				}
 			}
 		}

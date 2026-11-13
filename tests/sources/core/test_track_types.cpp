@@ -35,6 +35,8 @@ TEST_CASE("track type names", "[core][track_types]")
 	CHECK(std::strcmp(get_track_type_name(track_type8::float1f), "float1f") == 0);
 	CHECK(std::strcmp(get_track_type_name(track_type8::vector4f), "vector4f") == 0);
 	CHECK(std::strcmp(get_track_type_name(track_type8::vqvf), "vqvf") == 0);
+	CHECK(std::strcmp(get_track_type_name(track_type8::vqf), "vqf") == 0);
+	CHECK(std::strcmp(get_track_type_name(track_type8::vqsf), "vqsf") == 0);
 
 	track_type8 type = track_type8::float1f;
 	CHECK(get_track_type("vqvf", type) == true);
@@ -49,13 +51,44 @@ TEST_CASE("track type names", "[core][track_types]")
 	CHECK(get_track_type("float3f", type) == true);
 	CHECK(type == track_type8::float3f);
 
+	type = track_type8::float1f;
+	CHECK(get_track_type("vqf", type) == true);
+	CHECK(type == track_type8::vqf);
+
+	type = track_type8::float1f;
+	CHECK(get_track_type("vqsf", type) == true);
+	CHECK(type == track_type8::vqsf);
+
 	CHECK(get_track_type("not_a_type", type) == false);
 
 	// Each name must convert back to its track type
-	const track_type8 types[] = { track_type8::float1f, track_type8::float2f, track_type8::float3f, track_type8::float4f, track_type8::vector4f, track_type8::vqvf };
+	const track_type8 types[] = { track_type8::float1f, track_type8::float2f, track_type8::float3f, track_type8::float4f, track_type8::vector4f, track_type8::vqvf, track_type8::vqf, track_type8::vqsf };
 	for (const track_type8 expected_type : types)
 	{
 		CHECK(get_track_type(get_track_type_name(expected_type), type) == true);
 		CHECK(type == expected_type);
 	}
+}
+
+TEST_CASE("track type properties", "[core][track_types]")
+{
+	CHECK(get_track_category(track_type8::vqvf) == track_category8::transformf);
+	CHECK(get_track_category(track_type8::vqf) == track_category8::transformf);
+	CHECK(get_track_category(track_type8::vqsf) == track_category8::transformf);
+	CHECK(get_track_category(track_type8::vector4f) == track_category8::scalarf);
+
+	CHECK(get_track_num_sample_elements(track_type8::vqvf) == 12);
+	CHECK(get_track_num_sample_elements(track_type8::vqf) == 8);
+	CHECK(get_track_num_sample_elements(track_type8::vqsf) == 8);
+
+	CHECK(acl_impl::is_transform_track_type(track_type8::vqvf));
+	CHECK(acl_impl::is_transform_track_type(track_type8::vqf));
+	CHECK(acl_impl::is_transform_track_type(track_type8::vqsf));
+	CHECK(!acl_impl::is_transform_track_type(track_type8::float4f));
+	CHECK(!acl_impl::is_transform_track_type(track_type8::vector4f));
+
+	// The enum values are serialized in the compressed data
+	CHECK(static_cast<uint32_t>(track_type8::vqvf) == 12);
+	CHECK(static_cast<uint32_t>(track_type8::vqf) == 14);
+	CHECK(static_cast<uint32_t>(track_type8::vqsf) == 15);
 }

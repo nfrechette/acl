@@ -373,7 +373,7 @@ void benchmark_decompression(benchmark::State& state)
 				context.decompress_track(0, pose_writer);
 				break;
 			case DecompressionFunction::Memcpy:
-				std::memcpy(pose_writer.tracks_typed.vqvf, decompression_instances[0], pose_size);
+				std::memcpy(pose_writer.get_vqvf_tracks(), decompression_instances[0], pose_size);
 				break;
 			}
 
@@ -408,7 +408,7 @@ void benchmark_decompression(benchmark::State& state)
 					context.decompress_track(bone_index, pose_writer);
 				break;
 			case DecompressionFunction::Memcpy:
-				std::memcpy(pose_writer.tracks_typed.vqvf, decompression_instances[current_context_index], pose_size);
+				std::memcpy(pose_writer.get_vqvf_tracks(), decompression_instances[current_context_index], pose_size);
 				break;
 			}
 		}
@@ -450,7 +450,7 @@ void benchmark_decompression(benchmark::State& state)
 						context.decompress_track(0, pose_writer);
 						break;
 					case DecompressionFunction::Memcpy:
-						std::memcpy(pose_writer.tracks_typed.vqvf, decompression_instances[0], pose_size);
+						std::memcpy(pose_writer.get_vqvf_tracks(), decompression_instances[0], pose_size);
 						break;
 					}
 				}
@@ -586,20 +586,28 @@ bool prepare_clip(const std::string& clip_name, const acl::compressed_tracks& ra
 		return false;
 	}
 
+	// The benchmark data uses the deprecated legacy error metric, the data must not change
+	ACL_IMPL_DEPRECATION_WARNING_PUSH
 	acl::vqvf_transform_error_metric error_metric;
+	ACL_IMPL_DEPRECATION_WARNING_POP
 
 	// Pre-process
 	{
 		acl::pre_process_settings_t pre_process_settings;
 		pre_process_settings.actions = acl::pre_process_actions::recommended;
 		pre_process_settings.precision_policy = acl::pre_process_precision_policy::lossy;
+		// The benchmark data uses the deprecated legacy error metric, the data must not change
+		ACL_IMPL_DEPRECATION_WARNING_PUSH
 		pre_process_settings.error_metric = &error_metric;
+		ACL_IMPL_DEPRECATION_WARNING_POP
 
 		acl::pre_process_track_list(s_allocator, pre_process_settings, track_list);
 	}
 
 	acl::compression_settings settings = acl::get_default_compression_settings();
+	ACL_IMPL_DEPRECATION_WARNING_PUSH
 	settings.error_metric = &error_metric;
+	ACL_IMPL_DEPRECATION_WARNING_POP
 
 	acl::output_stats stats;
 

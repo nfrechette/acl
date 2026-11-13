@@ -6,6 +6,7 @@ import queue
 import threading
 import time
 import signal
+import subprocess
 import sys
 
 from itertools import chain
@@ -34,6 +35,8 @@ def parse_argv():
 	options['level'] = 'Medium'
 	options['strip_keyframe_proportion'] = None
 	options['strip_keyframe_threshold'] = None
+	options['source_vq'] = False
+	options['source_vqs'] = False
 	options['print_help'] = False
 
 	for i in range(1, len(sys.argv)):
@@ -87,6 +90,12 @@ def parse_argv():
 
 		if value.startswith('-strip_keyframe_threshold='):
 			options['strip_keyframe_threshold'] = float(value[len('-strip_keyframe_threshold='):].replace('"', ''))
+
+		if value == '-source_vq':
+			options['source_vq'] = True
+
+		if value == '-source_vqs':
+			options['source_vqs'] = True
 
 		if value == '-help':
 			options['print_help'] = True
@@ -147,6 +156,8 @@ def print_help():
 	print('  -stat_exhaustive: Enables exhaustive stat logging')
 	print('  -strip_keyframe_proportion: Enables keyframe stripping and sets the desired strip proportion')
 	print('  -strip_keyframe_threshold: Enables keyframe stripping and sets the desired strip threshold')
+	print('  -source_vq: Compresses the transform clips without scale as VQ tracks (vqf)')
+	print('  -source_vqs: Compresses the transform clips without scale or with a uniform scale as VQS tracks (vqsf)')
 	print('  -help: Prints this help message.')
 
 def print_stat(stat):
@@ -297,8 +308,9 @@ def run_acl_compressor(cmd_queue, result_queue):
 
 		(acl_filename, cmd) = entry
 
-		result = os.system(cmd)
-		if result != 0:
+		# Do not use os.system: on macOS, only one call to os.system runs at a time
+		result = subprocess.run(cmd, shell=True)
+		if result.returncode != 0:
 			print('Failed to execute cmd: {}'.format(cmd))
 		result_queue.put(acl_filename)
 
@@ -373,6 +385,12 @@ def compress_clips(options):
 
 			if options['strip_keyframe_threshold']:
 				cmd = '{} -strip_keyframe_threshold={}'.format(cmd, options['strip_keyframe_threshold'])
+
+			if options['source_vq']:
+				cmd = '{} -source_vq'.format(cmd)
+
+			if options['source_vqs']:
+				cmd = '{} -source_vqs'.format(cmd)
 
 			if platform.system() == 'Windows':
 				cmd = cmd.replace('/', '\\')

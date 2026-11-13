@@ -208,6 +208,7 @@ namespace acl
 			bool are_translations_normalized			= false;
 			bool are_scales_normalized					= false;
 			bool has_scale								= false;
+			bool has_uniform_scale						= false;	// True with vqsf tracks: the compressed tracks store one scale component
 			bool has_additive_base						= false;
 			bool has_stripped_keyframes					= false;
 
@@ -241,10 +242,11 @@ namespace acl
 
 		bool initialize_clip_context(
 			iallocator& allocator,
-			const track_array_vqvf& track_list,
+			const track_array& track_list,
 			const compression_settings& settings,
 			additive_clip_format8 additive_format,
-			clip_context& out_clip_context);
+			clip_context& out_clip_context,
+			bool is_additive_base = false);
 		void destroy_clip_context(clip_context& context);
 
 		constexpr bool segment_context_has_scale(const segment_context& segment) { return segment.clip->has_scale; }

@@ -1,5 +1,21 @@
 # Migrating from older releases
 
+## Migrating to ACL 2.2 from 2.1
+
+### Error metrics
+
+`compression_settings::error_metric` and `pre_process_settings_t::error_metric` are deprecated. ACL 2.3 will remove them. The compiler gives a deprecation warning when your code uses them. To disable all ACL deprecation warnings, define `ACL_NO_DEPRECATION`. Use these settings instead:
+
+*  `transform_runtime_type`: the transform type that your runtime uses to compose transforms. The default, `automatic`, uses VQM arithmetic with scale.
+*  `custom_transform_adapter`: your own transform type, with `transform_runtime_type_t::custom`.
+*  `transform_metric`: the measurement of the error. When it is `nullptr`, compression uses the default metric of the runtime transform type.
+
+With these settings, compression applies the additive base itself, and it always uses the faster bit rate algorithm. See [error metrics](error_metrics.md) for the runtime transform type of each legacy error metric.
+
+To measure the error as compression does, use the `calculate_compression_error` overloads that take the compression settings. The overloads that take an `itransform_error_metric` are deprecated.
+
+`itransform_error_metric` and the legacy error metrics (`vqvf_transform_error_metric` and the others) are also deprecated. To measure the error with your own transform type, implement an `itransform_adapter`. To measure it in your own way, implement an `itransform_metric`.
+
 ## Migrating to ACL 2.0 from 1.3
 
 ACL 2.0 brought along with it a lot of cleanup of high level APIs, file organization, and migrated all math usage to [Realtime Math](https://github.com/nfrechette/rtm).

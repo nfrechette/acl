@@ -107,22 +107,22 @@ namespace acl
 			// Bit 31: has metadata?
 
 			// Transform only
-			bool get_has_scale() const { ACL_ASSERT(track_type == track_type8::vqvf, "Transform tracks only"); return (misc_packed & 1) != 0; }
-			void set_has_scale(bool has_scale) { ACL_ASSERT(track_type == track_type8::vqvf, "Transform tracks only"); misc_packed = (misc_packed & ~1) | static_cast<uint32_t>(has_scale); }
-			int32_t get_default_scale() const { ACL_ASSERT(track_type == track_type8::vqvf, "Transform tracks only"); return static_cast<int32_t>((misc_packed >> 1) & 1); }
-			void set_default_scale(uint32_t scale) { ACL_ASSERT(track_type == track_type8::vqvf, "Transform tracks only"); ACL_ASSERT(scale == 0 || scale == 1, "Invalid default scale"); misc_packed = (misc_packed & ~(1 << 1)) | (scale << 1); }
-			vector_format8 get_scale_format() const { ACL_ASSERT(track_type == track_type8::vqvf, "Transform tracks only"); return static_cast<vector_format8>((misc_packed >> 2) & 1); }
-			void set_scale_format(vector_format8 format) { ACL_ASSERT(track_type == track_type8::vqvf, "Transform tracks only"); misc_packed = (misc_packed & ~(1 << 2)) | (static_cast<uint32_t>(format) << 2); }
-			vector_format8 get_translation_format() const { ACL_ASSERT(track_type == track_type8::vqvf, "Transform tracks only"); return static_cast<vector_format8>((misc_packed >> 3) & 1); }
-			void set_translation_format(vector_format8 format) { ACL_ASSERT(track_type == track_type8::vqvf, "Transform tracks only"); misc_packed = (misc_packed & ~(1 << 3)) | (static_cast<uint32_t>(format) << 3); }
-			rotation_format8 get_rotation_format() const { ACL_ASSERT(track_type == track_type8::vqvf, "Transform tracks only"); return static_cast<rotation_format8>((misc_packed >> 4) & 15); }
-			void set_rotation_format(rotation_format8 format) { ACL_ASSERT(track_type == track_type8::vqvf, "Transform tracks only"); misc_packed = (misc_packed & ~(15 << 4)) | (static_cast<uint32_t>(format) << 4); }
-			bool get_has_database() const { ACL_ASSERT(track_type == track_type8::vqvf, "Transform tracks only"); return (misc_packed & (1 << 8)) != 0; }
-			void set_has_database(bool has_database) { ACL_ASSERT(track_type == track_type8::vqvf, "Transform tracks only"); misc_packed = (misc_packed & ~(1 << 8)) | (static_cast<uint32_t>(has_database) << 8); }
-			bool get_has_trivial_default_values() const { ACL_ASSERT(track_type == track_type8::vqvf, "Transform tracks only"); return (misc_packed & (1 << 9)) != 0; }
-			void set_has_trivial_default_values(bool has_trivial_default_values) { ACL_ASSERT(track_type == track_type8::vqvf, "Transform tracks only"); misc_packed = (misc_packed & ~(1 << 9)) | (static_cast<uint32_t>(has_trivial_default_values) << 9); }
-			bool get_has_stripped_keyframes() const { ACL_ASSERT(track_type == track_type8::vqvf, "Transform tracks only"); return (misc_packed & (1 << 10)) != 0; }
-			void set_has_stripped_keyframes(bool has_stripped_keyframes) { ACL_ASSERT(track_type == track_type8::vqvf, "Transform tracks only"); misc_packed = (misc_packed & ~(1 << 10)) | (static_cast<uint32_t>(has_stripped_keyframes) << 10); }
+			bool get_has_scale() const { ACL_ASSERT(is_transform_track_type(track_type), "Transform tracks only"); return (misc_packed & 1) != 0; }
+			void set_has_scale(bool has_scale) { ACL_ASSERT(is_transform_track_type(track_type), "Transform tracks only"); misc_packed = (misc_packed & ~1) | static_cast<uint32_t>(has_scale); }
+			int32_t get_default_scale() const { ACL_ASSERT(is_transform_track_type(track_type), "Transform tracks only"); return static_cast<int32_t>((misc_packed >> 1) & 1); }
+			void set_default_scale(uint32_t scale) { ACL_ASSERT(is_transform_track_type(track_type), "Transform tracks only"); ACL_ASSERT(scale == 0 || scale == 1, "Invalid default scale"); misc_packed = (misc_packed & ~(1 << 1)) | (scale << 1); }
+			vector_format8 get_scale_format() const { ACL_ASSERT(is_transform_track_type(track_type), "Transform tracks only"); return static_cast<vector_format8>((misc_packed >> 2) & 1); }
+			void set_scale_format(vector_format8 format) { ACL_ASSERT(is_transform_track_type(track_type), "Transform tracks only"); misc_packed = (misc_packed & ~(1 << 2)) | (static_cast<uint32_t>(format) << 2); }
+			vector_format8 get_translation_format() const { ACL_ASSERT(is_transform_track_type(track_type), "Transform tracks only"); return static_cast<vector_format8>((misc_packed >> 3) & 1); }
+			void set_translation_format(vector_format8 format) { ACL_ASSERT(is_transform_track_type(track_type), "Transform tracks only"); misc_packed = (misc_packed & ~(1 << 3)) | (static_cast<uint32_t>(format) << 3); }
+			rotation_format8 get_rotation_format() const { ACL_ASSERT(is_transform_track_type(track_type), "Transform tracks only"); return static_cast<rotation_format8>((misc_packed >> 4) & 15); }
+			void set_rotation_format(rotation_format8 format) { ACL_ASSERT(is_transform_track_type(track_type), "Transform tracks only"); misc_packed = (misc_packed & ~(15 << 4)) | (static_cast<uint32_t>(format) << 4); }
+			bool get_has_database() const { ACL_ASSERT(is_transform_track_type(track_type), "Transform tracks only"); return (misc_packed & (1 << 8)) != 0; }
+			void set_has_database(bool has_database) { ACL_ASSERT(is_transform_track_type(track_type), "Transform tracks only"); misc_packed = (misc_packed & ~(1 << 8)) | (static_cast<uint32_t>(has_database) << 8); }
+			bool get_has_trivial_default_values() const { ACL_ASSERT(is_transform_track_type(track_type), "Transform tracks only"); return (misc_packed & (1 << 9)) != 0; }
+			void set_has_trivial_default_values(bool has_trivial_default_values) { ACL_ASSERT(is_transform_track_type(track_type), "Transform tracks only"); misc_packed = (misc_packed & ~(1 << 9)) | (static_cast<uint32_t>(has_trivial_default_values) << 9); }
+			bool get_has_stripped_keyframes() const { ACL_ASSERT(is_transform_track_type(track_type), "Transform tracks only"); return (misc_packed & (1 << 10)) != 0; }
+			void set_has_stripped_keyframes(bool has_stripped_keyframes) { ACL_ASSERT(is_transform_track_type(track_type), "Transform tracks only"); misc_packed = (misc_packed & ~(1 << 10)) | (static_cast<uint32_t>(has_stripped_keyframes) << 10); }
 
 			// Scalar only
 			bool get_has_extended_samples() const { return (misc_packed & (1 << 29)) != 0; }
@@ -134,6 +134,11 @@ namespace acl
 			bool get_has_metadata() const { return (misc_packed >> 31) != 0; }
 			void set_has_metadata(bool has_metadata) { misc_packed = (misc_packed & ~(1 << 31)) | (static_cast<uint32_t>(has_metadata) << 31); }
 		};
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns true if the scale sub-tracks store a single component (a uniform scale).
+		// VQS clips (vqsf) have a uniform scale. Decompression writes it with 'write_scale(uint32_t, rtm::scalarf_arg0)'.
+		constexpr bool has_uniform_scale(const tracks_header& header) { return header.track_type == track_type8::vqsf; }
 
 		// How the samples of a scalar track interpolate.
 		// These values are serialized, do not change them once assigned.
@@ -324,15 +329,31 @@ namespace acl
 			uint8_t*						get_clip_range_data() { return clip_range_data_offset.add_to(this); }
 			const uint8_t*					get_clip_range_data() const { return clip_range_data_offset.add_to(this); }
 
+			//////////////////////////////////////////////////////////////////////////
+			// Returns the size in bytes of the range data of a segment.
+			// Each variable sub-track has 6 bytes: min.xyz and extent.xyz on 8 bits each.
+			// A uniform scale (vqsf) has 2 bytes: min.x and extent.x.
+			uint32_t						get_segment_range_data_size(const tracks_header& header_) const
+			{
+				if (!has_multiple_segments())
+					return 0;
+
+				uint32_t num_range_components = 6 * num_animated_variable_sub_tracks;
+				if (has_uniform_scale(header_) && is_vector_format_variable(header_.get_scale_format()))
+					num_range_components -= 4 * num_animated_scale_sub_tracks;
+
+				return k_segment_range_reduction_num_bytes_per_component * num_range_components;
+			}
+
 			template<class segment_header_type>
-			void							get_segment_data(const segment_header_type& header, uint8_t*& out_format_per_track_data, uint8_t*& out_range_data, uint8_t*& out_animated_data)
+			void							get_segment_data(const tracks_header& header_, const segment_header_type& header, uint8_t*& out_format_per_track_data, uint8_t*& out_range_data, uint8_t*& out_animated_data)
 			{
 				uint8_t* segment_data = header.segment_data.add_to(this);
 
 				uint8_t* format_per_track_data = segment_data;
 
 				uint8_t* range_data = align_to(format_per_track_data + num_animated_variable_sub_tracks, 2);
-				const uint32_t range_data_size = has_multiple_segments() ? (k_segment_range_reduction_num_bytes_per_component * 6 * num_animated_variable_sub_tracks) : 0;
+				const uint32_t range_data_size = get_segment_range_data_size(header_);
 
 				uint8_t* animated_data = align_to(range_data + range_data_size, 4);
 
@@ -342,14 +363,14 @@ namespace acl
 			}
 
 			template<class segment_header_type>
-			void							get_segment_data(const segment_header_type& header, const uint8_t*& out_format_per_track_data, const uint8_t*& out_range_data, const uint8_t*& out_animated_data) const
+			void							get_segment_data(const tracks_header& header_, const segment_header_type& header, const uint8_t*& out_format_per_track_data, const uint8_t*& out_range_data, const uint8_t*& out_animated_data) const
 			{
 				const uint8_t* segment_data = header.segment_data.add_to(this);
 
 				const uint8_t* format_per_track_data = segment_data;
 
 				const uint8_t* range_data = align_to(format_per_track_data + num_animated_variable_sub_tracks, 2);
-				const uint32_t range_data_size = has_multiple_segments() ? (k_segment_range_reduction_num_bytes_per_component * 6 * num_animated_variable_sub_tracks) : 0;
+				const uint32_t range_data_size = get_segment_range_data_size(header_);
 
 				const uint8_t* animated_data = align_to(range_data + range_data_size, 4);
 

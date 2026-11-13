@@ -121,7 +121,7 @@ namespace acl
 			return size_written;
 		}
 
-		inline uint32_t write_segment_data(const clip_context& clip, const compression_settings& settings, range_reduction_flags8 range_reduction, segment_header* segment_headers, transform_tracks_header& header, const uint32_t* output_bone_mapping, uint32_t num_output_bones)
+		inline uint32_t write_segment_data(const clip_context& clip, const compression_settings& settings, range_reduction_flags8 range_reduction, segment_header* segment_headers, const tracks_header& tracks_header_, transform_tracks_header& header, const uint32_t* output_bone_mapping, uint32_t num_output_bones)
 		{
 			const uint32_t format_per_track_data_size = get_format_per_track_data_size(clip, settings.rotation_format, settings.translation_format, settings.scale_format);
 			const bool has_stripped_keyframes = clip.has_stripped_keyframes;
@@ -141,12 +141,12 @@ namespace acl
 				if (has_stripped_keyframes)
 				{
 					stripped_segment_header_t& segment_header_ = stripped_segment_headers[segment_index];
-					header.get_segment_data(segment_header_, format_per_track_data, range_data, animated_data);
+					header.get_segment_data(tracks_header_, segment_header_, format_per_track_data, range_data, animated_data);
 				}
 				else
 				{
 					segment_header& segment_header_ = segment_headers[segment_index];
-					header.get_segment_data(segment_header_, format_per_track_data, range_data, animated_data);
+					header.get_segment_data(tracks_header_, segment_header_, format_per_track_data, range_data, animated_data);
 				}
 
 				ACL_ASSERT(format_per_track_data[0] == 0, "Buffer overrun detected");

@@ -732,10 +732,14 @@ namespace acl
 					// Find the closest loaded samples
 					// Mask all trailing samples to find the first sample by counting trailing zeros
 					const uint32_t candidate_indices0 = sample_indices0 & (0xFFFFFFFFU << (31 - clip_key_frame0));
+					// Compression never strips the first sample of a segment, thus we always find a sample
+					ACL_ASSERT(candidate_indices0 != 0, "The first sample of the segment is missing");
 					clip_key_frame0 = 31 - count_trailing_zeros(candidate_indices0);
 
 					// Mask all leading samples to find the second sample by counting leading zeros
 					const uint32_t candidate_indices1 = sample_indices0 & (0xFFFFFFFFU >> clip_key_frame1);
+					// Compression never strips the last sample of a segment, thus we always find a sample
+					ACL_ASSERT(candidate_indices1 != 0, "The last sample of the segment is missing");
 					clip_key_frame1 = count_leading_zeros(candidate_indices1);
 
 					// Calculate our new interpolation alpha
@@ -892,10 +896,14 @@ namespace acl
 					// Find the closest loaded samples
 					// Mask all trailing samples to find the first sample by counting trailing zeros
 					const uint32_t candidate_indices0 = sample_indices0 & (0xFFFFFFFFU << (31 - segment_key_frame0));
+					// Compression never strips the first sample of a segment, thus we always find a sample
+					ACL_ASSERT(candidate_indices0 != 0, "The first sample of the segment is missing");
 					segment_key_frame0 = 31 - count_trailing_zeros(candidate_indices0);
 
 					// Mask all leading samples to find the second sample by counting leading zeros
 					const uint32_t candidate_indices1 = sample_indices1 & (0xFFFFFFFFU >> segment_key_frame1);
+					// Compression never strips the last sample of a segment, thus we always find a sample
+					ACL_ASSERT(candidate_indices1 != 0, "The last sample of the segment is missing");
 					segment_key_frame1 = count_leading_zeros(candidate_indices1);
 
 					// Calculate our clip relative sample indices
@@ -977,12 +985,12 @@ namespace acl
 			context.uses_single_segment = uses_single_segment;
 
 			// Cache miss if we don't access the db data
-			transform_header.get_segment_data(*segment_header0, context.format_per_track_data[0], context.segment_range_data[0], context.animated_track_data[0]);
+			transform_header.get_segment_data(header, *segment_header0, context.format_per_track_data[0], context.segment_range_data[0], context.animated_track_data[0]);
 
 			// More often than not the two segments are identical, when this is the case, just copy our pointers
 			if (!uses_single_segment)
 			{
-				transform_header.get_segment_data(*segment_header1, context.format_per_track_data[1], context.segment_range_data[1], context.animated_track_data[1]);
+				transform_header.get_segment_data(header, *segment_header1, context.format_per_track_data[1], context.segment_range_data[1], context.animated_track_data[1]);
 			}
 			else
 			{
@@ -1038,6 +1046,10 @@ namespace acl
 
 			const rtm::vector4f default_scale = rtm::vector_set(float(header.get_default_scale()));
 			const uint32_t has_scale = context.has_scale;
+			// A VQ track has no scale, we do not write it
+			const bool is_vq = header.track_type == track_type8::vqf;
+			// A VQS track has a uniform scale, we write it with 'write_scale(uint32_t, rtm::scalarf_arg0)' when the writer has it
+			const bool is_uniform_scale = decompression_settings_type::is_track_type_supported(track_type8::vqsf) && has_uniform_scale(header);
 
 			const transform_tracks_header& transforms_header = get_transform_tracks_header(*tracks);
 			const packed_sub_track_types* sub_track_types = transforms_header.get_sub_track_types();
@@ -1195,7 +1207,7 @@ namespace acl
 
 				if (has_scale)
 					step_unpack_default_scales(step_context, default_scale, writer);
-				else
+				else if (!is_vq)
 					step_set_default_scales(step_context, default_scale, writer);
 			}
 
@@ -1250,15 +1262,16 @@ namespace acl
 			{
 				// Unpack our default scale sub-tracks
 				// Scale sub-tracks are almost always default, this should take at least 200 cycles
-				step_unpack_default_scales(scale_sub_track_types, last_entry_index, padding_mask, default_scale, writer);
+				step_unpack_default_scales(scale_sub_track_types, last_entry_index, padding_mask, default_scale, is_uniform_scale, writer);
 
 				// Unpack our constant scale sub-tracks
 				// Constant scale sub-tracks are very rare, this shouldn't take much more than 50 cycles
-				step_unpack_constant_scales(scale_sub_track_types, last_entry_index, constant_track_cache.constant_data_scales, writer);
+				step_unpack_constant_scales(scale_sub_track_types, last_entry_index, constant_track_cache.constant_data_scales, is_uniform_scale, writer);
 			}
-			else
+			else if (!is_vq)
 			{
-				step_set_default_scales(num_tracks, default_scale, writer);
+				// A VQ track has no scale, we do not write it
+				step_set_default_scales(num_tracks, default_scale, is_uniform_scale, writer);
 			}
 
 			{
@@ -1310,7 +1323,7 @@ namespace acl
 			// Unpack scales last
 			// Animated scale sub-tracks are very rare, this shouldn't take much more than 100 cycles
 			if (has_scale)
-				step_unpack_animated_scales<scale_adapter>(scale_sub_track_types, last_entry_index, context, animated_track_cache, writer);
+				step_unpack_animated_scales<scale_adapter>(scale_sub_track_types, last_entry_index, context, animated_track_cache, is_uniform_scale, writer);
 
 			if (decompression_settings_type::disable_fp_exeptions())
 				restore_fp_exceptions(fp_env);
@@ -1377,6 +1390,12 @@ namespace acl
 
 			const uint32_t has_scale = context.has_scale;
 
+			// A VQ track has no scale, we do not write it
+			const bool write_default_scale = default_scale_mode != default_sub_track_mode::skipped && tracks_header_.track_type != track_type8::vqf;
+
+			// A VQS track has a uniform scale, we write it with 'write_scale(uint32_t, rtm::scalarf_arg0)' when the writer has it
+			const bool is_uniform_scale = decompression_settings_type::is_track_type_supported(track_type8::vqsf) && has_uniform_scale(tracks_header_);
+
 			const packed_sub_track_types* sub_track_types = get_transform_tracks_header(*tracks).get_sub_track_types();
 			const uint32_t num_sub_track_entries = (num_tracks + k_num_sub_tracks_per_packed_entry - 1) / k_num_sub_tracks_per_packed_entry;
 
@@ -1423,12 +1442,12 @@ namespace acl
 						writer.write_translation(track_index, default_translation);
 				}
 
-				if (default_scale_mode != default_sub_track_mode::skipped)
+				if (write_default_scale)
 				{
 					if (default_scale_mode == default_sub_track_mode::variable)
-						writer.write_scale(track_index, writer.get_variable_default_scale(track_index));
+						acl_impl::write_scale(writer, track_index, writer.get_variable_default_scale(track_index), is_uniform_scale);
 					else
-						writer.write_scale(track_index, default_scale);
+						acl_impl::write_scale(writer, track_index, default_scale, is_uniform_scale);
 				}
 
 				return;
@@ -1510,7 +1529,7 @@ namespace acl
 
 					const uint32_t num_scale_constant_groups_to_skip = num_constant_scales / 4;
 					if (num_scale_constant_groups_to_skip != 0)
-						constant_track_cache.skip_scale_groups(num_scale_constant_groups_to_skip);
+						constant_track_cache.skip_scale_groups(num_scale_constant_groups_to_skip, is_uniform_scale);
 				}
 			}
 
@@ -1546,7 +1565,7 @@ namespace acl
 
 					const uint32_t num_groups_to_skip = num_animated_scales / 4;
 					if (num_groups_to_skip != 0)
-						animated_track_cache.skip_scale_groups<scale_adapter>(context, num_groups_to_skip);
+						animated_track_cache.skip_scale_groups<scale_adapter>(context, num_groups_to_skip, is_uniform_scale);
 				}
 			}
 
@@ -1596,23 +1615,23 @@ namespace acl
 
 			if (scale_sub_track_type == 0)
 			{
-				if (default_scale_mode != default_sub_track_mode::skipped)
+				if (write_default_scale)
 				{
 					if (default_scale_mode == default_sub_track_mode::variable)
-						writer.write_scale(track_index, writer.get_variable_default_scale(track_index));
+						acl_impl::write_scale(writer, track_index, writer.get_variable_default_scale(track_index), is_uniform_scale);
 					else
-						writer.write_scale(track_index, default_scale);
+						acl_impl::write_scale(writer, track_index, default_scale, is_uniform_scale);
 				}
 			}
 			else
 			{
 				rtm::vector4f scale;
 				if (scale_sub_track_type & 1)
-					scale = constant_track_cache.unpack_scale_within_group(scale_group_sample_index);
+					scale = constant_track_cache.unpack_scale_within_group(scale_group_sample_index, is_uniform_scale);
 				else
-					scale = animated_track_cache.unpack_scale_within_group<scale_adapter>(context, scale_group_sample_index);
+					scale = animated_track_cache.unpack_scale_within_group<scale_adapter>(context, scale_group_sample_index, is_uniform_scale);
 
-				writer.write_scale(track_index, scale);
+				acl_impl::write_scale(writer, track_index, scale, is_uniform_scale);
 			}
 
 			if (decompression_settings_type::disable_fp_exeptions())

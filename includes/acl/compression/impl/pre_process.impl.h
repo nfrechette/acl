@@ -29,6 +29,8 @@
 #include "acl/version.h"
 #include "acl/core/floating_point_control.h"
 #include "acl/compression/impl/pre_process.scalar.h"
+#include "acl/compression/impl/transform_runtime.h"
+#include "acl/compression/impl/transform_runtime_error_metric.h"
 #include "acl/compression/impl/pre_process.transform.h"
 
 #include <rtm/quatf.h>
@@ -36,6 +38,9 @@
 #include <rtm/vector4f.h>
 
 ACL_IMPL_FILE_PRAGMA_PUSH
+
+// This file reads the deprecated error metric of the settings
+ACL_IMPL_DEPRECATION_WARNING_PUSH
 
 namespace acl
 {
@@ -88,7 +93,7 @@ namespace acl
 			}
 			else if (track_category == track_category8::transformf)
 			{
-				ACL_ASSERT(track_type == track_type8::vqvf, "Expected vqvf");
+				ACL_ASSERT(is_transform_track_type(track_type), "Expected vqvf, vqf, or vqsf");
 
 				// Transform tracks are looping if replacing the last keyframe with the first satisfies
 				// the error metric.
@@ -146,7 +151,7 @@ namespace acl
 			}
 			else if (track_category == track_category8::transformf)
 			{
-				ACL_ASSERT(track_type == track_type8::vqvf, "Expected vqvf");
+				ACL_ASSERT(is_transform_track_type(track_type), "Expected vqvf, vqf, or vqsf");
 
 				// Transform tracks are constant when the error metric is satisfied when the first
 				// sample is repeated
@@ -170,7 +175,7 @@ namespace acl
 			}
 			else if (track_category == track_category8::transformf)
 			{
-				ACL_ASSERT(track_list.get_track_type() == track_type8::vqvf, "Expected vqvf");
+				ACL_ASSERT(is_transform_track_type(track_list.get_track_type()), "Expected vqvf, vqf, or vqsf");
 
 				// Transform tracks are default when the error metric is satisfied when the default
 				// sample is repeated
@@ -182,10 +187,42 @@ namespace acl
 
 	inline error_result pre_process_track_list(
 		iallocator& allocator,
-		const pre_process_settings_t& settings,
+		const pre_process_settings_t& input_settings,
 		track_array& track_list)
 	{
 		using namespace acl_impl;
+
+		if (input_settings.error_metric != nullptr)
+		{
+			// The legacy error metric selects the runtime transform type and the error measurement
+			if (input_settings.transform_runtime_type != transform_runtime_type_t::automatic || input_settings.custom_transform_adapter != nullptr || input_settings.transform_metric != nullptr)
+				return error_result("Cannot use the legacy error metric with a transform runtime type, a custom transform adapter, or a transform metric");
+		}
+		else
+		{
+			const transform_runtime_selector selector;
+			const error_result transform_runtime_result = selector.validate(input_settings.transform_runtime_type, input_settings.custom_transform_adapter, input_settings.transform_metric);
+			if (transform_runtime_result.any())
+				return transform_runtime_result;
+		}
+
+		// When the settings do not supply a legacy error metric, we use the runtime transform type
+		// and the transform metric of the settings, as compression does
+		// Pre-processing does not know whether the clip has scale: it uses the selection with scale
+		transform_runtime_error_metric runtime_error_metric;
+		pre_process_settings_t settings = input_settings;
+		if (settings.error_metric == nullptr)
+		{
+			// An empty track array has no type, we use vqvf
+			const track_type8 track_type = track_list.is_empty() ? track_type8::vqvf : track_list.get_track_type();
+			const error_result runtime_error_metric_result = runtime_error_metric.initialize(
+				settings.transform_runtime_type, settings.custom_transform_adapter, settings.transform_metric,
+				track_type, settings.additive_format, settings.additive_base);
+			if (runtime_error_metric_result.any())
+				return runtime_error_metric_result;
+
+			settings.error_metric = &runtime_error_metric;
+		}
 
 		if (track_list.is_empty())
 			return error_result();	// No tracks, nothing to do
@@ -195,7 +232,7 @@ namespace acl
 
 		if (settings.additive_format != additive_clip_format8::none)
 		{
-			if (track_list.get_track_type() != track_type8::vqvf)
+			if (!is_transform_track_type(track_list.get_track_type()))
 				return error_result("'additive_format' is only supported with transform tracks");
 
 			if (settings.additive_base == nullptr)
@@ -203,7 +240,14 @@ namespace acl
 
 			if (settings.additive_base->is_empty())
 				return error_result("'additive_base' cannot be empty when 'additive_format' is used");
+
+			if (!is_transform_track_type(settings.additive_base->get_track_type()))
+				return error_result("'additive_base' must contain transform tracks");
 		}
+
+		const bool is_transform = is_transform_track_type(track_list.get_track_type());
+		if (is_transform && are_any_enum_flags_set(settings.actions, pre_process_actions::convert_transform_type) && !is_transform_track_type(settings.transform_type))
+			return error_result("'transform_type' must be a transform track type: vqvf, vqf, or vqsf");
 
 		// Disable floating point exceptions during compression because we leverage all SIMD lanes
 		// and we might intentionally divide by zero, etc.
@@ -213,54 +257,79 @@ namespace acl
 
 		const track_type8 track_type = track_list.get_track_type();
 
-		if (are_any_enum_flags_set(settings.actions, pre_process_actions::normalize_rotations))
+		if (are_any_enum_flags_set(settings.actions, pre_process_actions::normalize_rotations) && is_transform_track_type(track_type))
 		{
-			if (track_type == track_type8::vqvf)
-				pre_process_normalize_rotations(context);
+			pre_process_normalize_rotations(context);
 		}
 
-		if (are_any_enum_flags_set(settings.actions, pre_process_actions::ensure_quat_w_positive))
+		if (are_any_enum_flags_set(settings.actions, pre_process_actions::ensure_quat_w_positive) && is_transform_track_type(track_type))
 		{
-			if (track_type == track_type8::vqvf)
-				pre_process_ensure_quat_w_positive(context);
+			pre_process_ensure_quat_w_positive(context);
 		}
 
 		if (are_any_enum_flags_set(settings.actions, pre_process_actions::optimize_looping))
 		{
-			if (track_type == track_type8::vqvf &&
-				settings.precision_policy == pre_process_precision_policy::lossy &&
-				settings.error_metric == nullptr)
-				return error_result("'error_metric' is required when optimizing looping transform tracks");
-
 			pre_process_optimize_looping(context);
 		}
 
 		if (are_any_enum_flags_set(settings.actions, pre_process_actions::sanitize_constant_tracks))
 		{
-			if (track_type == track_type8::vqvf &&
-				settings.precision_policy == pre_process_precision_policy::lossy &&
-				settings.error_metric == nullptr)
-				return error_result("'error_metric' is required when sanitizing lossy constant transform tracks");
-
 			pre_process_sanitize_constant_tracks(context);
 		}
 
-		if (are_any_enum_flags_set(settings.actions, pre_process_actions::sanitize_default_tracks))
+		if (are_any_enum_flags_set(settings.actions, pre_process_actions::sanitize_default_tracks) && is_transform_track_type(track_type))
 		{
-			if (track_type == track_type8::vqvf &&
-				settings.precision_policy == pre_process_precision_policy::lossy &&
-				settings.error_metric == nullptr)
-				return error_result("'error_metric' is required when sanitizing lossy default transform tracks");
+			pre_process_sanitize_default_tracks(context);
+		}
 
-			if (track_type == track_type8::vqvf)
-				pre_process_sanitize_default_tracks(context);
+		if (are_any_enum_flags_set(settings.actions, pre_process_actions::convert_transform_type) && is_transform_track_type(track_type))
+		{
+			pre_process_convert_transform_type(context);
 		}
 
 		// We are done!
 		return error_result();
 	}
 
+	inline error_result pre_process_track_list(
+		iallocator& allocator,
+		const pre_process_settings_t& settings,
+		track_array_vqvf& track_list)
+	{
+		// A typed track array cannot change its type
+		if (are_any_enum_flags_set(settings.actions, pre_process_actions::convert_transform_type) && settings.transform_type != track_type8::vqvf)
+			return error_result("'convert_transform_type' cannot change the type of a typed track array, use 'track_array'");
+
+		return pre_process_track_list(allocator, settings, static_cast<track_array&>(track_list));
+	}
+
+	inline error_result pre_process_track_list(
+		iallocator& allocator,
+		const pre_process_settings_t& settings,
+		track_array_vqf& track_list)
+	{
+		// A typed track array cannot change its type
+		if (are_any_enum_flags_set(settings.actions, pre_process_actions::convert_transform_type) && settings.transform_type != track_type8::vqf)
+			return error_result("'convert_transform_type' cannot change the type of a typed track array, use 'track_array'");
+
+		return pre_process_track_list(allocator, settings, static_cast<track_array&>(track_list));
+	}
+
+	inline error_result pre_process_track_list(
+		iallocator& allocator,
+		const pre_process_settings_t& settings,
+		track_array_vqsf& track_list)
+	{
+		// A typed track array cannot change its type
+		if (are_any_enum_flags_set(settings.actions, pre_process_actions::convert_transform_type) && settings.transform_type != track_type8::vqsf)
+			return error_result("'convert_transform_type' cannot change the type of a typed track array, use 'track_array'");
+
+		return pre_process_track_list(allocator, settings, static_cast<track_array&>(track_list));
+	}
+
 	ACL_IMPL_VERSION_NAMESPACE_END
 }
+
+ACL_IMPL_DEPRECATION_WARNING_POP
 
 ACL_IMPL_FILE_PRAGMA_POP

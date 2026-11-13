@@ -13,6 +13,39 @@
 *  Add the `-fast_math` option to `make.py` to compile the public headers with fast math, and a CI workflow that uses it
 *  Add native Linux `riscv64` builds to `make.py`, they use the scalar code path of RTM
 *  Fix `split_database_bulk_data` that gave a null pointer to `std::memcpy` when a quality tier is empty
+*  ACL now applies the additive base to the `rtm::vqvf` source transforms before `convert_transforms`, `apply_additive_to_base` always receives `rtm::vqvf` transforms
+*  Loop optimization and the detailed segment stats now support error metrics that convert transforms
+*  Fix the SoA quaternion rotation of the error metrics, two terms had the wrong sign
+*  Add the `-error_vqv` option and the `use_vqv_error_metric` config option to `acl_compressor`, they select the `vqvf` runtime transform type
+*  The `-error_mtx` option of `acl_compressor` now selects the `matrix3x4f` runtime transform type, it supports additive clips
+*  Add the `vqf` transform track type (rotation and translation, no scale) with `track_vqf` and `track_array_vqf`, the compressed tracks keep the type of the raw tracks
+*  Add the compressed data version `v02_02_99_1` for the `vqf` track type
+*  Decompression does not write the scale of a `vqf` clip, the default transform decompression settings accept `vqf` and `vqvf`
+*  Add the `convert_transform_type` pre-process action and `pre_process_settings_t::transform_type` to convert between `vqvf` and `vqf`
+*  The additive overloads of `compress_track_list` and `calculate_compression_error` take a `track_array`, the clip and its base can have different transform types
+*  `pre_process_settings_t::additive_base` is now a `const track_array*`
+*  The clip reader and writer support `vqf` tracks in the track list format
+*  Add the `-source_vq` option to `acl_compressor` and its python script, it compresses the clips without scale as `vqf` tracks
+*  Add the `vqsf` transform track type (rotation, translation, and uniform scale) with `track_vqsf` and `track_array_vqsf`, the compressed data version `v02_02_99_1` also covers it
+*  A compressed `vqsf` clip stores one scale component for each scale sub-track: the constant samples, the clip and segment ranges, and the animated samples are smaller than with `vqvf`
+*  Decompression writes the scale of a `vqsf` clip with the new `track_writer::write_scale(uint32_t, rtm::scalarf_arg0)` overload when the track writer has it, otherwise with the `rtm::vector4f_arg0` overload and the value in [xyzw]
+*  The default transform decompression settings accept `vqsf`
+*  The `convert_transform_type` pre-process action converts between `vqvf`, `vqsf`, and `vqf`
+*  The clip reader and writer support `vqsf` tracks in the track list format
+*  Add the `-source_vqs` option to `acl_compressor` and its python script, it compresses the clips without scale or with a uniform scale as `vqsf` tracks
+*  Add `transform_runtime_type_t` and the transform adapters (`itransform_adapter`): `vqf_transform_adapter`, `vqsf_transform_adapter`, `vqvf_transform_adapter`, `vqmf_transform_adapter`, and `matrix3x4f_transform_adapter`, see [error metrics](docs/error_metrics.md)
+*  Add the transform metrics (`itransform_metric`): `shell_transform_metric` and `precise_transform_metric`, they measure the error through a transform adapter
+*  Add the `transform_runtime_type`, `custom_transform_adapter`, and `transform_metric` settings to `compression_settings` and `pre_process_settings_t`
+*  The default runtime transform type `automatic` uses VQM arithmetic with scale, or VQS arithmetic with `vqsf` raw tracks
+*  Compression uses VQ arithmetic and the precise metric for each segment without scale, it measures the exact error: the compressed size can be slightly larger and fewer clips have an error above the threshold
+*  Compression always uses a custom transform adapter, also for a segment without scale
+*  Deprecate `compression_settings::error_metric` and `pre_process_settings_t::error_metric` with `ACL_DEPRECATED`, the compiler warns when you use them and ACL 2.3 will remove them, see [migrating](docs/migrating.md)
+*  Deprecate `itransform_error_metric`, the legacy error metrics, and the `calculate_compression_error` overloads that take one, ACL 2.3 will remove them
+*  Add the `calculate_compression_error` overloads that take the compression settings, they measure the error as compression does
+*  The bit rate algorithm v2 supports each runtime transform type, VQS, matrix, and custom transform types no longer use the bit rate algorithm v1
+*  The built-in transform adapters and metrics use code without virtual function calls, compression is faster
+*  Fix the bit rate algorithm v1 that converted transforms that it did not sample, an assert could fail with an additive base
+*  Disable floating point contraction (FMA) in the ACL headers with the `optimize` pragma under GCC
 
 ## 2.1.0
 

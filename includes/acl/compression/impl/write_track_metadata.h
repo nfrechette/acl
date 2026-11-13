@@ -103,7 +103,7 @@ namespace acl
 			return safe_static_cast<uint32_t>(output_buffer - output_buffer_start);
 		}
 
-		inline uint32_t write_parent_track_indices(const track_array_vqvf& tracks, const uint32_t* track_output_indices, uint32_t num_output_tracks, uint32_t* out_parent_track_indices)
+		inline uint32_t write_parent_track_indices(const track_array& tracks, const uint32_t* track_output_indices, uint32_t num_output_tracks, uint32_t* out_parent_track_indices)
 		{
 			ACL_ASSERT(out_parent_track_indices == nullptr || out_parent_track_indices[0] == 0 || num_output_tracks == 0, "Buffer overrun detected");
 
@@ -127,8 +127,7 @@ namespace acl
 			for (uint32_t output_index = 0; output_index < num_output_tracks; ++output_index)
 			{
 				const uint32_t track_index = track_output_indices[output_index];
-				const track_vqvf& track = tracks[track_index];
-				const track_desc_transformf& desc = track.get_description();
+				const track_desc_transformf& desc = tracks[track_index].get_description<track_desc_transformf>();
 				const uint32_t parent_track_index = desc.parent_index;
 
 				const uint32_t parent_output_index = find_output_index(parent_track_index);
@@ -148,7 +147,13 @@ namespace acl
 			uint8_t* output_buffer = out_track_descriptions;
 			const uint8_t* output_buffer_start = output_buffer;
 
-			const bool is_scalar = tracks.get_track_type() != track_type8::vqvf;
+			const bool is_scalar = !is_transform_track_type(tracks.get_track_type());
+
+			// A VQ track has no scale, we write the identity scale for a consistent output
+			const bool is_vq = tracks.get_track_type() == track_type8::vqf;
+
+			// A VQS track has a uniform scale, we write the X component of the default scale in [xyz]
+			const bool is_vqs = tracks.get_track_type() == track_type8::vqsf;
 
 			for (uint32_t output_index = 0; output_index < num_output_tracks; ++output_index)
 			{
@@ -183,7 +188,13 @@ namespace acl
 
 						rtm::quat_store(desc.default_value.rotation, data + 2);
 						rtm::vector_store3(desc.default_value.translation, data + 6);
-						rtm::vector_store3(desc.default_value.scale, data + 9);
+						rtm::vector4f default_scale = desc.default_value.scale;
+						if (is_vq)
+							default_scale = rtm::vector_set(1.0F);
+						else if (is_vqs)
+							default_scale = rtm::vector_dup_x(default_scale);
+
+						rtm::vector_store3(default_scale, data + 9);
 					}
 
 					output_buffer += sizeof(float) * 12;

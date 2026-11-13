@@ -29,6 +29,7 @@
 #include "acl/core/error_result.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/impl/compiler_utils.h"
+#include "acl/compression/compression_settings.h"
 #include "acl/compression/track_array.h"
 #include "acl/compression/transform_error_metrics.h"
 #include "acl/decompression/decompress.h"
@@ -36,6 +37,9 @@
 #include <cstdint>
 
 ACL_IMPL_FILE_PRAGMA_PUSH
+
+// This file names the deprecated legacy error metrics
+ACL_IMPL_DEPRECATION_WARNING_PUSH
 
 namespace acl
 {
@@ -76,16 +80,42 @@ namespace acl
 	//
 	// Note: This function uses SFINAE to prevent it from matching when it shouldn't.
 	template<class decompression_context_type, acl_impl::is_decompression_context<decompression_context_type> = nullptr>
+	ACL_DEPRECATED("Use the overload with the compression settings instead, to be removed in v2.3")
 	track_error calculate_compression_error(iallocator& allocator, const track_array& raw_tracks, decompression_context_type& context, const itransform_error_metric& error_metric);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Calculates the worst compression error between a raw track array and its
 	// compressed tracks.
-	// Supports transform tracks with an additive base.
+	// Supports transform tracks (vqvf, vqf, or vqsf) with an additive base.
+	// The additive base can have a different transform type than the raw tracks.
 	//
 	// Note: This function uses SFINAE to prevent it from matching when it shouldn't.
 	template<class decompression_context_type, acl_impl::is_decompression_context<decompression_context_type> = nullptr>
-	track_error calculate_compression_error(iallocator& allocator, const track_array_vqvf& raw_tracks, decompression_context_type& context, const itransform_error_metric& error_metric, const track_array_vqvf& additive_base_tracks);
+	ACL_DEPRECATED("Use the overload with the compression settings instead, to be removed in v2.3")
+	track_error calculate_compression_error(iallocator& allocator, const track_array& raw_tracks, decompression_context_type& context, const itransform_error_metric& error_metric, const track_array& additive_base_tracks);
+
+	//////////////////////////////////////////////////////////////////////////
+	// Calculates the worst compression error between a raw track array and its
+	// compressed tracks.
+	// Supports scalar and transform tracks.
+	// With transform tracks, it measures the error as compression does with these settings:
+	// with the legacy error metric when it is set, otherwise with the runtime transform type and the transform metric.
+	//
+	// Note: This function uses SFINAE to prevent it from matching when it shouldn't.
+	template<class decompression_context_type, acl_impl::is_decompression_context<decompression_context_type> = nullptr>
+	track_error calculate_compression_error(iallocator& allocator, const track_array& raw_tracks, decompression_context_type& context, const compression_settings& settings);
+
+	//////////////////////////////////////////////////////////////////////////
+	// Calculates the worst compression error between a raw track array and its
+	// compressed tracks.
+	// Supports transform tracks (vqvf, vqf, or vqsf) with an additive base.
+	// The additive base can have a different transform type than the raw tracks.
+	// It measures the error as compression does with these settings:
+	// with the legacy error metric when it is set, otherwise with the runtime transform type and the transform metric.
+	//
+	// Note: This function uses SFINAE to prevent it from matching when it shouldn't.
+	template<class decompression_context_type, acl_impl::is_decompression_context<decompression_context_type> = nullptr>
+	track_error calculate_compression_error(iallocator& allocator, const track_array& raw_tracks, decompression_context_type& context, const compression_settings& settings, const track_array& additive_base_tracks, additive_clip_format8 additive_format);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Calculates the worst compression error between two compressed tracks instances.
@@ -103,11 +133,21 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// Calculates the worst compression error between two raw track arrays.
 	// Supports scalar and transform tracks.
+	ACL_DEPRECATED("Use the overload with the compression settings instead, to be removed in v2.3")
 	track_error calculate_compression_error(iallocator& allocator, const track_array& raw_tracks0, const track_array& raw_tracks1, const itransform_error_metric& error_metric);
+
+	//////////////////////////////////////////////////////////////////////////
+	// Calculates the worst compression error between two raw track arrays.
+	// Supports scalar and transform tracks.
+	// With transform tracks, it measures the error as compression does with these settings:
+	// with the legacy error metric when it is set, otherwise with the runtime transform type and the transform metric.
+	track_error calculate_compression_error(iallocator& allocator, const track_array& raw_tracks0, const track_array& raw_tracks1, const compression_settings& settings);
 
 	ACL_IMPL_VERSION_NAMESPACE_END
 }
 
 #include "acl/compression/impl/track_error.impl.h"
+
+ACL_IMPL_DEPRECATION_WARNING_POP
 
 ACL_IMPL_FILE_PRAGMA_POP
