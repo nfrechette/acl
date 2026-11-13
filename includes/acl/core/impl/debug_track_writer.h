@@ -53,14 +53,12 @@ namespace acl
 		{
 			debug_track_writer(iallocator& allocator_, track_type8 type_, uint32_t num_tracks_)
 				: allocator(allocator_)
-				, tracks_buffer(nullptr)
-				, buffer_size(0)
+				// Large enough to accommodate the largest type
+				, tracks_buffer(allocator_.allocate(sizeof(rtm::vqvf) * num_tracks_, alignof(rtm::vqvf)))
+				, buffer_size(sizeof(rtm::vqvf) * num_tracks_)
 				, num_tracks(num_tracks_)
 				, type(type_)
 			{
-				// Large enough to accommodate the largest type
-				buffer_size = sizeof(rtm::vqvf) * num_tracks_;
-				tracks_buffer = allocator_.allocate(buffer_size, alignof(rtm::vqvf));
 			}
 
 			~debug_track_writer()
@@ -235,16 +233,25 @@ namespace acl
 
 			//////////////////////////////////////////////////////////////////////////
 			// Returns the vqvf track values. The writer must hold vqvf tracks.
-			rtm::vqvf* get_vqvf_tracks() const
+			rtm::vqvf* get_vqvf_tracks()
 			{
 				ACL_ASSERT(type == track_type8::vqvf, "Unexpected track type access");
 				return static_cast<rtm::vqvf*>(tracks_buffer);
 			}
 
+			const rtm::vqvf* get_vqvf_tracks() const
+			{
+				ACL_ASSERT(type == track_type8::vqvf, "Unexpected track type access");
+				return static_cast<const rtm::vqvf*>(tracks_buffer);
+			}
+
 		private:
 			// Returns the track values as the type of a scalar track
 			template<typename value_type_t>
-			value_type_t* get_scalar_tracks() const { return static_cast<value_type_t*>(tracks_buffer); }
+			value_type_t* get_scalar_tracks() { return static_cast<value_type_t*>(tracks_buffer); }
+
+			template<typename value_type_t>
+			const value_type_t* get_scalar_tracks() const { return static_cast<const value_type_t*>(tracks_buffer); }
 
 		public:
 
