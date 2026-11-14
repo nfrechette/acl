@@ -100,4 +100,4 @@ To migrate, select the runtime transform type of your legacy error metric:
 
 With the runtime transform type, compression applies the additive base itself. You do not need a variant for each additive format.
 
-The bit rate algorithm v2 supports the legacy error metrics that return true from `supports_bit_rate_algorithm_v2`. Of the built-in legacy error metrics, only `vqvf_matrix3x4f_transform_error_metric` returns false. The other legacy error metrics, and your own by default, use the slower bit rate algorithm v1. With the runtime transform type, compression always uses the bit rate algorithm v2.
+The bit rate algorithm v2 supports the legacy error metrics that return true from `supports_bit_rate_algorithm_v2`. The other legacy error metrics use the slower bit rate algorithm v1. Of the built-in legacy error metrics, only `vqvf_matrix3x4f_transform_error_metric` returns false. Your own error metric also returns false, unless it overrides the function. With the runtime transform type, compression always uses the bit rate algorithm v2.
