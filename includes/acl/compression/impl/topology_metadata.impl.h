@@ -92,7 +92,7 @@ namespace acl
 #endif
 		}
 
-		inline void build_clip_topology(iallocator& allocator, const track_array& track_list, clip_topology_t& out_topology)
+		inline void build_clip_topology(iallocator& allocator, const track_array& track_list, clip_topology_t& out_topology, transform_space_t space)
 		{
 			ACL_ASSERT(out_topology.allocator == nullptr, "Topology has already been built");
 
@@ -103,7 +103,7 @@ namespace acl
 			// Assign our parent indices and find our leaves
 			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 			{
-				const uint32_t parent_index = track_list[transform_index].get_description<track_desc_transformf>().parent_index;
+				const uint32_t parent_index = get_error_parent_index(space, track_list[transform_index].get_description<track_desc_transformf>().parent_index);
 
 				topology_per_transform[transform_index].parent_index = parent_index;
 			}

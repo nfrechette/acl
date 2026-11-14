@@ -14,6 +14,8 @@ With [extended samples](extended_samples.md), `pre_process_track_list(..)` chang
 
 When pre-processing transform tracks, selecting the right [runtime transform type](error_metrics.md) is important: select the one that your game engine uses to compose transforms. Use the same `transform_runtime_type`, `custom_transform_adapter`, and `transform_metric` for pre-processing and compression. They have the same defaults as in the compression settings.
 
+Pre-processing uses the [transform space](additive_clips.md#the-transform-space) of the track array. With an additive clip, set `transform_base` to the base that you give to compression: pre-processing then measures the error with the base.
+
 ```c++
 #include <acl/compression/pre_process.h>
 
@@ -25,6 +27,9 @@ settings.precision_policy = pre_process_precision_policy::lossy;
 
 // Optional: use the same runtime transform type as compression
 // settings.transform_runtime_type = transform_runtime_type_t::vqvf;
+
+// Optional: use the same base as compression
+// settings.transform_base = transform_base;
 
 pre_process_track_list(allocator, settings, transform_tracks);
 ```

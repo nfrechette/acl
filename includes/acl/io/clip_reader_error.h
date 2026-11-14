@@ -52,6 +52,7 @@ namespace acl
 			PositiveValueExpected,
 			InvalidTrackType,
 			InvalidTrackInterpolator,
+			InvalidTransformSpace,
 		};
 
 		clip_reader_error() noexcept = default;
@@ -85,6 +86,8 @@ namespace acl
 				return "Invalid raw track type";
 			case InvalidTrackInterpolator:
 				return "Invalid raw track interpolator";
+			case InvalidTransformSpace:
+				return "Invalid transform space provided";
 			default:
 				return sjson::ParserError::get_description();
 			}

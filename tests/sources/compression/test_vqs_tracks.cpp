@@ -168,7 +168,12 @@ namespace
 		output_stats stats;
 		error_result result;
 		if (base_tracks != nullptr)
-			result = compress_track_list(allocator, tracks, settings, *base_tracks, additive_format, out_compressed_tracks, stats);
+		{
+			transform_base_desc_t transform_base;
+			transform_base.format = additive_format;
+			transform_base.tracks = base_tracks;
+			result = compress_track_list(allocator, tracks, settings, transform_base, out_compressed_tracks, stats);
+		}
 		else
 			result = compress_track_list(allocator, tracks, settings, out_compressed_tracks, stats);
 
@@ -286,8 +291,11 @@ namespace
 		track_error vqv_error;
 		if (is_additive)
 		{
-			vqs_error = calculate_compression_error(allocator, vqs_tracks, vqs_context, error_settings, base_tracks, additive_format);
-			vqv_error = calculate_compression_error(allocator, vqv_tracks, vqv_context, error_settings, base_tracks, additive_format);
+			transform_base_desc_t transform_base;
+			transform_base.format = additive_format;
+			transform_base.tracks = &base_tracks;
+			vqs_error = calculate_compression_error(allocator, vqs_tracks, vqs_context, error_settings, transform_base);
+			vqv_error = calculate_compression_error(allocator, vqv_tracks, vqv_context, error_settings, transform_base);
 		}
 		else
 		{
@@ -476,8 +484,8 @@ TEST_CASE("vqsf pre-process transform type conversion", "[compression][vqsf]")
 			vq_settings.transform_type = track_type8::vqsf;
 			if (additive_format != additive_clip_format8::none)
 			{
-				vq_settings.additive_base = &base_tracks;
-				vq_settings.additive_format = additive_format;
+				vq_settings.transform_base.tracks = &base_tracks;
+				vq_settings.transform_base.format = additive_format;
 			}
 
 			REQUIRE(pre_process_track_list(allocator, vq_settings, tracks).empty());

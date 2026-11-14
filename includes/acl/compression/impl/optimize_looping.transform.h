@@ -34,6 +34,7 @@
 #include "acl/compression/impl/compression_stats.h"
 #include "acl/compression/impl/segment_context.h"
 #include "acl/compression/impl/transform_clip_adapters.h"
+#include "acl/compression/impl/transform_space_context.h"
 #include "acl/compression/impl/topology_metadata.h"
 
 #include <rtm/quatf.h>
@@ -56,7 +57,7 @@ namespace acl
 		inline bool is_clip_looping(
 			iallocator& allocator,
 			const clip_adapter_t& raw_clip,
-			const clip_adapter_t& additive_base_clip,
+			const transform_space_context_t& space_context,
 			const itransform_error_metric& error_metric)
 		{
 			static_assert(std::is_base_of<transform_clip_adapter_t, clip_adapter_t>::value, "Clip adapter must derive from transform_clip_adapter_t");
@@ -76,21 +77,17 @@ namespace acl
 			const uint32_t first_sample_index = 0;
 			const uint32_t last_sample_index = num_samples - 1;
 
-			const bool has_additive_base = raw_clip.has_additive_base();
-			const uint32_t base_num_samples = has_additive_base ? additive_base_clip.get_num_samples() : 0;
-			const uint32_t base_first_sample_index = 0;
-			const uint32_t base_last_sample_index = has_additive_base ? (base_num_samples - 1) : 0;
+			// We compare the first and last samples of the clip with the first and last samples of the base
+			const bool has_additive_base = space_context.has_base();
+			const rtm::vqvf* base_transforms_first = has_additive_base ? space_context.get_base_pose_at_base_sample(0) : nullptr;
+			const rtm::vqvf* base_transforms_last = has_additive_base ? space_context.get_base_pose_at_base_sample(space_context.get_num_base_samples() - 1) : nullptr;
 
 			uint32_t* dirty_transform_indices = allocate_type_array<uint32_t>(allocator, num_transforms);
 			uint32_t* parent_transform_indices = allocate_type_array<uint32_t>(allocator, num_transforms);
 			rtm::vqvf* clip_transforms = allocate_type_array<rtm::vqvf>(allocator, num_transforms * 2);
-			rtm::vqvf* base_transforms = allocate_type_array<rtm::vqvf>(allocator, num_transforms * 2);
 
 			rtm::vqvf* clip_transforms_first = clip_transforms;
 			rtm::vqvf* clip_transforms_last = clip_transforms + num_transforms;
-
-			rtm::vqvf* base_transforms_first = base_transforms;
-			rtm::vqvf* base_transforms_last = base_transforms + num_transforms;
 
 			// The error metric functions use their own transform type after the conversion
 			uint8_t* converted_transforms = needs_conversion ? allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size * num_transforms * 2, 64) : nullptr;
@@ -121,20 +118,6 @@ namespace acl
 
 				clip_transforms_first[transform_index] = rtm::vqv_set(first_rotation, first_translation, first_scale);
 				clip_transforms_last[transform_index] = rtm::vqv_set(last_rotation, last_translation, last_scale);
-
-				if (has_additive_base)
-				{
-					const rtm::quatf base_first_rotation = additive_base_clip.get_transform_rotation(transform_index, base_first_sample_index);
-					const rtm::vector4f base_first_translation = additive_base_clip.get_transform_translation(transform_index, base_first_sample_index);
-					const rtm::vector4f base_first_scale = additive_base_clip.get_transform_scale(transform_index, base_first_sample_index);
-
-					const rtm::quatf base_last_rotation = additive_base_clip.get_transform_rotation(transform_index, base_last_sample_index);
-					const rtm::vector4f base_last_translation = additive_base_clip.get_transform_translation(transform_index, base_last_sample_index);
-					const rtm::vector4f base_last_scale = additive_base_clip.get_transform_scale(transform_index, base_last_sample_index);
-
-					base_transforms_first[transform_index] = rtm::vqv_set(base_first_rotation, base_first_translation, base_first_scale);
-					base_transforms_last[transform_index] = rtm::vqv_set(base_last_rotation, base_last_translation, base_last_scale);
-				}
 			}
 
 			// Apply our base if we have one
@@ -220,7 +203,6 @@ namespace acl
 			deallocate_type_array(allocator, dirty_transform_indices, num_transforms);
 			deallocate_type_array(allocator, parent_transform_indices, num_transforms);
 			deallocate_type_array(allocator, clip_transforms, num_transforms * 2);
-			deallocate_type_array(allocator, base_transforms, num_transforms * 2);
 			deallocate_type_array(allocator, converted_transforms, metric_transform_size * num_transforms * 2);
 			deallocate_type_array(allocator, object_transforms, metric_transform_size * num_transforms * 2);
 
@@ -229,7 +211,7 @@ namespace acl
 
 		inline void optimize_looping(
 			clip_context& context,
-			const clip_context& additive_base_clip_context,
+			const transform_space_context_t& space_context,
 			const compression_settings& settings,
 			compression_stats_t& compression_stats)
 		{
@@ -268,7 +250,7 @@ namespace acl
 			const bool is_wrapping = is_clip_looping(
 				*context.allocator,
 				transform_clip_context_adapter_t(context),
-				transform_clip_context_adapter_t(additive_base_clip_context),
+				space_context,
 				*settings.error_metric);
 
 			if (is_wrapping)

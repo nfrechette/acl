@@ -33,8 +33,11 @@
 #include "acl/compression/compression_settings.h"
 #include "acl/compression/track_array.h"
 #include "acl/compression/transform_adapters.h"
+#include "acl/compression/transform_base_adapter.h"
 #include "acl/compression/transform_error_metrics.h"
 #include "acl/compression/transform_metrics.h"
+#include "acl/compression/transform_base.h"
+#include "acl/compression/transform_space.h"
 #include "acl/compression/impl/transform_runtime.h"
 #include "acl/compression/impl/transform_track_utils.h"
 
@@ -83,12 +86,23 @@ namespace acl
 			//////////////////////////////////////////////////////////////////////////
 			// Selects the transform adapters and the transform metrics of a clip.
 			// 'source_type' is the track type of the raw tracks.
-			// 'additive_base' can be 'null' when the clip is not additive.
+			// 'space' is the transform space of the raw tracks: in mesh rotation space, we compose the transforms
+			// with the mesh rotation product, see 'transform_space_t::mesh_rotation'.
+			// 'transform_base' holds the base of the clip: with the 'custom' base format, the base adapter
+			// combines each transform with the base.
 			error_result initialize(
 				transform_runtime_type_t type, const itransform_adapter* custom_adapter, const itransform_metric* metric,
-				track_type8 source_type, additive_clip_format8 additive_format, const track_array* additive_base)
+				track_type8 source_type, transform_space_t space, const transform_base_desc_t& transform_base)
 			{
+				const additive_clip_format8 additive_format = transform_base.format;
+				const track_array* additive_base = transform_base.tracks;
+
 				m_additive_format = additive_format;
+				m_base_adapter = additive_format == additive_clip_format8::custom ? transform_base.adapter : nullptr;
+				m_space = space;
+
+				if (additive_format == additive_clip_format8::custom && m_base_adapter == nullptr)
+					return error_result("The custom base format requires a base adapter");
 
 				// An additive base with scale gives a clip with scale
 				// An additive base with a scale that is not uniform gives a scale that is not uniform
@@ -99,11 +113,11 @@ namespace acl
 
 				m_base_has_scale = base_has_scale;
 
-				error_result result = m_selector.select(type, custom_adapter, metric, source_type, true, base_has_non_uniform_scale, m_scale_selection);
+				error_result result = m_selector.select(type, custom_adapter, metric, source_type, true, base_has_non_uniform_scale, space, m_scale_selection);
 				if (result.any())
 					return result;
 
-				result = m_selector.select(type, custom_adapter, metric, source_type, false, base_has_non_uniform_scale, m_no_scale_selection);
+				result = m_selector.select(type, custom_adapter, metric, source_type, false, base_has_non_uniform_scale, space, m_no_scale_selection);
 				if (result.any())
 					return result;
 
@@ -133,6 +147,10 @@ namespace acl
 				hash_value = hash_combine(hash_value, m_no_scale_selection.adapter->get_hash());
 				hash_value = hash_combine(hash_value, m_no_scale_selection.metric->get_hash());
 				hash_value = hash_combine(hash_value, hash32(m_additive_format));
+				if (m_base_adapter != nullptr)
+					hash_value = hash_combine(hash_value, m_base_adapter->get_hash());
+				if (m_space != transform_space_t::local)
+					hash_value = hash_combine(hash_value, hash32(m_space));	// The local space keeps the hash of older versions
 				return hash_value;
 			}
 
@@ -149,8 +167,12 @@ namespace acl
 			virtual void convert_transforms(const convert_transforms_args& args, void* out_transforms) const override { convert_transforms_impl(get_selection(true), args, out_transforms); }
 			virtual void convert_transforms_no_scale(const convert_transforms_args& args, void* out_transforms) const override { convert_transforms_impl(get_selection(false), args, out_transforms); }
 
-			virtual void local_to_object_space(const local_to_object_space_args& args, void* out_object_transforms) const override { local_to_object_space_impl(get_selection(true), args, out_object_transforms); }
-			virtual void local_to_object_space_no_scale(const local_to_object_space_args& args, void* out_object_transforms) const override { local_to_object_space_impl(get_selection(false), args, out_object_transforms); }
+			virtual void local_to_object_space(const local_to_object_space_args& args, void* out_object_transforms) const override { local_to_object_space_impl(get_selection(true), m_space, args, out_object_transforms); }
+			virtual void local_to_object_space_no_scale(const local_to_object_space_args& args, void* out_object_transforms) const override { local_to_object_space_impl(get_selection(false), m_space, args, out_object_transforms); }
+
+			//////////////////////////////////////////////////////////////////////////
+			// Returns the transform space of the clip.
+			transform_space_t get_space() const { return m_space; }
 
 			virtual RTM_DISABLE_SECURITY_COOKIE_CHECK void apply_additive_to_base(const apply_additive_to_base_args& args, void* out_transforms) const override
 			{
@@ -163,7 +185,7 @@ namespace acl
 				for (uint32_t dirty_transform_index = 0; dirty_transform_index < num_dirty_transforms; ++dirty_transform_index)
 				{
 					const uint32_t transform_index = dirty_transform_indices[dirty_transform_index];
-					out_transforms_[transform_index] = acl::apply_additive_to_base(m_additive_format, base_transforms_[transform_index], local_transforms_[transform_index]);
+					out_transforms_[transform_index] = combine_with_base(transform_index, base_transforms_[transform_index], local_transforms_[transform_index]);
 				}
 			}
 
@@ -178,7 +200,7 @@ namespace acl
 				for (uint32_t dirty_transform_index = 0; dirty_transform_index < num_dirty_transforms; ++dirty_transform_index)
 				{
 					const uint32_t transform_index = dirty_transform_indices[dirty_transform_index];
-					out_transforms_[transform_index] = acl::apply_additive_to_base_no_scale(m_additive_format, base_transforms_[transform_index], local_transforms_[transform_index]);
+					out_transforms_[transform_index] = combine_with_base_no_scale(transform_index, base_transforms_[transform_index], local_transforms_[transform_index]);
 				}
 			}
 
@@ -186,6 +208,27 @@ namespace acl
 			virtual rtm::scalarf RTM_SIMD_CALL calculate_error_squared_no_scale(const calculate_error_args& args) const override { return calculate_error_squared_impl(get_selection(false), args); }
 
 		private:
+			// Combines a transform with its base transform, with the base adapter of the 'custom' format
+			rtm::vqvf RTM_SIMD_CALL combine_with_base(uint32_t transform_index, rtm::vqvf_arg0 base_transform, rtm::vqvf_arg1 transform) const
+			{
+				if (m_base_adapter != nullptr)
+					return m_base_adapter->apply_base(transform_index, base_transform, transform);
+
+				return acl::apply_additive_to_base(m_additive_format, base_transform, transform);
+			}
+
+			// Combines a transform with its base transform when the clip and the base have no scale: the result has no scale
+			rtm::vqvf RTM_SIMD_CALL combine_with_base_no_scale(uint32_t transform_index, rtm::vqvf_arg0 base_transform, rtm::vqvf_arg1 transform) const
+			{
+				if (m_base_adapter != nullptr)
+				{
+					const rtm::vqvf result = m_base_adapter->apply_base(transform_index, base_transform, transform);
+					return rtm::vqv_set(result.rotation, result.translation, rtm::vector_set(1.0F));
+				}
+
+				return acl::apply_additive_to_base_no_scale(m_additive_format, base_transform, transform);
+			}
+
 			static void convert_transforms_impl(const transform_runtime_selection& selection, const convert_transforms_args& args, void* out_transforms)
 			{
 				itransform_adapter::convert_transforms_args adapter_args;
@@ -199,8 +242,47 @@ namespace acl
 				selection.adapter->convert_transforms(adapter_args, out_transforms);
 			}
 
-			static void local_to_object_space_impl(const transform_runtime_selection& selection, const local_to_object_space_args& args, void* out_object_transforms)
+			// Takes the transforms of the mesh rotation space into object space with the math of a built-in type
+			template<class transform_math_t>
+			static RTM_DISABLE_SECURITY_COOKIE_CHECK void local_to_object_space_mesh_rotation(const local_to_object_space_args& args, void* out_object_transforms)
 			{
+				using transform_type = typename transform_math_t::transform_type;
+
+				const uint32_t* dirty_transform_indices = args.dirty_transform_indices;
+				const uint32_t* parent_transform_indices = args.parent_transform_indices;
+				const transform_type* local_transforms_ = static_cast<const transform_type*>(args.local_transforms);
+				transform_type* out_object_transforms_ = static_cast<transform_type*>(out_object_transforms);
+
+				const uint32_t num_dirty_transforms = args.num_dirty_transforms;
+				for (uint32_t dirty_transform_index = 0; dirty_transform_index < num_dirty_transforms; ++dirty_transform_index)
+				{
+					const uint32_t transform_index = dirty_transform_indices[dirty_transform_index];
+					const uint32_t parent_transform_index = parent_transform_indices[transform_index];
+
+					if (parent_transform_index == k_invalid_track_index)
+						out_object_transforms_[transform_index] = local_transforms_[transform_index];	// The root has no parent: its transform is in object space
+					else
+						out_object_transforms_[transform_index] = transform_math_t::mul_mesh_rotation(local_transforms_[transform_index], out_object_transforms_[parent_transform_index]);
+				}
+			}
+
+			static void local_to_object_space_impl(const transform_runtime_selection& selection, transform_space_t space, const local_to_object_space_args& args, void* out_object_transforms)
+			{
+				if (space == transform_space_t::mesh_rotation)
+				{
+					// The selector accepts only the types that support the mesh rotation space
+					switch (selection.adapter->get_type())
+					{
+					case transform_runtime_type_t::vqf:		local_to_object_space_mesh_rotation<vq_transform_math>(args, out_object_transforms); return;
+					case transform_runtime_type_t::vqsf:	local_to_object_space_mesh_rotation<vqs_transform_math>(args, out_object_transforms); return;
+					case transform_runtime_type_t::vqvf:	local_to_object_space_mesh_rotation<vqv_transform_math>(args, out_object_transforms); return;
+					case transform_runtime_type_t::vqmf:	local_to_object_space_mesh_rotation<vqm_transform_math>(args, out_object_transforms); return;
+					default:
+						ACL_ASSERT(false, "The transform runtime type does not support the mesh rotation space");
+						break;
+					}
+				}
+
 				itransform_adapter::local_to_object_space_args adapter_args;
 				adapter_args.dirty_transform_indices = args.dirty_transform_indices;
 				adapter_args.num_dirty_transforms = args.num_dirty_transforms;
@@ -258,19 +340,21 @@ namespace acl
 			transform_runtime_selection m_no_scale_selection;
 			const transform_runtime_selection* m_scale_function_selection = &m_scale_selection;
 
+			const itransform_base_adapter_t* m_base_adapter = nullptr;
 			additive_clip_format8 m_additive_format = additive_clip_format8::none;
+			transform_space_t m_space = transform_space_t::local;
 			bool m_base_has_scale = false;
 		};
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns whether or not transform tracks have a scale that is not the default scale.
-		// The default scale is 0.0 with the 'additive1' format, and 1.0 otherwise.
-		inline bool transform_tracks_have_scale(const track_array& tracks, additive_clip_format8 additive_format)
+		// The default scale is 0.0 or 1.0, see 'get_base_default_scale'.
+		inline bool transform_tracks_have_scale(const track_array& tracks, float default_scale_value)
 		{
 			if (tracks.is_empty() || !is_transform_track_type(tracks.get_track_type()))
 				return false;
 
-			const rtm::vector4f default_scale = rtm::vector_set(additive_format == additive_clip_format8::additive1 ? 0.0F : 1.0F);
+			const rtm::vector4f default_scale = rtm::vector_set(default_scale_value);
 
 			rtm::mask4f is_default = rtm::mask_set(true, true, true, true);
 
@@ -294,22 +378,28 @@ namespace acl
 		// Returns 'null' when the settings are not valid for these tracks.
 		inline const itransform_error_metric* get_settings_error_metric(
 			const compression_settings& settings, const track_array& raw_tracks,
-			additive_clip_format8 additive_format, const track_array* additive_base,
+			const transform_base_desc_t& transform_base,
 			transform_runtime_error_metric& runtime_error_metric)
 		{
 			if (settings.error_metric != nullptr)
+			{
+				// The legacy error metric cannot use a base adapter
+				if (transform_base.format == additive_clip_format8::custom)
+					return nullptr;
+
 				return settings.error_metric;
+			}
 
 			// An empty track array has no type, we use vqvf
 			const track_type8 track_type = raw_tracks.is_empty() ? track_type8::vqvf : raw_tracks.get_track_type();
 
 			const error_result result = runtime_error_metric.initialize(
 				settings.transform_runtime_type, settings.custom_transform_adapter, settings.transform_metric,
-				track_type, additive_format, additive_base);
+				track_type, raw_tracks.get_transform_space(), transform_base);
 			if (result.any())
 				return nullptr;
 
-			runtime_error_metric.set_clip_has_scale(transform_tracks_have_scale(raw_tracks, additive_format));
+			runtime_error_metric.set_clip_has_scale(transform_tracks_have_scale(raw_tracks, get_base_default_scale(transform_base)));
 			return &runtime_error_metric;
 		}
 	}

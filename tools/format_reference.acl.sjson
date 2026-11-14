@@ -38,8 +38,9 @@ clip =
 	// Introduced in version 2.
 	is_binary_exact = true
 
-	// Additive format of base clip, if present. Optional, defaults to 'none'.
-	// Introduced in version 3.
+	// Additive format of base clip, if present: 'none', 'relative', 'additive0', 'additive1', or 'custom'. Optional, defaults to 'none'.
+	// The file does not hold the base adapter of the 'custom' format, the tool that reads the file must supply it.
+	// Introduced in version 3, 'custom' introduced in ACL 2.2.
 	additive_format = "none"
 
 	// The additive base clip name. Optional, defaults to empty string.
@@ -53,6 +54,11 @@ clip =
 	// The additive base clip sample rate. Optional, defaults to 1.
 	// Introduced in version 3.
 	additive_base_sample_rate = 30
+
+	// The space of the transforms of the clip, see 'transform_space_t': 'local', 'mesh', or 'mesh_rotation'. Optional, defaults to 'local'.
+	// The additive base is always in local space.
+	// Introduced in ACL 2.2.
+	transform_space = "local"
 }
 
 // Optional clip compression settings.

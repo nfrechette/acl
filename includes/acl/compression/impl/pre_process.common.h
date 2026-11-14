@@ -30,6 +30,7 @@
 #include "acl/compression/impl/rigid_shell_utils.h"
 #include "acl/compression/impl/topology_metadata.h"
 #include "acl/compression/impl/transform_clip_adapters.h"
+#include "acl/compression/impl/transform_space_context.h"
 
 #include <cstdint>
 
@@ -52,6 +53,8 @@ namespace acl
 			rigid_shell_metadata_t* shell_metadata = nullptr;
 			uint32_t* sorted_transforms_parent_first = nullptr;
 			clip_topology_t* topology = nullptr;
+			transform_space_context_t space_context;
+			bool is_space_context_initialized = false;
 
 			//////////////////////////////////////////////////////////////////////////
 
@@ -83,17 +86,42 @@ namespace acl
 				{
 					transform_track_array_adapter_t clip_adapter(
 						&track_list,
-						settings.additive_format);
+						settings.transform_base.format,
+						get_base_default_scale(settings.transform_base));
 					clip_adapter.sorted_transforms_parent_first = get_sorted_transforms_parent_first();
 					clip_adapter.topology = get_topology();
 
 					shell_metadata = compute_clip_shell_distances(
 						allocator,
 						clip_adapter,
-						transform_track_array_adapter_t(settings.additive_base, additive_clip_format8::none));
+						get_space_context());
 				}
 
 				return shell_metadata;
+			}
+
+			//////////////////////////////////////////////////////////////////////////
+			// Returns the space context of the track list: it holds the base poses.
+			// The pre-process actions do not change the number of samples, the sample rate, or the base.
+			const transform_space_context_t& get_space_context()
+			{
+				if (!is_space_context_initialized)
+				{
+					space_context.initialize(
+						allocator,
+						track_list.get_transform_space(),
+						settings.transform_base.format,
+						settings.transform_base.adapter,
+						transform_track_array_adapter_t(settings.transform_base.tracks, additive_clip_format8::none, 1.0F),
+						track_list,
+						track_list.get_num_samples_per_track(),
+						track_list.get_sample_rate(),
+						track_list.get_finite_duration());
+
+					is_space_context_initialized = true;
+				}
+
+				return space_context;
 			}
 
 			const uint32_t* get_sorted_transforms_parent_first()
@@ -107,8 +135,10 @@ namespace acl
 					for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 						sorted_transforms_parent_first[transform_index] = transform_index;
 
+					transform_track_array_adapter_t clip_adapter(track_list);
+
 					sort_transform_indices_parent_first(
-						transform_track_array_adapter_t(track_list),
+						clip_adapter,
 						sorted_transforms_parent_first,
 						num_transforms);
 				}
@@ -122,7 +152,7 @@ namespace acl
 				{
 					topology = allocate_type<clip_topology_t>(allocator);
 
-					build_clip_topology(allocator, track_list, *topology);
+					build_clip_topology(allocator, track_list, *topology, track_list.get_transform_space());
 				}
 
 				return topology;

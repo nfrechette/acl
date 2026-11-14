@@ -65,6 +65,7 @@ namespace acl
 		, m_tracks(other.m_tracks)
 		, m_num_tracks(other.m_num_tracks)
 		, m_looping_policy(other.m_looping_policy)
+		, m_transform_space(other.m_transform_space)
 		, m_name(std::move(other.m_name))
 	{
 		other.m_allocator = nullptr;	// Make sure we don't free our data since we no longer own it
@@ -82,6 +83,7 @@ namespace acl
 		std::swap(m_tracks, other.m_tracks);
 		std::swap(m_num_tracks, other.m_num_tracks);
 		std::swap(m_looping_policy, other.m_looping_policy);
+		std::swap(m_transform_space, other.m_transform_space);
 		std::swap(m_name, other.m_name);
 		return *this;
 	}
@@ -135,6 +137,9 @@ namespace acl
 
 	inline error_result track_array::is_valid() const
 	{
+		if (!acl_impl::is_transform_space_valid(m_transform_space))
+			return error_result("Invalid transform space");
+
 		const track_type8 type = get_track_type();
 		const uint32_t num_samples = get_num_samples_per_track();
 		const float sample_rate = get_sample_rate();

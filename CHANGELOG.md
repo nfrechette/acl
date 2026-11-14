@@ -46,6 +46,23 @@
 *  The built-in transform adapters and metrics use code without virtual function calls, compression is faster
 *  Fix the bit rate algorithm v1 that converted transforms that it did not sample, an assert could fail with an additive base
 *  Disable floating point contraction (FMA) in the ACL headers with the `optimize` pragma under GCC
+*  Add `transform_space_t`: the space of the transform tracks, `track_array::set_transform_space` sets it, compression, pre-processing, and `calculate_compression_error` use it, see [additive clips](docs/additive_clips.md)
+*  Add `transform_base_desc_t`: the base of the transform tracks and its base format
+*  Add the `compress_track_list` overload that takes a `transform_base_desc_t`, and deprecate the overload that takes an additive base and an additive format, ACL 2.3 will remove it
+*  Add `pre_process_settings_t::transform_base`, and deprecate `pre_process_settings_t::additive_base` and `additive_format`, ACL 2.3 will remove them
+*  The `calculate_compression_error` overload with the compression settings and a base now takes a `transform_base_desc_t`
+*  The `calculate_compression_error` overloads that take a legacy error metric support only transform tracks in local space
+*  The clip reader reads the optional `transform_space` value of a raw clip into the transform space of its track list, it defaults to `local`
+*  `convert_track_list` converts a track array in each transform space
+*  Add the `mesh` transform space: each transform is in object space, compression measures the error of each transform without its parent, and it combines the clip with the base in mesh space
+*  Add the `-mesh_space` option and the `is_mesh_space` config option to `acl_compressor` and its python script, they convert a local space clip into mesh space
+*  Add two regression configurations in mesh space, without a base and with a relative base
+*  Add the `mesh_rotation` transform space: the rotations are in object space, the translations and scales are in local space, it supports the `vqf`, `vqsf`, `vqvf`, and `vqmf` runtime transform types, it does not support the `relative` base format
+*  Add the `-mesh_rotation_space` option and the `is_mesh_rotation_space`, `is_bind_pose_additive0`, and `is_bind_pose_additive1` config options to `acl_compressor`, and two regression configurations in mesh rotation space
+*  In the mesh rotation space, the bit rate search caches the transforms of the `vqf` and `vqsf` types, as in local space
+*  Add the `custom` base format and `itransform_base_adapter_t`: a base adapter combines each transform with the base, set it in `transform_base_desc_t::adapter`, see [additive clips](docs/additive_clips.md#custom-base-format)
+*  Add the `-base_custom` option and the `use_custom_base_format` config option to `acl_compressor`, and a regression configuration: they compress the clip with the `custom` base format and a base adapter that applies the built-in base format of the clip
+*  Fix the `max_error` stat of `acl_compressor` that ignored the additive base
 
 ## 2.1.0
 

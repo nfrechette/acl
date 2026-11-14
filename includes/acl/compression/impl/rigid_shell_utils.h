@@ -30,6 +30,7 @@
 #include "acl/compression/impl/clip_context.h"
 #include "acl/compression/impl/sample_streams.h"
 #include "acl/compression/impl/transform_clip_adapters.h"
+#include "acl/compression/impl/transform_space_context.h"
 
 #include <rtm/matrix3x3f.h>
 #include <rtm/matrix3x4f.h>
@@ -55,7 +56,7 @@ namespace acl
 		inline rigid_shell_metadata_t* compute_clip_shell_distances(
 			iallocator& allocator,
 			const clip_adapter_t& raw_clip,
-			const clip_adapter_t& additive_base_clip)
+			const transform_space_context_t& space_context)
 		{
 			static_assert(std::is_base_of<transform_clip_adapter_t, clip_adapter_t>::value, "Clip adapter must derive from transform_clip_adapter_t");
 
@@ -67,12 +68,7 @@ namespace acl
 			if (num_samples == 0)
 				return nullptr;	// No samples present, no shell distances
 
-			const float sample_rate = raw_clip.get_sample_rate();
-			const float duration = raw_clip.get_duration();
-			const bool has_additive_base = raw_clip.has_additive_base();
-			const additive_clip_format8 additive_format = raw_clip.get_additive_format();
-			const uint32_t base_num_samples = has_additive_base ? additive_base_clip.get_num_samples() : 0;
-			const float base_duration = has_additive_base ? additive_base_clip.get_duration() : 0.0F;
+			const bool has_additive_base = space_context.has_base();
 			const clip_topology_t* topology = raw_clip.get_topology();
 
 			// We retain only one dominant sub-transform per transform but in reality, it could change from keyframe to keyframe
@@ -99,19 +95,6 @@ namespace acl
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
-				uint32_t base_sample_index = 0;
-				if (has_additive_base)
-				{
-					// The sample time is calculated from the full clip duration to be consistent with decompression
-					const float sample_time = rtm::scalar_min(float(sample_index) / sample_rate, duration);
-
-					const float normalized_sample_time = base_num_samples > 1 ? (sample_time / duration) : 0.0F;
-					const float additive_sample_time = base_num_samples > 1 ? (normalized_sample_time * base_duration) : 0.0F;
-
-					// With uniform sample distributions, we do not interpolate.
-					base_sample_index = get_uniform_sample_key(additive_base_clip, transform_segment_adapter_t(), additive_sample_time);
-				}
-
 				// Retrieve the object space transforms for this sample
 				for (const uint32_t transform_index : topology->roots_first_iterator())
 				{
@@ -124,19 +107,12 @@ namespace acl
 					rtm::vqvf local_transform = rtm::vqv_set(rotation, translation, scale);
 
 					if (has_additive_base)
-					{
-						const rtm::quatf base_rotation = additive_base_clip.get_transform_rotation(transform_index, base_sample_index);
-						const rtm::vector4f base_translation = additive_base_clip.get_transform_translation(transform_index, base_sample_index);
-						const rtm::vector4f base_scale = additive_base_clip.get_transform_scale(transform_index, base_sample_index);
-						const rtm::vqvf base_transform = rtm::vqv_set(base_rotation, base_translation, base_scale);
-
-						local_transform = rtm::vqv_normalize(acl::apply_additive_to_base(additive_format, base_transform, local_transform));
-					}
+						local_transform = space_context.apply_base(sample_index, transform_index, local_transform);
 
 					// Compute our object space transform
 					rtm::vqvf object_transform;
 					if (parent_index != k_invalid_track_index)
-						object_transform = rtm::vqv_normalize(rtm::vqv_mul(local_transform, object_transforms[parent_index]));
+						object_transform = mul_in_space(space_context.get_space(), local_transform, object_transforms[parent_index]);
 					else
 						object_transform = local_transform;
 
@@ -306,7 +282,7 @@ namespace acl
 		inline void compute_dominance_map(
 			iallocator& allocator,
 			const clip_adapter_t& raw_clip,
-			const clip_adapter_t& additive_base_clip,
+			const transform_space_context_t& space_context,
 			const itransform_error_metric& error_metric,
 			clip_topology_t& clip_topology)
 		{
@@ -320,6 +296,10 @@ namespace acl
 			if (num_samples == 0)
 				return;	// No samples present, no shell distances
 
+			// The code below multiplies relative transforms in local space, it supports only the local space
+			if (space_context.get_space() != transform_space_t::local)
+				return;
+
 			// We don't support error metrics that require conversion.
 			// The code below calls calculate_error_squared on vqvf transforms, and it always uses the variant with scale.
 			// Thus we test the conversion with scale, even when the clip has no scale.
@@ -328,12 +308,7 @@ namespace acl
 
 			const bool has_scale = raw_clip.has_scale();
 
-			const float sample_rate = raw_clip.get_sample_rate();
-			const float duration = raw_clip.get_duration();
-			const bool has_additive_base = raw_clip.has_additive_base();
-			const additive_clip_format8 additive_format = raw_clip.get_additive_format();
-			const uint32_t base_num_samples = has_additive_base ? additive_base_clip.get_num_samples() : 0;
-			const float base_duration = has_additive_base ? additive_base_clip.get_duration() : 0.0F;
+			const bool has_additive_base = space_context.has_base();
 
 			const rtm::float4f* const dominance_transform_offsets = has_scale ? &k_dominance_transform_offsets[0][0] : &k_dominance_transform_offsets_no_scale[0][0];
 			const size_t num_dominance_transform_offsets = has_scale ? get_array_size(k_dominance_transform_offsets) : get_array_size(k_dominance_transform_offsets_no_scale);
@@ -354,19 +329,6 @@ namespace acl
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
-				uint32_t base_sample_index = 0;
-				if (has_additive_base)
-				{
-					// The sample time is calculated from the full clip duration to be consistent with decompression
-					const float sample_time = rtm::scalar_min(float(sample_index) / sample_rate, duration);
-
-					const float normalized_sample_time = base_num_samples > 1 ? (sample_time / duration) : 0.0F;
-					const float additive_sample_time = base_num_samples > 1 ? (normalized_sample_time * base_duration) : 0.0F;
-
-					// With uniform sample distributions, we do not interpolate.
-					base_sample_index = get_uniform_sample_key(additive_base_clip, transform_segment_adapter_t(), additive_sample_time);
-				}
-
 				// Retrieve the local/object space transforms for this sample
 				for (const uint32_t transform_index : clip_topology.roots_first_iterator())
 				{
@@ -379,14 +341,7 @@ namespace acl
 					rtm::vqvf local_transform = rtm::vqv_set(rotation, translation, scale);
 
 					if (has_additive_base)
-					{
-						const rtm::quatf base_rotation = additive_base_clip.get_transform_rotation(transform_index, base_sample_index);
-						const rtm::vector4f base_translation = additive_base_clip.get_transform_translation(transform_index, base_sample_index);
-						const rtm::vector4f base_scale = additive_base_clip.get_transform_scale(transform_index, base_sample_index);
-						const rtm::vqvf base_transform = rtm::vqv_set(base_rotation, base_translation, base_scale);
-
-						local_transform = rtm::vqv_normalize(acl::apply_additive_to_base(additive_format, base_transform, local_transform));
-					}
+						local_transform = space_context.apply_base(sample_index, transform_index, local_transform);
 
 					local_transforms[transform_index] = local_transform;
 
@@ -561,7 +516,7 @@ namespace acl
 		// We use the raw data to compute the rigid shell
 		// For each transform, its rigid shell is formed by the dominant joint (itself or a child)
 		// We compute the largest value over the whole segment per transform
-		inline void compute_segment_shell_distances(const segment_context& segment, const clip_context& additive_base_clip_context, rigid_shell_metadata_t* out_shell_metadata)
+		inline void compute_segment_shell_distances(const segment_context& segment, const transform_space_context_t& space_context, rigid_shell_metadata_t* out_shell_metadata)
 		{
 			const uint32_t num_transforms = segment.num_bones;
 			if (num_transforms == 0)
@@ -573,12 +528,7 @@ namespace acl
 
 			const clip_context& owner_clip_context = *segment.clip;
 			iallocator& allocator = *owner_clip_context.allocator;
-			const float sample_rate = owner_clip_context.sample_rate;
-			const float duration = owner_clip_context.duration;
-			const bool has_additive_base = owner_clip_context.has_additive_base;
-			const additive_clip_format8 additive_format = owner_clip_context.additive_format;
-			const uint32_t base_num_samples = has_additive_base ? additive_base_clip_context.num_samples : 0;
-			const float base_duration = has_additive_base ? additive_base_clip_context.duration : 0.0F;
+			const bool has_additive_base = space_context.has_base();
 			const clip_topology_t* topology = owner_clip_context.topology;
 			const bool has_scale = owner_clip_context.has_scale;
 
@@ -604,22 +554,7 @@ namespace acl
 
 			for (uint32_t segment_sample_index = 0; segment_sample_index < num_samples; ++segment_sample_index)
 			{
-				uint32_t base_sample_index = 0;
-
-				if (has_additive_base)
-				{
-					const segment_context& base_segment = additive_base_clip_context.segments[0];
-					const uint32_t clip_sample_index = segment.clip_sample_offset + segment_sample_index;
-
-					// The sample time is calculated from the full clip duration to be consistent with decompression
-					const float sample_time = rtm::scalar_min(float(clip_sample_index) / sample_rate, duration);
-
-					const float normalized_sample_time = base_num_samples > 1 ? (sample_time / duration) : 0.0F;
-					const float additive_sample_time = base_num_samples > 1 ? (normalized_sample_time * base_duration) : 0.0F;
-
-					// With uniform sample distributions, we do not interpolate.
-					base_sample_index = get_uniform_sample_key(base_segment, additive_sample_time);
-				}
+				const uint32_t clip_sample_index = segment.clip_sample_offset + segment_sample_index;
 
 				sample_context context;
 				context.sample_key = segment_sample_index;
@@ -638,22 +573,12 @@ namespace acl
 					rtm::vqvf local_transform = rtm::vqv_set(rotation, translation, scale);
 
 					if (has_additive_base)
-					{
-						const segment_context& base_segment = additive_base_clip_context.segments[0];
-						const transform_streams& base_bone_stream = base_segment.bone_streams[transform_index];
-
-						const rtm::quatf base_rotation = base_bone_stream.rotations.get_sample_clamped(base_sample_index);
-						const rtm::vector4f base_translation = base_bone_stream.translations.get_sample_clamped(base_sample_index);
-						const rtm::vector4f base_scale = base_bone_stream.scales.get_sample_clamped(base_sample_index);
-						const rtm::vqvf base_transform = rtm::vqv_set(base_rotation, base_translation, base_scale);
-
-						local_transform = rtm::vqv_normalize(acl::apply_additive_to_base(additive_format, base_transform, local_transform));
-					}
+						local_transform = space_context.apply_base(clip_sample_index, transform_index, local_transform);
 
 					// Compute our object space transform
 					rtm::vqvf object_transform;
 					if (parent_index != k_invalid_track_index)
-						object_transform = rtm::vqv_normalize(rtm::vqv_mul(local_transform, object_transforms[parent_index]));
+						object_transform = mul_in_space(space_context.get_space(), local_transform, object_transforms[parent_index]);
 					else
 						object_transform = local_transform;
 

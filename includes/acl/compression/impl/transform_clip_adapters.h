@@ -27,6 +27,7 @@
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/compression/track_array.h"
+#include "acl/compression/transform_space.h"
 #include "acl/compression/impl/clip_context.h"
 #include "acl/compression/impl/topology_metadata.h"
 #include "acl/compression/impl/transform_track_utils.h"
@@ -186,17 +187,23 @@ namespace acl
 			const rigid_shell_metadata_t* rigid_shell_metadata = nullptr;
 			const clip_topology_t* topology = nullptr;
 
+			// The transform space of the tracks, it selects the parent index that we use to measure the error
+			transform_space_t space = transform_space_t::local;
+
 			explicit transform_track_array_adapter_t(const track_array& track_list_)
 				: track_list(&track_list_)
+				, space(track_list_.get_transform_space())
 			{
 				ACL_ASSERT(track_list_.is_empty() || is_transform_track_type(track_list_.get_track_type()), "Expected transform tracks");
 			}
 
-			// The additive base of a clip has no additive format: use 'additive_clip_format8::none' with it
-			transform_track_array_adapter_t(const track_array* track_list_, additive_clip_format8 additive_format_)
+			// The additive base of a clip has no additive format: use 'additive_clip_format8::none' and 1.0 with it
+			// 'default_scale' is the scale of the samples of a VQ track, see 'get_base_default_scale'
+			transform_track_array_adapter_t(const track_array* track_list_, additive_clip_format8 additive_format_, float default_scale)
 				: track_list(track_list_)
 				, additive_format(additive_format_)
-				, vq_scale(rtm::vector_set(get_additive_default_scale(additive_format_)))
+				, vq_scale(rtm::vector_set(default_scale))
+				, space(track_list_ != nullptr ? track_list_->get_transform_space() : transform_space_t::local)
 			{
 				ACL_ASSERT(track_list_ == nullptr || track_list_->is_empty() || is_transform_track_type(track_list_->get_track_type()), "Expected transform tracks");
 			}
@@ -231,7 +238,7 @@ namespace acl
 			uint32_t get_transform_parent_index(uint32_t transform_index) const
 			{
 				const track_desc_transformf& desc = (*track_list)[transform_index].get_description<track_desc_transformf>();
-				return desc.parent_index;
+				return get_error_parent_index(space, desc.parent_index);
 			}
 
 			// Per transform samples

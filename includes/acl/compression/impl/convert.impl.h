@@ -78,8 +78,13 @@ namespace acl
 	{
 		compression_settings settings = get_raw_compression_settings();
 
+		// The legacy error metric supports only the local transform space, the other spaces use the same arithmetic
+		// with the runtime transform type
 		vqvf_transform_error_metric error_metric;
-		settings.error_metric = &error_metric;
+		if (track_list.get_transform_space() == transform_space_t::local)
+			settings.error_metric = &error_metric;
+		else
+			settings.transform_runtime_type = transform_runtime_type_t::vqvf;
 
 		// Include all the metadata
 		settings.metadata.include_track_list_name = true;

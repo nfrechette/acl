@@ -44,11 +44,11 @@ For the purpose of measuring the error, we ignore object space additive blending
 
 ## Measuring the error of compressed tracks
 
-To measure the error as compression does, give your compression settings to `calculate_compression_error`. An additive clip also needs its additive base and its additive format:
+To measure the error as compression does, give your compression settings to `calculate_compression_error`. The function uses the transform space of the raw tracks. An additive clip also needs the base description that you gave to compression, with its base and its additive format (see [here](additive_clips.md#the-transform-space)):
 
 ```c++
 const track_error error = calculate_compression_error(allocator, raw_tracks, context, settings);
-const track_error additive_error = calculate_compression_error(allocator, raw_tracks, context, settings, additive_base_tracks, additive_format);
+const track_error additive_error = calculate_compression_error(allocator, raw_tracks, context, settings, transform_base);
 ```
 
 [Pre-processing](pre_processing_raw_tracks.md) uses the same settings: `pre_process_settings_t::transform_runtime_type`, `custom_transform_adapter`, and `transform_metric`. Use the same values for pre-processing and compression.

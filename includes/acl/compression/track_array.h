@@ -35,6 +35,7 @@
 #include "acl/core/track_writer.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/compression/track.h"
+#include "acl/compression/transform_space.h"
 
 #include <cstdint>
 #include <limits>
@@ -128,6 +129,18 @@ namespace acl
 		void set_name(const string& name) { m_name = name.get_copy(); }
 
 		//////////////////////////////////////////////////////////////////////////
+		// Returns the space of the transform tracks, see 'transform_space_t'.
+		// Compression uses it to measure the error in object space.
+		// Scalar tracks do not use it.
+		// Defaults to 'local'.
+		transform_space_t get_transform_space() const { return m_transform_space; }
+
+		//////////////////////////////////////////////////////////////////////////
+		// Sets the space of the transform tracks, see 'transform_space_t'.
+		// Scalar tracks do not use it.
+		void set_transform_space(transform_space_t space) { m_transform_space = space; }
+
+		//////////////////////////////////////////////////////////////////////////
 		// Sets the looping policy.
 		// Note that when wrap policy is used, an extra repeating
 		// first sample is artificially inserted at the end of the clip.
@@ -169,6 +182,7 @@ namespace acl
 		//    - All tracks have the same number of samples
 		//    - All tracks have the same sample rate
 		//    - All tracks are valid
+		//    - The transform space is a valid value
 		error_result is_valid() const;
 
 		//////////////////////////////////////////////////////////////////////////
@@ -201,6 +215,7 @@ namespace acl
 		track*					m_tracks;			// The track list
 		uint32_t				m_num_tracks;		// The number of tracks
 		sample_looping_policy	m_looping_policy;	// The looping policy
+		transform_space_t		m_transform_space = transform_space_t::local;	// The space of the transform tracks
 
 		string					m_name;				// An optional name
 	};

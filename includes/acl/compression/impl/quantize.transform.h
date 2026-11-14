@@ -45,6 +45,7 @@
 #include "acl/compression/impl/topology_metadata.h"
 #include "acl/compression/impl/bit_rate_policies.transform.h"
 #include "acl/compression/impl/transform_runtime_error_metric.h"
+#include "acl/compression/impl/transform_space_context.h"
 #include "acl/compression/transform_error_metrics.h"
 #include "acl/compression/compression_settings.h"
 
@@ -95,7 +96,7 @@ namespace acl
 			iallocator& allocator;
 			clip_context& clip;
 			const clip_context& raw_clip;
-			const clip_context& additive_base_clip;
+			const transform_space_context_t& space_context;
 			segment_context* segment = nullptr;
 			transform_streams* bone_streams = nullptr;
 			const transform_metadata* metadata = nullptr;
@@ -138,7 +139,6 @@ namespace acl
 			const transform_streams* raw_bone_streams = nullptr;
 
 			// v2
-			rtm::vqvf* additive_base_local_transforms = nullptr;	// 1 per transform, per sample, in segment (only when additive)
 			rtm::vqvf* object_transforms_raw = nullptr;				// 1 per transform, per sample, in segment
 			rtm::vqvf* cached_transforms_lossy = nullptr;			// 1 per transform, per sample, in segment
 			uint8_t* object_transforms_raw_runtime = nullptr;		// 1 per transform, per sample, in segment (only when the runtime type is not rtm::vqvf)
@@ -148,6 +148,7 @@ namespace acl
 			uint8_t* scratch_pose_runtime = nullptr;				// 1 per transform, for v2_adapter_policy
 			size_t runtime_transform_size = 0;						// The size of a transform in the runtime buffers above
 			uint32_t* critical_transform_indices = nullptr;			// 1 per transform
+			uint32_t* critical_chain_child_indices = nullptr;		// 1 per transform, for the mesh rotation cache
 
 			uint32_t* transform_chain_indices = nullptr;			// max_num_transform_chains * max_chain_length
 			uint32_t** transform_chains = nullptr;					// max_num_transform_chains
@@ -166,7 +167,6 @@ namespace acl
 			rtm::vqvf* lossy_transforms_end = nullptr;			// 1 per transform, for calculating the contributing error
 
 			uint8_t* raw_local_transforms = nullptr;			// 1 per transform per sample in segment
-			rtm::vqvf* base_local_transforms = nullptr;			// 1 per transform per sample in segment (only when additive), before conversion
 			uint8_t* raw_object_transforms = nullptr;			// 1 per transform per sample in segment
 
 			uint8_t* local_transforms_converted = nullptr;		// 1 per transform
@@ -183,11 +183,11 @@ namespace acl
 
 			uint32_t* target_chain_bone_indices = nullptr;		// 1 per transform, the chain of the transform that we measure in calculate_max_error_at_bit_rate_object
 
-			quantization_context(iallocator& allocator_, clip_context& clip_, const clip_context& raw_clip_, const clip_context& additive_base_clip_, const compression_settings& settings_, const compression_segmenting_settings& segmenting_settings_, const transform_runtime_error_metric* runtime_error_metric_)
+			quantization_context(iallocator& allocator_, clip_context& clip_, const clip_context& raw_clip_, const transform_space_context_t& space_context_, const compression_settings& settings_, const compression_segmenting_settings& segmenting_settings_, const transform_runtime_error_metric* runtime_error_metric_)
 				: allocator(allocator_)
 				, clip(clip_)
 				, raw_clip(raw_clip_)
-				, additive_base_clip(additive_base_clip_)
+				, space_context(space_context_)
 				, segment(nullptr)
 				, bone_streams(nullptr)
 				, metadata(clip_.metadata)
@@ -206,7 +206,7 @@ namespace acl
 				, sample_rate(clip_.sample_rate)
 				, clip_duration(clip_.duration)
 				, has_scale(clip_.has_scale)
-				, has_additive_base(clip_.has_additive_base)
+				, has_additive_base(space_context_.has_base())
 				, rotation_format(settings_.rotation_format)
 				, translation_format(settings_.translation_format)
 				, scale_format(settings_.scale_format)
@@ -235,11 +235,11 @@ namespace acl
 			~quantization_context()
 			{
 				// v2
-				deallocate_type_array(allocator, additive_base_local_transforms, num_bones * segmenting_settings.max_num_samples);
 				deallocate_type_array(allocator, object_transforms_raw, num_bones * segmenting_settings.max_num_samples);
 				deallocate_type_array(allocator, cached_transforms_lossy, num_bones * segmenting_settings.max_num_samples);
 				deallocate_runtime_buffers();
 				deallocate_type_array(allocator, critical_transform_indices, num_bones);
+				deallocate_type_array(allocator, critical_chain_child_indices, num_bones);
 				deallocate_type_array(allocator, transform_chain_indices, max_num_transform_chains * max_chain_length);
 				deallocate_type_array(allocator, transform_chains, max_num_transform_chains);
 				deallocate_type_array(allocator, transform_chain_counts, max_num_transform_chains);
@@ -251,7 +251,6 @@ namespace acl
 				deallocate_type_array(allocator, lossy_transforms_start, num_bones);
 				deallocate_type_array(allocator, lossy_transforms_end, num_bones);
 				deallocate_type_array(allocator, raw_local_transforms, metric_transform_size * num_bones * clip.segments->num_samples);
-				deallocate_type_array(allocator, base_local_transforms, num_bones * clip.segments->num_samples);
 				deallocate_type_array(allocator, raw_object_transforms, metric_transform_size * num_bones * clip.segments->num_samples);
 				deallocate_type_array(allocator, local_transforms_converted, metric_transform_size * num_bones);
 				deallocate_type_array(allocator, lossy_object_pose, metric_transform_size * num_bones);
@@ -279,7 +278,6 @@ namespace acl
 				raw_local_pose = allocate_type_array<rtm::vqvf>(allocator, num_bones);
 				lossy_local_pose = allocate_type_array<rtm::vqvf>(allocator, num_bones);
 				raw_local_transforms = allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size * num_bones * clip.segments->num_samples, 64);
-				base_local_transforms = has_additive_base ? allocate_type_array<rtm::vqvf>(allocator, num_bones * clip.segments->num_samples) : nullptr;
 				raw_object_transforms = allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size * num_bones * clip.segments->num_samples, 64);
 				local_transforms_converted = needs_conversion ? allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size * num_bones, 64) : nullptr;
 				lossy_object_pose = allocate_type_array_aligned<uint8_t>(allocator, metric_transform_size * num_bones, 64);
@@ -299,11 +297,11 @@ namespace acl
 				if (object_transforms_raw != nullptr)
 					return;	// Already initialized
 
-				additive_base_local_transforms = has_additive_base ? allocate_type_array<rtm::vqvf>(allocator, num_bones * segmenting_settings.max_num_samples) : nullptr;
 				object_transforms_raw = allocate_type_array<rtm::vqvf>(allocator, num_bones * segmenting_settings.max_num_samples);
 				cached_transforms_lossy = allocate_type_array<rtm::vqvf>(allocator, num_bones * segmenting_settings.max_num_samples);
 
 				critical_transform_indices = allocate_type_array<uint32_t>(allocator, num_bones);
+				critical_chain_child_indices = allocate_type_array<uint32_t>(allocator, num_bones);
 			}
 
 			// Allocates the buffers for a runtime transform type that is not rtm::vqvf
@@ -757,7 +755,6 @@ namespace acl
 			calculate_error_args.construct_sphere_shell(transform_shell.local_shell_distance);
 
 			const uint8_t* raw_transform = context.raw_local_transforms + (target_bone_index * context.metric_transform_size);
-			const rtm::vqvf* base_transforms = context.base_local_transforms;
 
 			context.local_query.build(target_bone_index, context.bit_rate_per_bone[target_bone_index]);
 
@@ -775,8 +772,7 @@ namespace acl
 				// The additive applies to the rtm::vqvf source transforms, before the conversion
 				if (has_additive_base)
 				{
-					apply_additive_to_base_args_lossy.base_transforms = base_transforms;
-					base_transforms += context.num_bones;
+					apply_additive_to_base_args_lossy.base_transforms = context.space_context.get_base_pose(context.segment_sample_start_index + sample_index);
 
 					apply_additive_to_base_impl(error_metric, apply_additive_to_base_args_lossy, context.lossy_local_pose);
 				}
@@ -877,7 +873,6 @@ namespace acl
 			calculate_error_args.construct_sphere_shell(shell_distance);
 
 			const uint8_t* raw_transform = context.raw_object_transforms + (target_bone_index * context.metric_transform_size);
-			const rtm::vqvf* base_transforms = context.base_local_transforms;
 
 			context.object_query.build(target_bone_index, context.bit_rate_per_bone, context.bone_streams);
 
@@ -895,8 +890,7 @@ namespace acl
 				// The additive applies to the rtm::vqvf source transforms, before the conversion
 				if (has_additive_base)
 				{
-					apply_additive_to_base_args_lossy.base_transforms = base_transforms;
-					base_transforms += context.num_bones;
+					apply_additive_to_base_args_lossy.base_transforms = context.space_context.get_base_pose(context.segment_sample_start_index + sample_index);
 
 					apply_additive_to_base_impl(error_metric, apply_additive_to_base_args_lossy, context.lossy_local_pose);
 				}
@@ -985,7 +979,6 @@ namespace acl
 			calculate_error_args.construct_sphere_shell(shell_distance);
 
 			const uint8_t* raw_transform = context.raw_object_transforms + (transform_index_to_measure * context.metric_transform_size);
-			const rtm::vqvf* base_transforms = context.base_local_transforms;
 
 			context.object_query.build(transform_index_to_measure, context.bit_rate_per_bone, context.bone_streams);
 
@@ -1003,8 +996,7 @@ namespace acl
 				// The additive applies to the rtm::vqvf source transforms, before the conversion
 				if (has_additive_base)
 				{
-					apply_additive_to_base_args_lossy.base_transforms = base_transforms;
-					base_transforms += context.num_bones;
+					apply_additive_to_base_args_lossy.base_transforms = context.space_context.get_base_pose(context.segment_sample_start_index + sample_index);
 
 					apply_additive_to_base_impl(error_metric, apply_additive_to_base_args_lossy, context.lossy_local_pose);
 				}
@@ -1036,16 +1028,36 @@ namespace acl
 		}
 #endif
 
+		// Returns the child of an ancestor transform on the chain to one of its descendants
+		// Returns k_invalid_track_index when the descendant is the ancestor
+		inline uint32_t get_chain_child_index(const clip_topology_t& topology, uint32_t ancestor_transform_index, uint32_t descendant_transform_index)
+		{
+			if (descendant_transform_index == ancestor_transform_index)
+				return k_invalid_track_index;
+
+			uint32_t chain_transform_index = descendant_transform_index;
+			uint32_t parent_transform_index = topology.transforms[chain_transform_index].parent_index;
+			while (parent_transform_index != ancestor_transform_index && parent_transform_index != k_invalid_track_index)
+			{
+				chain_transform_index = parent_transform_index;
+				parent_transform_index = topology.transforms[chain_transform_index].parent_index;
+			}
+
+			ACL_ASSERT(parent_transform_index == ancestor_transform_index, "The transform is not a descendant of the ancestor transform");
+			return chain_transform_index;
+		}
+
 		// For algorithm from ACL 2.2 and later
 		// Measures the object space error of a critical transform when we change the bit rate of the transform being optimized
-		// With an associative product, we use the cached transforms: see 'find_optimal_bit_rates_v2'
-		// Without, we multiply the transforms of the chain: from the critical transform up to the transform being optimized
+		// When the policy uses the cache, we use the cached transforms: see 'find_optimal_bit_rates_v2'
+		// Otherwise, we multiply the transforms of the chain: from the critical transform up to the transform being optimized
+		// 'chain_child_index' is the child of the transform being optimized on the chain to the critical transform,
+		// or k_invalid_track_index when the policy does not need it, see 'mesh_rotation_cache_t'
 		template<class policy_t>
 		inline float calculate_max_error_at_bit_rate_object_v2(
 			quantization_context& context, const policy_t& policy,
-			uint32_t transform_index_being_optimized, uint32_t transform_index_to_measure,
+			uint32_t transform_index_being_optimized, uint32_t transform_index_to_measure, uint32_t chain_child_index,
 			const uint32_t* transform_chain_indices, uint32_t transform_chain_length,
-			const rtm::vqvf* additive_base_local_transforms,
 			const uint8_t* object_transforms_raw,
 			const uint8_t* cached_transforms_lossy,
 			float max_allowed_error)
@@ -1055,14 +1067,13 @@ namespace acl
 			const float clip_duration = context.clip_duration;
 			const uint32_t num_transforms = context.num_bones;
 			const uint32_t num_samples = context.num_samples;
-			const additive_clip_format8 additive_format = context.clip.additive_format;
 			const uint32_t parent_transform_index = context.topology->transforms[transform_index_being_optimized].parent_index;
 			const float shell_distance = context.metadata[transform_index_to_measure].shell_distance;
-			const bool is_associative = policy.is_associative();
+			const bool uses_cache = policy.uses_cache();
 			const size_t transform_size = policy.get_transform_size();
 			const size_t pose_size = transform_size * num_transforms;
 
-			ACL_ASSERT(is_associative || transform_chain_indices[transform_chain_length - 1] == transform_index_being_optimized, "Last chain transform index should be the transform being optimized");
+			ACL_ASSERT(uses_cache || transform_chain_indices[transform_chain_length - 1] == transform_index_being_optimized, "Last chain transform index should be the transform being optimized");
 
 			typename policy_t::error_args_type error_args;
 			policy.init_error_args(error_args, shell_distance);
@@ -1083,7 +1094,7 @@ namespace acl
 
 				// Apply our additive onto our base, before the conversion
 				if (has_additive_base)
-					local_transform_lossy = rtm::vqv_normalize(acl::apply_additive_to_base(additive_format, additive_base_local_transforms[(sample_index * num_transforms) + transform_index_being_optimized], local_transform_lossy));
+					local_transform_lossy = context.space_context.apply_base(context.segment_sample_start_index + sample_index, transform_index_being_optimized, local_transform_lossy);
 
 				const uint8_t* cached_pose_lossy = cached_transforms_lossy + (sample_index * pose_size);
 				const uint32_t clip_sample_index = context.segment_sample_start_index + sample_index;
@@ -1096,13 +1107,17 @@ namespace acl
 					parent_transform_to_root_lossy = cached_pose_lossy + (parent_transform_index * transform_size);
 
 				rtm::scalarf error_sq;
-				if (is_associative)
+				if (uses_cache)
 				{
 					const void* measured_to_transform_lossy = nullptr;	// The identity
 					if (transform_index_being_optimized != transform_index_to_measure)
 						measured_to_transform_lossy = cached_pose_lossy + (transform_index_to_measure * transform_size);
 
-					error_sq = policy.measure_cached(error_args, local_transform_lossy, transform_index_being_optimized, clip_sample_index, parent_transform_to_root_lossy, measured_to_transform_lossy, measured_to_root_raw);
+					const void* chain_child_lossy = nullptr;
+					if (chain_child_index != k_invalid_track_index)
+						chain_child_lossy = cached_pose_lossy + (chain_child_index * transform_size);
+
+					error_sq = policy.measure_cached(error_args, local_transform_lossy, transform_index_being_optimized, clip_sample_index, parent_transform_to_root_lossy, measured_to_transform_lossy, chain_child_lossy, measured_to_root_raw);
 				}
 				else
 				{
@@ -1122,22 +1137,22 @@ namespace acl
 
 		// For algorithm from ACL 2.2 and later
 		// Updates the cached transforms after we select the bit rate of the transform being optimized
-		// With an associative product, we combine the transform being optimized with the cached transform of each critical transform
-		// Without, the cached transform of the transform being optimized holds its local space transform
+		// When the policy uses the cache, we combine the transform being optimized with the cached transform of each critical transform
+		// Otherwise, the cached transform of the transform being optimized holds its local space transform
+		// 'critical_chain_child_indices' holds the chain child of each critical transform when the policy needs it, see 'mesh_rotation_cache_t'
 		template<class policy_t>
 		inline void update_cached_transforms_v2(
 			quantization_context& context, const policy_t& policy,
 			uint32_t transform_index_being_optimized,
-			const uint32_t* critical_transform_indices, uint32_t num_critical_transforms,
-			const rtm::vqvf* additive_base_local_transforms,
+			const uint32_t* critical_transform_indices, const uint32_t* critical_chain_child_indices, uint32_t num_critical_transforms,
 			uint8_t* cached_transforms_lossy)
 		{
 			const bool has_additive_base = context.has_additive_base;
 			const float sample_rate = context.sample_rate;
 			const float clip_duration = context.clip_duration;
 			const uint32_t num_transforms = context.num_bones;
-			const additive_clip_format8 additive_format = context.clip.additive_format;
-			const bool is_associative = policy.is_associative();
+			const bool uses_cache = policy.uses_cache();
+			const bool needs_chain_child = policy.needs_chain_child();
 			const size_t transform_size = policy.get_transform_size();
 			const size_t pose_size = transform_size * num_transforms;
 
@@ -1155,21 +1170,50 @@ namespace acl
 
 				// Apply our additive onto our base, before the conversion
 				if (has_additive_base)
-					local_transform_lossy = rtm::vqv_normalize(acl::apply_additive_to_base(additive_format, additive_base_local_transforms[(sample_index * num_transforms) + transform_index_being_optimized], local_transform_lossy));
+					local_transform_lossy = context.space_context.apply_base(context.segment_sample_start_index + sample_index, transform_index_being_optimized, local_transform_lossy);
 
 				uint8_t* cached_pose_lossy = cached_transforms_lossy + (sample_index * pose_size);
 				const uint32_t clip_sample_index = context.segment_sample_start_index + sample_index;
 
-				if (is_associative)
+				if (needs_chain_child)
+				{
+					// The new cached transform of a critical transform uses the cached transform of its chain child
+					// We update the chain children last: the children of the transform being optimized, then the transform itself
+					for (uint32_t pass_index = 0; pass_index < 3; ++pass_index)
+					{
+						for (uint32_t critical_index = 0; critical_index < num_critical_transforms; ++critical_index)
+						{
+							const uint32_t critical_transform_index = critical_transform_indices[critical_index];
+							const uint32_t chain_child_index = critical_chain_child_indices[critical_index];
+
+							const bool is_transform_being_optimized = critical_transform_index == transform_index_being_optimized;
+							const bool is_chain_child = critical_transform_index == chain_child_index;
+							uint32_t critical_pass_index = 0;
+							if (is_transform_being_optimized)
+								critical_pass_index = 2;
+							else if (is_chain_child)
+								critical_pass_index = 1;
+							if (critical_pass_index != pass_index)
+								continue;
+
+							const void* chain_child_lossy = nullptr;
+							if (chain_child_index != k_invalid_track_index)
+								chain_child_lossy = cached_pose_lossy + (chain_child_index * transform_size);
+
+							policy.update_cached(local_transform_lossy, transform_index_being_optimized, clip_sample_index, cached_pose_lossy + (critical_transform_index * transform_size), chain_child_lossy, is_transform_being_optimized);
+						}
+					}
+				}
+				else if (uses_cache)
 				{
 					// Our cached transforms contain the combined measured_to_transform from some parent transform in the chain up to
 					// the transform we measure (e.g. leaf)
 					for (const uint32_t critical_transform_index : make_iterator(critical_transform_indices, num_critical_transforms))
-						policy.update_cached(local_transform_lossy, transform_index_being_optimized, clip_sample_index, cached_pose_lossy + (critical_transform_index * transform_size), critical_transform_index == transform_index_being_optimized);
+						policy.update_cached(local_transform_lossy, transform_index_being_optimized, clip_sample_index, cached_pose_lossy + (critical_transform_index * transform_size), nullptr, critical_transform_index == transform_index_being_optimized);
 				}
 				else
 				{
-					// Without associativity, our cached transforms after optimization contain the local space transform
+					// Without the cache, our cached transforms after optimization contain the local space transform
 					policy.store_local(local_transform_lossy, transform_index_being_optimized, clip_sample_index, cached_pose_lossy + (transform_index_being_optimized * transform_size));
 				}
 
@@ -1483,14 +1527,7 @@ namespace acl
 				// The additive applies to the rtm::vqvf source transforms, before the conversion
 				if (has_additive_base)
 				{
-					const float normalized_sample_time = context.additive_base_clip.num_samples > 1 ? (sample_time / clip_duration) : 0.0F;
-					const float additive_sample_time = context.additive_base_clip.num_samples > 1 ? (normalized_sample_time * context.additive_base_clip.duration) : 0.0F;
-
-					// We retain the base pose to apply it later on the lossy transforms
-					rtm::vqvf* sample_base_local_transforms = context.base_local_transforms + (sample_index * num_bones);
-					sample_streams(context.additive_base_clip.segments[0].bone_streams, num_bones, additive_sample_time, sample_base_local_transforms);
-
-					apply_additive_to_base_args_raw.base_transforms = sample_base_local_transforms;
+					apply_additive_to_base_args_raw.base_transforms = context.space_context.get_base_pose(segment_sample_start_index + sample_index);
 					apply_additive_to_base_impl(error_metric_, apply_additive_to_base_args_raw, context.raw_local_pose);
 				}
 
@@ -1622,7 +1659,7 @@ namespace acl
 			cache_raw_transforms_v1(context);
 
 			// Update our shell distances
-			compute_segment_shell_distances(*context.segment, context.additive_base_clip, context.shell_metadata_per_transform);
+			compute_segment_shell_distances(*context.segment, context.space_context, context.shell_metadata_per_transform);
 
 			initialize_bone_bit_rates_v1(*context.segment, context.rotation_format, context.translation_format, context.scale_format, context.bit_rate_per_bone);
 
@@ -2106,6 +2143,12 @@ namespace acl
 		// we take a slower path. Instead, the cached transforms will contain local space values once they
 		// have been optimized. We then multiply them one by one using transform chains as needed.
 		//
+		// In the mesh rotation space, the rotation of a parent moves its children but does not rotate them. The transform
+		// of a descendant relative to the transform being optimized changes with its rotation, thus the cache above does
+		// not apply. With VQ and VQS transforms, the cached transforms use another form that also measures each critical
+		// transform in constant time, see 'mesh_rotation_cache_t'. It needs the child of the transform being optimized on the
+		// chain to each critical transform. The other transform types use the transform chains.
+		//
 		// Each segment selects its transform adapter and its transform metric: a segment without 3D scale uses VQ
 		// transforms when the metric supports them. A policy holds the transform arithmetic and the metric, see
 		// 'bit_rate_policies.transform.h'. With the built-in transform adapters and metrics, the compiler knows the
@@ -2140,8 +2183,8 @@ namespace acl
 			const bool translation_supports_constant_tracks = context.segment->are_translations_normalized;
 			const bool scale_supports_constant_tracks = context.segment->are_scales_normalized;
 
-			const rtm::vqvf* additive_base_local_transforms = context.additive_base_local_transforms;
 			uint32_t* critical_transform_indices = context.critical_transform_indices;
+			uint32_t* critical_chain_child_indices = context.critical_chain_child_indices;
 
 			// When the runtime transform type is rtm::vqvf, we convert the poses in place
 			uint8_t* object_transforms_raw = reinterpret_cast<uint8_t*>(context.object_transforms_raw);
@@ -2168,8 +2211,9 @@ namespace acl
 			// Compute our dominant transforms
 			policy.compute_shell_distances(*context.segment, cached_transforms_lossy, context.shell_metadata_per_transform);
 
-			// Without associativity, we multiply the transform chains manually
-			const bool use_transform_chains = !policy.is_associative();
+			// Without the cache, we multiply the transform chains manually
+			const bool use_transform_chains = !policy.uses_cache();
+			const bool needs_chain_child = policy.needs_chain_child();
 			if (use_transform_chains)
 				context.initialize_v2_scale();
 
@@ -2223,7 +2267,14 @@ namespace acl
 				// Sort leaf first
 				std::reverse(critical_transform_indices, critical_transform_indices + num_critical_transforms);
 
-				// Without associativity, we need slower full chain processing
+				// Find the child of the transform being optimized on the chain to each critical transform
+				for (uint32_t critical_index = 0; critical_index < num_critical_transforms; ++critical_index)
+				{
+					const uint32_t critical_transform_index = critical_transform_indices[critical_index];
+					critical_chain_child_indices[critical_index] = needs_chain_child ? get_chain_child_index(*context.topology, transform_index, critical_transform_index) : k_invalid_track_index;
+				}
+
+				// Without the cache, we need slower full chain processing
 				if (use_transform_chains)
 				{
 					// Build our critical transform chains up to the transform we are optimizing
@@ -2267,7 +2318,7 @@ namespace acl
 #endif
 
 					// Update our cached transforms using our existing bit rate
-					update_cached_transforms_v2(context, policy, transform_index, critical_transform_indices, num_critical_transforms, additive_base_local_transforms, cached_transforms_lossy);
+					update_cached_transforms_v2(context, policy, transform_index, critical_transform_indices, critical_chain_child_indices, num_critical_transforms, cached_transforms_lossy);
 
 					continue;	// Every track bit rate is constant/default, nothing else to do
 				}
@@ -2382,9 +2433,8 @@ namespace acl
 
 						const float critical_transform_error = calculate_max_error_at_bit_rate_object_v2(
 							context, policy,
-							transform_index, critical_transform_index,
+							transform_index, critical_transform_index, critical_chain_child_indices[critical_chain_index],
 							transform_chain, transform_chain_length,
-							additive_base_local_transforms,
 							object_transforms_raw,
 							cached_transforms_lossy,
 							best_error);
@@ -2505,7 +2555,7 @@ namespace acl
 				context.bit_rate_per_bone[transform_index] = best_bit_rates;
 
 				// Update our cached transforms using our new bit rate
-				update_cached_transforms_v2(context, policy, transform_index, critical_transform_indices, num_critical_transforms, additive_base_local_transforms, cached_transforms_lossy);
+				update_cached_transforms_v2(context, policy, transform_index, critical_transform_indices, critical_chain_child_indices, num_critical_transforms, cached_transforms_lossy);
 			}
 		}
 
@@ -2529,9 +2579,7 @@ namespace acl
 			const float sample_rate = context.sample_rate;
 			const float clip_duration = context.clip_duration;
 			const bool has_additive_base = context.has_additive_base;
-			const additive_clip_format8 additive_format = context.clip.additive_format;
 
-			rtm::vqvf* additive_base_local_transforms = context.additive_base_local_transforms;
 			rtm::vqvf* object_transforms_raw = context.object_transforms_raw;
 			rtm::vqvf* cached_transforms_lossy = context.cached_transforms_lossy;
 
@@ -2557,17 +2605,13 @@ namespace acl
 
 				if (has_additive_base)
 				{
-					rtm::vqvf* additive_base_pose_transforms = additive_base_local_transforms + (sample_index * num_transforms);
-
-					const float normalized_sample_time = context.additive_base_clip.num_samples > 1 ? (sample_time / clip_duration) : 0.0F;
-					const float additive_sample_time = context.additive_base_clip.num_samples > 1 ? (normalized_sample_time * context.additive_base_clip.duration) : 0.0F;
-					sample_streams(context.additive_base_clip.segments[0].bone_streams, num_transforms, additive_sample_time, additive_base_pose_transforms);
+					const uint32_t clip_sample_index = context.segment->clip_sample_offset + sample_index;
 
 					// Apply our additives onto our base
 					for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 					{
-						object_pose_raw[transform_index] = rtm::vqv_normalize(acl::apply_additive_to_base(additive_format, additive_base_pose_transforms[transform_index], object_pose_raw[transform_index]));
-						cached_pose_lossy[transform_index] = rtm::vqv_normalize(acl::apply_additive_to_base(additive_format, additive_base_pose_transforms[transform_index], cached_pose_lossy[transform_index]));
+						object_pose_raw[transform_index] = context.space_context.apply_base(clip_sample_index, transform_index, object_pose_raw[transform_index]);
+						cached_pose_lossy[transform_index] = context.space_context.apply_base(clip_sample_index, transform_index, cached_pose_lossy[transform_index]);
 					}
 				}
 
@@ -2590,25 +2634,28 @@ namespace acl
 				const bool is_precise_metric = selection.metric == selector.get_precise_metric();
 				const bool is_shell_metric = selection.metric == selector.get_shell_metric();
 
+				// In mesh rotation space, the policies compose the transforms with the mesh rotation product
+				const bool is_mesh_rotation = context.space_context.get_space() == transform_space_t::mesh_rotation;
+
 				if (is_builtin_adapter && is_precise_metric && type == transform_runtime_type_t::vqf)
-					find_optimal_bit_rates_v2_impl(context, v2_static_policy<vq_transform_math, v2_precise_metric>(v2_precise_metric()));
+					find_optimal_bit_rates_v2_impl(context, v2_static_policy<vq_transform_math, v2_precise_metric>(v2_precise_metric(), is_mesh_rotation));
 				else if (is_builtin_adapter && is_precise_metric && type == transform_runtime_type_t::vqsf)
-					find_optimal_bit_rates_v2_impl(context, v2_static_policy<vqs_transform_math, v2_precise_metric>(v2_precise_metric()));
+					find_optimal_bit_rates_v2_impl(context, v2_static_policy<vqs_transform_math, v2_precise_metric>(v2_precise_metric(), is_mesh_rotation));
 				else if (is_builtin_adapter && is_shell_metric && type == transform_runtime_type_t::vqf)
-					find_optimal_bit_rates_v2_impl(context, v2_static_policy<vq_transform_math, v2_shell_metric<vq_transform_math>>(v2_shell_metric<vq_transform_math>()));
+					find_optimal_bit_rates_v2_impl(context, v2_static_policy<vq_transform_math, v2_shell_metric<vq_transform_math>>(v2_shell_metric<vq_transform_math>(), is_mesh_rotation));
 				else if (is_builtin_adapter && is_shell_metric && type == transform_runtime_type_t::vqsf)
-					find_optimal_bit_rates_v2_impl(context, v2_static_policy<vqs_transform_math, v2_shell_metric<vqs_transform_math>>(v2_shell_metric<vqs_transform_math>()));
+					find_optimal_bit_rates_v2_impl(context, v2_static_policy<vqs_transform_math, v2_shell_metric<vqs_transform_math>>(v2_shell_metric<vqs_transform_math>(), is_mesh_rotation));
 				else if (is_builtin_adapter && is_shell_metric && type == transform_runtime_type_t::vqvf)
-					find_optimal_bit_rates_v2_impl(context, v2_static_policy<vqv_transform_math, v2_shell_metric<vqv_transform_math>>(v2_shell_metric<vqv_transform_math>()));
+					find_optimal_bit_rates_v2_impl(context, v2_static_policy<vqv_transform_math, v2_shell_metric<vqv_transform_math>>(v2_shell_metric<vqv_transform_math>(), is_mesh_rotation));
 				else if (is_builtin_adapter && is_shell_metric && type == transform_runtime_type_t::vqmf)
-					find_optimal_bit_rates_v2_impl(context, v2_static_policy<vqm_transform_math, v2_shell_metric<vqm_transform_math>>(v2_shell_metric<vqm_transform_math>()));
+					find_optimal_bit_rates_v2_impl(context, v2_static_policy<vqm_transform_math, v2_shell_metric<vqm_transform_math>>(v2_shell_metric<vqm_transform_math>(), is_mesh_rotation));
 				else if (is_builtin_adapter && is_shell_metric && type == transform_runtime_type_t::matrix3x4f)
-					find_optimal_bit_rates_v2_impl(context, v2_static_policy<matrix3x4_transform_math, v2_shell_metric<matrix3x4_transform_math>>(v2_shell_metric<matrix3x4_transform_math>()));
+					find_optimal_bit_rates_v2_impl(context, v2_static_policy<matrix3x4_transform_math, v2_shell_metric<matrix3x4_transform_math>>(v2_shell_metric<matrix3x4_transform_math>(), is_mesh_rotation));
 				else
 				{
 					// A custom transform adapter or a custom transform metric, we use their virtual functions
 					context.initialize_v2_runtime(selection.adapter->get_transform_size());
-					find_optimal_bit_rates_v2_impl(context, v2_adapter_policy(*selection.adapter, *selection.metric, context.get_v2_adapter_policy_scratch()));
+					find_optimal_bit_rates_v2_impl(context, v2_adapter_policy(*selection.adapter, *selection.metric, context.get_v2_adapter_policy_scratch(), is_mesh_rotation));
 				}
 			}
 			else
@@ -2755,7 +2802,6 @@ namespace acl
 			local_to_object_space_args_lossy.num_transforms = num_bones;
 
 			const uint8_t* raw_transform = context.raw_object_transforms;
-			const rtm::vqvf* base_transforms = context.base_local_transforms;
 
 			if (context.lossy_transforms_start == nullptr)
 			{
@@ -2832,7 +2878,7 @@ namespace acl
 						// The additive applies to the rtm::vqvf source transforms, before the conversion
 						if (has_additive_base)
 						{
-							apply_additive_to_base_args_lossy.base_transforms = base_transforms + (interp_frame_index * num_bones);
+							apply_additive_to_base_args_lossy.base_transforms = context.space_context.get_base_pose(segment_sample_start_index + interp_frame_index);
 
 							apply_additive_to_base_impl(error_metric, apply_additive_to_base_args_lossy, context.lossy_local_pose);
 						}
@@ -2951,7 +2997,7 @@ namespace acl
 			const compression_settings& settings,
 			const compression_segmenting_settings& segmenting_settings,
 			const clip_context& raw_clip_context,
-			const clip_context& additive_base_clip_context,
+			const transform_space_context_t& space_context,
 			const transform_runtime_error_metric* runtime_error_metric,
 			const output_stats& out_stats,
 			compression_stats_t& compression_stats)
@@ -2971,7 +3017,7 @@ namespace acl
 			const bool is_scale_variable = is_vector_format_variable(settings.scale_format);
 			const bool is_any_variable = is_rotation_variable || is_translation_variable || is_scale_variable;
 
-			quantization_context context(allocator, clip, raw_clip_context, additive_base_clip_context, settings, segmenting_settings, runtime_error_metric);
+			quantization_context context(allocator, clip, raw_clip_context, space_context, settings, segmenting_settings, runtime_error_metric);
 
 			for (segment_context& segment : clip.segment_iterator())
 			{
@@ -3041,7 +3087,6 @@ namespace acl
 
 				if (context.has_additive_base)
 				{
-					transform_cache_size += sizeof(rtm::vqvf) * context.num_bones * context.clip.segments->num_samples;	// base_local_transforms
 					transform_cache_size += context.metric_transform_size * context.num_bones * context.clip.segments->num_samples;	// base_object_transforms
 				}
 

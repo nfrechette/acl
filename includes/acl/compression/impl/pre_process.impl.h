@@ -201,7 +201,7 @@ namespace acl
 		else
 		{
 			const transform_runtime_selector selector;
-			const error_result transform_runtime_result = selector.validate(input_settings.transform_runtime_type, input_settings.custom_transform_adapter, input_settings.transform_metric);
+			const error_result transform_runtime_result = selector.validate(input_settings.transform_runtime_type, input_settings.custom_transform_adapter, input_settings.transform_metric, track_list.get_transform_space());
 			if (transform_runtime_result.any())
 				return transform_runtime_result;
 		}
@@ -211,13 +211,36 @@ namespace acl
 		// Pre-processing does not know whether the clip has scale: it uses the selection with scale
 		transform_runtime_error_metric runtime_error_metric;
 		pre_process_settings_t settings = input_settings;
+
+		// The deprecated 'additive_base' and 'additive_format' describe a base
+		// Internally, we use only the base description
+		if (input_settings.additive_format != additive_clip_format8::none)
+		{
+			if (input_settings.transform_base.has_base() || input_settings.transform_base.tracks != nullptr)
+				return error_result("Cannot use 'additive_base' and 'additive_format' with a base in 'transform_base'");
+
+			settings.transform_base.format = input_settings.additive_format;
+			settings.transform_base.tracks = input_settings.additive_base;
+		}
+
+		settings.additive_base = nullptr;
+		settings.additive_format = additive_clip_format8::none;
+
+		// The legacy error metric puts the transforms in object space itself, it supports only the local space
+		if (settings.error_metric != nullptr && track_list.get_transform_space() != transform_space_t::local)
+			return error_result("The legacy error metric supports only the local transform space");
+
+		// The legacy error metric combines the transforms with the base itself, it cannot use a base adapter
+		if (settings.error_metric != nullptr && settings.transform_base.format == additive_clip_format8::custom)
+			return error_result("The legacy error metric does not support the custom base format");
+
 		if (settings.error_metric == nullptr)
 		{
 			// An empty track array has no type, we use vqvf
 			const track_type8 track_type = track_list.is_empty() ? track_type8::vqvf : track_list.get_track_type();
 			const error_result runtime_error_metric_result = runtime_error_metric.initialize(
 				settings.transform_runtime_type, settings.custom_transform_adapter, settings.transform_metric,
-				track_type, settings.additive_format, settings.additive_base);
+				track_type, track_list.get_transform_space(), settings.transform_base);
 			if (runtime_error_metric_result.any())
 				return runtime_error_metric_result;
 
@@ -230,20 +253,12 @@ namespace acl
 		if (track_list.get_num_samples_per_track() == 0)
 			return error_result();	// No samples, nothing to do
 
-		if (settings.additive_format != additive_clip_format8::none)
-		{
-			if (!is_transform_track_type(track_list.get_track_type()))
-				return error_result("'additive_format' is only supported with transform tracks");
+		const error_result transform_base_result = settings.transform_base.is_valid(track_list.get_transform_space());
+		if (transform_base_result.any())
+			return transform_base_result;
 
-			if (settings.additive_base == nullptr)
-				return error_result("Missing 'additive_base' when 'additive_format' is used");
-
-			if (settings.additive_base->is_empty())
-				return error_result("'additive_base' cannot be empty when 'additive_format' is used");
-
-			if (!is_transform_track_type(settings.additive_base->get_track_type()))
-				return error_result("'additive_base' must contain transform tracks");
-		}
+		if (settings.transform_base.has_base() && !is_transform_track_type(track_list.get_track_type()))
+			return error_result("A base is only supported with transform tracks");
 
 		const bool is_transform = is_transform_track_type(track_list.get_track_type());
 		if (is_transform && are_any_enum_flags_set(settings.actions, pre_process_actions::convert_transform_type) && !is_transform_track_type(settings.transform_type))

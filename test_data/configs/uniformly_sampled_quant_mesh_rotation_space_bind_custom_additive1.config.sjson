@@ -1,0 +1,15 @@
+version = 2
+
+algorithm_name = "uniformly_sampled"
+
+level = "Medium"
+
+rotation_format = "quatf_drop_w_variable"
+translation_format = "vector3f_variable"
+scale_format = "vector3f_variable"
+scalar_format = "scalarf_variable"
+
+regression_error_threshold = 0.075
+is_bind_pose_additive1 = true
+is_mesh_rotation_space = true
+use_custom_base_format = true

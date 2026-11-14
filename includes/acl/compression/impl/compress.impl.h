@@ -36,6 +36,7 @@
 #include "acl/compression/compression_settings.h"
 #include "acl/compression/output_stats.h"
 #include "acl/compression/track_array.h"
+#include "acl/compression/transform_base.h"
 
 #include <cstdint>
 
@@ -58,11 +59,33 @@ namespace acl
 		scope_disable_fp_exceptions fp_off;
 
 		if (track_list.get_track_category() == track_category8::transformf)
-			result = compress_transform_track_list(allocator, track_list, settings, nullptr, additive_clip_format8::none, out_compressed_tracks, out_stats);
+			result = compress_transform_track_list(allocator, track_list, settings, transform_base_desc_t(), out_compressed_tracks, out_stats);
 		else
 			result = compress_scalar_track_list(allocator, track_list, settings, out_compressed_tracks, out_stats);
 
 		return result;
+	}
+
+	inline error_result compress_track_list(iallocator& allocator, const track_array& track_list, const compression_settings& settings, const transform_base_desc_t& transform_base, compressed_tracks*& out_compressed_tracks, output_stats& out_stats)
+	{
+		using namespace acl_impl;
+
+		error_result result = track_list.is_valid();
+		if (result.any())
+			return result;
+
+		if (!track_list.is_empty() && !is_transform_track_type(track_list.get_track_type()))
+			return error_result("Expected transform tracks");
+
+		result = transform_base.is_valid(track_list.get_transform_space());
+		if (result.any())
+			return result;
+
+		// Disable floating point exceptions during compression because we leverage all SIMD lanes
+		// and we might intentionally divide by zero, etc.
+		scope_disable_fp_exceptions fp_off;
+
+		return compress_transform_track_list(allocator, track_list, settings, transform_base, out_compressed_tracks, out_stats);
 	}
 
 	inline error_result compress_track_list(iallocator& allocator, const track_array& track_list, const compression_settings& settings, const track_array& additive_base_track_list, additive_clip_format8 additive_format, compressed_tracks*& out_compressed_tracks, output_stats& out_stats)
@@ -76,6 +99,10 @@ namespace acl
 		if (!track_list.is_empty() && !is_transform_track_type(track_list.get_track_type()))
 			return error_result("Expected transform tracks");
 
+		// This overload has no base adapter
+		if (additive_format == additive_clip_format8::custom)
+			return error_result("The custom base format requires a base adapter in 'transform_base_desc_t'");
+
 		if (additive_format != additive_clip_format8::none)
 		{
 			result = additive_base_track_list.is_valid();
@@ -86,11 +113,23 @@ namespace acl
 				return error_result("Expected transform tracks in the additive base");
 		}
 
+		// This overload ignores an empty base: the clip then has no base
+		transform_base_desc_t transform_base;
+		if (additive_format != additive_clip_format8::none && !additive_base_track_list.is_empty())
+		{
+			transform_base.format = additive_format;
+			transform_base.tracks = &additive_base_track_list;
+		}
+
+		result = transform_base.is_valid(track_list.get_transform_space());
+		if (result.any())
+			return result;
+
 		// Disable floating point exceptions during compression because we leverage all SIMD lanes
 		// and we might intentionally divide by zero, etc.
 		scope_disable_fp_exceptions fp_off;
 
-		return compress_transform_track_list(allocator, track_list, settings, &additive_base_track_list, additive_format, out_compressed_tracks, out_stats);
+		return compress_transform_track_list(allocator, track_list, settings, transform_base, out_compressed_tracks, out_stats);
 	}
 
 	ACL_IMPL_VERSION_NAMESPACE_END
