@@ -135,10 +135,10 @@ namespace
 		error_result result;
 		if (base_tracks != nullptr)
 		{
-			transform_space_desc_t transform_space;
-			transform_space.base_format = additive_format;
-			transform_space.base = base_tracks;
-			result = compress_track_list(allocator, tracks, settings, transform_space, out_compressed_tracks, stats);
+			transform_base_desc_t transform_base;
+			transform_base.format = additive_format;
+			transform_base.tracks = base_tracks;
+			result = compress_track_list(allocator, tracks, settings, transform_base, out_compressed_tracks, stats);
 		}
 		else
 			result = compress_track_list(allocator, tracks, settings, out_compressed_tracks, stats);
@@ -243,11 +243,11 @@ namespace
 		track_error vqv_error;
 		if (is_additive)
 		{
-			transform_space_desc_t transform_space;
-			transform_space.base_format = additive_format;
-			transform_space.base = &base_tracks;
-			vq_error = calculate_compression_error(allocator, vq_tracks, vq_context, error_settings, transform_space);
-			vqv_error = calculate_compression_error(allocator, vqv_tracks, vqv_context, error_settings, transform_space);
+			transform_base_desc_t transform_base;
+			transform_base.format = additive_format;
+			transform_base.tracks = &base_tracks;
+			vq_error = calculate_compression_error(allocator, vq_tracks, vq_context, error_settings, transform_base);
+			vqv_error = calculate_compression_error(allocator, vqv_tracks, vqv_context, error_settings, transform_base);
 		}
 		else
 		{
@@ -403,8 +403,8 @@ TEST_CASE("vqf pre-process transform type conversion", "[compression][vqf]")
 		track_array tracks = std::move(vq_tracks);
 		pre_process_settings_t additive_settings = settings;
 		additive_settings.transform_type = track_type8::vqvf;
-		additive_settings.transform_space.base = &base_tracks;
-		additive_settings.transform_space.base_format = additive_clip_format8::additive1;
+		additive_settings.transform_base.tracks = &base_tracks;
+		additive_settings.transform_base.format = additive_clip_format8::additive1;
 		REQUIRE(pre_process_track_list(allocator, additive_settings, tracks).empty());
 		REQUIRE(tracks.get_track_type() == track_type8::vqvf);
 

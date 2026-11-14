@@ -201,7 +201,7 @@ namespace acl
 		else
 		{
 			const transform_runtime_selector selector;
-			const error_result transform_runtime_result = selector.validate(input_settings.transform_runtime_type, input_settings.custom_transform_adapter, input_settings.transform_metric, input_settings.transform_space.space);
+			const error_result transform_runtime_result = selector.validate(input_settings.transform_runtime_type, input_settings.custom_transform_adapter, input_settings.transform_metric, track_list.get_transform_space());
 			if (transform_runtime_result.any())
 				return transform_runtime_result;
 		}
@@ -212,26 +212,26 @@ namespace acl
 		transform_runtime_error_metric runtime_error_metric;
 		pre_process_settings_t settings = input_settings;
 
-		// The deprecated 'additive_base' and 'additive_format' describe a base of local space transforms
-		// Internally, we use only the transform space
+		// The deprecated 'additive_base' and 'additive_format' describe a base
+		// Internally, we use only the base description
 		if (input_settings.additive_format != additive_clip_format8::none)
 		{
-			if (input_settings.transform_space.has_base() || input_settings.transform_space.base != nullptr)
-				return error_result("Cannot use 'additive_base' and 'additive_format' with a base in 'transform_space'");
+			if (input_settings.transform_base.has_base() || input_settings.transform_base.tracks != nullptr)
+				return error_result("Cannot use 'additive_base' and 'additive_format' with a base in 'transform_base'");
 
-			settings.transform_space.base_format = input_settings.additive_format;
-			settings.transform_space.base = input_settings.additive_base;
+			settings.transform_base.format = input_settings.additive_format;
+			settings.transform_base.tracks = input_settings.additive_base;
 		}
 
 		settings.additive_base = nullptr;
 		settings.additive_format = additive_clip_format8::none;
 
 		// The legacy error metric puts the transforms in object space itself, it supports only the local space
-		if (settings.error_metric != nullptr && settings.transform_space.space != transform_space_t::local)
+		if (settings.error_metric != nullptr && track_list.get_transform_space() != transform_space_t::local)
 			return error_result("The legacy error metric supports only the local transform space");
 
 		// The legacy error metric combines the transforms with the base itself, it cannot use a base adapter
-		if (settings.error_metric != nullptr && settings.transform_space.base_format == additive_clip_format8::custom)
+		if (settings.error_metric != nullptr && settings.transform_base.format == additive_clip_format8::custom)
 			return error_result("The legacy error metric does not support the custom base format");
 
 		if (settings.error_metric == nullptr)
@@ -240,7 +240,7 @@ namespace acl
 			const track_type8 track_type = track_list.is_empty() ? track_type8::vqvf : track_list.get_track_type();
 			const error_result runtime_error_metric_result = runtime_error_metric.initialize(
 				settings.transform_runtime_type, settings.custom_transform_adapter, settings.transform_metric,
-				track_type, settings.transform_space);
+				track_type, track_list.get_transform_space(), settings.transform_base);
 			if (runtime_error_metric_result.any())
 				return runtime_error_metric_result;
 
@@ -253,11 +253,11 @@ namespace acl
 		if (track_list.get_num_samples_per_track() == 0)
 			return error_result();	// No samples, nothing to do
 
-		const error_result transform_space_result = settings.transform_space.is_valid();
-		if (transform_space_result.any())
-			return transform_space_result;
+		const error_result transform_base_result = settings.transform_base.is_valid(track_list.get_transform_space());
+		if (transform_base_result.any())
+			return transform_base_result;
 
-		if (settings.transform_space.has_base() && !is_transform_track_type(track_list.get_track_type()))
+		if (settings.transform_base.has_base() && !is_transform_track_type(track_list.get_track_type()))
 			return error_result("A base is only supported with transform tracks");
 
 		const bool is_transform = is_transform_track_type(track_list.get_track_type());

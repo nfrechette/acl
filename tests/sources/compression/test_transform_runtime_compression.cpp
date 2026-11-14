@@ -151,10 +151,10 @@ namespace
 		error_result result;
 		if (base_track_list != nullptr)
 		{
-			transform_space_desc_t transform_space;
-			transform_space.base_format = additive_format;
-			transform_space.base = base_track_list;
-			result = compress_track_list(allocator, track_list, settings, transform_space, compressed_tracks_, stats);
+			transform_base_desc_t transform_base;
+			transform_base.format = additive_format;
+			transform_base.tracks = base_track_list;
+			result = compress_track_list(allocator, track_list, settings, transform_base, compressed_tracks_, stats);
 		}
 		else
 			result = compress_track_list(allocator, track_list, settings, compressed_tracks_, stats);
@@ -171,14 +171,14 @@ namespace
 		decompression_context<debug_transform_decompression_settings> context;
 		REQUIRE(context.initialize(tracks));
 
-		transform_space_desc_t transform_space;
+		transform_base_desc_t transform_base;
 		if (base_track_list != nullptr)
 		{
-			transform_space.base_format = additive_format;
-			transform_space.base = base_track_list;
+			transform_base.format = additive_format;
+			transform_base.tracks = base_track_list;
 		}
 
-		const track_error error = calculate_compression_error(allocator, track_list, context, settings, transform_space);
+		const track_error error = calculate_compression_error(allocator, track_list, context, settings, transform_base);
 
 		return error.error;
 	}

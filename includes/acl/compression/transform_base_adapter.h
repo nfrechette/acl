@@ -41,7 +41,7 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// Interface for a custom base format.
 	// A base adapter combines each transform of a clip sample with the base, when the base
-	// format is 'custom'. See 'additive_clip_format8::custom' and 'transform_space_desc_t'.
+	// format is 'custom'. See 'additive_clip_format8::custom' and 'transform_base_desc_t'.
 	//
 	// Compression puts the base in the transform space of the clip first. Thus the base transform
 	// and the clip transform that the adapter receives are in the same space. Then compression

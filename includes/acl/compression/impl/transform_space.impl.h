@@ -27,13 +27,9 @@
 // Included only once from transform_space.h
 
 #include "acl/version.h"
-#include "acl/core/additive_utils.h"
 #include "acl/core/error.h"
-#include "acl/core/error_result.h"
 #include "acl/core/track_types.h"
 #include "acl/core/impl/compiler_utils.h"
-#include "acl/compression/track_array.h"
-#include "acl/compression/transform_base_adapter.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -70,24 +66,10 @@ namespace acl
 		}
 
 		//////////////////////////////////////////////////////////////////////////
-		// Returns the default scale of the clip samples with a base format: 0.0 or 1.0.
-		// With the 'custom' base format, the base adapter gives the default scale.
-		inline float get_base_default_scale(additive_clip_format8 base_format, const itransform_base_adapter_t* base_adapter)
+		// Returns true if the transform space is one of the values of 'transform_space_t'.
+		constexpr bool is_transform_space_valid(transform_space_t space)
 		{
-			if (base_format == additive_clip_format8::custom)
-			{
-				ACL_ASSERT(base_adapter != nullptr, "The custom base format requires a base adapter");
-				return base_adapter != nullptr ? base_adapter->get_default_scale() : 1.0F;
-			}
-
-			return get_additive_default_scale(base_format);
-		}
-
-		//////////////////////////////////////////////////////////////////////////
-		// Returns the default scale of the clip samples with a transform space description: 0.0 or 1.0.
-		inline float get_base_default_scale(const transform_space_desc_t& transform_space)
-		{
-			return get_base_default_scale(transform_space.base_format, transform_space.base_adapter);
+			return space == transform_space_t::local || space == transform_space_t::mesh || space == transform_space_t::mesh_rotation;
 		}
 	}
 
@@ -123,54 +105,6 @@ namespace acl
 		}
 
 		return false;
-	}
-
-	inline error_result transform_space_desc_t::is_valid() const
-	{
-		if (space != transform_space_t::local && space != transform_space_t::mesh && space != transform_space_t::mesh_rotation)
-			return error_result("Invalid transform space");
-
-		if (base_format > additive_clip_format8::custom)
-			return error_result("Invalid base format");
-
-		if (base_format == additive_clip_format8::custom)
-		{
-			if (base_adapter == nullptr)
-				return error_result("The custom base format requires a base adapter");
-
-			const float default_scale = base_adapter->get_default_scale();
-			if (default_scale != 0.0F && default_scale != 1.0F)
-				return error_result("The default scale of the base adapter must be 0.0 or 1.0");
-		}
-		else if (base_adapter != nullptr)
-			return error_result("A base adapter requires the custom base format");
-
-		// A relative base multiplies the whole transforms: the rotations and the translations are in different spaces
-		if (space == transform_space_t::mesh_rotation && base_format == additive_clip_format8::relative)
-			return error_result("The mesh rotation space does not support the relative base format");
-
-		if (base_format == additive_clip_format8::none)
-		{
-			if (base != nullptr)
-				return error_result("A base requires a base format");
-
-			return error_result();
-		}
-
-		if (base == nullptr)
-			return error_result("The base format requires a base");
-
-		const error_result result = base->is_valid();
-		if (result.any())
-			return result;
-
-		if (base->is_empty())
-			return error_result("The base cannot be empty");
-
-		if (!acl_impl::is_transform_track_type(base->get_track_type()))
-			return error_result("The base must contain transform tracks");
-
-		return error_result();
 	}
 
 	ACL_IMPL_VERSION_NAMESPACE_END

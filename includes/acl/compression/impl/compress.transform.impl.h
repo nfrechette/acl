@@ -39,6 +39,7 @@
 #include "acl/compression/compression_settings.h"
 #include "acl/compression/output_stats.h"
 #include "acl/compression/track_array.h"
+#include "acl/compression/transform_base.h"
 #include "acl/compression/transform_space.h"
 #include "acl/compression/impl/clip_context.h"
 #include "acl/compression/impl/compression_stats.h"
@@ -148,13 +149,14 @@ namespace acl
 		}
 
 		inline error_result compress_transform_track_list(iallocator& allocator, const track_array& track_list, compression_settings settings,
-			const transform_space_desc_t& transform_space,
+			const transform_base_desc_t& transform_base,
 			compressed_tracks*& out_compressed_tracks, output_stats& out_stats)
 		{
-			ACL_ASSERT(transform_space.is_valid().empty(), "Invalid transform space");
+			const transform_space_t space = track_list.get_transform_space();
+			ACL_ASSERT(transform_base.is_valid(space).empty(), "Invalid transform base");
 
-			const track_array* additive_base_track_list = transform_space.base;
-			additive_clip_format8 additive_format = transform_space.base_format;
+			const track_array* additive_base_track_list = transform_base.tracks;
+			additive_clip_format8 additive_format = transform_base.format;
 
 			ACL_ASSERT(track_list.is_empty() || is_transform_track_type(track_list.get_track_type()), "Expected transform tracks");
 
@@ -166,7 +168,7 @@ namespace acl
 				return result;
 
 			// The legacy error metric puts the transforms in object space itself, it supports only the local space
-			if (settings.error_metric != nullptr && transform_space.space != transform_space_t::local)
+			if (settings.error_metric != nullptr && space != transform_space_t::local)
 				return error_result("The legacy error metric supports only the local transform space");
 
 			// The legacy error metric combines the transforms with the base itself, it cannot use a base adapter
@@ -181,7 +183,7 @@ namespace acl
 			{
 				result = runtime_error_metric.initialize(
 					settings.transform_runtime_type, settings.custom_transform_adapter, settings.transform_metric,
-					track_type, transform_space);
+					track_type, space, transform_base);
 				if (result.any())
 					return result;
 
@@ -252,18 +254,18 @@ namespace acl
 				additive_format = additive_clip_format8::none;
 
 			// The base adapter of the 'custom' format
-			const itransform_base_adapter_t* base_adapter = additive_format == additive_clip_format8::custom ? transform_space.base_adapter : nullptr;
+			const itransform_base_adapter_t* base_adapter = additive_format == additive_clip_format8::custom ? transform_base.adapter : nullptr;
 
 			// Our default scale is 1.0 if we have no additive base or if we don't use 'additive1', otherwise it is 0.0
 			// With the 'custom' format, the base adapter gives it
 			const float default_scale = get_base_default_scale(additive_format, base_adapter);
 
 			clip_context raw_clip_context;
-			if (!initialize_clip_context(allocator, track_list, settings, additive_format, default_scale, raw_clip_context, false, transform_space.space))
+			if (!initialize_clip_context(allocator, track_list, settings, additive_format, default_scale, raw_clip_context, false, space))
 				return error_result("Some samples are not finite");
 
 			clip_context lossy_clip_context;
-			initialize_clip_context(allocator, track_list, settings, additive_format, default_scale, lossy_clip_context, false, transform_space.space);
+			initialize_clip_context(allocator, track_list, settings, additive_format, default_scale, lossy_clip_context, false, space);
 
 			const bool is_additive = additive_format != additive_clip_format8::none;
 			clip_context additive_base_clip_context;
@@ -272,7 +274,7 @@ namespace acl
 
 			// Sample the base one time, compression reads the base poses from the space context
 			transform_space_context_t space_context;
-			space_context.initialize(allocator, transform_space.space, additive_format, base_adapter, transform_clip_context_adapter_t(additive_base_clip_context),
+			space_context.initialize(allocator, space, additive_format, base_adapter, transform_clip_context_adapter_t(additive_base_clip_context),
 				track_list, raw_clip_context.num_samples, raw_clip_context.sample_rate, raw_clip_context.duration);
 
 			if (settings.level == compression_level8::automatic)
@@ -280,7 +282,7 @@ namespace acl
 
 			// Clip topology metadata, not specific to clip context
 			clip_topology_t clip_topology;
-			build_clip_topology(allocator, track_list, clip_topology, transform_space.space);
+			build_clip_topology(allocator, track_list, clip_topology, space);
 
 			raw_clip_context.topology = &clip_topology;
 			lossy_clip_context.topology = &clip_topology;

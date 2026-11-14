@@ -36,6 +36,7 @@
 #include "acl/compression/transform_base_adapter.h"
 #include "acl/compression/transform_error_metrics.h"
 #include "acl/compression/transform_metrics.h"
+#include "acl/compression/transform_base.h"
 #include "acl/compression/transform_space.h"
 #include "acl/compression/impl/transform_runtime.h"
 #include "acl/compression/impl/transform_track_utils.h"
@@ -85,19 +86,19 @@ namespace acl
 			//////////////////////////////////////////////////////////////////////////
 			// Selects the transform adapters and the transform metrics of a clip.
 			// 'source_type' is the track type of the raw tracks.
-			// 'transform_space' holds the transform space of the clip and its base:
-			//    - in mesh rotation space, we compose the transforms with the mesh rotation product, see 'transform_space_t::mesh_rotation'
-			//    - with the 'custom' base format, the base adapter combines each transform with the base
+			// 'space' is the transform space of the raw tracks: in mesh rotation space, we compose the transforms
+			// with the mesh rotation product, see 'transform_space_t::mesh_rotation'.
+			// 'transform_base' holds the base of the clip: with the 'custom' base format, the base adapter
+			// combines each transform with the base.
 			error_result initialize(
 				transform_runtime_type_t type, const itransform_adapter* custom_adapter, const itransform_metric* metric,
-				track_type8 source_type, const transform_space_desc_t& transform_space)
+				track_type8 source_type, transform_space_t space, const transform_base_desc_t& transform_base)
 			{
-				const additive_clip_format8 additive_format = transform_space.base_format;
-				const track_array* additive_base = transform_space.base;
-				const transform_space_t space = transform_space.space;
+				const additive_clip_format8 additive_format = transform_base.format;
+				const track_array* additive_base = transform_base.tracks;
 
 				m_additive_format = additive_format;
-				m_base_adapter = additive_format == additive_clip_format8::custom ? transform_space.base_adapter : nullptr;
+				m_base_adapter = additive_format == additive_clip_format8::custom ? transform_base.adapter : nullptr;
 				m_space = space;
 
 				if (additive_format == additive_clip_format8::custom && m_base_adapter == nullptr)
@@ -377,13 +378,13 @@ namespace acl
 		// Returns 'null' when the settings are not valid for these tracks.
 		inline const itransform_error_metric* get_settings_error_metric(
 			const compression_settings& settings, const track_array& raw_tracks,
-			const transform_space_desc_t& transform_space,
+			const transform_base_desc_t& transform_base,
 			transform_runtime_error_metric& runtime_error_metric)
 		{
 			if (settings.error_metric != nullptr)
 			{
 				// The legacy error metric cannot use a base adapter
-				if (transform_space.base_format == additive_clip_format8::custom)
+				if (transform_base.format == additive_clip_format8::custom)
 					return nullptr;
 
 				return settings.error_metric;
@@ -394,11 +395,11 @@ namespace acl
 
 			const error_result result = runtime_error_metric.initialize(
 				settings.transform_runtime_type, settings.custom_transform_adapter, settings.transform_metric,
-				track_type, transform_space);
+				track_type, raw_tracks.get_transform_space(), transform_base);
 			if (result.any())
 				return nullptr;
 
-			runtime_error_metric.set_clip_has_scale(transform_tracks_have_scale(raw_tracks, get_base_default_scale(transform_space)));
+			runtime_error_metric.set_clip_has_scale(transform_tracks_have_scale(raw_tracks, get_base_default_scale(transform_base)));
 			return &runtime_error_metric;
 		}
 	}

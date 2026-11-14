@@ -1732,7 +1732,7 @@ TEST_CASE("sjson_clip_reader transform space", "[io][transform_space]")
 
 		sjson_raw_clip file_clip;
 		REQUIRE(reader.read_raw_clip(file_clip));
-		CHECK(file_clip.transform_space == transform_space_t::local);
+		CHECK(file_clip.track_list.get_transform_space() == transform_space_t::local);
 		CHECK(file_clip.track_list.get_num_tracks() == 1);
 	}
 
@@ -1742,7 +1742,7 @@ TEST_CASE("sjson_clip_reader transform space", "[io][transform_space]")
 
 		sjson_raw_clip file_clip;
 		REQUIRE(reader.read_raw_clip(file_clip));
-		CHECK(file_clip.transform_space == transform_space_t::local);
+		CHECK(file_clip.track_list.get_transform_space() == transform_space_t::local);
 	}
 
 	{
@@ -1751,7 +1751,7 @@ TEST_CASE("sjson_clip_reader transform space", "[io][transform_space]")
 
 		sjson_raw_clip file_clip;
 		REQUIRE(reader.read_raw_clip(file_clip));
-		CHECK(file_clip.transform_space == transform_space_t::mesh);
+		CHECK(file_clip.track_list.get_transform_space() == transform_space_t::mesh);
 	}
 
 	{

@@ -255,18 +255,18 @@ TEST_CASE("compression with the default error metric", "[compression][error_metr
 
 		const bool is_additive = additive_format != additive_clip_format8::none;
 
-		transform_space_desc_t transform_space;
+		transform_base_desc_t transform_base;
 		if (is_additive)
 		{
-			transform_space.base_format = additive_format;
-			transform_space.base = &base_track_list;
+			transform_base.format = additive_format;
+			transform_base.tracks = &base_track_list;
 		}
 
 		output_stats stats;
 		compressed_tracks* compressed_tracks_ = nullptr;
 		error_result result;
 		if (is_additive)
-			result = compress_track_list(allocator, track_list, settings, transform_space, compressed_tracks_, stats);
+			result = compress_track_list(allocator, track_list, settings, transform_base, compressed_tracks_, stats);
 		else
 			result = compress_track_list(allocator, track_list, settings, compressed_tracks_, stats);
 
@@ -280,7 +280,7 @@ TEST_CASE("compression with the default error metric", "[compression][error_metr
 		// We measure the error as compression does with these settings
 		track_error error;
 		if (is_additive)
-			error = calculate_compression_error(allocator, track_list, context, settings, transform_space);
+			error = calculate_compression_error(allocator, track_list, context, settings, transform_base);
 		else
 			error = calculate_compression_error(allocator, track_list, context, settings);
 

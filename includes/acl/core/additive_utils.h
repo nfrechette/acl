@@ -67,7 +67,7 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Clip is combined with its base by a custom base adapter, see 'itransform_base_adapter_t'.
-		// Only compression supports this format: it requires a base adapter in 'transform_space_desc_t'.
+		// Only compression supports this format: it requires a base adapter in 'transform_base_desc_t'.
 		// The functions in this file do not support it.
 		// Default scale value is the default scale of the base adapter.
 		custom				= 4,

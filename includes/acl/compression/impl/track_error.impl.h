@@ -34,6 +34,7 @@
 #include "acl/core/impl/debug_track_writer.h"
 #include "acl/compression/track_array.h"
 #include "acl/compression/transform_error_metrics.h"
+#include "acl/compression/transform_base.h"
 #include "acl/compression/transform_space.h"
 #include "acl/compression/impl/track_list_context.h"
 #include "acl/compression/impl/transform_runtime_error_metric.h"
@@ -504,6 +505,12 @@ namespace acl
 		ACL_ASSERT(raw_tracks.is_valid().empty(), "Raw tracks are invalid");
 		ACL_ASSERT(context.is_initialized(), "Context isn't initialized");
 
+		// The error metric puts the transforms in object space with the local space hierarchy, scalar tracks do not use the space
+		const bool is_local = !is_transform_track_type(raw_tracks.get_track_type()) || raw_tracks.get_transform_space() == transform_space_t::local;
+		ACL_ASSERT(is_local, "This function supports only the local transform space");
+		if (!is_local)
+			return invalid_track_error();
+
 		struct error_calculation_adapter final : public ierror_calculation_adapter
 		{
 			const track_array& raw_tracks_;
@@ -727,6 +734,11 @@ namespace acl
 	template<class decompression_context_type, acl_impl::is_decompression_context<decompression_context_type>>
 	inline track_error calculate_compression_error(iallocator& allocator, const track_array& raw_tracks, decompression_context_type& context, const itransform_error_metric& error_metric, const track_array& additive_base_tracks)
 	{
+		// The error metric puts the transforms in object space with the local space hierarchy
+		ACL_ASSERT(raw_tracks.get_transform_space() == transform_space_t::local, "This function supports only the local transform space");
+		if (raw_tracks.get_transform_space() != transform_space_t::local)
+			return acl_impl::invalid_track_error();
+
 		return acl_impl::calculate_compression_error_in_space(allocator, raw_tracks, context, error_metric, additive_base_tracks, transform_space_t::local);
 	}
 
@@ -837,10 +849,12 @@ namespace acl
 		return calculate_scalar_track_error(allocator, args);
 	}
 
-	inline track_error calculate_compression_error(iallocator& allocator, const track_array& raw_tracks0, const track_array& raw_tracks1, const itransform_error_metric& error_metric)
+	namespace acl_impl
 	{
-		using namespace acl_impl;
-
+	//////////////////////////////////////////////////////////////////////////
+	// Calculates the worst error between two raw track arrays in a transform space.
+	inline track_error calculate_raw_tracks_error_in_space(iallocator& allocator, const track_array& raw_tracks0, const track_array& raw_tracks1, const itransform_error_metric& error_metric, transform_space_t space)
+	{
 		ACL_ASSERT(raw_tracks0.is_valid().empty(), "Raw tracks are invalid");
 		ACL_ASSERT(raw_tracks1.is_valid().empty(), "Raw tracks are invalid");
 
@@ -896,6 +910,7 @@ namespace acl
 			return calculate_scalar_track_error(allocator, args);
 
 		args.error_metric = &error_metric;
+		args.space = space;
 
 		// There is no additive base, thus a VQ track uses a scale of 1.0
 		args.are_tracks0_vq = raw_tracks0.get_track_type() == track_type8::vqf;
@@ -903,65 +918,60 @@ namespace acl
 
 		return calculate_transform_track_error(allocator, args);
 	}
+	}
+
+	inline track_error calculate_compression_error(iallocator& allocator, const track_array& raw_tracks0, const track_array& raw_tracks1, const itransform_error_metric& error_metric)
+	{
+		using namespace acl_impl;
+
+		// The error metric puts the transforms in object space with the local space hierarchy, scalar tracks do not use the space
+		const bool is_local = !is_transform_track_type(raw_tracks0.get_track_type()) || (raw_tracks0.get_transform_space() == transform_space_t::local && raw_tracks1.get_transform_space() == transform_space_t::local);
+		ACL_ASSERT(is_local, "This function supports only the local transform space");
+		if (!is_local)
+			return invalid_track_error();
+
+		return calculate_raw_tracks_error_in_space(allocator, raw_tracks0, raw_tracks1, error_metric, transform_space_t::local);
+	}
 
 	template<class decompression_context_type, acl_impl::is_decompression_context<decompression_context_type>>
 	inline track_error calculate_compression_error(iallocator& allocator, const track_array& raw_tracks, decompression_context_type& context, const compression_settings& settings)
 	{
-		using namespace acl_impl;
-
-		if (raw_tracks.is_empty() || !is_transform_track_type(raw_tracks.get_track_type()))
-			return calculate_compression_error(allocator, raw_tracks, context);	// Scalar tracks do not use an error metric
-
-		transform_runtime_error_metric runtime_error_metric;
-		const itransform_error_metric* error_metric = get_settings_error_metric(settings, raw_tracks, transform_space_desc_t(), runtime_error_metric);
-		ACL_ASSERT(error_metric != nullptr, "The compression settings are not valid for these tracks");
-		if (error_metric == nullptr)
-			return invalid_track_error();
-
-		return calculate_compression_error(allocator, raw_tracks, context, *error_metric);
+		return calculate_compression_error(allocator, raw_tracks, context, settings, transform_base_desc_t());
 	}
 
 	template<class decompression_context_type, acl_impl::is_decompression_context<decompression_context_type>>
-	inline track_error calculate_compression_error(iallocator& allocator, const track_array& raw_tracks, decompression_context_type& context, const compression_settings& settings, const transform_space_desc_t& transform_space)
+	inline track_error calculate_compression_error(iallocator& allocator, const track_array& raw_tracks, decompression_context_type& context, const compression_settings& settings, const transform_base_desc_t& transform_base)
 	{
 		using namespace acl_impl;
 
-		ACL_ASSERT(transform_space.is_valid().empty(), "The transform space is not valid");
-		if (transform_space.is_valid().any())
+		if (raw_tracks.is_empty() || !is_transform_track_type(raw_tracks.get_track_type()))
+			return calculate_compression_error(allocator, raw_tracks, context);	// Scalar tracks do not use an error metric or a base
+
+		const transform_space_t space = raw_tracks.get_transform_space();
+
+		ACL_ASSERT(transform_base.is_valid(space).empty(), "The transform base is not valid");
+		if (transform_base.is_valid(space).any())
 			return invalid_track_error();
 
-		if (transform_space.space != transform_space_t::local)
-		{
-			if (raw_tracks.is_empty() || !is_transform_track_type(raw_tracks.get_track_type()))
-				return calculate_compression_error(allocator, raw_tracks, context);	// Scalar tracks have no transform space
-
-			// The legacy error metric puts the transforms in object space itself, it supports only the local space
-			ACL_ASSERT(settings.error_metric == nullptr, "The legacy error metric supports only the local transform space");
-			if (settings.error_metric != nullptr)
-				return invalid_track_error();
-
-			const track_array no_base_tracks;
-			const track_array* base_tracks = transform_space.has_base() ? transform_space.base : nullptr;
-
-			transform_runtime_error_metric runtime_error_metric;
-			const itransform_error_metric* error_metric = get_settings_error_metric(settings, raw_tracks, transform_space, runtime_error_metric);
-			ACL_ASSERT(error_metric != nullptr, "The compression settings are not valid for these tracks");
-			if (error_metric == nullptr)
-				return invalid_track_error();
-
-			return calculate_compression_error_in_space(allocator, raw_tracks, context, *error_metric, base_tracks != nullptr ? *base_tracks : no_base_tracks, transform_space.space);
-		}
-
-		if (!transform_space.has_base())
-			return calculate_compression_error(allocator, raw_tracks, context, settings);
-
-		const track_array& base_tracks = *transform_space.base;
+		// The legacy error metric puts the transforms in object space itself, it supports only the local space
+		ACL_ASSERT(space == transform_space_t::local || settings.error_metric == nullptr, "The legacy error metric supports only the local transform space");
+		if (space != transform_space_t::local && settings.error_metric != nullptr)
+			return invalid_track_error();
 
 		transform_runtime_error_metric runtime_error_metric;
-		const itransform_error_metric* error_metric = get_settings_error_metric(settings, raw_tracks, transform_space, runtime_error_metric);
+		const itransform_error_metric* error_metric = get_settings_error_metric(settings, raw_tracks, transform_base, runtime_error_metric);
 		ACL_ASSERT(error_metric != nullptr, "The compression settings are not valid for these tracks");
 		if (error_metric == nullptr)
 			return invalid_track_error();
+
+		const track_array no_base_tracks;
+		const track_array& base_tracks = transform_base.has_base() ? *transform_base.tracks : no_base_tracks;
+
+		if (space != transform_space_t::local)
+			return calculate_compression_error_in_space(allocator, raw_tracks, context, *error_metric, base_tracks, space);
+
+		if (!transform_base.has_base())
+			return calculate_compression_error(allocator, raw_tracks, context, *error_metric);
 
 		return calculate_compression_error(allocator, raw_tracks, context, *error_metric, base_tracks);
 	}
@@ -973,13 +983,23 @@ namespace acl
 		if (raw_tracks0.is_empty() || !is_transform_track_type(raw_tracks0.get_track_type()))
 			return calculate_compression_error(allocator, raw_tracks0, raw_tracks1);	// Scalar tracks do not use an error metric
 
+		const transform_space_t space = raw_tracks0.get_transform_space();
+		ACL_ASSERT(raw_tracks1.get_transform_space() == space, "Both track arrays must have the same transform space");
+		if (raw_tracks1.get_transform_space() != space)
+			return invalid_track_error();
+
+		// The legacy error metric puts the transforms in object space itself, it supports only the local space
+		ACL_ASSERT(space == transform_space_t::local || settings.error_metric == nullptr, "The legacy error metric supports only the local transform space");
+		if (space != transform_space_t::local && settings.error_metric != nullptr)
+			return invalid_track_error();
+
 		transform_runtime_error_metric runtime_error_metric;
-		const itransform_error_metric* error_metric = get_settings_error_metric(settings, raw_tracks0, transform_space_desc_t(), runtime_error_metric);
+		const itransform_error_metric* error_metric = get_settings_error_metric(settings, raw_tracks0, transform_base_desc_t(), runtime_error_metric);
 		ACL_ASSERT(error_metric != nullptr, "The compression settings are not valid for these tracks");
 		if (error_metric == nullptr)
 			return invalid_track_error();
 
-		return calculate_compression_error(allocator, raw_tracks0, raw_tracks1, *error_metric);
+		return calculate_raw_tracks_error_in_space(allocator, raw_tracks0, raw_tracks1, *error_metric, space);
 	}
 
 	ACL_IMPL_VERSION_NAMESPACE_END

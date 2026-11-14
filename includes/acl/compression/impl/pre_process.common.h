@@ -86,11 +86,10 @@ namespace acl
 				{
 					transform_track_array_adapter_t clip_adapter(
 						&track_list,
-						settings.transform_space.base_format,
-						get_base_default_scale(settings.transform_space));
+						settings.transform_base.format,
+						get_base_default_scale(settings.transform_base));
 					clip_adapter.sorted_transforms_parent_first = get_sorted_transforms_parent_first();
 					clip_adapter.topology = get_topology();
-					clip_adapter.space = settings.transform_space.space;
 
 					shell_metadata = compute_clip_shell_distances(
 						allocator,
@@ -110,10 +109,10 @@ namespace acl
 				{
 					space_context.initialize(
 						allocator,
-						settings.transform_space.space,
-						settings.transform_space.base_format,
-						settings.transform_space.base_adapter,
-						transform_track_array_adapter_t(settings.transform_space.base, additive_clip_format8::none, 1.0F),
+						track_list.get_transform_space(),
+						settings.transform_base.format,
+						settings.transform_base.adapter,
+						transform_track_array_adapter_t(settings.transform_base.tracks, additive_clip_format8::none, 1.0F),
 						track_list,
 						track_list.get_num_samples_per_track(),
 						track_list.get_sample_rate(),
@@ -137,7 +136,6 @@ namespace acl
 						sorted_transforms_parent_first[transform_index] = transform_index;
 
 					transform_track_array_adapter_t clip_adapter(track_list);
-					clip_adapter.space = settings.transform_space.space;
 
 					sort_transform_indices_parent_first(
 						clip_adapter,
@@ -154,7 +152,7 @@ namespace acl
 				{
 					topology = allocate_type<clip_topology_t>(allocator);
 
-					build_clip_topology(allocator, track_list, *topology, settings.transform_space.space);
+					build_clip_topology(allocator, track_list, *topology, track_list.get_transform_space());
 				}
 
 				return topology;

@@ -92,7 +92,7 @@ void validate_transform_tracks(const acl::acl_impl::debug_track_writer& referenc
 void validate_accuracy(
 	iallocator& allocator,
 	const track_array& raw_tracks,
-	const transform_space_desc_t& transform_space,
+	const transform_base_desc_t& transform_base,
 	const compression_settings& metric_settings,
 	const compressed_tracks& compressed_tracks_,
 	double regression_error_threshold
@@ -128,7 +128,7 @@ void validate_accuracy(
 	const bool is_bound_to_tracks = context.is_bound_to(compressed_tracks_);
 	ACL_ASSERT(is_bound_to_tracks, "Failed to bind to correct compressed tracks instance"); (void)is_bound_to_tracks;
 
-	const track_error error = calculate_compression_error(allocator, raw_tracks, context, metric_settings, transform_space);
+	const track_error error = calculate_compression_error(allocator, raw_tracks, context, metric_settings, transform_base);
 	ACL_ASSERT(rtm::scalar_is_finite(error.error), "Returned error is not a finite value"); (void)error;
 	ACL_ASSERT(error.error < regression_error_threshold, "Error too high for bone %u: %f at time %f (keyframe %u)", error.index, error.error, error.sample_time, error.keyframe_index);
 

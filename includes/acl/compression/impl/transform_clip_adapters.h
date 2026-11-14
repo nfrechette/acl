@@ -192,6 +192,7 @@ namespace acl
 
 			explicit transform_track_array_adapter_t(const track_array& track_list_)
 				: track_list(&track_list_)
+				, space(track_list_.get_transform_space())
 			{
 				ACL_ASSERT(track_list_.is_empty() || is_transform_track_type(track_list_.get_track_type()), "Expected transform tracks");
 			}
@@ -202,6 +203,7 @@ namespace acl
 				: track_list(track_list_)
 				, additive_format(additive_format_)
 				, vq_scale(rtm::vector_set(default_scale))
+				, space(track_list_ != nullptr ? track_list_->get_transform_space() : transform_space_t::local)
 			{
 				ACL_ASSERT(track_list_ == nullptr || track_list_->is_empty() || is_transform_track_type(track_list_->get_track_type()), "Expected transform tracks");
 			}

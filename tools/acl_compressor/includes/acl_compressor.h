@@ -35,11 +35,11 @@ int main_impl(int argc, char* argv[]);
 #include "acl/core/iallocator.h"
 #include "acl/compression/compression_settings.h"
 #include "acl/compression/track_array.h"
-#include "acl/compression/transform_space.h"
+#include "acl/compression/transform_base.h"
 #include "acl/decompression/decompression_settings.h"
 
 void validate_accuracy(acl::iallocator& allocator,
-	const acl::track_array& raw_tracks, const acl::transform_space_desc_t& transform_space,
+	const acl::track_array& raw_tracks, const acl::transform_base_desc_t& transform_base,
 	const acl::compression_settings& metric_settings,
 	const acl::compressed_tracks& compressed_tracks_,
 	double regression_error_threshold);
@@ -49,7 +49,7 @@ void validate_accuracy(acl::iallocator& allocator, const acl::track_array& raw_t
 void validate_metadata(const acl::track_array& raw_tracks, const acl::compressed_tracks& tracks);
 void validate_convert(acl::iallocator& allocator, const acl::track_array& raw_tracks);
 
-void validate_db(acl::iallocator& allocator, const acl::track_array& raw_tracks, const acl::transform_space_desc_t& transform_space,
+void validate_db(acl::iallocator& allocator, const acl::track_array& raw_tracks, const acl::transform_base_desc_t& transform_base,
 	const acl::compression_database_settings& settings, const acl::compression_settings& metric_settings,
 	const acl::compressed_tracks& compressed_tracks0, const acl::compressed_tracks& compressed_tracks1);
 

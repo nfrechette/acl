@@ -82,13 +82,12 @@ namespace acl
 	// Raw transform tracks
 	struct sjson_raw_clip
 	{
+		// The transform tracks of the clip, they hold the transform space of the clip
 		track_array_vqvf track_list;
 
+		// The additive base, always in local space
 		track_array_vqvf additive_base_track_list;
 		additive_clip_format8 additive_format = additive_clip_format8::none;
-
-		// The space of the transforms in 'track_list' and 'additive_base_track_list'
-		transform_space_t transform_space = transform_space_t::local;
 
 		ACL_DEPRECATED("No longer used, see track description, to be removed in v3.0")
 		track_vqvf bind_pose;
@@ -188,7 +187,7 @@ namespace acl
 				return false;
 
 			out_data.additive_format = !out_data.additive_base_track_list.is_empty() ? m_additive_format : additive_clip_format8::none;
-			out_data.transform_space = m_transform_space;
+			out_data.track_list.set_transform_space(m_transform_space);
 
 			return nothing_follows();
 		}

@@ -6,17 +6,17 @@ The core logic for additive clips lives [here](../includes/acl/core/additive_uti
 
 ## The transform space
 
-A `transform_space_desc_t` (see [here](../includes/acl/compression/transform_space.h)) tells compression how to measure the error of a clip. It holds two independent properties:
+Two independent properties tell compression how to measure the error of a clip:
 
-*  `space`: how a sample uses the transform hierarchy, see `transform_space_t`.
+*  The transform space of the clip: how a sample uses the transform hierarchy, see `transform_space_t` (see [here](../includes/acl/compression/transform_space.h)). The track array holds it: set it with `track_array::set_transform_space`.
     *  `local` (the default): each transform is relative to its parent transform.
     *  `mesh`: each transform is in object space (mesh space). It does not use its parent transform. Compression measures the error of each transform alone: the error of a parent does not move its children.
     *  `mesh_rotation`: the rotation of each transform is in object space, its translation and scale are relative to its parent transform. The rotation of a parent does not change the object rotation of its children, but the parent still moves them. Compression measures the error in object space with this rule: `object = mul(local, parent_object)`, with `local.rotation = mul(rotation, conjugate(parent_object.rotation))`.
-*  `base_format` and `base`: how a sample combines with its base clip, see `additive_clip_format8` and the formats below. With `none`, the clip has no base. With `custom`, the `base_adapter` combines them, see [below](#custom-base-format).
+*  The base of the clip: how a sample combines with its base clip. A `transform_base_desc_t` (see [here](../includes/acl/compression/transform_base.h)) holds the base format (`format`, see `additive_clip_format8` and the formats below) and the base tracks (`tracks`). With `none`, the clip has no base. With `custom`, the `adapter` combines them, see [below](#custom-base-format).
 
 Compression first combines each sample with the base. Then it puts the result in object space to measure the error. The transform space does not change the compressed data: decompression returns the samples of the clip, and your runtime applies them to the base.
 
-The base is always in local space, with the transform hierarchy of the clip. In mesh space, compression puts the base in mesh space with `rtm::vqv_mul` (the scale of a parent does not shear its children). Then it combines each sample with the base in mesh space. In mesh rotation space, compression puts only the rotations of the base in mesh space, then it combines each sample with the base: the rotations in mesh space, the translations and scales in local space. The compressed tracks keep the parent indices of the clip.
+The base is always in local space, with the transform hierarchy of the clip: the transform space of the base tracks must be `local`. In mesh space, compression puts the base in mesh space with `rtm::vqv_mul` (the scale of a parent does not shear its children). Then it combines each sample with the base in mesh space. In mesh rotation space, compression puts only the rotations of the base in mesh space, then it combines each sample with the base: the rotations in mesh space, the translations and scales in local space. The compressed tracks keep the parent indices of the clip.
 
 The mesh rotation space has two limits:
 
@@ -26,14 +26,18 @@ The mesh rotation space has two limits:
 A rotation of a parent moves its children but does not rotate them: the subtree is not rigid with respect to the parent. Thus the bit rate search cannot cache the transform of a child relative to its parent, as it does in local space. With the `vqf` and `vqsf` types, the search caches the rotation of each child and the sum of the translations below the parent. With the `vqvf` and `vqmf` types, the search multiplies each transform chain, and compression is slower.
 
 ```c++
-transform_space_desc_t transform_space;
-transform_space.base_format = additive_clip_format8::additive1;
-transform_space.base = &base_track_list;
+raw_track_list.set_transform_space(transform_space_t::mesh_rotation);
 
-error_result result = compress_track_list(allocator, raw_track_list, settings, transform_space, out_compressed_tracks, stats);
+transform_base_desc_t transform_base;
+transform_base.format = additive_clip_format8::additive1;
+transform_base.tracks = &base_track_list;
+
+error_result result = compress_track_list(allocator, raw_track_list, settings, transform_base, out_compressed_tracks, stats);
 ```
 
-Use the same transform space for [pre-processing](pre_processing_raw_tracks.md) (`pre_process_settings_t::transform_space`) and to [measure the error](error_metrics.md) (`calculate_compression_error`).
+A clip without a base needs only its transform space: the `compress_track_list` overload without a base uses it.
+
+[Pre-processing](pre_processing_raw_tracks.md) and the [error measurement](error_metrics.md) (`calculate_compression_error`) also use the transform space of the track array. Give them the same base as compression (`pre_process_settings_t::transform_base`).
 
 ## Relative additive clips
 
@@ -65,7 +69,7 @@ This is the additive mode used by Unreal 4.
 
 ## Custom base format
 
-When your runtime combines a clip with its base in another way, implement an `itransform_base_adapter_t` (see [here](../includes/acl/compression/transform_base_adapter.h)). Set the base format to `custom`, and set `base_adapter` in the transform space:
+When your runtime combines a clip with its base in another way, implement an `itransform_base_adapter_t` (see [here](../includes/acl/compression/transform_base_adapter.h)). Set the base format to `custom`, and set `adapter` in the base description:
 
 ```c++
 class my_base_adapter final : public itransform_base_adapter_t
@@ -88,10 +92,10 @@ public:
 
 my_base_adapter base_adapter;
 
-transform_space_desc_t transform_space;
-transform_space.base_format = additive_clip_format8::custom;
-transform_space.base = &base_track_list;
-transform_space.base_adapter = &base_adapter;
+transform_base_desc_t transform_base;
+transform_base.format = additive_clip_format8::custom;
+transform_base.tracks = &base_track_list;
+transform_base.adapter = &base_adapter;
 ```
 
 The adapter combines one transform at a time:

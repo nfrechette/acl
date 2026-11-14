@@ -162,8 +162,7 @@ namespace acl
 		{
 			track_array& track_list = context.track_list;
 
-			transform_track_array_adapter_t clip_adapter(&track_list, context.settings.transform_space.base_format, get_base_default_scale(context.settings.transform_space));
-			clip_adapter.space = context.settings.transform_space.space;
+			transform_track_array_adapter_t clip_adapter(&track_list, context.settings.transform_base.format, get_base_default_scale(context.settings.transform_base));
 
 			const bool is_looping = is_clip_looping(
 				context.allocator,
@@ -245,7 +244,7 @@ namespace acl
 			const bool needs_conversion = error_metric.needs_conversion(has_scale);
 
 			// A VQ track has no scale, each of its samples uses this scale
-			const rtm::vector4f vq_scale = rtm::vector_set(get_base_default_scale(settings.transform_space));
+			const rtm::vector4f vq_scale = rtm::vector_set(get_base_default_scale(settings.transform_base));
 
 			const uint32_t dirty_transform_indices[2] = { 0, 1 };
 			rtm::vqvf local_transforms[2];
@@ -436,7 +435,7 @@ namespace acl
 			const bool is_lossy = settings.precision_policy == pre_process_precision_policy::lossy;
 
 			// The scale of a VQ track is the identity of the additive format
-			const rtm::vector4f identity_scale = rtm::vector_set(get_base_default_scale(settings.transform_space));
+			const rtm::vector4f identity_scale = rtm::vector_set(get_base_default_scale(settings.transform_base));
 
 			const uint32_t num_tracks = track_list.get_num_tracks();
 			const uint32_t num_samples_per_track = track_list.get_num_samples_per_track();
@@ -521,7 +520,7 @@ namespace acl
 			ACL_ASSERT(target_type == target_track_array_type::type, "Unexpected target type");
 
 			// A VQ track has no scale, its new scale is the identity of the additive format
-			const rtm::vector4f identity_scale = rtm::vector_set(get_base_default_scale(context.settings.transform_space));
+			const rtm::vector4f identity_scale = rtm::vector_set(get_base_default_scale(context.settings.transform_base));
 
 			const uint32_t num_tracks = track_list.get_num_tracks();
 			const uint32_t num_samples = track_list.get_num_samples_per_track();
@@ -529,6 +528,7 @@ namespace acl
 
 			out_track_list.set_name(track_list.get_name());
 			out_track_list.set_looping_policy(track_list.get_looping_policy());
+			out_track_list.set_transform_space(track_list.get_transform_space());
 
 			for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 			{

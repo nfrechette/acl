@@ -38,8 +38,9 @@ clip =
 	// Introduced in version 2.
 	is_binary_exact = true
 
-	// Additive format of base clip, if present. Optional, defaults to 'none'.
-	// Introduced in version 3.
+	// Additive format of base clip, if present: 'none', 'relative', 'additive0', 'additive1', or 'custom'. Optional, defaults to 'none'.
+	// The file does not hold the base adapter of the 'custom' format, the tool that reads the file must supply it.
+	// Introduced in version 3, 'custom' introduced in ACL 2.2.
 	additive_format = "none"
 
 	// The additive base clip name. Optional, defaults to empty string.

@@ -18,24 +18,26 @@ To measure the error as compression does, use the `calculate_compression_error` 
 
 ### Additive clips and the transform space
 
-A `transform_space_desc_t` now holds the base of an additive clip and its additive format (see [here](additive_clips.md#the-transform-space)). These APIs are deprecated, and ACL 2.3 will remove them:
+A `transform_base_desc_t` now holds the base of an additive clip and its additive format, and the track array holds its transform space (see [here](additive_clips.md#the-transform-space)). These APIs are deprecated, and ACL 2.3 will remove them:
 
-*  The `compress_track_list` overload that takes `additive_base_track_list` and `additive_format`. Use the overload that takes a `transform_space_desc_t`. The old overload ignores an empty base. The new overload returns an error when the base format is not `none` and the base is null or empty.
-*  `pre_process_settings_t::additive_base` and `pre_process_settings_t::additive_format`. Use `pre_process_settings_t::transform_space`. Pre-processing returns an error when you set both.
+*  The `compress_track_list` overload that takes `additive_base_track_list` and `additive_format`. Use the overload that takes a `transform_base_desc_t`. The old overload ignores an empty base. The new overload returns an error when the base format is not `none` and the base is null or empty.
+*  `pre_process_settings_t::additive_base` and `pre_process_settings_t::additive_format`. Use `pre_process_settings_t::transform_base`. Pre-processing returns an error when you set both.
 
 To combine a clip with its base in your own way, you overrode `itransform_error_metric::apply_additive_to_base`. Now, implement an `itransform_base_adapter_t` and use the `custom` base format (see [here](additive_clips.md#custom-base-format)). Your adapter then works with each runtime transform type and each transform metric.
 
-The `calculate_compression_error` overload that takes the compression settings, the additive base, and the additive format is new in 2.2. It now takes a `transform_space_desc_t` in place of the base and the format.
+The `calculate_compression_error` overload that takes the compression settings, the additive base, and the additive format is new in 2.2. It now takes a `transform_base_desc_t` in place of the base and the format.
+
+The functions that take a legacy error metric (`itransform_error_metric`) support only transform tracks in local space. They return an invalid error for another transform space.
 
 ```c++
 // ACL 2.1
 compress_track_list(allocator, tracks, settings, base_tracks, additive_clip_format8::additive1, out_compressed_tracks, stats);
 
 // ACL 2.2
-transform_space_desc_t transform_space;
-transform_space.base_format = additive_clip_format8::additive1;
-transform_space.base = &base_tracks;
-compress_track_list(allocator, tracks, settings, transform_space, out_compressed_tracks, stats);
+transform_base_desc_t transform_base;
+transform_base.format = additive_clip_format8::additive1;
+transform_base.tracks = &base_tracks;
+compress_track_list(allocator, tracks, settings, transform_base, out_compressed_tracks, stats);
 ```
 
 ## Migrating to ACL 2.0 from 1.3
