@@ -58,6 +58,7 @@
 *  Add the `-mesh_rotation_space` option and the `is_mesh_rotation_space`, `is_bind_pose_additive0`, and `is_bind_pose_additive1` config options to `acl_compressor`, and two regression configurations in mesh rotation space
 *  In the mesh rotation space, the bit rate search caches the transforms of the `vqf` and `vqsf` types, as in local space
 *  Add the `custom` base format and `itransform_base_adapter_t`: a base adapter combines each transform with the base, set it in `transform_space_desc_t::base_adapter`, see [additive clips](docs/additive_clips.md#custom-base-format)
+*  Add the `-base_custom` option and the `use_custom_base_format` config option to `acl_compressor`, and a regression configuration: they compress the clip with the `custom` base format and a base adapter that applies the built-in base format of the clip
 *  Fix the `max_error` stat of `acl_compressor` that ignored the additive base
 
 ## 2.1.0

@@ -117,6 +117,7 @@
 #include "acl/compression/compress.h"
 #include "acl/compression/convert.h"
 #include "acl/compression/pre_process.h"
+#include "acl/compression/transform_base_adapter.h"
 #include "acl/compression/transform_pose_utils.h"	// Just to test compilation
 #include "acl/compression/impl/transform_space_context.h"
 #include "acl/decompression/decompress.h"
@@ -171,6 +172,8 @@ struct Options
 	bool			is_mesh_space					= false;
 	bool			is_mesh_rotation_space			= false;
 
+	bool			use_custom_base_format			= false;
+
 	bool			split_into_database				= false;
 
 	float			strip_keyframe_proportion		= 0.0F;
@@ -222,6 +225,7 @@ static constexpr const char* k_bind_pose_additive0_option = "-bind_add0";
 static constexpr const char* k_bind_pose_additive1_option = "-bind_add1";
 static constexpr const char* k_mesh_space_option = "-mesh_space";
 static constexpr const char* k_mesh_rotation_space_option = "-mesh_rotation_space";
+static constexpr const char* k_custom_base_format_option = "-base_custom";
 static constexpr const char* k_matrix_error_metric_option = "-error_mtx";
 static constexpr const char* k_precise_error_metric_option = "-error_precise";
 static constexpr const char* k_vqv_error_metric_option = "-error_vqv";
@@ -232,6 +236,26 @@ static constexpr const char* k_strip_keyframe_proportion_option = "-strip_keyfra
 static constexpr const char* k_strip_keyframe_threshold_option = "-strip_keyframe_threshold=";
 static constexpr const char* k_stat_detailed_output_option = "-stat_detailed";
 static constexpr const char* k_stat_exhaustive_output_option = "-stat_exhaustive";
+
+// The base adapter of the '-base_custom' option: it combines the transforms with a built-in base format.
+// Thus the custom base format must give the same compressed data and the same error as the built-in format.
+class builtin_base_adapter_t final : public itransform_base_adapter_t
+{
+public:
+	explicit builtin_base_adapter_t(additive_clip_format8 base_format) : m_base_format(base_format) {}
+
+	virtual const char* get_name() const override { return "acl_compressor_builtin_base_adapter_t"; }
+	virtual float get_default_scale() const override { return acl_impl::get_additive_default_scale(m_base_format); }
+
+	virtual rtm::vqvf apply_base(uint32_t transform_index, const rtm::vqvf& base_transform, const rtm::vqvf& transform) const override
+	{
+		(void)transform_index;
+		return apply_additive_to_base(m_base_format, base_transform, transform);
+	}
+
+private:
+	additive_clip_format8 m_base_format;
+};
 
 bool is_acl_sjson_file(const char* filename)
 {
@@ -411,6 +435,13 @@ static bool parse_options(int argc, char** argv, Options& options)
 		if (std::strncmp(argument, k_mesh_space_option, option_length) == 0)
 		{
 			options.is_mesh_space = true;
+			continue;
+		}
+
+		option_length = std::strlen(k_custom_base_format_option);
+		if (std::strncmp(argument, k_custom_base_format_option, option_length) == 0)
+		{
+			options.use_custom_base_format = true;
 			continue;
 		}
 
@@ -951,6 +982,10 @@ static bool read_config(iallocator& allocator, Options& options, compression_set
 	if (parser.try_read("is_mesh_rotation_space", is_mesh_rotation_space, false))
 		options.is_mesh_rotation_space = is_mesh_rotation_space;
 
+	bool use_custom_base_format;
+	if (parser.try_read("use_custom_base_format", use_custom_base_format, false))
+		options.use_custom_base_format = use_custom_base_format;
+
 	bool use_matrix_error_metric;
 	if (parser.try_read("use_matrix_error_metric", use_matrix_error_metric, false))
 		options.use_matrix_error_metric = use_matrix_error_metric;
@@ -1276,6 +1311,13 @@ static int safe_main_impl(int argc, char* argv[])
 		}
 	}
 
+	// A clip file holds only the name of the custom base format, not its base adapter
+	if (additive_format == additive_clip_format8::custom)
+	{
+		printf("The clip uses the custom base format, acl_compressor has no base adapter for it\n");
+		return -1;
+	}
+
 #if DEBUG_MEGA_LARGE_CLIP
 	track_array_vqvf new_transforms(allocator, transform_tracks.get_num_tracks());
 	float new_sample_rate = 19200.0F;
@@ -1339,6 +1381,14 @@ static int safe_main_impl(int argc, char* argv[])
 			settings.keyframe_stripping = compression_keyframe_stripping_settings();
 
 		use_external_config = true;
+	}
+
+	// The custom base format needs a base, scalar tracks do not use one
+	const bool has_bind_pose_base = options.is_bind_pose_relative || options.is_bind_pose_additive0 || options.is_bind_pose_additive1;
+	if (options.use_custom_base_format && sjson_type == sjson_file_type::raw_clip && base_clip.is_empty() && !has_bind_pose_base)
+	{
+		printf("'-base_custom' requires a clip with a base: use a clip file with a base or a '-bind_*' option\n");
+		return -1;
 	}
 
 	// The legacy error metric that compression uses, null to use the runtime transform type and the transform metric
@@ -1410,12 +1460,22 @@ static int safe_main_impl(int argc, char* argv[])
 	settings.transform_runtime_type = transform_runtime_type;
 
 	// The transform space of the clip and its base, if any
+	// With '-base_custom', the custom base format combines the transforms with the built-in base format of the clip
+	const builtin_base_adapter_t base_adapter(additive_format);
+
 	transform_space_desc_t transform_space;
 	transform_space.space = transform_space_type;
 	if (additive_format != additive_clip_format8::none && !base_clip.is_empty())
 	{
-		transform_space.base_format = additive_format;
 		transform_space.base = &base_clip;
+
+		if (options.use_custom_base_format)
+		{
+			transform_space.base_format = additive_clip_format8::custom;
+			transform_space.base_adapter = &base_adapter;
+		}
+		else
+			transform_space.base_format = additive_format;
 	}
 
 	// Pre-process
