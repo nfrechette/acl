@@ -23,7 +23,7 @@ The mesh rotation space has two limits:
 *  It needs the object rotation of each parent: it supports the `vqf`, `vqsf`, `vqvf`, and `vqmf` runtime transform types (and `automatic`). The product of these types multiplies the rotations as quaternions, the VQM scale/shear matrix holds the shear. It does not support `matrix3x4f`: a matrix mixes the rotation with the scale and the shear. It does not support a custom transform adapter: ACL cannot read its rotation.
 *  It does not support the `relative` base format: that format multiplies the whole transforms, but the rotations and the translations are in different spaces. Use `additive0` or `additive1`.
 
-Compression is slower in mesh rotation space. A rotation of a parent moves its children but does not rotate them: the subtree is not rigid with respect to the parent. Thus the bit rate search cannot cache the transform of a child relative to its parent, and it multiplies each transform chain.
+A rotation of a parent moves its children but does not rotate them: the subtree is not rigid with respect to the parent. Thus the bit rate search cannot cache the transform of a child relative to its parent, as it does in local space. With the `vqf` and `vqsf` types, the search caches the rotation of each child and the sum of the translations below the parent. With the `vqvf` and `vqmf` types, the search multiplies each transform chain, and compression is slower.
 
 ```c++
 transform_space_desc_t transform_space;

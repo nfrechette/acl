@@ -37,8 +37,10 @@
 #include "acl/compression/impl/segment_context.h"
 #include "acl/compression/impl/topology_metadata.h"
 
+#include <rtm/quatf.h>
 #include <rtm/scalarf.h>
 #include <rtm/vector4f.h>
+#include <rtm/vqsf.h>
 #include <rtm/vqvf.h>
 
 #include <cstdint>
@@ -62,25 +64,146 @@ namespace acl
 		// Each policy has the same functions:
 		//    - 'error_args_type': the arguments of the error metric
 		//    - 'init_error_args(args, shell_distance)'
-		//    - 'get_transform_size()', 'is_associative()', and 'needs_conversion()'
+		//    - 'get_transform_size()', 'uses_cache()', 'needs_chain_child()', and 'needs_conversion()'
 		//    - 'local_to_object_space(..)': converts a local space pose and takes it into object space
 		//    - 'compute_shell_distances(..)': finds the rigid shell of each transform from the object space poses
-		//    - 'measure_cached(..)': measures the error when the product is associative
-		//    - 'measure_chain(..)': measures the error when the product is not associative
+		//    - 'measure_cached(..)': measures the error with the cached transforms
+		//    - 'measure_chain(..)': measures the error with the transform chains
 		//    - 'update_cached(..)' and 'store_local(..)': update the cached transforms after optimization
 		//
 		// The functions use the transforms through pointers: the transform type of a custom
 		// transform adapter is known only at runtime. With a built-in type, the compiler
 		// removes the pointers and the virtual function calls.
 		//
-		// When the product is associative, the cached transforms hold:
+		// When the policy uses the cache ('uses_cache()' is true), the cached transforms hold:
 		//    - for a transform that is not optimized: its object space transform
-		//    - for a critical transform: its transform relative to the last transform optimized in its chain
-		// When the product is not associative, the cached transforms hold:
+		//    - for a critical transform: its transform relative to the parent of the last transform optimized in its chain
+		// In the mesh rotation space, the cached transforms of the critical transforms use another form, see 'mesh_rotation_cache_t'.
+		// When the policy uses the transform chains, the cached transforms hold:
 		//    - for a transform that is not optimized: its object space transform
 		//    - for a transform that is optimized: its local space transform
 		// See 'find_optimal_bit_rates_v2' for details.
 		//////////////////////////////////////////////////////////////////////////
+
+		//////////////////////////////////////////////////////////////////////////
+		// The cache of the mesh rotation space, for VQ and VQS transforms.
+		//
+		// In the mesh rotation space, the rotation of a transform is its object rotation. When the rotation of a
+		// transform X changes, its children move but they do not turn. The subtree of X is not rigid with respect
+		// to X, thus the transform of a descendant relative to X changes with the rotation of X. We cannot cache
+		// relative transforms as in local space.
+		//
+		// The search optimizes the leaves first. When it optimizes X, each descendant D of X already has its final
+		// value. Let A be the child of X on the chain from X to D. With VQS transforms (a uniform scale), the
+		// mesh rotation product gives the object transform of D from the object transform of X:
+		//    D.rotation    = q_D
+		//    D.translation = X.translation + X.scale * (rotate(t_A, X.rotation) + K_D)
+		//    D.scale       = X.scale * s_D
+		// where t_A is the local translation of A, q_D is the rotation of D, and K_D and s_D use only the transforms
+		// below A. When D is A, K_D is zero and s_D is the scale of A. VQ transforms use a scale of 1.0.
+		//
+		// The cached transform of a critical transform D holds:
+		//    - when D is the last transform optimized in its chain (D is A): its local transform (q_A, t_A, s_A)
+		//    - otherwise: q_D, K_D in the translation, and s_D in the scale
+		// When the search selects the bit rate of X, it adds X into the cached transform of each descendant D,
+		// from the local transform of X (q_X, t_X, s_X):
+		//    K_D' = s_X * (rotate(t_A, q_X) + K_D)
+		//    s_D' = s_X * s_D
+		// Then the cached transform of X holds its local transform: X is the new A of its descendants.
+		// The search measures each transform in constant time, as in local space.
+		// VQV transforms need a 3x3 matrix for K_D, and the shear of VQM transforms turns with the rotations:
+		// they use the transform chains.
+		//////////////////////////////////////////////////////////////////////////
+		template<class transform_math_t>
+		struct mesh_rotation_cache_t
+		{
+			using transform_type = typename transform_math_t::transform_type;
+
+			static constexpr bool is_supported() { return false; }
+
+			static transform_type RTM_SIMD_CALL measure(const transform_type& transform_object, const transform_type& chain_child, const transform_type& measured, bool is_chain_child)
+			{
+				(void)chain_child;
+				(void)measured;
+				(void)is_chain_child;
+				ACL_ASSERT(false, "The transform math does not support the mesh rotation cache");
+				return transform_object;
+			}
+
+			static transform_type RTM_SIMD_CALL update(const transform_type& transform_local, const transform_type& chain_child, const transform_type& measured, bool is_chain_child)
+			{
+				(void)transform_local;
+				(void)chain_child;
+				(void)is_chain_child;
+				ACL_ASSERT(false, "The transform math does not support the mesh rotation cache");
+				return measured;
+			}
+		};
+
+		//////////////////////////////////////////////////////////////////////////
+		// The cache of the mesh rotation space for VQ transforms: we do not use the scale
+		template<>
+		struct mesh_rotation_cache_t<vq_transform_math>
+		{
+			static constexpr bool is_supported() { return true; }
+
+			// Returns rotate(t_A, rotation) + K_D
+			static rtm::vector4f RTM_SIMD_CALL get_offset(rtm::quatf_arg0 rotation, const rtm::vqvf& chain_child, const rtm::vqvf& measured, bool is_chain_child)
+			{
+				const rtm::vector4f chain_child_offset = rtm::quat_mul_vector3(chain_child.translation, rotation);
+				return is_chain_child ? chain_child_offset : rtm::vector_add(chain_child_offset, measured.translation);
+			}
+
+			// Returns the object transform of the measured transform from the object transform of the transform being optimized
+			static rtm::vqvf RTM_SIMD_CALL measure(const rtm::vqvf& transform_object, const rtm::vqvf& chain_child, const rtm::vqvf& measured, bool is_chain_child)
+			{
+				const rtm::vector4f offset = get_offset(transform_object.rotation, chain_child, measured, is_chain_child);
+				return rtm::vqv_set(measured.rotation, rtm::vector_add(transform_object.translation, offset), rtm::vector_set(1.0F));
+			}
+
+			// Returns the new cached transform of the measured transform from the local transform of the transform being optimized
+			static rtm::vqvf RTM_SIMD_CALL update(const rtm::vqvf& transform_local, const rtm::vqvf& chain_child, const rtm::vqvf& measured, bool is_chain_child)
+			{
+				const rtm::vector4f offset = get_offset(transform_local.rotation, chain_child, measured, is_chain_child);
+				return rtm::vqv_set(measured.rotation, offset, rtm::vector_set(1.0F));
+			}
+		};
+
+		//////////////////////////////////////////////////////////////////////////
+		// The cache of the mesh rotation space for VQS transforms: the W component holds the uniform scale
+		template<>
+		struct mesh_rotation_cache_t<vqs_transform_math>
+		{
+			static constexpr bool is_supported() { return true; }
+
+			// Returns rotate(t_A, rotation) + K_D with s_D in the W component
+			static rtm::vector4f RTM_SIMD_CALL get_offset(rtm::quatf_arg0 rotation, const rtm::vqsf& chain_child, const rtm::vqsf& measured, bool is_chain_child)
+			{
+				const rtm::vector4f chain_child_offset = rtm::quat_mul_vector3(chain_child.translation_scale, rotation);
+				const rtm::vector4f offset = is_chain_child ? chain_child_offset : rtm::vector_add(chain_child_offset, measured.translation_scale);
+				return rtm::vector_mix<rtm::mix4::x, rtm::mix4::y, rtm::mix4::z, rtm::mix4::d>(offset, measured.translation_scale);
+			}
+
+			// Returns the object transform of the measured transform from the object transform of the transform being optimized
+			static rtm::vqsf RTM_SIMD_CALL measure(const rtm::vqsf& transform_object, const rtm::vqsf& chain_child, const rtm::vqsf& measured, bool is_chain_child)
+			{
+				const rtm::vector4f scale = rtm::vector_dup_w(transform_object.translation_scale);
+				const rtm::vector4f offset = get_offset(transform_object.rotation, chain_child, measured, is_chain_child);
+
+				// The translation is X.translation + X.scale * offset, the scale is X.scale * s_D
+				const rtm::vector4f translation = rtm::vector_mul_add(offset, scale, transform_object.translation_scale);
+				const rtm::vector4f scale_w = rtm::vector_mul(offset, scale);
+				return rtm::vqsf{ measured.rotation, rtm::vector_mix<rtm::mix4::x, rtm::mix4::y, rtm::mix4::z, rtm::mix4::d>(translation, scale_w) };
+			}
+
+			// Returns the new cached transform of the measured transform from the local transform of the transform being optimized
+			static rtm::vqsf RTM_SIMD_CALL update(const rtm::vqsf& transform_local, const rtm::vqsf& chain_child, const rtm::vqsf& measured, bool is_chain_child)
+			{
+				const rtm::vector4f scale = rtm::vector_dup_w(transform_local.translation_scale);
+				const rtm::vector4f offset = get_offset(transform_local.rotation, chain_child, measured, is_chain_child);
+				return rtm::vqsf{ measured.rotation, rtm::vector_mul(offset, scale) };
+			}
+		};
 
 		//////////////////////////////////////////////////////////////////////////
 		// The precise transform metric, for VQ and VQS transforms
@@ -210,7 +333,7 @@ namespace acl
 			using error_args_type = typename metric_t::error_args_type;
 
 			// In mesh rotation space, the policy composes the transforms with the mesh rotation product
-			// The product of a child depends on the rotation of its parent: we cannot cache relative transforms
+			// VQ and VQS transforms use the mesh rotation cache, the other types use the transform chains
 			explicit v2_static_policy(const metric_t& metric, bool is_mesh_rotation = false)
 				: m_metric(metric)
 				, m_is_mesh_rotation(is_mesh_rotation)
@@ -221,7 +344,12 @@ namespace acl
 			void init_error_args(error_args_type& args, float shell_distance) const { m_metric.init_error_args(args, shell_distance); }
 
 			static constexpr size_t get_transform_size() { return sizeof(transform_type); }
-			bool is_associative() const { return !m_is_mesh_rotation && transform_math_t::is_associative(); }
+
+			// Returns true when the search uses the cached transforms, false when it uses the transform chains
+			bool uses_cache() const { return m_is_mesh_rotation ? mesh_rotation_cache_t<transform_math_t>::is_supported() : transform_math_t::is_associative(); }
+
+			// Returns true when 'measure_cached' and 'update_cached' use the cached transform of the chain child
+			bool needs_chain_child() const { return m_is_mesh_rotation && mesh_rotation_cache_t<transform_math_t>::is_supported(); }
 			static constexpr bool needs_conversion() { return !std::is_same<transform_type, rtm::vqvf>::value; }
 
 			// The output can be the input when the transform type is rtm::vqvf
@@ -251,16 +379,31 @@ namespace acl
 
 			// result = measured_to_transform * transform_being_optimized * parent_transform_to_root
 			// A null 'parent_transform_to_root' or 'measured_to_transform' is the identity
+			// In the mesh rotation space, 'chain_child' is the cached transform of the child of the transform being optimized
+			// on the chain to the measured transform, see 'mesh_rotation_cache_t'. It is null when 'measured_to_transform' is null.
 			rtm::scalarf RTM_SIMD_CALL measure_cached(
 				const error_args_type& args, const rtm::vqvf& local_transform_vqv, uint32_t transform_index, uint32_t sample_index,
-				const void* parent_transform_to_root, const void* measured_to_transform, const void* measured_to_root_raw) const
+				const void* parent_transform_to_root, const void* measured_to_transform, const void* chain_child, const void* measured_to_root_raw) const
 			{
 				(void)transform_index;
 				(void)sample_index;
-				ACL_ASSERT(!m_is_mesh_rotation, "The mesh rotation space uses the transform chains");
 				const transform_type local_transform = transform_math_t::from_vqv(local_transform_vqv);
 
 				const transform_type parent_transform_to_root_ = parent_transform_to_root != nullptr ? *static_cast<const transform_type*>(parent_transform_to_root) : transform_math_t::identity();
+
+				if (m_is_mesh_rotation)
+				{
+					const transform_type transform_to_root = transform_math_t::mul_mesh_rotation(local_transform, parent_transform_to_root_);
+					if (measured_to_transform == nullptr)
+						return m_metric.calculate_error_squared(args, *static_cast<const transform_type*>(measured_to_root_raw), transform_to_root);
+
+					ACL_ASSERT(chain_child != nullptr, "The mesh rotation cache needs the chain child");
+					const transform_type measured_to_root = mesh_rotation_cache_t<transform_math_t>::measure(
+						transform_to_root, *static_cast<const transform_type*>(chain_child), *static_cast<const transform_type*>(measured_to_transform), measured_to_transform == chain_child);
+
+					return m_metric.calculate_error_squared(args, *static_cast<const transform_type*>(measured_to_root_raw), measured_to_root);
+				}
+
 				const transform_type transform_to_root = transform_math_t::mul(local_transform, parent_transform_to_root_);
 
 				const transform_type measured_to_transform_ = measured_to_transform != nullptr ? *static_cast<const transform_type*>(measured_to_transform) : transform_math_t::identity();
@@ -293,13 +436,29 @@ namespace acl
 			}
 
 			// measured_to_transform = measured_to_transform * transform_being_optimized
-			void update_cached(const rtm::vqvf& local_transform_vqv, uint32_t transform_index, uint32_t sample_index, void* measured_to_transform, bool is_measured_transform_optimized) const
+			// In the mesh rotation space, see 'mesh_rotation_cache_t' and 'measure_cached'
+			void update_cached(const rtm::vqvf& local_transform_vqv, uint32_t transform_index, uint32_t sample_index, void* measured_to_transform, const void* chain_child, bool is_measured_transform_optimized) const
 			{
 				(void)transform_index;
 				(void)sample_index;
-				ACL_ASSERT(!m_is_mesh_rotation, "The mesh rotation space uses the transform chains");
 				transform_type& measured_to_transform_ = *static_cast<transform_type*>(measured_to_transform);
 				const transform_type local_transform = transform_math_t::from_vqv(local_transform_vqv);
+
+				if (m_is_mesh_rotation)
+				{
+					if (is_measured_transform_optimized)
+					{
+						measured_to_transform_ = local_transform;
+					}
+					else
+					{
+						ACL_ASSERT(chain_child != nullptr, "The mesh rotation cache needs the chain child");
+						measured_to_transform_ = mesh_rotation_cache_t<transform_math_t>::update(
+							local_transform, *static_cast<const transform_type*>(chain_child), measured_to_transform_, measured_to_transform == chain_child);
+					}
+
+					return;
+				}
 
 				const transform_type old_measured_to_transform = is_measured_transform_optimized ? transform_math_t::identity() : measured_to_transform_;
 				measured_to_transform_ = transform_math_t::mul(old_measured_to_transform, local_transform);
@@ -408,13 +567,14 @@ namespace acl
 
 			// In mesh rotation space, the policy composes the transforms with the mesh rotation product
 			// The transform adapter must be a built-in 'vqf', 'vqsf', 'vqvf', or 'vqmf' type, the metric can be custom
+			// The 'vqf' and 'vqsf' types use the mesh rotation cache, the other types use the transform chains
 			v2_adapter_policy(const itransform_adapter& adapter, const itransform_metric& metric, const v2_adapter_policy_scratch& scratch, bool is_mesh_rotation = false)
 				: m_adapter(adapter)
 				, m_metric(metric)
 				, m_transform_size(adapter.get_transform_size())
 				, m_type(adapter.get_type())
 				, m_is_mesh_rotation(is_mesh_rotation)
-				, m_is_associative(!is_mesh_rotation && adapter.is_associative())
+				, m_uses_cache(is_mesh_rotation ? (m_type == transform_runtime_type_t::vqf || m_type == transform_runtime_type_t::vqsf) : adapter.is_associative())
 				, m_needs_conversion(adapter.needs_conversion())
 				, m_num_transforms(scratch.num_transforms)
 				, m_local_transform(scratch.transforms)
@@ -441,7 +601,8 @@ namespace acl
 			}
 
 			size_t get_transform_size() const { return m_transform_size; }
-			bool is_associative() const { return m_is_associative; }
+			bool uses_cache() const { return m_uses_cache; }
+			bool needs_chain_child() const { return m_is_mesh_rotation && m_uses_cache; }
 			bool needs_conversion() const { return m_needs_conversion; }
 
 			// The output can be the input when the transform type is rtm::vqvf
@@ -486,12 +647,28 @@ namespace acl
 
 			rtm::scalarf RTM_SIMD_CALL measure_cached(
 				const error_args_type& args, const rtm::vqvf& local_transform_vqv, uint32_t transform_index, uint32_t sample_index,
-				const void* parent_transform_to_root, const void* measured_to_transform, const void* measured_to_root_raw) const
+				const void* parent_transform_to_root, const void* measured_to_transform, const void* chain_child, const void* measured_to_root_raw) const
 			{
-				ACL_ASSERT(!m_is_mesh_rotation, "The mesh rotation space uses the transform chains");
 				convert_lossy(local_transform_vqv, transform_index, sample_index, m_local_transform);
 
 				const void* parent_transform_to_root_ = parent_transform_to_root != nullptr ? parent_transform_to_root : m_identity;
+
+				if (m_is_mesh_rotation)
+				{
+					// 'mul_with_parent' uses 'm_transform_to_root' as scratch memory
+					mul_with_parent(m_local_transform, parent_transform_to_root_, m_measured_to_root);
+					if (measured_to_transform != nullptr)
+					{
+						ACL_ASSERT(chain_child != nullptr, "The mesh rotation cache needs the chain child");
+						if (m_type == transform_runtime_type_t::vqsf)
+							measure_mesh_rotation_cached<vqs_transform_math>(chain_child, measured_to_transform);
+						else
+							measure_mesh_rotation_cached<vq_transform_math>(chain_child, measured_to_transform);
+					}
+
+					return calculate_error_squared(args, measured_to_root_raw, m_measured_to_root);
+				}
+
 				m_adapter.mul(m_local_transform, parent_transform_to_root_, m_transform_to_root);
 
 				const void* measured_to_transform_ = measured_to_transform != nullptr ? measured_to_transform : m_identity;
@@ -520,10 +697,25 @@ namespace acl
 				return calculate_error_squared(args, measured_to_root_raw, m_measured_to_root);
 			}
 
-			void update_cached(const rtm::vqvf& local_transform_vqv, uint32_t transform_index, uint32_t sample_index, void* measured_to_transform, bool is_measured_transform_optimized) const
+			void update_cached(const rtm::vqvf& local_transform_vqv, uint32_t transform_index, uint32_t sample_index, void* measured_to_transform, const void* chain_child, bool is_measured_transform_optimized) const
 			{
-				ACL_ASSERT(!m_is_mesh_rotation, "The mesh rotation space uses the transform chains");
+				if (m_is_mesh_rotation && is_measured_transform_optimized)
+				{
+					convert_lossy(local_transform_vqv, transform_index, sample_index, measured_to_transform);
+					return;
+				}
+
 				convert_lossy(local_transform_vqv, transform_index, sample_index, m_local_transform);
+
+				if (m_is_mesh_rotation)
+				{
+					ACL_ASSERT(chain_child != nullptr, "The mesh rotation cache needs the chain child");
+					if (m_type == transform_runtime_type_t::vqsf)
+						update_mesh_rotation_cached<vqs_transform_math>(chain_child, measured_to_transform);
+					else
+						update_mesh_rotation_cached<vq_transform_math>(chain_child, measured_to_transform);
+					return;
+				}
 
 				// The output of 'mul' can be one of its inputs
 				const void* old_measured_to_transform = is_measured_transform_optimized ? m_identity : measured_to_transform;
@@ -566,6 +758,28 @@ namespace acl
 				static_cast<transform_type*>(out_object_transform)->rotation = rotation;
 			}
 
+			// Writes the object transform of the measured transform in 'm_measured_to_root', see 'mesh_rotation_cache_t'
+			// 'm_measured_to_root' holds the object transform of the transform being optimized
+			template<class transform_math_t>
+			void measure_mesh_rotation_cached(const void* chain_child, const void* measured) const
+			{
+				using transform_type = typename transform_math_t::transform_type;
+				transform_type& measured_to_root = *reinterpret_cast<transform_type*>(m_measured_to_root);
+				measured_to_root = mesh_rotation_cache_t<transform_math_t>::measure(
+					measured_to_root, *static_cast<const transform_type*>(chain_child), *static_cast<const transform_type*>(measured), measured == chain_child);
+			}
+
+			// Adds the transform being optimized into the cached transform of the measured transform, see 'mesh_rotation_cache_t'
+			// 'm_local_transform' holds the local transform of the transform being optimized
+			template<class transform_math_t>
+			void update_mesh_rotation_cached(const void* chain_child, void* measured) const
+			{
+				using transform_type = typename transform_math_t::transform_type;
+				transform_type& measured_ = *static_cast<transform_type*>(measured);
+				measured_ = mesh_rotation_cache_t<transform_math_t>::update(
+					*reinterpret_cast<const transform_type*>(m_local_transform), *static_cast<const transform_type*>(chain_child), measured_, measured == chain_child);
+			}
+
 			// Converts one lossy transform
 			// We place it in a full pose: the adapter reads and writes the transform at its index
 			void convert_lossy(const rtm::vqvf& transform, uint32_t transform_index, uint32_t sample_index, void* out_transform) const
@@ -604,7 +818,7 @@ namespace acl
 			size_t m_transform_size;
 			transform_runtime_type_t m_type;
 			bool m_is_mesh_rotation;
-			bool m_is_associative;
+			bool m_uses_cache;
 			bool m_needs_conversion;
 			uint32_t m_num_transforms;
 

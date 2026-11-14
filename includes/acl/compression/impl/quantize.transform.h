@@ -148,6 +148,7 @@ namespace acl
 			uint8_t* scratch_pose_runtime = nullptr;				// 1 per transform, for v2_adapter_policy
 			size_t runtime_transform_size = 0;						// The size of a transform in the runtime buffers above
 			uint32_t* critical_transform_indices = nullptr;			// 1 per transform
+			uint32_t* critical_chain_child_indices = nullptr;		// 1 per transform, for the mesh rotation cache
 
 			uint32_t* transform_chain_indices = nullptr;			// max_num_transform_chains * max_chain_length
 			uint32_t** transform_chains = nullptr;					// max_num_transform_chains
@@ -238,6 +239,7 @@ namespace acl
 				deallocate_type_array(allocator, cached_transforms_lossy, num_bones * segmenting_settings.max_num_samples);
 				deallocate_runtime_buffers();
 				deallocate_type_array(allocator, critical_transform_indices, num_bones);
+				deallocate_type_array(allocator, critical_chain_child_indices, num_bones);
 				deallocate_type_array(allocator, transform_chain_indices, max_num_transform_chains * max_chain_length);
 				deallocate_type_array(allocator, transform_chains, max_num_transform_chains);
 				deallocate_type_array(allocator, transform_chain_counts, max_num_transform_chains);
@@ -299,6 +301,7 @@ namespace acl
 				cached_transforms_lossy = allocate_type_array<rtm::vqvf>(allocator, num_bones * segmenting_settings.max_num_samples);
 
 				critical_transform_indices = allocate_type_array<uint32_t>(allocator, num_bones);
+				critical_chain_child_indices = allocate_type_array<uint32_t>(allocator, num_bones);
 			}
 
 			// Allocates the buffers for a runtime transform type that is not rtm::vqvf
@@ -1025,14 +1028,35 @@ namespace acl
 		}
 #endif
 
+		// Returns the child of an ancestor transform on the chain to one of its descendants
+		// Returns k_invalid_track_index when the descendant is the ancestor
+		inline uint32_t get_chain_child_index(const clip_topology_t& topology, uint32_t ancestor_transform_index, uint32_t descendant_transform_index)
+		{
+			if (descendant_transform_index == ancestor_transform_index)
+				return k_invalid_track_index;
+
+			uint32_t chain_transform_index = descendant_transform_index;
+			uint32_t parent_transform_index = topology.transforms[chain_transform_index].parent_index;
+			while (parent_transform_index != ancestor_transform_index && parent_transform_index != k_invalid_track_index)
+			{
+				chain_transform_index = parent_transform_index;
+				parent_transform_index = topology.transforms[chain_transform_index].parent_index;
+			}
+
+			ACL_ASSERT(parent_transform_index == ancestor_transform_index, "The transform is not a descendant of the ancestor transform");
+			return chain_transform_index;
+		}
+
 		// For algorithm from ACL 2.2 and later
 		// Measures the object space error of a critical transform when we change the bit rate of the transform being optimized
-		// With an associative product, we use the cached transforms: see 'find_optimal_bit_rates_v2'
-		// Without, we multiply the transforms of the chain: from the critical transform up to the transform being optimized
+		// When the policy uses the cache, we use the cached transforms: see 'find_optimal_bit_rates_v2'
+		// Otherwise, we multiply the transforms of the chain: from the critical transform up to the transform being optimized
+		// 'chain_child_index' is the child of the transform being optimized on the chain to the critical transform,
+		// or k_invalid_track_index when the policy does not need it, see 'mesh_rotation_cache_t'
 		template<class policy_t>
 		inline float calculate_max_error_at_bit_rate_object_v2(
 			quantization_context& context, const policy_t& policy,
-			uint32_t transform_index_being_optimized, uint32_t transform_index_to_measure,
+			uint32_t transform_index_being_optimized, uint32_t transform_index_to_measure, uint32_t chain_child_index,
 			const uint32_t* transform_chain_indices, uint32_t transform_chain_length,
 			const uint8_t* object_transforms_raw,
 			const uint8_t* cached_transforms_lossy,
@@ -1045,11 +1069,11 @@ namespace acl
 			const uint32_t num_samples = context.num_samples;
 			const uint32_t parent_transform_index = context.topology->transforms[transform_index_being_optimized].parent_index;
 			const float shell_distance = context.metadata[transform_index_to_measure].shell_distance;
-			const bool is_associative = policy.is_associative();
+			const bool uses_cache = policy.uses_cache();
 			const size_t transform_size = policy.get_transform_size();
 			const size_t pose_size = transform_size * num_transforms;
 
-			ACL_ASSERT(is_associative || transform_chain_indices[transform_chain_length - 1] == transform_index_being_optimized, "Last chain transform index should be the transform being optimized");
+			ACL_ASSERT(uses_cache || transform_chain_indices[transform_chain_length - 1] == transform_index_being_optimized, "Last chain transform index should be the transform being optimized");
 
 			typename policy_t::error_args_type error_args;
 			policy.init_error_args(error_args, shell_distance);
@@ -1083,13 +1107,17 @@ namespace acl
 					parent_transform_to_root_lossy = cached_pose_lossy + (parent_transform_index * transform_size);
 
 				rtm::scalarf error_sq;
-				if (is_associative)
+				if (uses_cache)
 				{
 					const void* measured_to_transform_lossy = nullptr;	// The identity
 					if (transform_index_being_optimized != transform_index_to_measure)
 						measured_to_transform_lossy = cached_pose_lossy + (transform_index_to_measure * transform_size);
 
-					error_sq = policy.measure_cached(error_args, local_transform_lossy, transform_index_being_optimized, clip_sample_index, parent_transform_to_root_lossy, measured_to_transform_lossy, measured_to_root_raw);
+					const void* chain_child_lossy = nullptr;
+					if (chain_child_index != k_invalid_track_index)
+						chain_child_lossy = cached_pose_lossy + (chain_child_index * transform_size);
+
+					error_sq = policy.measure_cached(error_args, local_transform_lossy, transform_index_being_optimized, clip_sample_index, parent_transform_to_root_lossy, measured_to_transform_lossy, chain_child_lossy, measured_to_root_raw);
 				}
 				else
 				{
@@ -1109,20 +1137,22 @@ namespace acl
 
 		// For algorithm from ACL 2.2 and later
 		// Updates the cached transforms after we select the bit rate of the transform being optimized
-		// With an associative product, we combine the transform being optimized with the cached transform of each critical transform
-		// Without, the cached transform of the transform being optimized holds its local space transform
+		// When the policy uses the cache, we combine the transform being optimized with the cached transform of each critical transform
+		// Otherwise, the cached transform of the transform being optimized holds its local space transform
+		// 'critical_chain_child_indices' holds the chain child of each critical transform when the policy needs it, see 'mesh_rotation_cache_t'
 		template<class policy_t>
 		inline void update_cached_transforms_v2(
 			quantization_context& context, const policy_t& policy,
 			uint32_t transform_index_being_optimized,
-			const uint32_t* critical_transform_indices, uint32_t num_critical_transforms,
+			const uint32_t* critical_transform_indices, const uint32_t* critical_chain_child_indices, uint32_t num_critical_transforms,
 			uint8_t* cached_transforms_lossy)
 		{
 			const bool has_additive_base = context.has_additive_base;
 			const float sample_rate = context.sample_rate;
 			const float clip_duration = context.clip_duration;
 			const uint32_t num_transforms = context.num_bones;
-			const bool is_associative = policy.is_associative();
+			const bool uses_cache = policy.uses_cache();
+			const bool needs_chain_child = policy.needs_chain_child();
 			const size_t transform_size = policy.get_transform_size();
 			const size_t pose_size = transform_size * num_transforms;
 
@@ -1145,16 +1175,41 @@ namespace acl
 				uint8_t* cached_pose_lossy = cached_transforms_lossy + (sample_index * pose_size);
 				const uint32_t clip_sample_index = context.segment_sample_start_index + sample_index;
 
-				if (is_associative)
+				if (needs_chain_child)
+				{
+					// The new cached transform of a critical transform uses the cached transform of its chain child
+					// We update the chain children last: the children of the transform being optimized, then the transform itself
+					for (uint32_t pass_index = 0; pass_index < 3; ++pass_index)
+					{
+						for (uint32_t critical_index = 0; critical_index < num_critical_transforms; ++critical_index)
+						{
+							const uint32_t critical_transform_index = critical_transform_indices[critical_index];
+							const uint32_t chain_child_index = critical_chain_child_indices[critical_index];
+
+							const bool is_transform_being_optimized = critical_transform_index == transform_index_being_optimized;
+							const bool is_chain_child = critical_transform_index == chain_child_index;
+							const uint32_t critical_pass_index = is_transform_being_optimized ? 2 : (is_chain_child ? 1 : 0);
+							if (critical_pass_index != pass_index)
+								continue;
+
+							const void* chain_child_lossy = nullptr;
+							if (chain_child_index != k_invalid_track_index)
+								chain_child_lossy = cached_pose_lossy + (chain_child_index * transform_size);
+
+							policy.update_cached(local_transform_lossy, transform_index_being_optimized, clip_sample_index, cached_pose_lossy + (critical_transform_index * transform_size), chain_child_lossy, is_transform_being_optimized);
+						}
+					}
+				}
+				else if (uses_cache)
 				{
 					// Our cached transforms contain the combined measured_to_transform from some parent transform in the chain up to
 					// the transform we measure (e.g. leaf)
 					for (const uint32_t critical_transform_index : make_iterator(critical_transform_indices, num_critical_transforms))
-						policy.update_cached(local_transform_lossy, transform_index_being_optimized, clip_sample_index, cached_pose_lossy + (critical_transform_index * transform_size), critical_transform_index == transform_index_being_optimized);
+						policy.update_cached(local_transform_lossy, transform_index_being_optimized, clip_sample_index, cached_pose_lossy + (critical_transform_index * transform_size), nullptr, critical_transform_index == transform_index_being_optimized);
 				}
 				else
 				{
-					// Without associativity, our cached transforms after optimization contain the local space transform
+					// Without the cache, our cached transforms after optimization contain the local space transform
 					policy.store_local(local_transform_lossy, transform_index_being_optimized, clip_sample_index, cached_pose_lossy + (transform_index_being_optimized * transform_size));
 				}
 
@@ -2084,6 +2139,12 @@ namespace acl
 		// we take a slower path. Instead, the cached transforms will contain local space values once they
 		// have been optimized. We then multiply them one by one using transform chains as needed.
 		//
+		// In the mesh rotation space, the rotation of a parent moves its children but does not rotate them. The transform
+		// of a descendant relative to the transform being optimized changes with its rotation, thus the cache above does
+		// not apply. With VQ and VQS transforms, the cached transforms use another form that also measures each critical
+		// transform in constant time, see 'mesh_rotation_cache_t'. It needs the child of the transform being optimized on the
+		// chain to each critical transform. The other transform types use the transform chains.
+		//
 		// Each segment selects its transform adapter and its transform metric: a segment without 3D scale uses VQ
 		// transforms when the metric supports them. A policy holds the transform arithmetic and the metric, see
 		// 'bit_rate_policies.transform.h'. With the built-in transform adapters and metrics, the compiler knows the
@@ -2119,6 +2180,7 @@ namespace acl
 			const bool scale_supports_constant_tracks = context.segment->are_scales_normalized;
 
 			uint32_t* critical_transform_indices = context.critical_transform_indices;
+			uint32_t* critical_chain_child_indices = context.critical_chain_child_indices;
 
 			// When the runtime transform type is rtm::vqvf, we convert the poses in place
 			uint8_t* object_transforms_raw = reinterpret_cast<uint8_t*>(context.object_transforms_raw);
@@ -2145,8 +2207,9 @@ namespace acl
 			// Compute our dominant transforms
 			policy.compute_shell_distances(*context.segment, cached_transforms_lossy, context.shell_metadata_per_transform);
 
-			// Without associativity, we multiply the transform chains manually
-			const bool use_transform_chains = !policy.is_associative();
+			// Without the cache, we multiply the transform chains manually
+			const bool use_transform_chains = !policy.uses_cache();
+			const bool needs_chain_child = policy.needs_chain_child();
 			if (use_transform_chains)
 				context.initialize_v2_scale();
 
@@ -2200,7 +2263,14 @@ namespace acl
 				// Sort leaf first
 				std::reverse(critical_transform_indices, critical_transform_indices + num_critical_transforms);
 
-				// Without associativity, we need slower full chain processing
+				// Find the child of the transform being optimized on the chain to each critical transform
+				for (uint32_t critical_index = 0; critical_index < num_critical_transforms; ++critical_index)
+				{
+					const uint32_t critical_transform_index = critical_transform_indices[critical_index];
+					critical_chain_child_indices[critical_index] = needs_chain_child ? get_chain_child_index(*context.topology, transform_index, critical_transform_index) : k_invalid_track_index;
+				}
+
+				// Without the cache, we need slower full chain processing
 				if (use_transform_chains)
 				{
 					// Build our critical transform chains up to the transform we are optimizing
@@ -2244,7 +2314,7 @@ namespace acl
 #endif
 
 					// Update our cached transforms using our existing bit rate
-					update_cached_transforms_v2(context, policy, transform_index, critical_transform_indices, num_critical_transforms, cached_transforms_lossy);
+					update_cached_transforms_v2(context, policy, transform_index, critical_transform_indices, critical_chain_child_indices, num_critical_transforms, cached_transforms_lossy);
 
 					continue;	// Every track bit rate is constant/default, nothing else to do
 				}
@@ -2359,7 +2429,7 @@ namespace acl
 
 						const float critical_transform_error = calculate_max_error_at_bit_rate_object_v2(
 							context, policy,
-							transform_index, critical_transform_index,
+							transform_index, critical_transform_index, critical_chain_child_indices[critical_chain_index],
 							transform_chain, transform_chain_length,
 							object_transforms_raw,
 							cached_transforms_lossy,
@@ -2481,7 +2551,7 @@ namespace acl
 				context.bit_rate_per_bone[transform_index] = best_bit_rates;
 
 				// Update our cached transforms using our new bit rate
-				update_cached_transforms_v2(context, policy, transform_index, critical_transform_indices, num_critical_transforms, cached_transforms_lossy);
+				update_cached_transforms_v2(context, policy, transform_index, critical_transform_indices, critical_chain_child_indices, num_critical_transforms, cached_transforms_lossy);
 			}
 		}
 

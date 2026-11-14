@@ -30,6 +30,7 @@
 #include <acl/compression/track_error.h>
 #include <acl/compression/transform_space.h>
 #include <acl/compression/transform_error_metrics.h>
+#include <acl/compression/transform_metrics.h>
 #include <acl/core/additive_utils.h>
 #include <acl/core/ansi_allocator.h>
 #include <acl/core/track_writer.h>
@@ -38,10 +39,12 @@
 #include <rtm/quatf.h>
 #include <rtm/vector4f.h>
 #include <rtm/vqmf.h>
+#include <rtm/vqsf.h>
 #include <rtm/vqvf.h>
 
 #include <cstdint>
 #include <cstring>
+#include <utility>
 
 using namespace acl;
 
@@ -263,6 +266,27 @@ namespace
 
 			for (uint32_t transform_index = 0; transform_index < k_num_transforms; ++transform_index)
 				clip[transform_index][sample_index] = pose[transform_index];
+		}
+
+		return clip;
+	}
+
+	// Returns a copy of a clip with VQS tracks: the uniform scale is the X component of the scale
+	track_array_vqsf make_vqs_clip(iallocator& allocator, const track_array_vqvf& vqv_clip)
+	{
+		track_array_vqsf clip(allocator, k_num_transforms);
+		for (uint32_t transform_index = 0; transform_index < k_num_transforms; ++transform_index)
+		{
+			const track_vqvf& vqv_track = vqv_clip[transform_index];
+			track_vqsf vqs_track = track_vqsf::make_reserve(vqv_track.get_description(), allocator, k_num_samples, k_sample_rate);
+
+			for (uint32_t sample_index = 0; sample_index < k_num_samples; ++sample_index)
+			{
+				const rtm::vqvf& transform = vqv_track[sample_index];
+				vqs_track[sample_index] = rtm::vqs_set(transform.rotation, transform.translation, rtm::vector_get_x(transform.scale));
+			}
+
+			clip[transform_index] = std::move(vqs_track);
 		}
 
 		return clip;
@@ -761,25 +785,47 @@ TEST_CASE("compression in mesh rotation space", "[compression][transform_space]"
 		CHECK(matrix_tracks == nullptr);
 	}
 
-	// The VQM, VQV, and VQ runtime transform types support it
-	const transform_runtime_type_t types[] = { transform_runtime_type_t::vqmf, transform_runtime_type_t::vqvf, transform_runtime_type_t::vqf };
-	for (const transform_runtime_type_t type : types)
+	// The VQM, VQV, VQS, and VQ runtime transform types support it
+	// The VQ and VQS types use the mesh rotation cache, the VQM and VQV types use the transform chains
+	// A metric that is not built-in uses the virtual functions of the transform adapter
+	shell_transform_metric shell_metric;
+	itransform_metric* metrics[] = { nullptr, &shell_metric };
+
+	const track_array_vqsf vqs_clip = make_vqs_clip(allocator, clip);
+
+	const transform_runtime_type_t types[] = { transform_runtime_type_t::vqmf, transform_runtime_type_t::vqvf, transform_runtime_type_t::vqsf, transform_runtime_type_t::vqf };
+	for (itransform_metric* metric : metrics)
 	{
-		compression_settings type_settings = settings;
-		type_settings.transform_runtime_type = type;
+		for (const transform_runtime_type_t type : types)
+		{
+			compression_settings type_settings = settings;
+			type_settings.transform_runtime_type = type;
+			type_settings.transform_metric = metric;
 
-		output_stats stats;
-		compressed_tracks* type_tracks = nullptr;
-		REQUIRE(compress_track_list(allocator, clip, type_settings, transform_space, type_tracks, stats).empty());
-		REQUIRE(type_tracks != nullptr);
+			output_stats stats;
+			compressed_tracks* type_tracks = nullptr;
+			// The 'vqsf' runtime type needs VQS tracks
+			const track_array& type_clip = type == transform_runtime_type_t::vqsf ? static_cast<const track_array&>(vqs_clip) : static_cast<const track_array&>(clip);
+			REQUIRE(compress_track_list(allocator, type_clip, type_settings, transform_space, type_tracks, stats).empty());
+			REQUIRE(type_tracks != nullptr);
 
-		// VQ arithmetic does not use the scale: we compare with VQV and VQM arithmetic only
-		if (type == transform_runtime_type_t::vqvf)
-			CHECK(find_max_mesh_rotation_error(*type_tracks, mesh_clip, nullptr, additive_clip_format8::none) < 0.01F);
-		else if (type == transform_runtime_type_t::vqmf)
-			CHECK(find_max_mesh_rotation_error_vqm(*type_tracks, local_clip) < 0.01F);
+			{
+				decompression_context<debug_transform_decompression_settings> context;
+				REQUIRE(context.initialize(*type_tracks));
 
-		allocator.deallocate(type_tracks, type_tracks->get_size());
+				const track_error error = calculate_compression_error(allocator, type_clip, context, type_settings, transform_space);
+				CHECK(error.error >= 0.0F);
+				CHECK(error.error < 0.01F);
+			}
+
+			// VQ and VQS arithmetic do not use the non-uniform scale: we compare with VQV and VQM arithmetic only
+			if (type == transform_runtime_type_t::vqvf)
+				CHECK(find_max_mesh_rotation_error(*type_tracks, mesh_clip, nullptr, additive_clip_format8::none) < 0.01F);
+			else if (type == transform_runtime_type_t::vqmf)
+				CHECK(find_max_mesh_rotation_error_vqm(*type_tracks, local_clip) < 0.01F);
+
+			allocator.deallocate(type_tracks, type_tracks->get_size());
+		}
 	}
 }
 
