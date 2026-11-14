@@ -167,7 +167,7 @@ namespace acl
 			const bool is_looping = is_clip_looping(
 				context.allocator,
 				clip_adapter,
-				transform_track_array_adapter_t(context.settings.additive_base, additive_clip_format8::none),
+				context.get_space_context(),
 				*context.settings.error_metric);
 
 			if (is_looping)
@@ -181,14 +181,6 @@ namespace acl
 				else
 					pre_process_copy_first_sample_to_last(track_array_cast<track_array_vqvf>(track_list));
 			}
-		}
-
-		inline uint32_t pre_process_get_uniform_sample_key(const track_array& track_list, float sample_time)
-		{
-			return get_uniform_sample_key(
-				transform_track_array_adapter_t(track_list),
-				transform_segment_adapter_t(),
-				sample_time);
 		}
 
 		// Replaces a sub-track of a transform with a reference value
@@ -247,13 +239,12 @@ namespace acl
 			const itransform_error_metric& error_metric = *settings.error_metric;
 
 			const bool has_scale = true;	// Assume we have scale
-			const bool has_additive_base = settings.additive_format != additive_clip_format8::none;
+			const transform_space_context& space_context = context.get_space_context();
+			const bool has_additive_base = space_context.has_base();
 			const bool needs_conversion = error_metric.needs_conversion(has_scale);
 
 			// A VQ track has no scale, each of its samples uses this scale
-			// The additive base is a regular pose
 			const rtm::vector4f vq_scale = rtm::vector_set(get_additive_default_scale(settings.additive_format));
-			const rtm::vector4f vq_base_scale = rtm::vector_set(get_additive_default_scale(additive_clip_format8::none));
 
 			const uint32_t dirty_transform_indices[2] = { 0, 1 };
 			rtm::vqvf local_transforms[2];
@@ -281,10 +272,6 @@ namespace acl
 			const rtm::scalarf precision_sq = rtm::scalar_set(shell.precision * shell.precision);
 
 			const uint32_t num_samples = track_list.get_num_samples_per_track();
-			const float sample_rate = track_list.get_sample_rate();
-			const float duration = track_list.get_finite_duration();
-			const uint32_t num_base_samples = has_additive_base ? settings.additive_base->get_num_samples_per_track() : 0;
-			const float base_duration = has_additive_base ? settings.additive_base->get_finite_duration() : 0.0F;
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
@@ -296,17 +283,7 @@ namespace acl
 
 				if (has_additive_base)
 				{
-					// The sample time is calculated from the full clip duration to be consistent with decompression
-					const float sample_time = rtm::scalar_min(float(sample_index) / sample_rate, duration);
-
-					const float normalized_sample_time = num_base_samples > 1 ? (sample_time / duration) : 0.0F;
-					const float additive_sample_time = num_base_samples > 1 ? (normalized_sample_time * base_duration) : 0.0F;
-
-					// With uniform sample distributions, we do not interpolate.
-					const uint32_t base_sample_index = pre_process_get_uniform_sample_key(*settings.additive_base, additive_sample_time);
-
-					const track& base_track = (*settings.additive_base)[track_index];
-					const rtm::vqvf base_transform = get_transform_track_sample(base_track, base_sample_index, vq_base_scale);
+					const rtm::vqvf& base_transform = space_context.get_base_pose(sample_index)[track_index];
 
 					base_transforms[0] = base_transform;
 					base_transforms[1] = base_transform;

@@ -35,6 +35,7 @@
 #include "acl/compression/track_error.h"
 #include "acl/compression/impl/clip_context.h"
 #include "acl/compression/impl/compression_stats.h"
+#include "acl/compression/impl/transform_space_context.h"
 
 #include <sjson/writer.h>
 
@@ -131,7 +132,7 @@ namespace acl
 			writer["decomp_touched_cache_lines"] = segment.clip->decomp_touched_cache_lines + num_segment_header_cache_lines + num_animated_pose_cache_lines;
 		}
 
-		inline void write_exhaustive_segment_stats(iallocator& allocator, const segment_context& segment, const clip_context& raw_clip_context, const clip_context& additive_base_clip_context, const compression_settings& settings, const track_array& track_list, sjson::ObjectWriter& writer)
+		inline void write_exhaustive_segment_stats(iallocator& allocator, const segment_context& segment, const clip_context& raw_clip_context, const transform_space_context& space_context, const compression_settings& settings, const track_array& track_list, sjson::ObjectWriter& writer)
 		{
 			const uint32_t num_bones = raw_clip_context.num_bones;
 
@@ -146,7 +147,6 @@ namespace acl
 			const auto apply_additive_to_base_impl = std::mem_fn(has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
 
 			rtm::vqvf* raw_local_pose = allocate_type_array<rtm::vqvf>(allocator, num_bones);
-			rtm::vqvf* base_local_pose = allocate_type_array<rtm::vqvf>(allocator, num_bones);
 			rtm::vqvf* lossy_local_pose = allocate_type_array<rtm::vqvf>(allocator, num_bones);
 
 			// The error metric functions use their own transform type after the conversion
@@ -174,7 +174,7 @@ namespace acl
 			apply_additive_to_base_args_raw.dirty_transform_indices = self_transform_indices;
 			apply_additive_to_base_args_raw.num_dirty_transforms = num_bones;
 			apply_additive_to_base_args_raw.local_transforms = raw_local_pose;
-			apply_additive_to_base_args_raw.base_transforms = base_local_pose;
+			apply_additive_to_base_args_raw.base_transforms = nullptr;
 			apply_additive_to_base_args_raw.num_transforms = num_bones;
 
 			itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args_lossy = apply_additive_to_base_args_raw;
@@ -217,11 +217,11 @@ namespace acl
 					sample_streams(raw_clip_context.segments[0].bone_streams, num_bones, sample_time, raw_local_pose);
 					sample_streams(segment.bone_streams, num_bones, sample_time, lossy_local_pose);
 
-					if (raw_clip_context.has_additive_base)
+					if (space_context.has_base())
 					{
-						const float normalized_sample_time = additive_base_clip_context.num_samples > 1 ? (sample_time / ref_duration) : 0.0F;
-						const float additive_sample_time = additive_base_clip_context.num_samples > 1 ? (normalized_sample_time * additive_base_clip_context.duration) : 0.0F;
-						sample_streams(additive_base_clip_context.segments[0].bone_streams, num_bones, additive_sample_time, base_local_pose);
+						const rtm::vqvf* base_local_pose = space_context.get_base_pose(segment.clip_sample_offset + sample_index);
+						apply_additive_to_base_args_raw.base_transforms = base_local_pose;
+						apply_additive_to_base_args_lossy.base_transforms = base_local_pose;
 
 						apply_additive_to_base_impl(settings.error_metric, apply_additive_to_base_args_raw, raw_local_pose);
 						apply_additive_to_base_impl(settings.error_metric, apply_additive_to_base_args_lossy, lossy_local_pose);
@@ -273,7 +273,6 @@ namespace acl
 			writer["worst_keyframe"] = worst_bone_error.keyframe_index;
 
 			deallocate_type_array(allocator, raw_local_pose, num_bones);
-			deallocate_type_array(allocator, base_local_pose, num_bones);
 			deallocate_type_array(allocator, lossy_local_pose, num_bones);
 
 			deallocate_type_array(allocator, raw_local_pose_converted, metric_transform_size * num_bones);
@@ -449,7 +448,7 @@ namespace acl
 		inline void write_stats(iallocator& allocator, const track_array& track_list, const clip_context& clip,
 			const compressed_tracks& compressed_clip, const compression_settings& settings, const compression_segmenting_settings& segmenting_settings,
 			range_reduction_flags8 range_reduction, const clip_context& raw_clip,
-			const clip_context& additive_base_clip_context,
+			const transform_space_context& space_context,
 			const compression_stats_t& compression_stats,
 			output_stats& stats)
 		{
@@ -685,7 +684,7 @@ namespace acl
 								write_detailed_segment_stats(segment, segment_writer);
 
 							if (are_all_enum_flags_set(stats.logging, stat_logging::exhaustive))
-								write_exhaustive_segment_stats(allocator, segment, raw_clip, additive_base_clip_context, settings, track_list, segment_writer);
+								write_exhaustive_segment_stats(allocator, segment, raw_clip, space_context, settings, track_list, segment_writer);
 						});
 				}
 			};

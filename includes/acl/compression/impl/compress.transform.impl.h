@@ -51,6 +51,7 @@
 #include "acl/compression/impl/segment.transform.h"
 #include "acl/compression/impl/topology_metadata.h"
 #include "acl/compression/impl/transform_runtime_error_metric.h"
+#include "acl/compression/impl/transform_space_context.h"
 #include "acl/compression/impl/transform_track_utils.h"
 #include "acl/compression/impl/write_segment_data.h"
 #include "acl/compression/impl/write_stats.h"
@@ -247,6 +248,11 @@ namespace acl
 			if (is_additive && !initialize_clip_context(allocator, *additive_base_track_list, settings, additive_format, additive_base_clip_context, true))
 				return error_result("Some base samples are not finite");
 
+			// Sample the base one time, compression reads the base poses from the space context
+			transform_space_context space_context;
+			space_context.initialize(allocator, additive_format, transform_clip_context_adapter_t(additive_base_clip_context),
+				raw_clip_context.num_samples, raw_clip_context.sample_rate, raw_clip_context.duration);
+
 			if (settings.level == compression_level8::automatic)
 				settings.level = find_best_compression_level(lossy_clip_context);
 
@@ -264,13 +270,13 @@ namespace acl
 			rigid_shell_metadata_t* clip_shell_metadata = compute_clip_shell_distances(
 				allocator,
 				transform_clip_context_adapter_t(raw_clip_context),
-				transform_clip_context_adapter_t(additive_base_clip_context));
+				space_context);
 
 #if defined(ACL_IMPL_DEBUG_ENABLE_DOMINANT_DESCENDANTS)
 			compute_dominance_map(
 				allocator,
 				transform_clip_context_adapter_t(raw_clip_context),
-				transform_clip_context_adapter_t(additive_base_clip_context),
+				space_context,
 				*settings.error_metric,
 				clip_topology);
 #endif
@@ -285,7 +291,7 @@ namespace acl
 #endif
 
 			// Wrap instead of clamp if we loop
-			optimize_looping(lossy_clip_context, additive_base_clip_context, settings, compression_stats);
+			optimize_looping(lossy_clip_context, space_context, settings, compression_stats);
 
 			// Convert our rotations if we need to
 			convert_rotation_streams(allocator, lossy_clip_context, settings.rotation_format, compression_stats);
@@ -294,7 +300,7 @@ namespace acl
 			extract_clip_bone_ranges(allocator, lossy_clip_context, compression_stats);
 
 			// Compact and collapse the constant streams
-			compact_constant_streams(allocator, lossy_clip_context, additive_base_clip_context, track_list, settings, compression_stats);
+			compact_constant_streams(allocator, lossy_clip_context, space_context, track_list, settings, compression_stats);
 
 			// We now know whether the clip has scale
 			if (use_runtime_error_metric)
@@ -323,7 +329,7 @@ namespace acl
 			// Find how many bits we need per sub-track and quantize everything
 			// The bit rate algorithm v2 uses the transform adapters and the transform metrics of the runtime error metric directly
 			const transform_runtime_error_metric* quantization_runtime_error_metric = use_runtime_error_metric ? &runtime_error_metric : nullptr;
-			quantize_streams(allocator, lossy_clip_context, settings, segmenting_settings, raw_clip_context, additive_base_clip_context, quantization_runtime_error_metric, out_stats, compression_stats);
+			quantize_streams(allocator, lossy_clip_context, settings, segmenting_settings, raw_clip_context, space_context, quantization_runtime_error_metric, out_stats, compression_stats);
 
 			uint32_t num_output_bones = 0;
 			uint32_t* output_bone_mapping = create_output_track_mapping(allocator, track_list, num_output_bones);
@@ -652,7 +658,7 @@ namespace acl
 			compression_stats.total_elapsed_seconds = compression_time.stop().get_elapsed_seconds();
 
 			if (out_stats.logging != stat_logging::none)
-				write_stats(allocator, track_list, lossy_clip_context, *out_compressed_tracks, settings, segmenting_settings, range_reduction, raw_clip_context, additive_base_clip_context, compression_stats, out_stats);
+				write_stats(allocator, track_list, lossy_clip_context, *out_compressed_tracks, settings, segmenting_settings, range_reduction, raw_clip_context, space_context, compression_stats, out_stats);
 #endif
 
 			deallocate_type_array(allocator, output_bone_mapping, num_output_bones);

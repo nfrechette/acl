@@ -30,6 +30,7 @@
 #include "acl/compression/impl/rigid_shell_utils.h"
 #include "acl/compression/impl/topology_metadata.h"
 #include "acl/compression/impl/transform_clip_adapters.h"
+#include "acl/compression/impl/transform_space_context.h"
 
 #include <cstdint>
 
@@ -52,6 +53,8 @@ namespace acl
 			rigid_shell_metadata_t* shell_metadata = nullptr;
 			uint32_t* sorted_transforms_parent_first = nullptr;
 			clip_topology_t* topology = nullptr;
+			transform_space_context space_context;
+			bool is_space_context_initialized = false;
 
 			//////////////////////////////////////////////////////////////////////////
 
@@ -90,10 +93,31 @@ namespace acl
 					shell_metadata = compute_clip_shell_distances(
 						allocator,
 						clip_adapter,
-						transform_track_array_adapter_t(settings.additive_base, additive_clip_format8::none));
+						get_space_context());
 				}
 
 				return shell_metadata;
+			}
+
+			//////////////////////////////////////////////////////////////////////////
+			// Returns the space context of the track list: it holds the base poses.
+			// The pre-process actions do not change the number of samples, the sample rate, or the base.
+			const transform_space_context& get_space_context()
+			{
+				if (!is_space_context_initialized)
+				{
+					space_context.initialize(
+						allocator,
+						settings.additive_format,
+						transform_track_array_adapter_t(settings.additive_base, additive_clip_format8::none),
+						track_list.get_num_samples_per_track(),
+						track_list.get_sample_rate(),
+						track_list.get_finite_duration());
+
+					is_space_context_initialized = true;
+				}
+
+				return space_context;
 			}
 
 			const uint32_t* get_sorted_transforms_parent_first()
