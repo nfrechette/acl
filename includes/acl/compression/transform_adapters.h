@@ -36,6 +36,7 @@
 #include "acl/math/vqvf.h"
 
 #include <rtm/matrix3x4f.h>
+#include <rtm/quatf.h>
 #include <rtm/vqmf.h>
 #include <rtm/vqsf.h>
 #include <rtm/vqvf.h>
@@ -272,7 +273,26 @@ namespace acl
 		//    - 'transform_type': the type that holds a transform
 		//    - 'get_type()' and 'is_associative()'
 		//    - 'identity()', 'from_vqv(..)', 'mul(..)', and 'mul_point3_x4(..)'
+		//    - 'supports_mesh_rotation()' and 'mul_mesh_rotation(..)', see 'transform_space_t::mesh_rotation'
 		//////////////////////////////////////////////////////////////////////////
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the object transform of a transform in the mesh rotation space.
+		// The rotation of 'transform' is in object space, its translation and scale are relative to its parent.
+		// We remove the parent object rotation from the rotation, then we multiply as in local space.
+		// The rotation of the result is the rotation of 'transform': the product of VQ, VQS, VQV, and VQM transforms
+		// multiplies the rotations as quaternions, thus the parent rotation cancels out. We copy it to remove the
+		// floating point noise. The scale and the shear do not change the rotation.
+		template<class transform_math_t>
+		inline typename transform_math_t::transform_type mul_mesh_rotation_impl(const typename transform_math_t::transform_type& transform, const typename transform_math_t::transform_type& parent_object_transform)
+		{
+			typename transform_math_t::transform_type local_transform = transform;
+			local_transform.rotation = rtm::quat_normalize(rtm::quat_mul(transform.rotation, rtm::quat_conjugate(parent_object_transform.rotation)));
+
+			typename transform_math_t::transform_type result = transform_math_t::mul(local_transform, parent_object_transform);
+			result.rotation = transform.rotation;
+			return result;
+		}
 
 		//////////////////////////////////////////////////////////////////////////
 		// VQ math: we use rtm::vqvf and we do not use the scale.
@@ -286,6 +306,9 @@ namespace acl
 			static rtm::vqvf identity() { return rtm::vqv_identity(); }
 			static rtm::vqvf from_vqv(const rtm::vqvf& transform) { return transform; }
 			static rtm::vqvf mul(const rtm::vqvf& lhs, const rtm::vqvf& rhs) { return rtm::vqv_normalize(rtm::vqv_mul_no_scale(lhs, rhs)); }
+
+			static constexpr bool supports_mesh_rotation() { return true; }
+			static rtm::vqvf mul_mesh_rotation(const rtm::vqvf& transform, const rtm::vqvf& parent_object_transform) { return mul_mesh_rotation_impl<vq_transform_math>(transform, parent_object_transform); }
 
 			static RTM_FORCE_INLINE void RTM_SIMD_CALL mul_point3_x4(
 				rtm::vector4f_arg0 point_xxxx, rtm::vector4f_arg1 point_yyyy, rtm::vector4f_arg2 point_zzzz,
@@ -313,6 +336,9 @@ namespace acl
 			}
 			static rtm::vqsf mul(const rtm::vqsf& lhs, const rtm::vqsf& rhs) { return rtm::vqs_normalize(rtm::vqs_mul(lhs, rhs)); }
 
+			static constexpr bool supports_mesh_rotation() { return true; }
+			static rtm::vqsf mul_mesh_rotation(const rtm::vqsf& transform, const rtm::vqsf& parent_object_transform) { return mul_mesh_rotation_impl<vqs_transform_math>(transform, parent_object_transform); }
+
 			static RTM_FORCE_INLINE void RTM_SIMD_CALL mul_point3_x4(
 				rtm::vector4f_arg0 point_xxxx, rtm::vector4f_arg1 point_yyyy, rtm::vector4f_arg2 point_zzzz,
 				const rtm::vqsf& transform,
@@ -334,6 +360,9 @@ namespace acl
 			static rtm::vqvf identity() { return rtm::vqv_identity(); }
 			static rtm::vqvf from_vqv(const rtm::vqvf& transform) { return transform; }
 			static rtm::vqvf mul(const rtm::vqvf& lhs, const rtm::vqvf& rhs) { return rtm::vqv_normalize(rtm::vqv_mul(lhs, rhs)); }
+
+			static constexpr bool supports_mesh_rotation() { return true; }
+			static rtm::vqvf mul_mesh_rotation(const rtm::vqvf& transform, const rtm::vqvf& parent_object_transform) { return mul_mesh_rotation_impl<vqv_transform_math>(transform, parent_object_transform); }
 
 			static RTM_FORCE_INLINE void RTM_SIMD_CALL mul_point3_x4(
 				rtm::vector4f_arg0 point_xxxx, rtm::vector4f_arg1 point_yyyy, rtm::vector4f_arg2 point_zzzz,
@@ -357,6 +386,10 @@ namespace acl
 			static rtm::vqmf from_vqv(const rtm::vqvf& transform) { return rtm::vqm_set(transform.rotation, transform.translation, transform.scale); }
 			static rtm::vqmf mul(const rtm::vqmf& lhs, const rtm::vqmf& rhs) { return rtm::vqm_normalize(rtm::vqm_mul(lhs, rhs)); }
 
+			// The rotation of the product is the product of the rotations, the scale/shear matrix holds the shear
+			static constexpr bool supports_mesh_rotation() { return true; }
+			static rtm::vqmf mul_mesh_rotation(const rtm::vqmf& transform, const rtm::vqmf& parent_object_transform) { return mul_mesh_rotation_impl<vqm_transform_math>(transform, parent_object_transform); }
+
 			static RTM_FORCE_INLINE void RTM_SIMD_CALL mul_point3_x4(
 				rtm::vector4f_arg0 point_xxxx, rtm::vector4f_arg1 point_yyyy, rtm::vector4f_arg2 point_zzzz,
 				const rtm::vqmf& transform,
@@ -378,6 +411,14 @@ namespace acl
 			static rtm::matrix3x4f identity() { return rtm::matrix_identity(); }
 			static rtm::matrix3x4f from_vqv(const rtm::vqvf& transform) { return rtm::matrix_from_vqv(transform); }
 			static rtm::matrix3x4f mul(const rtm::matrix3x4f& lhs, const rtm::matrix3x4f& rhs) { return rtm::matrix_mul(lhs, rhs); }
+
+			// A matrix has no rotation that we can replace
+			static constexpr bool supports_mesh_rotation() { return false; }
+			static rtm::matrix3x4f mul_mesh_rotation(const rtm::matrix3x4f& transform, const rtm::matrix3x4f& parent_object_transform)
+			{
+				ACL_ASSERT(false, "Matrix transforms do not support the mesh rotation space");
+				return mul(transform, parent_object_transform);
+			}
 
 			static RTM_FORCE_INLINE void RTM_SIMD_CALL mul_point3_x4(
 				rtm::vector4f_arg0 point_xxxx, rtm::vector4f_arg1 point_yyyy, rtm::vector4f_arg2 point_zzzz,

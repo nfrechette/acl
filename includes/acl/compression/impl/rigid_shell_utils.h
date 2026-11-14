@@ -112,7 +112,7 @@ namespace acl
 					// Compute our object space transform
 					rtm::vqvf object_transform;
 					if (parent_index != k_invalid_track_index)
-						object_transform = rtm::vqv_normalize(rtm::vqv_mul(local_transform, object_transforms[parent_index]));
+						object_transform = mul_in_space(space_context.get_space(), local_transform, object_transforms[parent_index]);
 					else
 						object_transform = local_transform;
 
@@ -295,6 +295,10 @@ namespace acl
 			const uint32_t num_samples = raw_clip.get_num_samples();
 			if (num_samples == 0)
 				return;	// No samples present, no shell distances
+
+			// The code below multiplies relative transforms in local space, it supports only the local space
+			if (space_context.get_space() != transform_space_t::local)
+				return;
 
 			// We don't support error metrics that require conversion.
 			// The code below calls calculate_error_squared on vqvf transforms, and it always uses the variant with scale.
@@ -574,7 +578,7 @@ namespace acl
 					// Compute our object space transform
 					rtm::vqvf object_transform;
 					if (parent_index != k_invalid_track_index)
-						object_transform = rtm::vqv_normalize(rtm::vqv_mul(local_transform, object_transforms[parent_index]));
+						object_transform = mul_in_space(space_context.get_space(), local_transform, object_transforms[parent_index]);
 					else
 						object_transform = local_transform;
 

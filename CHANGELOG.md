@@ -54,6 +54,8 @@
 *  Add the `mesh` transform space: each transform is in object space, compression measures the error of each transform without its parent, and it combines the clip with the base in mesh space
 *  Add the `-mesh_space` option and the `is_mesh_space` config option to `acl_compressor` and its python script, they convert a local space clip into mesh space
 *  Add two regression configurations in mesh space, without a base and with a relative base
+*  Add the `mesh_rotation` transform space: the rotations are in object space, the translations and scales are in local space, it supports the `vqf`, `vqsf`, `vqvf`, and `vqmf` runtime transform types and the `additive0` and `additive1` base formats
+*  Add the `-mesh_rotation_space` option and the `is_mesh_rotation_space`, `is_bind_pose_additive0`, and `is_bind_pose_additive1` config options to `acl_compressor`, and two regression configurations in mesh rotation space
 *  Fix the `max_error` stat of `acl_compressor` that ignored the additive base
 
 ## 2.1.0

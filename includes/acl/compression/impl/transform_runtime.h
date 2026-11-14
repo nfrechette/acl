@@ -30,6 +30,7 @@
 #include "acl/core/track_types.h"
 #include "acl/compression/transform_adapters.h"
 #include "acl/compression/transform_metrics.h"
+#include "acl/compression/transform_space.h"
 
 #include <cstdint>
 
@@ -94,10 +95,14 @@ namespace acl
 			//////////////////////////////////////////////////////////////////////////
 			// Validates the runtime transform type settings without a clip.
 			// We validate what depends on the clip in 'select'.
-			error_result validate(transform_runtime_type_t type, const itransform_adapter* custom_adapter, const itransform_metric* metric) const
+			// The mesh rotation space needs the rotation of each transform: a matrix and a custom transform type have none.
+			error_result validate(transform_runtime_type_t type, const itransform_adapter* custom_adapter, const itransform_metric* metric, transform_space_t space = transform_space_t::local) const
 			{
 				if (type > transform_runtime_type_t::automatic)
 					return error_result("Invalid transform runtime type");
+
+				if (space == transform_space_t::mesh_rotation && (type == transform_runtime_type_t::custom || type == transform_runtime_type_t::matrix3x4f))
+					return error_result("The mesh rotation space does not support the 'matrix3x4f' and 'custom' transform runtime types");
 
 				if (type == transform_runtime_type_t::custom && custom_adapter == nullptr)
 					return error_result("The 'custom' transform runtime type requires a custom transform adapter");
@@ -120,12 +125,13 @@ namespace acl
 			//    - 'source_type': the track type of the raw tracks
 			//    - 'has_scale': whether or not the clip has a scale, after we apply the additive base (if any)
 			//    - 'has_non_uniform_base_scale': whether or not the additive base (if any) has a scale that is not uniform
+			//    - 'space': the transform space of the clip
 			error_result select(
 				transform_runtime_type_t type, const itransform_adapter* custom_adapter, const itransform_metric* metric,
-				track_type8 source_type, bool has_scale, bool has_non_uniform_base_scale,
+				track_type8 source_type, bool has_scale, bool has_non_uniform_base_scale, transform_space_t space,
 				transform_runtime_selection& out_selection) const
 			{
-				const error_result result = validate(type, custom_adapter, metric);
+				const error_result result = validate(type, custom_adapter, metric, space);
 				if (result.any())
 					return result;
 

@@ -282,8 +282,8 @@ namespace acl
 			uint32_t* parent_transform_indices = allocate_type_array<uint32_t>(allocator, num_tracks);
 			uint32_t* self_transform_indices = allocate_type_array<uint32_t>(allocator, num_tracks);
 
-			// In mesh space, we put the base in mesh space with the transform hierarchy of the clip
-			const bool is_base_in_mesh_space = has_additive_base && args.space == transform_space_t::mesh;
+			// In mesh and mesh rotation space, we put the base in that space with the transform hierarchy of the clip
+			const bool is_base_in_mesh_space = has_additive_base && args.space != transform_space_t::local;
 			uint32_t* hierarchy_parent_indices = is_base_in_mesh_space ? allocate_type_array<uint32_t>(allocator, num_tracks) : nullptr;
 			uint32_t* hierarchy_order = is_base_in_mesh_space ? allocate_type_array<uint32_t>(allocator, num_tracks) : nullptr;
 
@@ -373,7 +373,7 @@ namespace acl
 
 					// The base is in local space, the clip combines with it in its own space
 					if (is_base_in_mesh_space)
-						local_to_mesh_space(tracks_writer_base.get_vqvf_tracks(), hierarchy_parent_indices, hierarchy_order, num_tracks, tracks_writer_base.get_vqvf_tracks());
+						local_to_space(args.space, tracks_writer_base.get_vqvf_tracks(), hierarchy_parent_indices, hierarchy_order, num_tracks, tracks_writer_base.get_vqvf_tracks());
 
 					error_metric.apply_additive_to_base(apply_additive_to_base_args_raw, tracks_writer0.get_vqvf_tracks());
 					error_metric.apply_additive_to_base(apply_additive_to_base_args_lossy, tracks_writer1_remapped.get_vqvf_tracks());
@@ -944,7 +944,7 @@ namespace acl
 			const track_array* base_tracks = transform_space.has_base() ? transform_space.base : nullptr;
 
 			transform_runtime_error_metric runtime_error_metric;
-			const itransform_error_metric* error_metric = get_settings_error_metric(settings, raw_tracks, transform_space.base_format, base_tracks, runtime_error_metric);
+			const itransform_error_metric* error_metric = get_settings_error_metric(settings, raw_tracks, transform_space.base_format, base_tracks, runtime_error_metric, transform_space.space);
 			ACL_ASSERT(error_metric != nullptr, "The compression settings are not valid for these tracks");
 			if (error_metric == nullptr)
 				return invalid_track_error();

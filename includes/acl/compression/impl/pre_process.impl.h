@@ -201,7 +201,7 @@ namespace acl
 		else
 		{
 			const transform_runtime_selector selector;
-			const error_result transform_runtime_result = selector.validate(input_settings.transform_runtime_type, input_settings.custom_transform_adapter, input_settings.transform_metric);
+			const error_result transform_runtime_result = selector.validate(input_settings.transform_runtime_type, input_settings.custom_transform_adapter, input_settings.transform_metric, input_settings.transform_space.space);
 			if (transform_runtime_result.any())
 				return transform_runtime_result;
 		}
@@ -236,7 +236,7 @@ namespace acl
 			const track_type8 track_type = track_list.is_empty() ? track_type8::vqvf : track_list.get_track_type();
 			const error_result runtime_error_metric_result = runtime_error_metric.initialize(
 				settings.transform_runtime_type, settings.custom_transform_adapter, settings.transform_metric,
-				track_type, settings.transform_space.base_format, settings.transform_space.base);
+				track_type, settings.transform_space.base_format, settings.transform_space.base, settings.transform_space.space);
 			if (runtime_error_metric_result.any())
 				return runtime_error_metric_result;
 

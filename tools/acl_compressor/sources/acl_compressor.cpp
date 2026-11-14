@@ -169,6 +169,7 @@ struct Options
 	bool			is_bind_pose_additive1			= false;
 
 	bool			is_mesh_space					= false;
+	bool			is_mesh_rotation_space			= false;
 
 	bool			split_into_database				= false;
 
@@ -220,6 +221,7 @@ static constexpr const char* k_bind_pose_relative_option = "-bind_rel";
 static constexpr const char* k_bind_pose_additive0_option = "-bind_add0";
 static constexpr const char* k_bind_pose_additive1_option = "-bind_add1";
 static constexpr const char* k_mesh_space_option = "-mesh_space";
+static constexpr const char* k_mesh_rotation_space_option = "-mesh_rotation_space";
 static constexpr const char* k_matrix_error_metric_option = "-error_mtx";
 static constexpr const char* k_precise_error_metric_option = "-error_precise";
 static constexpr const char* k_vqv_error_metric_option = "-error_vqv";
@@ -395,6 +397,13 @@ static bool parse_options(int argc, char** argv, Options& options)
 		if (std::strncmp(argument, k_bind_pose_additive1_option, option_length) == 0)
 		{
 			options.is_bind_pose_additive1 = true;
+			continue;
+		}
+
+		option_length = std::strlen(k_mesh_rotation_space_option);
+		if (std::strncmp(argument, k_mesh_rotation_space_option, option_length) == 0)
+		{
+			options.is_mesh_rotation_space = true;
 			continue;
 		}
 
@@ -926,9 +935,21 @@ static bool read_config(iallocator& allocator, Options& options, compression_set
 	if (parser.try_read("is_bind_pose_relative", is_bind_pose_relative, false))
 		options.is_bind_pose_relative = is_bind_pose_relative;
 
+	bool is_bind_pose_additive0;
+	if (parser.try_read("is_bind_pose_additive0", is_bind_pose_additive0, false))
+		options.is_bind_pose_additive0 = is_bind_pose_additive0;
+
+	bool is_bind_pose_additive1;
+	if (parser.try_read("is_bind_pose_additive1", is_bind_pose_additive1, false))
+		options.is_bind_pose_additive1 = is_bind_pose_additive1;
+
 	bool is_mesh_space;
 	if (parser.try_read("is_mesh_space", is_mesh_space, false))
 		options.is_mesh_space = is_mesh_space;
+
+	bool is_mesh_rotation_space;
+	if (parser.try_read("is_mesh_rotation_space", is_mesh_rotation_space, false))
+		options.is_mesh_rotation_space = is_mesh_rotation_space;
 
 	bool use_matrix_error_metric;
 	if (parser.try_read("use_matrix_error_metric", use_matrix_error_metric, false))
@@ -981,9 +1002,9 @@ static bool read_config(iallocator& allocator, Options& options, compression_set
 	return true;
 }
 
-// Converts the samples and the default values of a local space clip into mesh space
+// Converts the samples and the default values of a local space clip into mesh or mesh rotation space
 // Writes the default values before the conversion (the local space bind pose) in 'out_local_bind_pose'
-static void convert_clip_to_mesh_space(track_array& clip, rtm::vqvf* out_local_bind_pose)
+static void convert_clip_to_space(track_array& clip, transform_space_t space, rtm::vqvf* out_local_bind_pose)
 {
 	// Disable floating point exceptions since conversion requires it
 	scope_disable_fp_exceptions fp_off;
@@ -1019,8 +1040,8 @@ static void convert_clip_to_mesh_space(track_array& clip, rtm::vqvf* out_local_b
 
 	acl_impl::sort_transforms_parent_first(parent_indices, num_bones, order, is_sorted);
 
-	// The default values are the bind pose, we put it in mesh space as well
-	acl_impl::local_to_mesh_space(out_local_bind_pose, parent_indices, order, num_bones, pose);
+	// The default values are the bind pose, we put it in the new space as well
+	acl_impl::local_to_space(space, out_local_bind_pose, parent_indices, order, num_bones, pose);
 	for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		clip[bone_index].get_description<track_desc_transformf>().default_value = pose[bone_index];
 
@@ -1043,7 +1064,7 @@ static void convert_clip_to_mesh_space(track_array& clip, rtm::vqvf* out_local_b
 				pose[bone_index] = *static_cast<const rtm::vqvf*>(track_[sample_index]);
 		}
 
-		acl_impl::local_to_mesh_space(pose, parent_indices, order, num_bones, pose);
+		acl_impl::local_to_space(space, pose, parent_indices, order, num_bones, pose);
 
 		for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 		{
@@ -1065,8 +1086,8 @@ static void convert_clip_to_mesh_space(track_array& clip, rtm::vqvf* out_local_b
 }
 
 // Converts the clip to be relative to the bind pose (its default values)
-// When 'local_bind_pose' is not null, the clip is in mesh space: its default values hold the bind pose
-// in mesh space, and 'local_bind_pose' holds it in local space. The base is always in local space.
+// When 'local_bind_pose' is not null, the clip is in mesh or mesh rotation space: its default values hold the bind pose
+// in that space, and 'local_bind_pose' holds it in local space. The base is always in local space.
 static void create_additive_base_clip(const Options& options, track_array& clip, const rtm::vqvf* local_bind_pose, track_array_vqvf& out_base_clip, additive_clip_format8& out_additive_format)
 {
 	// Disable floating point exceptions since conversion requires it
@@ -1163,6 +1184,18 @@ static int safe_main_impl(int argc, char* argv[])
 
 	if (!parse_options(argc, argv, options))
 		return -1;
+
+	if (options.is_mesh_space && options.is_mesh_rotation_space)
+	{
+		printf("Cannot use '-mesh_space' and '-mesh_rotation_space' together\n");
+		return -1;
+	}
+
+	if (options.is_mesh_rotation_space && options.is_bind_pose_relative)
+	{
+		printf("The mesh rotation space does not support '-bind_rel'\n");
+		return -1;
+	}
 
 #if defined(ACL_USE_SJSON)
 	ansi_allocator allocator;
@@ -1323,12 +1356,14 @@ static int safe_main_impl(int argc, char* argv[])
 
 	if (sjson_type == sjson_file_type::raw_clip)
 	{
-		// Convert a local space clip without a base into mesh space
-		if (options.is_mesh_space && transform_space_type == transform_space_t::local && base_clip.is_empty())
+		// Convert a local space clip without a base into mesh or mesh rotation space
+		if ((options.is_mesh_space || options.is_mesh_rotation_space) && transform_space_type == transform_space_t::local && base_clip.is_empty())
 		{
+			const transform_space_t new_space = options.is_mesh_rotation_space ? transform_space_t::mesh_rotation : transform_space_t::mesh;
+
 			local_bind_pose = allocate_type_array<rtm::vqvf>(allocator, num_transform_tracks);
-			convert_clip_to_mesh_space(transform_tracks, local_bind_pose);
-			transform_space_type = transform_space_t::mesh;
+			convert_clip_to_space(transform_tracks, new_space, local_bind_pose);
+			transform_space_type = new_space;
 		}
 
 		if (base_clip.is_empty())

@@ -209,12 +209,19 @@ namespace acl
 			using transform_type = typename transform_math_t::transform_type;
 			using error_args_type = typename metric_t::error_args_type;
 
-			explicit v2_static_policy(const metric_t& metric) : m_metric(metric) {}
+			// In mesh rotation space, the policy composes the transforms with the mesh rotation product
+			// The product of a child depends on the rotation of its parent: we cannot cache relative transforms
+			explicit v2_static_policy(const metric_t& metric, bool is_mesh_rotation = false)
+				: m_metric(metric)
+				, m_is_mesh_rotation(is_mesh_rotation)
+			{
+				ACL_ASSERT(!is_mesh_rotation || transform_math_t::supports_mesh_rotation(), "The transform math does not support the mesh rotation space");
+			}
 
 			void init_error_args(error_args_type& args, float shell_distance) const { m_metric.init_error_args(args, shell_distance); }
 
 			static constexpr size_t get_transform_size() { return sizeof(transform_type); }
-			static constexpr bool is_associative() { return transform_math_t::is_associative(); }
+			bool is_associative() const { return !m_is_mesh_rotation && transform_math_t::is_associative(); }
 			static constexpr bool needs_conversion() { return !std::is_same<transform_type, rtm::vqvf>::value; }
 
 			// The output can be the input when the transform type is rtm::vqvf
@@ -231,7 +238,7 @@ namespace acl
 
 					const uint32_t parent_transform_index = topology.transforms[transform_index].parent_index;
 					if (parent_transform_index != k_invalid_track_index)
-						object_pose[transform_index] = transform_math_t::mul(local_transform, object_pose[parent_transform_index]);
+						object_pose[transform_index] = mul_with_parent(local_transform, object_pose[parent_transform_index]);
 					else
 						object_pose[transform_index] = local_transform;	// The root has no parent: its local and object space transforms are equal
 				}
@@ -250,6 +257,7 @@ namespace acl
 			{
 				(void)transform_index;
 				(void)sample_index;
+				ACL_ASSERT(!m_is_mesh_rotation, "The mesh rotation space uses the transform chains");
 				const transform_type local_transform = transform_math_t::from_vqv(local_transform_vqv);
 
 				const transform_type parent_transform_to_root_ = parent_transform_to_root != nullptr ? *static_cast<const transform_type*>(parent_transform_to_root) : transform_math_t::identity();
@@ -275,11 +283,11 @@ namespace acl
 				const transform_type local_transform = transform_math_t::from_vqv(local_transform_vqv);
 
 				const transform_type parent_transform_to_root_ = parent_transform_to_root != nullptr ? *static_cast<const transform_type*>(parent_transform_to_root) : transform_math_t::identity();
-				transform_type measured_to_root = transform_math_t::mul(local_transform, parent_transform_to_root_);
+				transform_type measured_to_root = mul_with_parent(local_transform, parent_transform_to_root_);
 
 				// Skip the transform being optimized
 				for (const uint32_t chain_transform_index : make_reverse_iterator(transform_chain_indices, transform_chain_length - 1))
-					measured_to_root = transform_math_t::mul(cached_pose_[chain_transform_index], measured_to_root);
+					measured_to_root = mul_with_parent(cached_pose_[chain_transform_index], measured_to_root);
 
 				return m_metric.calculate_error_squared(args, *static_cast<const transform_type*>(measured_to_root_raw), measured_to_root);
 			}
@@ -289,6 +297,7 @@ namespace acl
 			{
 				(void)transform_index;
 				(void)sample_index;
+				ACL_ASSERT(!m_is_mesh_rotation, "The mesh rotation space uses the transform chains");
 				transform_type& measured_to_transform_ = *static_cast<transform_type*>(measured_to_transform);
 				const transform_type local_transform = transform_math_t::from_vqv(local_transform_vqv);
 
@@ -316,7 +325,14 @@ namespace acl
 				compute_segment_shell_distances(segment, object_poses, out_shell_metadata);
 			}
 
+			// Returns the object transform of a transform from the object transform of its parent
+			transform_type mul_with_parent(const transform_type& transform, const transform_type& parent_object_transform) const
+			{
+				return m_is_mesh_rotation ? transform_math_t::mul_mesh_rotation(transform, parent_object_transform) : transform_math_t::mul(transform, parent_object_transform);
+			}
+
 			metric_t m_metric;
+			bool m_is_mesh_rotation;
 		};
 
 		//////////////////////////////////////////////////////////////////////////
@@ -390,11 +406,15 @@ namespace acl
 
 			static constexpr uint32_t k_num_scratch_transforms = 4;
 
-			v2_adapter_policy(const itransform_adapter& adapter, const itransform_metric& metric, const v2_adapter_policy_scratch& scratch)
+			// In mesh rotation space, the policy composes the transforms with the mesh rotation product
+			// The transform adapter must be a built-in 'vqf', 'vqsf', 'vqvf', or 'vqmf' type, the metric can be custom
+			v2_adapter_policy(const itransform_adapter& adapter, const itransform_metric& metric, const v2_adapter_policy_scratch& scratch, bool is_mesh_rotation = false)
 				: m_adapter(adapter)
 				, m_metric(metric)
 				, m_transform_size(adapter.get_transform_size())
-				, m_is_associative(adapter.is_associative())
+				, m_type(adapter.get_type())
+				, m_is_mesh_rotation(is_mesh_rotation)
+				, m_is_associative(!is_mesh_rotation && adapter.is_associative())
 				, m_needs_conversion(adapter.needs_conversion())
 				, m_num_transforms(scratch.num_transforms)
 				, m_local_transform(scratch.transforms)
@@ -405,6 +425,7 @@ namespace acl
 				, m_pose_runtime(scratch.pose_runtime)
 			{
 				ACL_ASSERT(m_needs_conversion || m_transform_size == sizeof(rtm::vqvf), "A transform adapter without conversion must use rtm::vqvf");
+				ACL_ASSERT(!is_mesh_rotation || m_type == transform_runtime_type_t::vqf || m_type == transform_runtime_type_t::vqsf || m_type == transform_runtime_type_t::vqvf || m_type == transform_runtime_type_t::vqmf, "The transform adapter does not support the mesh rotation space");
 				adapter.identity(m_identity);
 			}
 
@@ -451,7 +472,7 @@ namespace acl
 
 					const uint32_t parent_transform_index = topology.transforms[transform_index].parent_index;
 					if (parent_transform_index != k_invalid_track_index)
-						m_adapter.mul(local_transform, object_pose + (parent_transform_index * m_transform_size), object_transform);
+						mul_with_parent(local_transform, object_pose + (parent_transform_index * m_transform_size), object_transform);
 					else if (object_transform != local_transform)
 						std::memcpy(object_transform, local_transform, m_transform_size);	// The root has no parent: its local and object space transforms are equal
 				}
@@ -467,6 +488,7 @@ namespace acl
 				const error_args_type& args, const rtm::vqvf& local_transform_vqv, uint32_t transform_index, uint32_t sample_index,
 				const void* parent_transform_to_root, const void* measured_to_transform, const void* measured_to_root_raw) const
 			{
+				ACL_ASSERT(!m_is_mesh_rotation, "The mesh rotation space uses the transform chains");
 				convert_lossy(local_transform_vqv, transform_index, sample_index, m_local_transform);
 
 				const void* parent_transform_to_root_ = parent_transform_to_root != nullptr ? parent_transform_to_root : m_identity;
@@ -488,18 +510,19 @@ namespace acl
 				convert_lossy(local_transform_vqv, transform_index, sample_index, m_local_transform);
 
 				const void* parent_transform_to_root_ = parent_transform_to_root != nullptr ? parent_transform_to_root : m_identity;
-				m_adapter.mul(m_local_transform, parent_transform_to_root_, m_measured_to_root);
+				mul_with_parent(m_local_transform, parent_transform_to_root_, m_measured_to_root);
 
 				// Skip the transform being optimized
 				// The output of 'mul' can be one of its inputs
 				for (const uint32_t chain_transform_index : make_reverse_iterator(transform_chain_indices, transform_chain_length - 1))
-					m_adapter.mul(cached_pose_ + (chain_transform_index * m_transform_size), m_measured_to_root, m_measured_to_root);
+					mul_with_parent(cached_pose_ + (chain_transform_index * m_transform_size), m_measured_to_root, m_measured_to_root);
 
 				return calculate_error_squared(args, measured_to_root_raw, m_measured_to_root);
 			}
 
 			void update_cached(const rtm::vqvf& local_transform_vqv, uint32_t transform_index, uint32_t sample_index, void* measured_to_transform, bool is_measured_transform_optimized) const
 			{
+				ACL_ASSERT(!m_is_mesh_rotation, "The mesh rotation space uses the transform chains");
 				convert_lossy(local_transform_vqv, transform_index, sample_index, m_local_transform);
 
 				// The output of 'mul' can be one of its inputs
@@ -513,6 +536,36 @@ namespace acl
 			}
 
 		private:
+			// Writes the object transform of a transform from the object transform of its parent
+			// The output can be one of the inputs
+			void mul_with_parent(const void* transform, const void* parent_object_transform, void* out_object_transform) const
+			{
+				if (!m_is_mesh_rotation)
+					m_adapter.mul(transform, parent_object_transform, out_object_transform);
+				else if (m_type == transform_runtime_type_t::vqsf)
+					mul_mesh_rotation<rtm::vqsf>(transform, parent_object_transform, out_object_transform);
+				else if (m_type == transform_runtime_type_t::vqmf)
+					mul_mesh_rotation<rtm::vqmf>(transform, parent_object_transform, out_object_transform);
+				else
+					mul_mesh_rotation<rtm::vqvf>(transform, parent_object_transform, out_object_transform);
+			}
+
+			// The mesh rotation product through the transform adapter, see 'mul_mesh_rotation_impl'
+			// We use 'm_transform_to_root' as scratch memory: only the cached path uses it, the mesh rotation space does not
+			template<class transform_type>
+			void mul_mesh_rotation(const void* transform, const void* parent_object_transform, void* out_object_transform) const
+			{
+				const rtm::quatf rotation = static_cast<const transform_type*>(transform)->rotation;
+				const rtm::quatf parent_rotation = static_cast<const transform_type*>(parent_object_transform)->rotation;
+
+				transform_type& local_transform = *reinterpret_cast<transform_type*>(m_transform_to_root);
+				std::memcpy(&local_transform, transform, sizeof(transform_type));
+				local_transform.rotation = rtm::quat_normalize(rtm::quat_mul(rotation, rtm::quat_conjugate(parent_rotation)));
+
+				m_adapter.mul(&local_transform, parent_object_transform, out_object_transform);
+				static_cast<transform_type*>(out_object_transform)->rotation = rotation;
+			}
+
 			// Converts one lossy transform
 			// We place it in a full pose: the adapter reads and writes the transform at its index
 			void convert_lossy(const rtm::vqvf& transform, uint32_t transform_index, uint32_t sample_index, void* out_transform) const
@@ -549,6 +602,8 @@ namespace acl
 			const itransform_adapter& m_adapter;
 			const itransform_metric& m_metric;
 			size_t m_transform_size;
+			transform_runtime_type_t m_type;
+			bool m_is_mesh_rotation;
 			bool m_is_associative;
 			bool m_needs_conversion;
 			uint32_t m_num_transforms;

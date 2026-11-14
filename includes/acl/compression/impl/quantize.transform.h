@@ -2560,25 +2560,28 @@ namespace acl
 				const bool is_precise_metric = selection.metric == selector.get_precise_metric();
 				const bool is_shell_metric = selection.metric == selector.get_shell_metric();
 
+				// In mesh rotation space, the policies compose the transforms with the mesh rotation product
+				const bool is_mesh_rotation = context.space_context.get_space() == transform_space_t::mesh_rotation;
+
 				if (is_builtin_adapter && is_precise_metric && type == transform_runtime_type_t::vqf)
-					find_optimal_bit_rates_v2_impl(context, v2_static_policy<vq_transform_math, v2_precise_metric>(v2_precise_metric()));
+					find_optimal_bit_rates_v2_impl(context, v2_static_policy<vq_transform_math, v2_precise_metric>(v2_precise_metric(), is_mesh_rotation));
 				else if (is_builtin_adapter && is_precise_metric && type == transform_runtime_type_t::vqsf)
-					find_optimal_bit_rates_v2_impl(context, v2_static_policy<vqs_transform_math, v2_precise_metric>(v2_precise_metric()));
+					find_optimal_bit_rates_v2_impl(context, v2_static_policy<vqs_transform_math, v2_precise_metric>(v2_precise_metric(), is_mesh_rotation));
 				else if (is_builtin_adapter && is_shell_metric && type == transform_runtime_type_t::vqf)
-					find_optimal_bit_rates_v2_impl(context, v2_static_policy<vq_transform_math, v2_shell_metric<vq_transform_math>>(v2_shell_metric<vq_transform_math>()));
+					find_optimal_bit_rates_v2_impl(context, v2_static_policy<vq_transform_math, v2_shell_metric<vq_transform_math>>(v2_shell_metric<vq_transform_math>(), is_mesh_rotation));
 				else if (is_builtin_adapter && is_shell_metric && type == transform_runtime_type_t::vqsf)
-					find_optimal_bit_rates_v2_impl(context, v2_static_policy<vqs_transform_math, v2_shell_metric<vqs_transform_math>>(v2_shell_metric<vqs_transform_math>()));
+					find_optimal_bit_rates_v2_impl(context, v2_static_policy<vqs_transform_math, v2_shell_metric<vqs_transform_math>>(v2_shell_metric<vqs_transform_math>(), is_mesh_rotation));
 				else if (is_builtin_adapter && is_shell_metric && type == transform_runtime_type_t::vqvf)
-					find_optimal_bit_rates_v2_impl(context, v2_static_policy<vqv_transform_math, v2_shell_metric<vqv_transform_math>>(v2_shell_metric<vqv_transform_math>()));
+					find_optimal_bit_rates_v2_impl(context, v2_static_policy<vqv_transform_math, v2_shell_metric<vqv_transform_math>>(v2_shell_metric<vqv_transform_math>(), is_mesh_rotation));
 				else if (is_builtin_adapter && is_shell_metric && type == transform_runtime_type_t::vqmf)
-					find_optimal_bit_rates_v2_impl(context, v2_static_policy<vqm_transform_math, v2_shell_metric<vqm_transform_math>>(v2_shell_metric<vqm_transform_math>()));
+					find_optimal_bit_rates_v2_impl(context, v2_static_policy<vqm_transform_math, v2_shell_metric<vqm_transform_math>>(v2_shell_metric<vqm_transform_math>(), is_mesh_rotation));
 				else if (is_builtin_adapter && is_shell_metric && type == transform_runtime_type_t::matrix3x4f)
-					find_optimal_bit_rates_v2_impl(context, v2_static_policy<matrix3x4_transform_math, v2_shell_metric<matrix3x4_transform_math>>(v2_shell_metric<matrix3x4_transform_math>()));
+					find_optimal_bit_rates_v2_impl(context, v2_static_policy<matrix3x4_transform_math, v2_shell_metric<matrix3x4_transform_math>>(v2_shell_metric<matrix3x4_transform_math>(), is_mesh_rotation));
 				else
 				{
 					// A custom transform adapter or a custom transform metric, we use their virtual functions
 					context.initialize_v2_runtime(selection.adapter->get_transform_size());
-					find_optimal_bit_rates_v2_impl(context, v2_adapter_policy(*selection.adapter, *selection.metric, context.get_v2_adapter_policy_scratch()));
+					find_optimal_bit_rates_v2_impl(context, v2_adapter_policy(*selection.adapter, *selection.metric, context.get_v2_adapter_policy_scratch(), is_mesh_rotation));
 				}
 			}
 			else

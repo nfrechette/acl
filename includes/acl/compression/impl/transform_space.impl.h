@@ -71,7 +71,9 @@ namespace acl
 
 	constexpr const char* get_transform_space_name(transform_space_t space)
 	{
-		return space == transform_space_t::local ? "local" : (space == transform_space_t::mesh ? "mesh" : "<Invalid>");
+		return space == transform_space_t::local ? "local"
+			: (space == transform_space_t::mesh ? "mesh"
+			: (space == transform_space_t::mesh_rotation ? "mesh_rotation" : "<Invalid>"));
 	}
 
 	inline bool get_transform_space(const char* name, transform_space_t& out_space)
@@ -92,16 +94,26 @@ namespace acl
 			return true;
 		}
 
+		if (acl_impl::is_transform_space_name(name, "mesh_rotation"))
+		{
+			out_space = transform_space_t::mesh_rotation;
+			return true;
+		}
+
 		return false;
 	}
 
 	inline error_result transform_space_desc_t::is_valid() const
 	{
-		if (space != transform_space_t::local && space != transform_space_t::mesh)
+		if (space != transform_space_t::local && space != transform_space_t::mesh && space != transform_space_t::mesh_rotation)
 			return error_result("Invalid transform space");
 
 		if (base_format > additive_clip_format8::additive1)
 			return error_result("Invalid base format");
+
+		// A relative base multiplies the whole transforms: the rotations and the translations are in different spaces
+		if (space == transform_space_t::mesh_rotation && base_format == additive_clip_format8::relative)
+			return error_result("The mesh rotation space does not support the relative base format");
 
 		if (base_format == additive_clip_format8::none)
 		{

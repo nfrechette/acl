@@ -176,7 +176,7 @@ namespace acl
 			{
 				result = runtime_error_metric.initialize(
 					settings.transform_runtime_type, settings.custom_transform_adapter, settings.transform_metric,
-					track_type, additive_format, additive_base_track_list);
+					track_type, additive_format, additive_base_track_list, transform_space.space);
 				if (result.any())
 					return result;
 

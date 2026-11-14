@@ -30,10 +30,12 @@
 #include "acl/core/iallocator.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/compression/track_array.h"
+#include "acl/compression/transform_adapters.h"
 #include "acl/compression/transform_space.h"
 #include "acl/compression/impl/sample_streams.h"
 #include "acl/compression/impl/transform_clip_adapters.h"
 
+#include <rtm/quatf.h>
 #include <rtm/scalarf.h>
 #include <rtm/vqvf.h>
 
@@ -106,6 +108,50 @@ namespace acl
 		}
 
 		//////////////////////////////////////////////////////////////////////////
+		// Returns the object transform of a transform from the object transform of its parent, with VQV arithmetic.
+		// In mesh rotation space, we use the mesh rotation product, see 'transform_space_t::mesh_rotation'.
+		inline rtm::vqvf RTM_SIMD_CALL mul_in_space(transform_space_t space, const rtm::vqvf& transform, const rtm::vqvf& parent_object_transform)
+		{
+			if (space == transform_space_t::mesh_rotation)
+				return vqv_transform_math::mul_mesh_rotation(transform, parent_object_transform);
+
+			return rtm::vqv_normalize(rtm::vqv_mul(transform, parent_object_transform));
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Puts the rotations of a local space pose in mesh space, the translations and scales stay in local space.
+		// This is the base pose of the mesh rotation space, see 'transform_space_t::mesh_rotation'.
+		// 'order' lists each parent before its children, see 'sort_transforms_parent_first'.
+		// The output can be the input.
+		inline void local_to_mesh_rotation_space(const rtm::vqvf* local_pose, const uint32_t* parent_indices, const uint32_t* order, uint32_t num_transforms, rtm::vqvf* out_pose)
+		{
+			for (uint32_t order_index = 0; order_index < num_transforms; ++order_index)
+			{
+				const uint32_t transform_index = order[order_index];
+				const uint32_t parent_index = parent_indices[transform_index];
+
+				rtm::vqvf transform = local_pose[transform_index];
+				if (parent_index != k_invalid_track_index && parent_index < num_transforms)
+					transform.rotation = rtm::quat_normalize(rtm::quat_mul(transform.rotation, out_pose[parent_index].rotation));
+
+				out_pose[transform_index] = transform;
+			}
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Puts a local space pose in a transform space: mesh or mesh rotation.
+		// The local space does not change the pose.
+		inline void local_to_space(transform_space_t space, const rtm::vqvf* local_pose, const uint32_t* parent_indices, const uint32_t* order, uint32_t num_transforms, rtm::vqvf* out_pose)
+		{
+			if (space == transform_space_t::mesh)
+				local_to_mesh_space(local_pose, parent_indices, order, num_transforms, out_pose);
+			else if (space == transform_space_t::mesh_rotation)
+				local_to_mesh_rotation_space(local_pose, parent_indices, order, num_transforms, out_pose);
+			else if (out_pose != local_pose)
+				std::copy(local_pose, local_pose + num_transforms, out_pose);
+		}
+
+		//////////////////////////////////////////////////////////////////////////
 		// Holds the data that compression uses to put a sample of a clip in the space
 		// where it measures the error.
 		//
@@ -115,7 +161,7 @@ namespace acl
 		//
 		// The base holds raw data. Thus we sample it one time, when we initialize the context,
 		// and compression reads the base poses from here.
-		// The base is in local space. In mesh space, we put each base pose in mesh space here.
+		// The base is in local space. In mesh and mesh rotation space, we put each base pose in that space here.
 		//
 		// A sample of the clip uses the sample of the base at the same normalized time,
 		// rounded to the nearest sample. We do not interpolate.
@@ -255,9 +301,9 @@ namespace acl
 				}
 			}
 
-			// In mesh space, the clip combines with the base in mesh space
+			// In mesh and mesh rotation space, the clip combines with the base in that space
 			// The base has the transform hierarchy of the clip
-			if (space == transform_space_t::mesh)
+			if (space != transform_space_t::local)
 			{
 				ACL_ASSERT(clip_track_list.get_num_tracks() == num_transforms, "The base and the clip must have the same number of transforms");
 
@@ -273,7 +319,7 @@ namespace acl
 				for (uint32_t base_sample_index = 0; base_sample_index < num_base_samples; ++base_sample_index)
 				{
 					rtm::vqvf* base_pose = m_base_poses + (size_t(base_sample_index) * num_transforms);
-					local_to_mesh_space(base_pose, parent_indices, order, num_transforms, base_pose);
+					local_to_space(space, base_pose, parent_indices, order, num_transforms, base_pose);
 				}
 
 				deallocate_type_array(allocator, parent_indices, num_transforms);

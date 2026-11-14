@@ -84,10 +84,10 @@ namespace
 	selection_result select(
 		const transform_runtime_selector& selector,
 		transform_runtime_type_t type, const itransform_adapter* custom_adapter, const itransform_metric* metric,
-		track_type8 source_type, bool has_scale, bool has_non_uniform_base_scale)
+		track_type8 source_type, bool has_scale, bool has_non_uniform_base_scale, transform_space_t space = transform_space_t::local)
 	{
 		transform_runtime_selection selection;
-		const error_result result = selector.select(type, custom_adapter, metric, source_type, has_scale, has_non_uniform_base_scale, selection);
+		const error_result result = selector.select(type, custom_adapter, metric, source_type, has_scale, has_non_uniform_base_scale, space, selection);
 
 		selection_result output;
 		output.is_valid = result.empty();
@@ -257,6 +257,39 @@ TEST_CASE("transform runtime selection", "[compression][transform]")
 
 // This test uses the deprecated legacy error metric of the settings
 ACL_IMPL_DEPRECATION_WARNING_PUSH
+
+TEST_CASE("transform runtime selection in mesh rotation space", "[compression][transform][transform_space]")
+{
+	const transform_runtime_selector selector;
+	test_custom_adapter custom_adapter;
+	const transform_space_t space = transform_space_t::mesh_rotation;
+
+	// The automatic type uses VQM arithmetic as in local space: the product of VQM transforms multiplies the rotations
+	const selection_result automatic_result = select(selector, transform_runtime_type_t::automatic, nullptr, nullptr, track_type8::vqvf, true, false, space);
+	CHECK(automatic_result.is_valid);
+	CHECK(automatic_result.adapter_type == transform_runtime_type_t::vqmf);
+
+	const selection_result vqv_result = select(selector, transform_runtime_type_t::vqvf, nullptr, nullptr, track_type8::vqvf, true, false, space);
+	CHECK(vqv_result.is_valid);
+	CHECK(vqv_result.adapter_type == transform_runtime_type_t::vqvf);
+
+	// VQS raw tracks still use VQS arithmetic
+	const selection_result vqs_result = select(selector, transform_runtime_type_t::automatic, nullptr, nullptr, track_type8::vqsf, true, false, space);
+	CHECK(vqs_result.is_valid);
+	CHECK(vqs_result.adapter_type == transform_runtime_type_t::vqsf);
+
+	// Without scale, we use VQ
+	const selection_result vq_result = select(selector, transform_runtime_type_t::automatic, nullptr, nullptr, track_type8::vqvf, false, false, space);
+	CHECK(vq_result.is_valid);
+	CHECK(vq_result.adapter_type == transform_runtime_type_t::vqf);
+
+	// A matrix and a custom type have no rotation that we can replace
+	CHECK_FALSE(select(selector, transform_runtime_type_t::matrix3x4f, nullptr, nullptr, track_type8::vqvf, true, false, space).is_valid);
+	CHECK_FALSE(select(selector, transform_runtime_type_t::custom, &custom_adapter, nullptr, track_type8::vqvf, true, false, space).is_valid);
+	CHECK(selector.validate(transform_runtime_type_t::matrix3x4f, nullptr, nullptr, space).any());
+	CHECK(selector.validate(transform_runtime_type_t::vqmf, nullptr, nullptr, space).empty());
+	CHECK(selector.validate(transform_runtime_type_t::vqvf, nullptr, nullptr, space).empty());
+}
 
 TEST_CASE("transform runtime settings", "[compression][transform]")
 {

@@ -37,6 +37,7 @@
 
 #include <rtm/quatf.h>
 #include <rtm/vector4f.h>
+#include <rtm/vqmf.h>
 #include <rtm/vqvf.h>
 
 #include <cstdint>
@@ -170,6 +171,140 @@ namespace
 
 	// Returns the largest distance between the reference and the decompressed translations, after we apply the base
 	// 'mesh_base_pose' is the base in mesh space, or null without a base
+	// Puts the rotations of a local space pose of the transform chain in mesh space, the translations and scales stay local
+	void local_to_mesh_rotation_space(const rtm::vqvf* local_pose, rtm::vqvf* out_pose)
+	{
+		out_pose[0] = local_pose[0];
+		for (uint32_t transform_index = 1; transform_index < k_num_transforms; ++transform_index)
+		{
+			out_pose[transform_index] = local_pose[transform_index];
+			out_pose[transform_index].rotation = rtm::quat_normalize(rtm::quat_mul(local_pose[transform_index].rotation, out_pose[transform_index - 1].rotation));
+		}
+	}
+
+	// Puts a mesh rotation space pose of the transform chain in object space
+	void mesh_rotation_to_object_space(const rtm::vqvf* pose, rtm::vqvf* out_object_pose)
+	{
+		out_object_pose[0] = pose[0];
+		for (uint32_t transform_index = 1; transform_index < k_num_transforms; ++transform_index)
+		{
+			const rtm::vqvf& parent_object_transform = out_object_pose[transform_index - 1];
+
+			rtm::vqvf local_transform = pose[transform_index];
+			local_transform.rotation = rtm::quat_mul(local_transform.rotation, rtm::quat_conjugate(parent_object_transform.rotation));
+
+			out_object_pose[transform_index] = rtm::vqv_normalize(rtm::vqv_mul(local_transform, parent_object_transform));
+		}
+	}
+
+	// Returns the largest distance between the object space translations of the local clip and of the decompressed
+	// mesh rotation space clip, both with VQM arithmetic: the product keeps the shear of a non-uniform scale
+	float find_max_mesh_rotation_error_vqm(const compressed_tracks& tracks, const track_array_vqvf& local_clip)
+	{
+		decompression_context<default_transform_decompression_settings> context;
+		REQUIRE(context.initialize(tracks));
+
+		float max_error = 0.0F;
+		for (uint32_t sample_index = 0; sample_index < k_num_samples; ++sample_index)
+		{
+			context.seek(float(sample_index) / k_sample_rate, sample_rounding_policy::nearest);
+
+			pose_writer writer;
+			context.decompress_tracks(writer);
+
+			rtm::vqmf reference_object_pose[k_num_transforms];
+			rtm::vqmf object_pose[k_num_transforms];
+			for (uint32_t transform_index = 0; transform_index < k_num_transforms; ++transform_index)
+			{
+				const rtm::vqvf& local_transform = local_clip[transform_index][sample_index];
+				const rtm::vqmf reference_local = rtm::vqm_set(local_transform.rotation, local_transform.translation, local_transform.scale);
+
+				const rtm::vqvf& transform = writer.pose[transform_index];
+				rtm::vqmf local = rtm::vqm_set(transform.rotation, transform.translation, transform.scale);
+
+				if (transform_index == 0)
+				{
+					reference_object_pose[0] = reference_local;
+					object_pose[0] = local;
+				}
+				else
+				{
+					const rtm::vqmf& parent_object_transform = object_pose[transform_index - 1];
+					local.rotation = rtm::quat_mul(local.rotation, rtm::quat_conjugate(parent_object_transform.rotation));
+
+					reference_object_pose[transform_index] = rtm::vqm_normalize(rtm::vqm_mul(reference_local, reference_object_pose[transform_index - 1]));
+					object_pose[transform_index] = rtm::vqm_normalize(rtm::vqm_mul(local, parent_object_transform));
+				}
+
+				const rtm::vector4f reference_translation = rtm::vqm_get_translation(reference_object_pose[transform_index]);
+				const rtm::vector4f translation = rtm::vqm_get_translation(object_pose[transform_index]);
+				max_error = rtm::scalar_max(max_error, rtm::vector_distance3(translation, reference_translation));
+			}
+		}
+
+		return max_error;
+	}
+
+	// Returns a copy of the clip where each sample is in mesh rotation space
+	track_array_vqvf make_mesh_rotation_space_clip(iallocator& allocator, const track_array_vqvf& local_clip)
+	{
+		track_array_vqvf clip(allocator, k_num_transforms);
+		for (uint32_t transform_index = 0; transform_index < k_num_transforms; ++transform_index)
+			clip[transform_index] = track_vqvf::make_reserve(local_clip[transform_index].get_description(), allocator, k_num_samples, k_sample_rate);
+
+		for (uint32_t sample_index = 0; sample_index < k_num_samples; ++sample_index)
+		{
+			rtm::vqvf local_pose[k_num_transforms];
+			rtm::vqvf pose[k_num_transforms];
+			for (uint32_t transform_index = 0; transform_index < k_num_transforms; ++transform_index)
+				local_pose[transform_index] = local_clip[transform_index][sample_index];
+
+			local_to_mesh_rotation_space(local_pose, pose);
+
+			for (uint32_t transform_index = 0; transform_index < k_num_transforms; ++transform_index)
+				clip[transform_index][sample_index] = pose[transform_index];
+		}
+
+		return clip;
+	}
+
+	// Returns the largest distance between the reference object space translations and the decompressed
+	// mesh rotation space clip in object space, after we apply the base
+	// 'base_pose' is the base in mesh rotation space, or null without a base
+	float find_max_mesh_rotation_error(const compressed_tracks& tracks, const track_array_vqvf& object_reference_clip, const rtm::vqvf* base_pose, additive_clip_format8 base_format)
+	{
+		decompression_context<default_transform_decompression_settings> context;
+		REQUIRE(context.initialize(tracks));
+
+		float max_error = 0.0F;
+		for (uint32_t sample_index = 0; sample_index < k_num_samples; ++sample_index)
+		{
+			context.seek(float(sample_index) / k_sample_rate, sample_rounding_policy::nearest);
+
+			pose_writer writer;
+			context.decompress_tracks(writer);
+
+			rtm::vqvf pose[k_num_transforms];
+			for (uint32_t transform_index = 0; transform_index < k_num_transforms; ++transform_index)
+			{
+				pose[transform_index] = writer.pose[transform_index];
+				if (base_pose != nullptr)
+					pose[transform_index] = apply_additive_to_base(base_format, base_pose[transform_index], pose[transform_index]);
+			}
+
+			rtm::vqvf object_pose[k_num_transforms];
+			mesh_rotation_to_object_space(pose, object_pose);
+
+			for (uint32_t transform_index = 0; transform_index < k_num_transforms; ++transform_index)
+			{
+				const rtm::vqvf& reference = object_reference_clip[transform_index][sample_index];
+				max_error = rtm::scalar_max(max_error, rtm::vector_distance3(object_pose[transform_index].translation, reference.translation));
+			}
+		}
+
+		return max_error;
+	}
+
 	float find_max_translation_error(const compressed_tracks& tracks, const track_array_vqvf& reference_clip, const rtm::vqvf* mesh_base_pose, additive_clip_format8 base_format)
 	{
 		decompression_context<default_transform_decompression_settings> context;
@@ -208,6 +343,10 @@ TEST_CASE("transform_space names", "[compression][transform_space]")
 	CHECK(std::strcmp(get_transform_space_name(transform_space_t::mesh), "mesh") == 0);
 	CHECK(get_transform_space("mesh", space));
 	CHECK(space == transform_space_t::mesh);
+
+	CHECK(std::strcmp(get_transform_space_name(transform_space_t::mesh_rotation), "mesh_rotation") == 0);
+	CHECK(get_transform_space("mesh_rotation", space));
+	CHECK(space == transform_space_t::mesh_rotation);
 
 	// A longer name is not a match
 	CHECK_FALSE(get_transform_space("mesh_space", space));
@@ -571,4 +710,143 @@ TEST_CASE("the legacy error metric supports only the local space", "[compression
 	pre_process_settings.transform_space = transform_space;
 	CHECK(pre_process_track_list(allocator, pre_process_settings, clip).any());
 	ACL_IMPL_DEPRECATION_WARNING_POP
+}
+
+TEST_CASE("compression in mesh rotation space", "[compression][transform_space]")
+{
+	ansi_allocator allocator;
+	const compression_settings settings = get_default_compression_settings();
+
+	const track_array_vqvf local_clip = make_clip(allocator);
+	const track_array_vqvf mesh_clip = make_mesh_space_clip(allocator, local_clip);		// The object space reference
+	const track_array_vqvf clip = make_mesh_rotation_space_clip(allocator, local_clip);
+
+	transform_space_desc_t transform_space;
+	transform_space.space = transform_space_t::mesh_rotation;
+	CHECK(transform_space.is_valid().empty());
+
+	// The mesh rotation space does not support the relative base format
+	{
+		const track_array_vqvf base = make_base(allocator);
+		transform_space_desc_t relative_space = transform_space;
+		relative_space.base_format = additive_clip_format8::relative;
+		relative_space.base = &base;
+		CHECK(relative_space.is_valid().any());
+	}
+
+	compressed_tracks* tracks = compress(allocator, clip, transform_space);
+
+	{
+		decompression_context<debug_transform_decompression_settings> context;
+		REQUIRE(context.initialize(*tracks));
+
+		const track_error error = calculate_compression_error(allocator, clip, context, settings, transform_space);
+		CHECK(error.error >= 0.0F);
+		CHECK(error.error < 0.01F);
+	}
+
+	// With the mesh rotation product, the decompressed clip gives the object space reference
+	CHECK(find_max_mesh_rotation_error(*tracks, mesh_clip, nullptr, additive_clip_format8::none) < 0.01F);
+
+	allocator.deallocate(tracks, tracks->get_size());
+
+	// A matrix has no rotation that we can replace: the matrix runtime transform type does not support the mesh rotation space
+	{
+		compression_settings matrix_settings = settings;
+		matrix_settings.transform_runtime_type = transform_runtime_type_t::matrix3x4f;
+
+		output_stats stats;
+		compressed_tracks* matrix_tracks = nullptr;
+		CHECK(compress_track_list(allocator, clip, matrix_settings, transform_space, matrix_tracks, stats).any());
+		CHECK(matrix_tracks == nullptr);
+	}
+
+	// The VQM, VQV, and VQ runtime transform types support it
+	const transform_runtime_type_t types[] = { transform_runtime_type_t::vqmf, transform_runtime_type_t::vqvf, transform_runtime_type_t::vqf };
+	for (const transform_runtime_type_t type : types)
+	{
+		compression_settings type_settings = settings;
+		type_settings.transform_runtime_type = type;
+
+		output_stats stats;
+		compressed_tracks* type_tracks = nullptr;
+		REQUIRE(compress_track_list(allocator, clip, type_settings, transform_space, type_tracks, stats).empty());
+		REQUIRE(type_tracks != nullptr);
+
+		// VQ arithmetic does not use the scale: we compare with VQV and VQM arithmetic only
+		if (type == transform_runtime_type_t::vqvf)
+			CHECK(find_max_mesh_rotation_error(*type_tracks, mesh_clip, nullptr, additive_clip_format8::none) < 0.01F);
+		else if (type == transform_runtime_type_t::vqmf)
+			CHECK(find_max_mesh_rotation_error_vqm(*type_tracks, local_clip) < 0.01F);
+
+		allocator.deallocate(type_tracks, type_tracks->get_size());
+	}
+}
+
+TEST_CASE("compression in mesh rotation space with a base", "[compression][transform_space]")
+{
+	ansi_allocator allocator;
+	const compression_settings settings = get_default_compression_settings();
+
+	const track_array_vqvf local_clip = make_clip(allocator);
+	const track_array_vqvf mesh_clip = make_mesh_space_clip(allocator, local_clip);		// The object space reference
+	const track_array_vqvf clip = make_mesh_rotation_space_clip(allocator, local_clip);
+
+	// The base is a single local space pose with the transform hierarchy of the clip
+	track_array_vqvf base(allocator, k_num_transforms);
+	rtm::vqvf local_base_pose[k_num_transforms];
+	for (uint32_t transform_index = 0; transform_index < k_num_transforms; ++transform_index)
+	{
+		const float offset = float(transform_index) * 0.2F;
+		local_base_pose[transform_index] = rtm::vqv_set(rtm::quat_from_euler(0.2F, offset, 0.1F), rtm::vector_set(0.5F, 0.0F, 0.2F), rtm::vector_set(1.1F, 0.9F, 1.0F));
+		base[transform_index] = track_vqvf::make_copy(make_desc(transform_index), allocator, &local_base_pose[transform_index], 1, k_sample_rate);
+	}
+
+	rtm::vqvf base_pose[k_num_transforms];
+	local_to_mesh_rotation_space(local_base_pose, base_pose);
+
+	const additive_clip_format8 base_formats[] = { additive_clip_format8::additive0, additive_clip_format8::additive1 };
+	for (const additive_clip_format8 base_format : base_formats)
+	{
+		// The additive clip is relative to the base in mesh rotation space
+		track_array_vqvf additive_clip(allocator, k_num_transforms);
+		for (uint32_t transform_index = 0; transform_index < k_num_transforms; ++transform_index)
+		{
+			track_vqvf track = track_vqvf::make_reserve(make_desc(transform_index), allocator, k_num_samples, k_sample_rate);
+			if (base_format == additive_clip_format8::additive1)
+				track.get_description().default_value.scale = rtm::vector_set(0.0F);
+
+			for (uint32_t sample_index = 0; sample_index < k_num_samples; ++sample_index)
+			{
+				const rtm::vqvf& base_transform = base_pose[transform_index];
+				const rtm::vqvf& transform = clip[transform_index][sample_index];
+
+				if (base_format == additive_clip_format8::additive0)
+					track[sample_index] = convert_to_additive0(base_transform, transform);
+				else
+					track[sample_index] = convert_to_additive1(base_transform, transform);
+			}
+
+			additive_clip[transform_index] = std::move(track);
+		}
+
+		transform_space_desc_t transform_space;
+		transform_space.space = transform_space_t::mesh_rotation;
+		transform_space.base_format = base_format;
+		transform_space.base = &base;
+
+		compressed_tracks* tracks = compress(allocator, additive_clip, transform_space);
+
+		decompression_context<debug_transform_decompression_settings> context;
+		REQUIRE(context.initialize(*tracks));
+
+		const track_error error = calculate_compression_error(allocator, additive_clip, context, settings, transform_space);
+		CHECK(error.error >= 0.0F);
+		CHECK(error.error < 0.01F);
+
+		// Compression applies the base in mesh rotation space: with it, we find the object space reference
+		CHECK(find_max_mesh_rotation_error(*tracks, mesh_clip, base_pose, base_format) < 0.01F);
+
+		allocator.deallocate(tracks, tracks->get_size());
+	}
 }

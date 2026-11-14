@@ -55,6 +55,17 @@ namespace acl
 		// The error of a transform does not move its children.
 		// object_transform = transform
 		mesh				= 1,
+
+		//////////////////////////////////////////////////////////////////////////
+		// The rotation of each transform is in object space (mesh space). Its translation and
+		// its scale are relative to its parent transform, as in local space.
+		// The object rotation of a transform is its rotation: the rotation of its parent does not change it.
+		// The parent still moves the transform: its object translation uses the parent transform.
+		// object_transform = mul(local_transform, parent_object_transform)
+		// with local_transform.rotation = mul(transform.rotation, conjugate(parent_object_transform.rotation))
+		// It supports the runtime transform types that compose rotations with a quaternion product:
+		// 'vqf', 'vqsf', 'vqvf', and 'vqmf'. It does not support the 'relative' base format.
+		mesh_rotation		= 2,
 	};
 
 	//////////////////////////////////////////////////////////////////////////
@@ -92,6 +103,8 @@ namespace acl
 		// The base transform tracks (vqvf, vqf, or vqsf), always in local space.
 		// In mesh space, compression puts the base in mesh space with 'rtm::vqv_mul' (the scale of a parent
 		// does not shear its children), then it combines each sample with the base in mesh space.
+		// In mesh rotation space, compression puts the rotations of the base in mesh space, then it combines
+		// each sample with the base: the rotations in mesh space, the translations and scales in local space.
 		// The base must have the same transform hierarchy as the clip.
 		// The base can have a different transform type and a different number of samples than the clip.
 		// A clip sample uses the base sample at the same normalized time, rounded to the nearest sample.
@@ -107,6 +120,7 @@ namespace acl
 		// Returns whether a transform space description is valid or not.
 		// It is valid if:
 		//    - The space and the base format are valid values
+		//    - The mesh rotation space does not use the 'relative' base format
 		//    - With a base format, the base is a valid and non-empty list of transform tracks
 		//    - Without a base format, the base is null
 		error_result is_valid() const;
