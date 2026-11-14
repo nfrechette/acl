@@ -31,6 +31,7 @@
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/compression/track_array.h"
 #include "acl/compression/transform_adapters.h"
+#include "acl/compression/transform_base_adapter.h"
 #include "acl/compression/transform_space.h"
 #include "acl/compression/impl/sample_streams.h"
 #include "acl/compression/impl/transform_clip_adapters.h"
@@ -180,12 +181,13 @@ namespace acl
 			// Samples the base and finds the base sample of each clip sample.
 			//    - 'space': the transform space of the clip
 			//    - 'base_format': the additive format of the clip, 'none' when the clip has no base
+			//    - 'base_adapter': the base adapter of the 'custom' format, null with the other formats
 			//    - 'base_clip': the clip adapter of the base, not used when the format is 'none'
 			//    - 'clip_track_list': the clip that uses the base, it gives the transform hierarchy
 			//    - 'clip_num_samples', 'clip_sample_rate', 'clip_duration': the clip that uses the base
 			template<class clip_adapter_t>
-			void initialize(iallocator& allocator, transform_space_t space, additive_clip_format8 base_format, const clip_adapter_t& base_clip,
-				const track_array& clip_track_list, uint32_t clip_num_samples, float clip_sample_rate, float clip_duration);
+			void initialize(iallocator& allocator, transform_space_t space, additive_clip_format8 base_format, const itransform_base_adapter_t* base_adapter,
+				const clip_adapter_t& base_clip, const track_array& clip_track_list, uint32_t clip_num_samples, float clip_sample_rate, float clip_duration);
 
 			//////////////////////////////////////////////////////////////////////////
 			// Frees the memory. The context then has no base.
@@ -238,8 +240,23 @@ namespace acl
 			{
 				ACL_ASSERT(transform_index < m_num_transforms, "Invalid transform index");
 				const rtm::vqvf& base_transform = get_base_pose(clip_sample_index)[transform_index];
-				return rtm::vqv_normalize(acl::apply_additive_to_base(m_base_format, base_transform, transform));
+				return rtm::vqv_normalize(combine_with_base(transform_index, base_transform, transform));
 			}
+
+			//////////////////////////////////////////////////////////////////////////
+			// Combines a transform with a base transform and returns the result, it does not normalize it.
+			// With the 'custom' format, the base adapter combines them.
+			rtm::vqvf RTM_SIMD_CALL combine_with_base(uint32_t transform_index, rtm::vqvf_arg0 base_transform, rtm::vqvf_arg1 transform) const
+			{
+				if (m_base_format == additive_clip_format8::custom)
+					return m_base_adapter->apply_base(transform_index, base_transform, transform);
+
+				return acl::apply_additive_to_base(m_base_format, base_transform, transform);
+			}
+
+			//////////////////////////////////////////////////////////////////////////
+			// Returns the base adapter of the 'custom' format, null with the other formats.
+			const itransform_base_adapter_t* get_base_adapter() const { return m_base_adapter; }
 
 		private:
 			iallocator* m_allocator = nullptr;
@@ -250,6 +267,9 @@ namespace acl
 			// One base sample index for each clip sample
 			uint32_t* m_base_sample_indices = nullptr;
 
+			// The base adapter of the 'custom' format, null with the other formats
+			const itransform_base_adapter_t* m_base_adapter = nullptr;
+
 			uint32_t m_num_transforms = 0;
 			uint32_t m_num_base_samples = 0;
 			uint32_t m_num_clip_samples = 0;
@@ -259,8 +279,8 @@ namespace acl
 		};
 
 		template<class clip_adapter_t>
-		inline void transform_space_context_t::initialize(iallocator& allocator, transform_space_t space, additive_clip_format8 base_format, const clip_adapter_t& base_clip,
-			const track_array& clip_track_list, uint32_t clip_num_samples, float clip_sample_rate, float clip_duration)
+		inline void transform_space_context_t::initialize(iallocator& allocator, transform_space_t space, additive_clip_format8 base_format, const itransform_base_adapter_t* base_adapter,
+			const clip_adapter_t& base_clip, const track_array& clip_track_list, uint32_t clip_num_samples, float clip_sample_rate, float clip_duration)
 		{
 			static_assert(std::is_base_of<transform_clip_adapter_t, clip_adapter_t>::value, "Clip adapter must derive from transform_clip_adapter_t");
 
@@ -272,6 +292,7 @@ namespace acl
 				return;	// No base, nothing to sample
 
 			ACL_ASSERT(base_clip.is_valid(), "The base clip is not valid");
+			ACL_ASSERT((base_format == additive_clip_format8::custom) == (base_adapter != nullptr), "The custom base format requires a base adapter, the other formats do not use one");
 
 			const uint32_t num_transforms = base_clip.get_num_transforms();
 			const uint32_t num_base_samples = base_clip.get_num_samples();
@@ -281,6 +302,7 @@ namespace acl
 
 			m_allocator = &allocator;
 			m_base_format = base_format;
+			m_base_adapter = base_adapter;
 			m_num_transforms = num_transforms;
 			m_num_base_samples = num_base_samples;
 			m_num_clip_samples = clip_num_samples;
@@ -352,6 +374,7 @@ namespace acl
 			m_allocator = nullptr;
 			m_base_poses = nullptr;
 			m_base_sample_indices = nullptr;
+			m_base_adapter = nullptr;
 			m_num_transforms = 0;
 			m_num_base_samples = 0;
 			m_num_clip_samples = 0;

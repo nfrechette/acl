@@ -230,13 +230,17 @@ namespace acl
 		if (settings.error_metric != nullptr && settings.transform_space.space != transform_space_t::local)
 			return error_result("The legacy error metric supports only the local transform space");
 
+		// The legacy error metric combines the transforms with the base itself, it cannot use a base adapter
+		if (settings.error_metric != nullptr && settings.transform_space.base_format == additive_clip_format8::custom)
+			return error_result("The legacy error metric does not support the custom base format");
+
 		if (settings.error_metric == nullptr)
 		{
 			// An empty track array has no type, we use vqvf
 			const track_type8 track_type = track_list.is_empty() ? track_type8::vqvf : track_list.get_track_type();
 			const error_result runtime_error_metric_result = runtime_error_metric.initialize(
 				settings.transform_runtime_type, settings.custom_transform_adapter, settings.transform_metric,
-				track_type, settings.transform_space.base_format, settings.transform_space.base, settings.transform_space.space);
+				track_type, settings.transform_space);
 			if (runtime_error_metric_result.any())
 				return runtime_error_metric_result;
 

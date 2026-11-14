@@ -90,6 +90,7 @@ namespace acl
 
 	enum class transform_space_t : uint8_t;
 	struct transform_space_desc_t;
+	class itransform_base_adapter_t;
 
 	enum class transform_runtime_type_t : uint8_t;
 

@@ -196,11 +196,12 @@ namespace acl
 				ACL_ASSERT(track_list_.is_empty() || is_transform_track_type(track_list_.get_track_type()), "Expected transform tracks");
 			}
 
-			// The additive base of a clip has no additive format: use 'additive_clip_format8::none' with it
-			transform_track_array_adapter_t(const track_array* track_list_, additive_clip_format8 additive_format_)
+			// The additive base of a clip has no additive format: use 'additive_clip_format8::none' and 1.0 with it
+			// 'default_scale' is the scale of the samples of a VQ track, see 'get_base_default_scale'
+			transform_track_array_adapter_t(const track_array* track_list_, additive_clip_format8 additive_format_, float default_scale)
 				: track_list(track_list_)
 				, additive_format(additive_format_)
-				, vq_scale(rtm::vector_set(get_additive_default_scale(additive_format_)))
+				, vq_scale(rtm::vector_set(default_scale))
 			{
 				ACL_ASSERT(track_list_ == nullptr || track_list_->is_empty() || is_transform_track_type(track_list_->get_track_type()), "Expected transform tracks");
 			}

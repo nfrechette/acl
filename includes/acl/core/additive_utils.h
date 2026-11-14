@@ -64,6 +64,13 @@ namespace acl
 		// Default scale value is 0.0
 		// transform = transform_add1(additive_transform, base_transform)
 		additive1			= 3,
+
+		//////////////////////////////////////////////////////////////////////////
+		// Clip is combined with its base by a custom base adapter, see 'itransform_base_adapter_t'.
+		// Only compression supports this format: it requires a base adapter in 'transform_space_desc_t'.
+		// The functions in this file do not support it.
+		// Default scale value is the default scale of the base adapter.
+		custom				= 4,
 	};
 
 	//////////////////////////////////////////////////////////////////////////
@@ -77,6 +84,7 @@ namespace acl
 		case additive_clip_format8::relative:		return "relative";
 		case additive_clip_format8::additive0:		return "additive0";
 		case additive_clip_format8::additive1:		return "additive1";
+		case additive_clip_format8::custom:			return "custom";
 		default:									return "<Invalid>";
 		}
 	}
@@ -123,6 +131,13 @@ namespace acl
 			return true;
 		}
 
+		const char* custom_format = "custom";
+		if (std::strncmp(format, custom_format, std::strlen(custom_format)) == 0)
+		{
+			out_format = additive_clip_format8::custom;
+			return true;
+		}
+
 		return false;
 	}
 
@@ -131,7 +146,7 @@ namespace acl
 		//////////////////////////////////////////////////////////////////////////
 		// Returns the default scale of a transform with the specified additive format.
 		// The scale of an additive1 transform is an offset from 1.0, thus its default is 0.0.
-		// The other formats use 1.0.
+		// The other formats use 1.0. With the 'custom' format, the base adapter gives the default scale.
 		constexpr float get_additive_default_scale(additive_clip_format8 format)
 		{
 			return format == additive_clip_format8::additive1 ? 0.0F : 1.0F;

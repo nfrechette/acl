@@ -913,7 +913,7 @@ namespace acl
 			return calculate_compression_error(allocator, raw_tracks, context);	// Scalar tracks do not use an error metric
 
 		transform_runtime_error_metric runtime_error_metric;
-		const itransform_error_metric* error_metric = get_settings_error_metric(settings, raw_tracks, additive_clip_format8::none, nullptr, runtime_error_metric);
+		const itransform_error_metric* error_metric = get_settings_error_metric(settings, raw_tracks, transform_space_desc_t(), runtime_error_metric);
 		ACL_ASSERT(error_metric != nullptr, "The compression settings are not valid for these tracks");
 		if (error_metric == nullptr)
 			return invalid_track_error();
@@ -944,7 +944,7 @@ namespace acl
 			const track_array* base_tracks = transform_space.has_base() ? transform_space.base : nullptr;
 
 			transform_runtime_error_metric runtime_error_metric;
-			const itransform_error_metric* error_metric = get_settings_error_metric(settings, raw_tracks, transform_space.base_format, base_tracks, runtime_error_metric, transform_space.space);
+			const itransform_error_metric* error_metric = get_settings_error_metric(settings, raw_tracks, transform_space, runtime_error_metric);
 			ACL_ASSERT(error_metric != nullptr, "The compression settings are not valid for these tracks");
 			if (error_metric == nullptr)
 				return invalid_track_error();
@@ -958,7 +958,7 @@ namespace acl
 		const track_array& base_tracks = *transform_space.base;
 
 		transform_runtime_error_metric runtime_error_metric;
-		const itransform_error_metric* error_metric = get_settings_error_metric(settings, raw_tracks, transform_space.base_format, &base_tracks, runtime_error_metric);
+		const itransform_error_metric* error_metric = get_settings_error_metric(settings, raw_tracks, transform_space, runtime_error_metric);
 		ACL_ASSERT(error_metric != nullptr, "The compression settings are not valid for these tracks");
 		if (error_metric == nullptr)
 			return invalid_track_error();
@@ -974,7 +974,7 @@ namespace acl
 			return calculate_compression_error(allocator, raw_tracks0, raw_tracks1);	// Scalar tracks do not use an error metric
 
 		transform_runtime_error_metric runtime_error_metric;
-		const itransform_error_metric* error_metric = get_settings_error_metric(settings, raw_tracks0, additive_clip_format8::none, nullptr, runtime_error_metric);
+		const itransform_error_metric* error_metric = get_settings_error_metric(settings, raw_tracks0, transform_space_desc_t(), runtime_error_metric);
 		ACL_ASSERT(error_metric != nullptr, "The compression settings are not valid for these tracks");
 		if (error_metric == nullptr)
 			return invalid_track_error();

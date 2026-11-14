@@ -23,6 +23,8 @@ A `transform_space_desc_t` now holds the base of an additive clip and its additi
 *  The `compress_track_list` overload that takes `additive_base_track_list` and `additive_format`. Use the overload that takes a `transform_space_desc_t`. The old overload ignores an empty base. The new overload returns an error when the base format is not `none` and the base is null or empty.
 *  `pre_process_settings_t::additive_base` and `pre_process_settings_t::additive_format`. Use `pre_process_settings_t::transform_space`. Pre-processing returns an error when you set both.
 
+To combine a clip with its base in your own way, you overrode `itransform_error_metric::apply_additive_to_base`. Now, implement an `itransform_base_adapter_t` and use the `custom` base format (see [here](additive_clips.md#custom-base-format)). Your adapter then works with each runtime transform type and each transform metric.
+
 The `calculate_compression_error` overload that takes the compression settings, the additive base, and the additive format is new in 2.2. It now takes a `transform_space_desc_t` in place of the base and the format.
 
 ```c++

@@ -340,7 +340,7 @@ namespace acl
 			(void)compression_stats;
 
 			// A VQ track has no scale, its default value uses this scale
-			const rtm::vector4f vq_scale = rtm::vector_set(get_additive_default_scale(context.additive_format));
+			const rtm::vector4f vq_scale = rtm::vector_set(context.default_scale);
 
 #if defined(ACL_USE_SJSON)
 			scope_profiler compact_constant_sub_tracks_time;
@@ -774,7 +774,7 @@ namespace acl
 			(void)compression_stats;
 
 			// A VQ track has no scale, its default value uses this scale
-			const rtm::vector4f vq_scale = rtm::vector_set(get_additive_default_scale(lossy_clip_context.additive_format));
+			const rtm::vector4f vq_scale = rtm::vector_set(lossy_clip_context.default_scale);
 
 			const uint32_t num_transforms = lossy_clip_context.num_bones;
 			if (num_transforms == 0)

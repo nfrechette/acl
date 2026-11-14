@@ -12,7 +12,7 @@ A `transform_space_desc_t` (see [here](../includes/acl/compression/transform_spa
     *  `local` (the default): each transform is relative to its parent transform.
     *  `mesh`: each transform is in object space (mesh space). It does not use its parent transform. Compression measures the error of each transform alone: the error of a parent does not move its children.
     *  `mesh_rotation`: the rotation of each transform is in object space, its translation and scale are relative to its parent transform. The rotation of a parent does not change the object rotation of its children, but the parent still moves them. Compression measures the error in object space with this rule: `object = mul(local, parent_object)`, with `local.rotation = mul(rotation, conjugate(parent_object.rotation))`.
-*  `base_format` and `base`: how a sample combines with its base clip, see `additive_clip_format8` and the formats below. With `none`, the clip has no base.
+*  `base_format` and `base`: how a sample combines with its base clip, see `additive_clip_format8` and the formats below. With `none`, the clip has no base. With `custom`, the `base_adapter` combines them, see [below](#custom-base-format).
 
 Compression first combines each sample with the base. Then it puts the result in object space to measure the error. The transform space does not change the compressed data: decompression returns the samples of the clip, and your runtime applies them to the base.
 
@@ -62,3 +62,48 @@ Clips in this space have their rotations multiplied with the base, the translati
 `scale = (1.0 + additive_scale) * base_scale`
 
 This is the additive mode used by Unreal 4.
+
+## Custom base format
+
+When your runtime combines a clip with its base in another way, implement an `itransform_base_adapter_t` (see [here](../includes/acl/compression/transform_base_adapter.h)). Set the base format to `custom`, and set `base_adapter` in the transform space:
+
+```c++
+class my_base_adapter final : public itransform_base_adapter_t
+{
+public:
+    virtual const char* get_name() const override { return "my_base_adapter"; }
+
+    // The scale of a sample without scale, 0.0 or 1.0 (defaults to 1.0)
+    virtual float get_default_scale() const override { return 1.0F; }
+
+    virtual rtm::vqvf apply_base(uint32_t transform_index, const rtm::vqvf& base_transform, const rtm::vqvf& transform) const override
+    {
+        // The root does not use the base
+        if (transform_index == 0)
+            return transform;
+
+        return transform_add0(base_transform, transform);
+    }
+};
+
+my_base_adapter base_adapter;
+
+transform_space_desc_t transform_space;
+transform_space.base_format = additive_clip_format8::custom;
+transform_space.base = &base_track_list;
+transform_space.base_adapter = &base_adapter;
+```
+
+The adapter combines one transform at a time:
+
+*  Compression puts the base in the transform space of the clip first, as with the other formats. The base transform and the clip transform that the adapter receives are in the same space. Then compression puts the combined transforms in object space. Thus the adapter does not need the transform hierarchy.
+*  The transform index lets the adapter combine some transforms in another way, for example the root.
+*  The default scale is the scale of the samples of a track without scale (for example, a `vqf` track). Decompression returns it when the compressed tracks have no scale. The compressed data keeps one bit for it, thus it must be 0.0 or 1.0.
+*  When the clip and the base have no scale, compression ignores the scale of the combined transform.
+*  Compression calls the adapter in its inner loops, with the raw and the lossy samples. The same input must always give the same output.
+
+The custom base format has these limits:
+
+*  The legacy error metric (`compression_settings::error_metric`) does not support it. Compression and pre-processing return an error.
+*  The deprecated `compress_track_list` overload that takes an additive base and an additive format cannot receive an adapter. It returns an error with the `custom` format.
+*  A clip file can hold the `custom` format name, but not the adapter. Your tool must supply the adapter.

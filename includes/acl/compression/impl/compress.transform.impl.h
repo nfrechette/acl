@@ -80,10 +80,11 @@ namespace acl
 
 	namespace acl_impl
 	{
-		inline bool has_trivial_default_values(const track_array& track_list, additive_clip_format8 additive_format, const clip_context& lossy_clip_context)
+		inline bool has_trivial_default_values(const track_array& track_list, const clip_context& lossy_clip_context)
 		{
 			// A VQ track has no scale, its default value uses this scale
-			const rtm::vector4f vq_scale = rtm::vector_set(get_additive_default_scale(additive_format));
+			const float default_scale = lossy_clip_context.default_scale;
+			const rtm::vector4f vq_scale = rtm::vector_set(default_scale);
 
 			// Additive clips and regular clips can have zero/one scale and be trivial
 			bool all_scales_zero = true;
@@ -110,7 +111,7 @@ namespace acl
 
 			if (lossy_clip_context.has_scale)
 			{
-				if (additive_format == additive_clip_format8::additive1 && !all_scales_zero)
+				if (default_scale == 0.0F && !all_scales_zero)
 					return false;	// Not zero
 				else if (!all_scales_one)
 					return false;	// Not one
@@ -168,6 +169,10 @@ namespace acl
 			if (settings.error_metric != nullptr && transform_space.space != transform_space_t::local)
 				return error_result("The legacy error metric supports only the local transform space");
 
+			// The legacy error metric combines the transforms with the base itself, it cannot use a base adapter
+			if (settings.error_metric != nullptr && additive_format == additive_clip_format8::custom)
+				return error_result("The legacy error metric does not support the custom base format");
+
 			// When the settings do not supply a legacy error metric, we use the runtime transform type
 			// and the transform metric of the settings
 			transform_runtime_error_metric runtime_error_metric;
@@ -176,7 +181,7 @@ namespace acl
 			{
 				result = runtime_error_metric.initialize(
 					settings.transform_runtime_type, settings.custom_transform_adapter, settings.transform_metric,
-					track_type, additive_format, additive_base_track_list, transform_space.space);
+					track_type, transform_space);
 				if (result.any())
 					return result;
 
@@ -246,21 +251,28 @@ namespace acl
 			if (additive_base_track_list == nullptr || additive_base_track_list->is_empty())
 				additive_format = additive_clip_format8::none;
 
+			// The base adapter of the 'custom' format
+			const itransform_base_adapter_t* base_adapter = additive_format == additive_clip_format8::custom ? transform_space.base_adapter : nullptr;
+
+			// Our default scale is 1.0 if we have no additive base or if we don't use 'additive1', otherwise it is 0.0
+			// With the 'custom' format, the base adapter gives it
+			const float default_scale = get_base_default_scale(additive_format, base_adapter);
+
 			clip_context raw_clip_context;
-			if (!initialize_clip_context(allocator, track_list, settings, additive_format, raw_clip_context, false, transform_space.space))
+			if (!initialize_clip_context(allocator, track_list, settings, additive_format, default_scale, raw_clip_context, false, transform_space.space))
 				return error_result("Some samples are not finite");
 
 			clip_context lossy_clip_context;
-			initialize_clip_context(allocator, track_list, settings, additive_format, lossy_clip_context, false, transform_space.space);
+			initialize_clip_context(allocator, track_list, settings, additive_format, default_scale, lossy_clip_context, false, transform_space.space);
 
 			const bool is_additive = additive_format != additive_clip_format8::none;
 			clip_context additive_base_clip_context;
-			if (is_additive && !initialize_clip_context(allocator, *additive_base_track_list, settings, additive_format, additive_base_clip_context, true))
+			if (is_additive && !initialize_clip_context(allocator, *additive_base_track_list, settings, additive_format, default_scale, additive_base_clip_context, true))
 				return error_result("Some base samples are not finite");
 
 			// Sample the base one time, compression reads the base poses from the space context
 			transform_space_context_t space_context;
-			space_context.initialize(allocator, transform_space.space, additive_format, transform_clip_context_adapter_t(additive_base_clip_context),
+			space_context.initialize(allocator, transform_space.space, additive_format, base_adapter, transform_clip_context_adapter_t(additive_base_clip_context),
 				track_list, raw_clip_context.num_samples, raw_clip_context.sample_rate, raw_clip_context.duration);
 
 			if (settings.level == compression_level8::automatic)
@@ -358,7 +370,7 @@ namespace acl
 			if (remove_contributing_error)
 				settings.metadata.include_contributing_error = false;
 
-			const bool has_trivial_defaults = has_trivial_default_values(track_list, additive_format, lossy_clip_context);
+			const bool has_trivial_defaults = has_trivial_default_values(track_list, lossy_clip_context);
 
 			const uint32_t constant_data_size = get_constant_data_size(lossy_clip_context);
 
@@ -494,7 +506,8 @@ namespace acl
 			header->set_scale_format(settings.scale_format);
 			header->set_has_scale(lossy_clip_context.has_scale);
 			// Our default scale is 1.0 if we have no additive base or if we don't use 'additive1', otherwise it is 0.0
-			header->set_default_scale(uint32_t(get_additive_default_scale(additive_format)));
+			// With the 'custom' format, the base adapter gives it
+			header->set_default_scale(uint32_t(default_scale));
 			header->set_has_database(false);
 			header->set_has_trivial_default_values(has_trivial_defaults);
 			header->set_has_stripped_keyframes(lossy_clip_context.has_stripped_keyframes);

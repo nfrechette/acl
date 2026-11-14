@@ -33,6 +33,7 @@
 #include "acl/compression/compression_settings.h"
 #include "acl/compression/track_array.h"
 #include "acl/compression/transform_adapters.h"
+#include "acl/compression/transform_base_adapter.h"
 #include "acl/compression/transform_error_metrics.h"
 #include "acl/compression/transform_metrics.h"
 #include "acl/compression/transform_space.h"
@@ -84,16 +85,23 @@ namespace acl
 			//////////////////////////////////////////////////////////////////////////
 			// Selects the transform adapters and the transform metrics of a clip.
 			// 'source_type' is the track type of the raw tracks.
-			// 'additive_base' can be 'null' when the clip is not additive.
-			// 'space' is the transform space of the clip: in mesh rotation space, we compose the transforms with
-			// the mesh rotation product, see 'transform_space_t::mesh_rotation'.
+			// 'transform_space' holds the transform space of the clip and its base:
+			//    - in mesh rotation space, we compose the transforms with the mesh rotation product, see 'transform_space_t::mesh_rotation'
+			//    - with the 'custom' base format, the base adapter combines each transform with the base
 			error_result initialize(
 				transform_runtime_type_t type, const itransform_adapter* custom_adapter, const itransform_metric* metric,
-				track_type8 source_type, additive_clip_format8 additive_format, const track_array* additive_base,
-				transform_space_t space = transform_space_t::local)
+				track_type8 source_type, const transform_space_desc_t& transform_space)
 			{
+				const additive_clip_format8 additive_format = transform_space.base_format;
+				const track_array* additive_base = transform_space.base;
+				const transform_space_t space = transform_space.space;
+
 				m_additive_format = additive_format;
+				m_base_adapter = additive_format == additive_clip_format8::custom ? transform_space.base_adapter : nullptr;
 				m_space = space;
+
+				if (additive_format == additive_clip_format8::custom && m_base_adapter == nullptr)
+					return error_result("The custom base format requires a base adapter");
 
 				// An additive base with scale gives a clip with scale
 				// An additive base with a scale that is not uniform gives a scale that is not uniform
@@ -138,6 +146,8 @@ namespace acl
 				hash_value = hash_combine(hash_value, m_no_scale_selection.adapter->get_hash());
 				hash_value = hash_combine(hash_value, m_no_scale_selection.metric->get_hash());
 				hash_value = hash_combine(hash_value, hash32(m_additive_format));
+				if (m_base_adapter != nullptr)
+					hash_value = hash_combine(hash_value, m_base_adapter->get_hash());
 				if (m_space != transform_space_t::local)
 					hash_value = hash_combine(hash_value, hash32(m_space));	// The local space keeps the hash of older versions
 				return hash_value;
@@ -174,7 +184,7 @@ namespace acl
 				for (uint32_t dirty_transform_index = 0; dirty_transform_index < num_dirty_transforms; ++dirty_transform_index)
 				{
 					const uint32_t transform_index = dirty_transform_indices[dirty_transform_index];
-					out_transforms_[transform_index] = acl::apply_additive_to_base(m_additive_format, base_transforms_[transform_index], local_transforms_[transform_index]);
+					out_transforms_[transform_index] = combine_with_base(transform_index, base_transforms_[transform_index], local_transforms_[transform_index]);
 				}
 			}
 
@@ -189,7 +199,7 @@ namespace acl
 				for (uint32_t dirty_transform_index = 0; dirty_transform_index < num_dirty_transforms; ++dirty_transform_index)
 				{
 					const uint32_t transform_index = dirty_transform_indices[dirty_transform_index];
-					out_transforms_[transform_index] = acl::apply_additive_to_base_no_scale(m_additive_format, base_transforms_[transform_index], local_transforms_[transform_index]);
+					out_transforms_[transform_index] = combine_with_base_no_scale(transform_index, base_transforms_[transform_index], local_transforms_[transform_index]);
 				}
 			}
 
@@ -197,6 +207,27 @@ namespace acl
 			virtual rtm::scalarf RTM_SIMD_CALL calculate_error_squared_no_scale(const calculate_error_args& args) const override { return calculate_error_squared_impl(get_selection(false), args); }
 
 		private:
+			// Combines a transform with its base transform, with the base adapter of the 'custom' format
+			rtm::vqvf RTM_SIMD_CALL combine_with_base(uint32_t transform_index, rtm::vqvf_arg0 base_transform, rtm::vqvf_arg1 transform) const
+			{
+				if (m_base_adapter != nullptr)
+					return m_base_adapter->apply_base(transform_index, base_transform, transform);
+
+				return acl::apply_additive_to_base(m_additive_format, base_transform, transform);
+			}
+
+			// Combines a transform with its base transform when the clip and the base have no scale: the result has no scale
+			rtm::vqvf RTM_SIMD_CALL combine_with_base_no_scale(uint32_t transform_index, rtm::vqvf_arg0 base_transform, rtm::vqvf_arg1 transform) const
+			{
+				if (m_base_adapter != nullptr)
+				{
+					const rtm::vqvf result = m_base_adapter->apply_base(transform_index, base_transform, transform);
+					return rtm::vqv_set(result.rotation, result.translation, rtm::vector_set(1.0F));
+				}
+
+				return acl::apply_additive_to_base_no_scale(m_additive_format, base_transform, transform);
+			}
+
 			static void convert_transforms_impl(const transform_runtime_selection& selection, const convert_transforms_args& args, void* out_transforms)
 			{
 				itransform_adapter::convert_transforms_args adapter_args;
@@ -308,6 +339,7 @@ namespace acl
 			transform_runtime_selection m_no_scale_selection;
 			const transform_runtime_selection* m_scale_function_selection = &m_scale_selection;
 
+			const itransform_base_adapter_t* m_base_adapter = nullptr;
 			additive_clip_format8 m_additive_format = additive_clip_format8::none;
 			transform_space_t m_space = transform_space_t::local;
 			bool m_base_has_scale = false;
@@ -315,13 +347,13 @@ namespace acl
 
 		//////////////////////////////////////////////////////////////////////////
 		// Returns whether or not transform tracks have a scale that is not the default scale.
-		// The default scale is 0.0 with the 'additive1' format, and 1.0 otherwise.
-		inline bool transform_tracks_have_scale(const track_array& tracks, additive_clip_format8 additive_format)
+		// The default scale is 0.0 or 1.0, see 'get_base_default_scale'.
+		inline bool transform_tracks_have_scale(const track_array& tracks, float default_scale_value)
 		{
 			if (tracks.is_empty() || !is_transform_track_type(tracks.get_track_type()))
 				return false;
 
-			const rtm::vector4f default_scale = rtm::vector_set(additive_format == additive_clip_format8::additive1 ? 0.0F : 1.0F);
+			const rtm::vector4f default_scale = rtm::vector_set(default_scale_value);
 
 			rtm::mask4f is_default = rtm::mask_set(true, true, true, true);
 
@@ -345,23 +377,28 @@ namespace acl
 		// Returns 'null' when the settings are not valid for these tracks.
 		inline const itransform_error_metric* get_settings_error_metric(
 			const compression_settings& settings, const track_array& raw_tracks,
-			additive_clip_format8 additive_format, const track_array* additive_base,
-			transform_runtime_error_metric& runtime_error_metric,
-			transform_space_t space = transform_space_t::local)
+			const transform_space_desc_t& transform_space,
+			transform_runtime_error_metric& runtime_error_metric)
 		{
 			if (settings.error_metric != nullptr)
+			{
+				// The legacy error metric cannot use a base adapter
+				if (transform_space.base_format == additive_clip_format8::custom)
+					return nullptr;
+
 				return settings.error_metric;
+			}
 
 			// An empty track array has no type, we use vqvf
 			const track_type8 track_type = raw_tracks.is_empty() ? track_type8::vqvf : raw_tracks.get_track_type();
 
 			const error_result result = runtime_error_metric.initialize(
 				settings.transform_runtime_type, settings.custom_transform_adapter, settings.transform_metric,
-				track_type, additive_format, additive_base, space);
+				track_type, transform_space);
 			if (result.any())
 				return nullptr;
 
-			runtime_error_metric.set_clip_has_scale(transform_tracks_have_scale(raw_tracks, additive_format));
+			runtime_error_metric.set_clip_has_scale(transform_tracks_have_scale(raw_tracks, get_base_default_scale(transform_space)));
 			return &runtime_error_metric;
 		}
 	}

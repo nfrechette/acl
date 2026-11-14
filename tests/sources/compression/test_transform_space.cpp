@@ -28,6 +28,7 @@
 #include <acl/compression/pre_process.h>
 #include <acl/compression/track_array.h>
 #include <acl/compression/track_error.h>
+#include <acl/compression/transform_base_adapter.h>
 #include <acl/compression/transform_space.h>
 #include <acl/compression/transform_error_metrics.h>
 #include <acl/compression/transform_metrics.h>
@@ -38,6 +39,7 @@
 
 #include <rtm/quatf.h>
 #include <rtm/vector4f.h>
+#include <rtm/vqf.h>
 #include <rtm/vqmf.h>
 #include <rtm/vqsf.h>
 #include <rtm/vqvf.h>
@@ -895,4 +897,349 @@ TEST_CASE("compression in mesh rotation space with a base", "[compression][trans
 
 		allocator.deallocate(tracks, tracks->get_size());
 	}
+}
+
+namespace
+{
+	// A base adapter that combines the transforms with the math of a built-in base format
+	class builtin_base_adapter_t final : public itransform_base_adapter_t
+	{
+	public:
+		explicit builtin_base_adapter_t(additive_clip_format8 base_format) : m_base_format(base_format) {}
+
+		virtual const char* get_name() const override { return "builtin_base_adapter_t"; }
+		virtual float get_default_scale() const override { return m_base_format == additive_clip_format8::additive1 ? 0.0F : 1.0F; }
+
+		virtual rtm::vqvf apply_base(uint32_t transform_index, const rtm::vqvf& base_transform, const rtm::vqvf& transform) const override
+		{
+			(void)transform_index;
+			return apply_additive_to_base(m_base_format, base_transform, transform);
+		}
+
+	private:
+		additive_clip_format8 m_base_format;
+	};
+
+	// A base adapter that combines the transforms as 'additive0', but it multiplies the translation of
+	// each transform except the root by 100. The root does not use the base.
+	class scaled_base_adapter_t final : public itransform_base_adapter_t
+	{
+	public:
+		virtual const char* get_name() const override { return "scaled_base_adapter_t"; }
+
+		virtual rtm::vqvf apply_base(uint32_t transform_index, const rtm::vqvf& base_transform, const rtm::vqvf& transform) const override
+		{
+			if (transform_index == 0)
+				return transform;
+
+			const rtm::vqvf scaled_transform = rtm::vqv_set(transform.rotation, rtm::vector_mul(transform.translation, 100.0F), transform.scale);
+			return transform_add0(base_transform, scaled_transform);
+		}
+	};
+
+	// A base adapter with a default scale that is not valid
+	class invalid_default_scale_base_adapter_t final : public itransform_base_adapter_t
+	{
+	public:
+		virtual const char* get_name() const override { return "invalid_default_scale_base_adapter_t"; }
+		virtual float get_default_scale() const override { return 0.5F; }
+		virtual rtm::vqvf apply_base(uint32_t transform_index, const rtm::vqvf& base_transform, const rtm::vqvf& transform) const override
+		{
+			(void)transform_index;
+			return transform_add0(base_transform, transform);
+		}
+	};
+
+	// Returns a copy of a clip with VQ tracks: the tracks have no scale
+	track_array_vqf make_vq_clip(iallocator& allocator, const track_array_vqvf& vqv_clip)
+	{
+		track_array_vqf clip(allocator, k_num_transforms);
+		for (uint32_t transform_index = 0; transform_index < k_num_transforms; ++transform_index)
+		{
+			const track_vqvf& vqv_track = vqv_clip[transform_index];
+			track_vqf vq_track = track_vqf::make_reserve(vqv_track.get_description(), allocator, k_num_samples, k_sample_rate);
+
+			for (uint32_t sample_index = 0; sample_index < k_num_samples; ++sample_index)
+			{
+				const rtm::vqvf& transform = vqv_track[sample_index];
+				vq_track[sample_index] = rtm::vq_set(transform.rotation, transform.translation);
+			}
+
+			clip[transform_index] = std::move(vq_track);
+		}
+
+		return clip;
+	}
+
+	// Returns a base without scale with the transform hierarchy of the clip
+	track_array_vqvf make_base_without_scale(iallocator& allocator)
+	{
+		track_array_vqvf base = make_base(allocator);
+		const uint32_t num_base_samples = base.get_num_samples_per_track();
+
+		for (uint32_t transform_index = 0; transform_index < k_num_transforms; ++transform_index)
+		{
+			for (uint32_t sample_index = 0; sample_index < num_base_samples; ++sample_index)
+			{
+				rtm::vqvf& transform = base[transform_index][sample_index];
+				transform.scale = rtm::vector_set(1.0F);
+			}
+		}
+
+		return base;
+	}
+}
+
+TEST_CASE("custom base format names", "[compression][transform_space]")
+{
+	CHECK(std::strcmp(get_additive_clip_format_name(additive_clip_format8::custom), "custom") == 0);
+
+	additive_clip_format8 base_format = additive_clip_format8::none;
+	CHECK(get_additive_clip_format("custom", base_format));
+	CHECK(base_format == additive_clip_format8::custom);
+}
+
+TEST_CASE("transform_space_desc_t validation with a base adapter", "[compression][transform_space]")
+{
+	ansi_allocator allocator;
+	const track_array_vqvf base = make_base(allocator);
+	const builtin_base_adapter_t additive0_adapter(additive_clip_format8::additive0);
+	const builtin_base_adapter_t additive1_adapter(additive_clip_format8::additive1);
+	const invalid_default_scale_base_adapter_t invalid_adapter;
+
+	{
+		transform_space_desc_t transform_space;
+		transform_space.base_format = additive_clip_format8::custom;
+		transform_space.base = &base;
+		CHECK(transform_space.has_base());
+		CHECK(transform_space.is_valid().any());	// No base adapter
+
+		transform_space.base_adapter = &additive0_adapter;
+		CHECK(transform_space.is_valid().empty());
+
+		transform_space.base_adapter = &additive1_adapter;
+		CHECK(transform_space.is_valid().empty());
+
+		transform_space.base_adapter = &invalid_adapter;
+		CHECK(transform_space.is_valid().any());	// The default scale is not 0.0 or 1.0
+
+		transform_space.base_adapter = &additive0_adapter;
+		transform_space.base = nullptr;
+		CHECK(transform_space.is_valid().any());	// No base
+	}
+
+	{
+		transform_space_desc_t transform_space;
+		transform_space.base_format = additive_clip_format8::additive0;
+		transform_space.base = &base;
+		transform_space.base_adapter = &additive0_adapter;
+		CHECK(transform_space.is_valid().any());	// A base adapter without the custom base format
+
+		transform_space.base_format = additive_clip_format8::none;
+		transform_space.base = nullptr;
+		CHECK(transform_space.is_valid().any());	// A base adapter without a base
+	}
+
+	{
+		// The mesh rotation space supports the custom base format
+		transform_space_desc_t transform_space;
+		transform_space.space = transform_space_t::mesh_rotation;
+		transform_space.base_format = additive_clip_format8::custom;
+		transform_space.base = &base;
+		transform_space.base_adapter = &additive0_adapter;
+		CHECK(transform_space.is_valid().empty());
+	}
+}
+
+TEST_CASE("compression with a custom base format", "[compression][transform_space]")
+{
+	ansi_allocator allocator;
+	const compression_settings settings = get_default_compression_settings();
+
+	const track_array_vqvf local_clip = make_clip(allocator);
+	const track_array_vqvf mesh_clip = make_mesh_space_clip(allocator, local_clip);
+	const track_array_vqvf mesh_rotation_clip = make_mesh_rotation_space_clip(allocator, local_clip);
+	const track_array_vqvf base = make_base(allocator);
+	const track_array_vqvf base_without_scale = make_base_without_scale(allocator);
+
+	// With the math of a built-in base format, a base adapter gives the same compressed data and the same error
+	const transform_space_t spaces[] = { transform_space_t::local, transform_space_t::mesh, transform_space_t::mesh_rotation };
+	const additive_clip_format8 base_formats[] = { additive_clip_format8::relative, additive_clip_format8::additive0, additive_clip_format8::additive1 };
+	for (const transform_space_t space : spaces)
+	{
+		const track_array_vqvf& vqv_clip = space == transform_space_t::local ? local_clip : (space == transform_space_t::mesh ? mesh_clip : mesh_rotation_clip);
+		const track_array_vqf vq_clip = make_vq_clip(allocator, vqv_clip);
+
+		for (const additive_clip_format8 base_format : base_formats)
+		{
+			if (space == transform_space_t::mesh_rotation && base_format == additive_clip_format8::relative)
+				continue;	// Not supported
+
+			const builtin_base_adapter_t base_adapter(base_format);
+
+			// A clip with scale, and a clip without scale with a base without scale
+			const track_array* clips[] = { &vqv_clip, &vq_clip };
+			const track_array* bases[] = { &base, &base_without_scale };
+			for (uint32_t clip_index = 0; clip_index < 2; ++clip_index)
+			{
+				INFO("space: " << get_transform_space_name(space) << ", base format: " << get_additive_clip_format_name(base_format) << ", clip: " << clip_index);
+
+				const track_array& clip = *clips[clip_index];
+
+				transform_space_desc_t builtin_space;
+				builtin_space.space = space;
+				builtin_space.base_format = base_format;
+				builtin_space.base = bases[clip_index];
+
+				transform_space_desc_t custom_space = builtin_space;
+				custom_space.base_format = additive_clip_format8::custom;
+				custom_space.base_adapter = &base_adapter;
+
+				compressed_tracks* builtin_tracks = compress(allocator, clip, builtin_space);
+				compressed_tracks* custom_tracks = compress(allocator, clip, custom_space);
+
+				CHECK(are_equal(*builtin_tracks, *custom_tracks));
+				CHECK(custom_tracks->get_default_scale() == (base_format == additive_clip_format8::additive1 ? 0 : 1));
+
+				decompression_context<debug_transform_decompression_settings> context;
+				REQUIRE(context.initialize(*custom_tracks));
+
+				const track_error builtin_error = calculate_compression_error(allocator, clip, context, settings, builtin_space);
+				const track_error custom_error = calculate_compression_error(allocator, clip, context, settings, custom_space);
+				CHECK(custom_error.error == builtin_error.error);
+				CHECK(custom_error.error < 0.01F);
+
+				allocator.deallocate(builtin_tracks, builtin_tracks->get_size());
+				allocator.deallocate(custom_tracks, custom_tracks->get_size());
+			}
+		}
+	}
+
+	// Compression and the error measurement use the base adapter
+	{
+		const scaled_base_adapter_t base_adapter;
+
+		transform_space_desc_t builtin_space;
+		builtin_space.base_format = additive_clip_format8::additive0;
+		builtin_space.base = &base;
+
+		transform_space_desc_t custom_space = builtin_space;
+		custom_space.base_format = additive_clip_format8::custom;
+		custom_space.base_adapter = &base_adapter;
+
+		compressed_tracks* builtin_tracks = compress(allocator, local_clip, builtin_space);
+		compressed_tracks* custom_tracks = compress(allocator, local_clip, custom_space);
+
+		decompression_context<debug_transform_decompression_settings> builtin_context;
+		REQUIRE(builtin_context.initialize(*builtin_tracks));
+
+		decompression_context<debug_transform_decompression_settings> custom_context;
+		REQUIRE(custom_context.initialize(*custom_tracks));
+
+		// With the base adapter, the error of the clip that we compress with the base adapter is small
+		const track_error custom_error = calculate_compression_error(allocator, local_clip, custom_context, settings, custom_space);
+		CHECK(custom_error.error < 0.01F);
+
+		// The clip that we compress with 'additive0' does not keep enough precision for the base adapter
+		const track_error builtin_error = calculate_compression_error(allocator, local_clip, builtin_context, settings, custom_space);
+		CHECK(custom_error.error < builtin_error.error);
+
+		// The base adapter needs more precision
+		CHECK(custom_tracks->get_size() > builtin_tracks->get_size());
+
+		allocator.deallocate(builtin_tracks, builtin_tracks->get_size());
+		allocator.deallocate(custom_tracks, custom_tracks->get_size());
+	}
+}
+
+TEST_CASE("pre-process with a custom base format", "[compression][transform_space]")
+{
+	ansi_allocator allocator;
+	const track_array_vqvf base = make_base(allocator);
+
+	pre_process_settings_t settings;
+	settings.actions = pre_process_actions::recommended;
+	settings.precision_policy = pre_process_precision_policy::lossy;
+
+	// With the math of a built-in base format, a base adapter gives the same result
+	const additive_clip_format8 base_formats[] = { additive_clip_format8::relative, additive_clip_format8::additive0, additive_clip_format8::additive1 };
+	for (const additive_clip_format8 base_format : base_formats)
+	{
+		INFO("base format: " << get_additive_clip_format_name(base_format));
+
+		const builtin_base_adapter_t base_adapter(base_format);
+
+		track_array builtin_clip = make_clip(allocator);
+		pre_process_settings_t builtin_settings = settings;
+		builtin_settings.transform_space.base_format = base_format;
+		builtin_settings.transform_space.base = &base;
+		REQUIRE(pre_process_track_list(allocator, builtin_settings, builtin_clip).empty());
+
+		track_array custom_clip = make_clip(allocator);
+		pre_process_settings_t custom_settings = builtin_settings;
+		custom_settings.transform_space.base_format = additive_clip_format8::custom;
+		custom_settings.transform_space.base_adapter = &base_adapter;
+		REQUIRE(pre_process_track_list(allocator, custom_settings, custom_clip).empty());
+
+		REQUIRE(builtin_clip.get_track_type() == custom_clip.get_track_type());
+		REQUIRE(builtin_clip.get_num_tracks() == custom_clip.get_num_tracks());
+		REQUIRE(builtin_clip.get_num_samples_per_track() == custom_clip.get_num_samples_per_track());
+
+		const uint32_t num_samples = builtin_clip.get_num_samples_per_track();
+		for (uint32_t transform_index = 0; transform_index < k_num_transforms; ++transform_index)
+		{
+			const track& builtin_track = builtin_clip[transform_index];
+			const track& custom_track = custom_clip[transform_index];
+			REQUIRE(builtin_track.get_sample_size() == custom_track.get_sample_size());
+
+			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+				CHECK(std::memcmp(builtin_track[sample_index], custom_track[sample_index], builtin_track.get_sample_size()) == 0);
+		}
+	}
+
+	// The custom base format requires a base adapter
+	{
+		track_array clip = make_clip(allocator);
+		pre_process_settings_t invalid_settings = settings;
+		invalid_settings.transform_space.base_format = additive_clip_format8::custom;
+		invalid_settings.transform_space.base = &base;
+		CHECK(pre_process_track_list(allocator, invalid_settings, clip).any());
+	}
+}
+
+TEST_CASE("the legacy error metric does not support the custom base format", "[compression][transform_space]")
+{
+	ansi_allocator allocator;
+	const track_array_vqvf clip = make_clip(allocator);
+	const track_array_vqvf base = make_base(allocator);
+	const builtin_base_adapter_t base_adapter(additive_clip_format8::additive0);
+
+	transform_space_desc_t transform_space;
+	transform_space.base_format = additive_clip_format8::custom;
+	transform_space.base = &base;
+	transform_space.base_adapter = &base_adapter;
+
+	ACL_IMPL_DEPRECATION_WARNING_PUSH
+	const vqvf_transform_error_metric legacy_metric;
+
+	compression_settings settings = get_default_compression_settings();
+	settings.error_metric = const_cast<vqvf_transform_error_metric*>(&legacy_metric);
+
+	output_stats stats;
+	compressed_tracks* tracks = nullptr;
+	CHECK(compress_track_list(allocator, clip, settings, transform_space, tracks, stats).any());
+	CHECK(tracks == nullptr);
+
+	track_array pre_process_clip = make_clip(allocator);
+	pre_process_settings_t pre_process_settings;
+	pre_process_settings.precision_policy = pre_process_precision_policy::lossy;
+	pre_process_settings.error_metric = &legacy_metric;
+	pre_process_settings.transform_space = transform_space;
+	CHECK(pre_process_track_list(allocator, pre_process_settings, pre_process_clip).any());
+
+	// The deprecated overload has no base adapter
+	const compression_settings default_settings = get_default_compression_settings();
+	CHECK(compress_track_list(allocator, clip, default_settings, base, additive_clip_format8::custom, tracks, stats).any());
+	CHECK(tracks == nullptr);
+	ACL_IMPL_DEPRECATION_WARNING_POP
 }

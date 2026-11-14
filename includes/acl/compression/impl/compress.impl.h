@@ -99,6 +99,10 @@ namespace acl
 		if (!track_list.is_empty() && !is_transform_track_type(track_list.get_track_type()))
 			return error_result("Expected transform tracks");
 
+		// This overload has no base adapter
+		if (additive_format == additive_clip_format8::custom)
+			return error_result("The custom base format requires a base adapter in 'transform_space_desc_t'");
+
 		if (additive_format != additive_clip_format8::none)
 		{
 			result = additive_base_track_list.is_valid();

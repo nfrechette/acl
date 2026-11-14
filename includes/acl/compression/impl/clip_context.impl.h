@@ -81,15 +81,16 @@ namespace acl
 			std::sort(sorted_transforms_parent_first, sorted_transforms_parent_first + num_transforms, sort_predicate);
 		}
 
-		inline bool initialize_clip_context(iallocator& allocator, const track_array& track_list, const compression_settings& settings, additive_clip_format8 additive_format, clip_context& out_clip_context, bool is_additive_base, transform_space_t space)
+		inline bool initialize_clip_context(iallocator& allocator, const track_array& track_list, const compression_settings& settings, additive_clip_format8 additive_format, float default_scale, clip_context& out_clip_context, bool is_additive_base, transform_space_t space)
 		{
 			// The parent index of each transform is the one that compression uses to measure the error
 			// In mesh space, a transform has no parent for the error
 			ACL_ASSERT(track_list.is_empty() || is_transform_track_type(track_list.get_track_type()), "Expected transform tracks");
 
 			// A VQ track has no scale, each of its samples uses this scale
-			// An additive base has no additive format
-			const rtm::vector4f vq_scale = rtm::vector_set(get_additive_default_scale(is_additive_base ? additive_clip_format8::none : additive_format));
+			// An additive base has no additive format, its default scale is 1.0
+			const float clip_default_scale = is_additive_base ? 1.0F : default_scale;
+			const rtm::vector4f vq_scale = rtm::vector_set(clip_default_scale);
 
 			const uint32_t num_transforms = track_list.get_num_tracks();
 			const uint32_t num_samples = track_list.get_num_samples_per_track();
@@ -113,6 +114,7 @@ namespace acl
 			out_clip_context.duration = track_list.get_finite_duration();
 			out_clip_context.looping_policy = looping_policy;
 			out_clip_context.additive_format = additive_format;
+			out_clip_context.default_scale = clip_default_scale;
 			out_clip_context.are_rotations_normalized = false;
 			out_clip_context.are_translations_normalized = false;
 			out_clip_context.are_scales_normalized = false;

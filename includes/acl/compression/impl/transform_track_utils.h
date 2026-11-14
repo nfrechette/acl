@@ -47,7 +47,7 @@ namespace acl
 	namespace acl_impl
 	{
 		// A VQ track has no scale. ACL uses the default scale of the additive format for each of its
-		// samples, see 'get_additive_default_scale'. An additive base has no additive format, thus its scale is 1.0.
+		// samples, see 'get_base_default_scale'. An additive base has no additive format, thus its scale is 1.0.
 		//
 		// A VQS track has a uniform scale. ACL compresses it as a 3D scale with the same value in [xyz].
 		// Each component then has the same range and the same bit rate, thus the lossy components stay equal.

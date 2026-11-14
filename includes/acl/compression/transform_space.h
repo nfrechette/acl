@@ -29,6 +29,7 @@
 #include "acl/core/error_result.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/compression/track_array.h"
+#include "acl/compression/transform_base_adapter.h"
 
 #include <cstdint>
 
@@ -65,6 +66,7 @@ namespace acl
 		// with local_transform.rotation = mul(transform.rotation, conjugate(parent_object_transform.rotation))
 		// It supports the runtime transform types that compose rotations with a quaternion product:
 		// 'vqf', 'vqsf', 'vqvf', and 'vqmf'. It does not support the 'relative' base format.
+		// With the 'custom' base format, the base adapter receives the base in this space.
 		mesh_rotation		= 2,
 	};
 
@@ -113,6 +115,15 @@ namespace acl
 		const track_array* base = nullptr;
 
 		//////////////////////////////////////////////////////////////////////////
+		// The base adapter that combines each sample with the base, see 'itransform_base_adapter_t'.
+		// Required when 'base_format' is 'custom', and must be null otherwise.
+		// The base adapter receives the base in the transform space of the clip.
+		// The legacy error metric ('compression_settings::error_metric') does not support it.
+		// The caller owns the base adapter.
+		// Defaults to null.
+		const itransform_base_adapter_t* base_adapter = nullptr;
+
+		//////////////////////////////////////////////////////////////////////////
 		// Returns whether or not the clip has a base.
 		bool has_base() const { return base_format != additive_clip_format8::none; }
 
@@ -123,6 +134,8 @@ namespace acl
 		//    - The mesh rotation space does not use the 'relative' base format
 		//    - With a base format, the base is a valid and non-empty list of transform tracks
 		//    - Without a base format, the base is null
+		//    - With the 'custom' base format, the base adapter is not null and its default scale is 0.0 or 1.0
+		//    - With another base format, the base adapter is null
 		error_result is_valid() const;
 	};
 

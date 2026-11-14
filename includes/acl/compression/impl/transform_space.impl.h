@@ -33,6 +33,7 @@
 #include "acl/core/track_types.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/compression/track_array.h"
+#include "acl/compression/transform_base_adapter.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -66,6 +67,27 @@ namespace acl
 		constexpr uint32_t get_error_parent_index(transform_space_t space, uint32_t parent_index)
 		{
 			return space == transform_space_t::mesh ? k_invalid_track_index : parent_index;
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the default scale of the clip samples with a base format: 0.0 or 1.0.
+		// With the 'custom' base format, the base adapter gives the default scale.
+		inline float get_base_default_scale(additive_clip_format8 base_format, const itransform_base_adapter_t* base_adapter)
+		{
+			if (base_format == additive_clip_format8::custom)
+			{
+				ACL_ASSERT(base_adapter != nullptr, "The custom base format requires a base adapter");
+				return base_adapter != nullptr ? base_adapter->get_default_scale() : 1.0F;
+			}
+
+			return get_additive_default_scale(base_format);
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the default scale of the clip samples with a transform space description: 0.0 or 1.0.
+		inline float get_base_default_scale(const transform_space_desc_t& transform_space)
+		{
+			return get_base_default_scale(transform_space.base_format, transform_space.base_adapter);
 		}
 	}
 
@@ -108,8 +130,20 @@ namespace acl
 		if (space != transform_space_t::local && space != transform_space_t::mesh && space != transform_space_t::mesh_rotation)
 			return error_result("Invalid transform space");
 
-		if (base_format > additive_clip_format8::additive1)
+		if (base_format > additive_clip_format8::custom)
 			return error_result("Invalid base format");
+
+		if (base_format == additive_clip_format8::custom)
+		{
+			if (base_adapter == nullptr)
+				return error_result("The custom base format requires a base adapter");
+
+			const float default_scale = base_adapter->get_default_scale();
+			if (default_scale != 0.0F && default_scale != 1.0F)
+				return error_result("The default scale of the base adapter must be 0.0 or 1.0");
+		}
+		else if (base_adapter != nullptr)
+			return error_result("A base adapter requires the custom base format");
 
 		// A relative base multiplies the whole transforms: the rotations and the translations are in different spaces
 		if (space == transform_space_t::mesh_rotation && base_format == additive_clip_format8::relative)

@@ -205,6 +205,10 @@ namespace acl
 			sample_looping_policy looping_policy		= sample_looping_policy::non_looping;
 			additive_clip_format8 additive_format		= additive_clip_format8::none;
 
+			// The scale of a sample without scale and the default scale of the compressed data: 0.0 or 1.0
+			// See 'get_base_default_scale'
+			float default_scale							= 1.0F;
+
 			bool are_rotations_normalized				= false;
 			bool are_translations_normalized			= false;
 			bool are_scales_normalized					= false;
@@ -246,6 +250,7 @@ namespace acl
 			const track_array& track_list,
 			const compression_settings& settings,
 			additive_clip_format8 additive_format,
+			float default_scale,
 			clip_context& out_clip_context,
 			bool is_additive_base = false,
 			transform_space_t space = transform_space_t::local);
