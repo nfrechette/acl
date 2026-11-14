@@ -8,10 +8,14 @@ The core logic for additive clips lives [here](../includes/acl/core/additive_uti
 
 A `transform_space_desc_t` (see [here](../includes/acl/compression/transform_space.h)) tells compression how to measure the error of a clip. It holds two independent properties:
 
-*  `space`: how a sample uses the transform hierarchy, see `transform_space_t`. At the moment, ACL supports only `local`: each transform is relative to its parent transform.
+*  `space`: how a sample uses the transform hierarchy, see `transform_space_t`.
+    *  `local` (the default): each transform is relative to its parent transform.
+    *  `mesh`: each transform is in object space (mesh space). It does not use its parent transform. Compression measures the error of each transform alone: the error of a parent does not move its children.
 *  `base_format` and `base`: how a sample combines with its base clip, see `additive_clip_format8` and the formats below. With `none`, the clip has no base.
 
 Compression first combines each sample with the base. Then it puts the result in object space to measure the error. The transform space does not change the compressed data: decompression returns the samples of the clip, and your runtime applies them to the base.
+
+The base is always in local space, with the transform hierarchy of the clip. In mesh space, compression puts the base in mesh space with `rtm::vqv_mul` (the scale of a parent does not shear its children). Then it combines each sample with the base in mesh space. The compressed tracks keep the parent indices of the clip.
 
 ```c++
 transform_space_desc_t transform_space;

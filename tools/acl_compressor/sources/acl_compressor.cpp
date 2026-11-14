@@ -118,6 +118,7 @@
 #include "acl/compression/convert.h"
 #include "acl/compression/pre_process.h"
 #include "acl/compression/transform_pose_utils.h"	// Just to test compilation
+#include "acl/compression/impl/transform_space_context.h"
 #include "acl/decompression/decompress.h"
 #include "acl/io/clip_reader.h"
 
@@ -166,6 +167,8 @@ struct Options
 	bool			is_bind_pose_relative			= false;
 	bool			is_bind_pose_additive0			= false;
 	bool			is_bind_pose_additive1			= false;
+
+	bool			is_mesh_space					= false;
 
 	bool			split_into_database				= false;
 
@@ -216,6 +219,7 @@ static constexpr const char* k_regression_test_option = "-test";
 static constexpr const char* k_bind_pose_relative_option = "-bind_rel";
 static constexpr const char* k_bind_pose_additive0_option = "-bind_add0";
 static constexpr const char* k_bind_pose_additive1_option = "-bind_add1";
+static constexpr const char* k_mesh_space_option = "-mesh_space";
 static constexpr const char* k_matrix_error_metric_option = "-error_mtx";
 static constexpr const char* k_precise_error_metric_option = "-error_precise";
 static constexpr const char* k_vqv_error_metric_option = "-error_vqv";
@@ -394,6 +398,13 @@ static bool parse_options(int argc, char** argv, Options& options)
 			continue;
 		}
 
+		option_length = std::strlen(k_mesh_space_option);
+		if (std::strncmp(argument, k_mesh_space_option, option_length) == 0)
+		{
+			options.is_mesh_space = true;
+			continue;
+		}
+
 		option_length = std::strlen(k_split_into_database_option);
 		if (std::strncmp(argument, k_split_into_database_option, option_length) == 0)
 		{
@@ -500,23 +511,27 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 			const bool initialized = context.initialize(*compressed_tracks_);
 			ACL_ASSERT(initialized, "Failed to initialize decompression context"); (void)initialized;
 
-			const track_error error = calculate_compression_error(allocator, transform_tracks, context, settings);
+			// We measure the error as compression does: with the base and in the transform space of the clip
+			const track_error error = calculate_compression_error(allocator, transform_tracks, context, settings, transform_space);
 
 			stats_writer->insert("max_error", error.error);
 			stats_writer->insert("worst_track", error.index);
 			stats_writer->insert("worst_time", error.sample_time);
 			stats_writer->insert("worst_keyframe", error.keyframe_index);
 
-			// The precise error stat uses the deprecated legacy precise error metric
-			ACL_IMPL_DEPRECATION_WARNING_PUSH
-			const vqvf_precise_transform_error_metric precise_error_metric;
-			const track_error error_precise = calculate_compression_error(allocator, transform_tracks, context, precise_error_metric);
-			ACL_IMPL_DEPRECATION_WARNING_POP
+			// The precise error stat uses the deprecated legacy precise error metric, it supports only the local space
+			if (transform_space.space == transform_space_t::local)
+			{
+				ACL_IMPL_DEPRECATION_WARNING_PUSH
+				const vqvf_precise_transform_error_metric precise_error_metric;
+				const track_error error_precise = calculate_compression_error(allocator, transform_tracks, context, precise_error_metric);
+				ACL_IMPL_DEPRECATION_WARNING_POP
 
-			stats_writer->insert("max_error_precise", error_precise.error);
-			stats_writer->insert("worst_track_precise", error_precise.index);
-			stats_writer->insert("worst_time_precise", error_precise.sample_time);
-			stats_writer->insert("worst_keyframe_precise", error_precise.keyframe_index);
+				stats_writer->insert("max_error_precise", error_precise.error);
+				stats_writer->insert("worst_track_precise", error_precise.index);
+				stats_writer->insert("worst_time_precise", error_precise.sample_time);
+				stats_writer->insert("worst_keyframe_precise", error_precise.keyframe_index);
+			}
 		}
 #endif
 
@@ -911,6 +926,10 @@ static bool read_config(iallocator& allocator, Options& options, compression_set
 	if (parser.try_read("is_bind_pose_relative", is_bind_pose_relative, false))
 		options.is_bind_pose_relative = is_bind_pose_relative;
 
+	bool is_mesh_space;
+	if (parser.try_read("is_mesh_space", is_mesh_space, false))
+		options.is_mesh_space = is_mesh_space;
+
 	bool use_matrix_error_metric;
 	if (parser.try_read("use_matrix_error_metric", use_matrix_error_metric, false))
 		options.use_matrix_error_metric = use_matrix_error_metric;
@@ -962,7 +981,93 @@ static bool read_config(iallocator& allocator, Options& options, compression_set
 	return true;
 }
 
-static void create_additive_base_clip(const Options& options, track_array& clip, track_array_vqvf& out_base_clip, additive_clip_format8& out_additive_format)
+// Converts the samples and the default values of a local space clip into mesh space
+// Writes the default values before the conversion (the local space bind pose) in 'out_local_bind_pose'
+static void convert_clip_to_mesh_space(track_array& clip, rtm::vqvf* out_local_bind_pose)
+{
+	// Disable floating point exceptions since conversion requires it
+	scope_disable_fp_exceptions fp_off;
+
+	const uint32_t num_bones = clip.get_num_tracks();
+	const uint32_t num_samples = clip.get_num_samples_per_track();
+	iallocator& allocator = *clip.get_allocator();
+
+	// A VQ track has no scale, we convert through a VQV transform with a scale of 1.0
+	// A VQS track has a uniform scale, we convert through a VQV transform with the scale in [xyz]
+	// The product of transforms without scale has no scale, the product of uniform scales is uniform
+	const bool is_vq = clip.get_track_type() == track_type8::vqf;
+	const bool is_vqs = clip.get_track_type() == track_type8::vqsf;
+
+	uint32_t* parent_indices = allocate_type_array<uint32_t>(allocator, num_bones);
+	uint32_t* order = allocate_type_array<uint32_t>(allocator, num_bones);
+	bool* is_sorted = allocate_type_array<bool>(allocator, num_bones);
+	rtm::vqvf* pose = allocate_type_array<rtm::vqvf>(allocator, num_bones);
+
+	for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
+	{
+		const track_desc_transformf& desc = clip[bone_index].get_description<track_desc_transformf>();
+		parent_indices[bone_index] = desc.parent_index;
+
+		rtm::vqvf bind_transform = desc.default_value;
+		if (is_vq)
+			bind_transform.scale = rtm::vector_set(1.0F);
+		else if (is_vqs)
+			bind_transform.scale = rtm::vector_dup_x(bind_transform.scale);
+
+		out_local_bind_pose[bone_index] = bind_transform;
+	}
+
+	acl_impl::sort_transforms_parent_first(parent_indices, num_bones, order, is_sorted);
+
+	// The default values are the bind pose, we put it in mesh space as well
+	acl_impl::local_to_mesh_space(out_local_bind_pose, parent_indices, order, num_bones, pose);
+	for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
+		clip[bone_index].get_description<track_desc_transformf>().default_value = pose[bone_index];
+
+	for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+	{
+		for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
+		{
+			track& track_ = clip[bone_index];
+			if (is_vq)
+			{
+				const rtm::vqf& sample = *static_cast<const rtm::vqf*>(track_[sample_index]);
+				pose[bone_index] = rtm::vqv_set(sample.rotation, sample.translation, rtm::vector_set(1.0F));
+			}
+			else if (is_vqs)
+			{
+				const rtm::vqsf& sample = *static_cast<const rtm::vqsf*>(track_[sample_index]);
+				pose[bone_index] = rtm::vqv_set(sample.rotation, sample.translation_scale, rtm::vector_dup_w(sample.translation_scale));
+			}
+			else
+				pose[bone_index] = *static_cast<const rtm::vqvf*>(track_[sample_index]);
+		}
+
+		acl_impl::local_to_mesh_space(pose, parent_indices, order, num_bones, pose);
+
+		for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
+		{
+			track& track_ = clip[bone_index];
+			const rtm::vqvf& mesh_transform = pose[bone_index];
+			if (is_vq)
+				*static_cast<rtm::vqf*>(track_[sample_index]) = rtm::vq_set(mesh_transform.rotation, mesh_transform.translation);
+			else if (is_vqs)
+				*static_cast<rtm::vqsf*>(track_[sample_index]) = rtm::vqs_set(mesh_transform.rotation, mesh_transform.translation, rtm::vector_get_x(mesh_transform.scale));
+			else
+				*static_cast<rtm::vqvf*>(track_[sample_index]) = mesh_transform;
+		}
+	}
+
+	deallocate_type_array(allocator, parent_indices, num_bones);
+	deallocate_type_array(allocator, order, num_bones);
+	deallocate_type_array(allocator, is_sorted, num_bones);
+	deallocate_type_array(allocator, pose, num_bones);
+}
+
+// Converts the clip to be relative to the bind pose (its default values)
+// When 'local_bind_pose' is not null, the clip is in mesh space: its default values hold the bind pose
+// in mesh space, and 'local_bind_pose' holds it in local space. The base is always in local space.
+static void create_additive_base_clip(const Options& options, track_array& clip, const rtm::vqvf* local_bind_pose, track_array_vqvf& out_base_clip, additive_clip_format8& out_additive_format)
 {
 	// Disable floating point exceptions since conversion requires it
 	scope_disable_fp_exceptions fp_off;
@@ -1040,7 +1145,8 @@ static void create_additive_base_clip(const Options& options, track_array& clip,
 				*static_cast<rtm::vqvf*>(track_[sample_index]) = bind_local_transform;
 		}
 
-		out_base_clip[bone_index] = track_vqvf::make_copy(bind_desc, allocator, &bind_transform, 1, 30.0F);
+		const rtm::vqvf& base_transform = local_bind_pose != nullptr ? local_bind_pose[bone_index] : bind_transform;
+		out_base_clip[bone_index] = track_vqvf::make_copy(bind_desc, allocator, &base_transform, 1, 30.0F);
 	}
 }
 #endif	// defined(ACL_USE_SJSON)
@@ -1211,12 +1317,24 @@ static int safe_main_impl(int argc, char* argv[])
 	// The runtime transform type that compression uses
 	transform_runtime_type_t transform_runtime_type = transform_runtime_type_t::automatic;
 
+	// The local space bind pose of a clip that we convert into mesh space
+	rtm::vqvf* local_bind_pose = nullptr;
+	const uint32_t num_transform_tracks = transform_tracks.get_num_tracks();
+
 	if (sjson_type == sjson_file_type::raw_clip)
 	{
+		// Convert a local space clip without a base into mesh space
+		if (options.is_mesh_space && transform_space_type == transform_space_t::local && base_clip.is_empty())
+		{
+			local_bind_pose = allocate_type_array<rtm::vqvf>(allocator, num_transform_tracks);
+			convert_clip_to_mesh_space(transform_tracks, local_bind_pose);
+			transform_space_type = transform_space_t::mesh;
+		}
+
 		if (base_clip.is_empty())
 		{
 			if (options.is_bind_pose_relative || options.is_bind_pose_additive0 || options.is_bind_pose_additive1)
-				create_additive_base_clip(options, transform_tracks, base_clip, additive_format);
+				create_additive_base_clip(options, transform_tracks, local_bind_pose, base_clip, additive_format);
 		}
 
 		// The legacy precise error metric does not support additive clips, those use the default runtime transform type
@@ -1224,7 +1342,7 @@ static int safe_main_impl(int argc, char* argv[])
 			transform_runtime_type = transform_runtime_type_t::vqvf;
 		else if (options.use_matrix_error_metric)
 			transform_runtime_type = transform_runtime_type_t::matrix3x4f;
-		else if (additive_format == additive_clip_format8::none && options.use_precise_error_metric)
+		else if (additive_format == additive_clip_format8::none && transform_space_type == transform_space_t::local && options.use_precise_error_metric)
 		{
 			ACL_IMPL_DEPRECATION_WARNING_PUSH
 			error_metric = allocate_type<vqvf_precise_transform_error_metric>(allocator);
@@ -1336,6 +1454,7 @@ static int safe_main_impl(int argc, char* argv[])
 		exec_algos(nullptr);
 
 	deallocate_type(allocator, error_metric);
+	deallocate_type_array(allocator, local_bind_pose, num_transform_tracks);
 #endif	// defined(ACL_USE_SJSON)
 
 	return 0;

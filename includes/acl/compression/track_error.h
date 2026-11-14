@@ -111,6 +111,7 @@ namespace acl
 	// compressed tracks.
 	// Supports transform tracks (vqvf, vqf, or vqsf) in a transform space, see 'transform_space_desc_t'.
 	// The base, if any, can have a different transform type than the raw tracks.
+	// In mesh space, it measures the error of each transform without its parent transform, as compression does.
 	// It measures the error as compression does with these settings and this transform space:
 	// with the legacy error metric when it is set, otherwise with the runtime transform type and the transform metric.
 	// Returns an invalid error when the transform space is not valid.

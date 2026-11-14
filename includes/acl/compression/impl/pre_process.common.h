@@ -89,6 +89,7 @@ namespace acl
 						settings.transform_space.base_format);
 					clip_adapter.sorted_transforms_parent_first = get_sorted_transforms_parent_first();
 					clip_adapter.topology = get_topology();
+					clip_adapter.space = settings.transform_space.space;
 
 					shell_metadata = compute_clip_shell_distances(
 						allocator,
@@ -108,8 +109,10 @@ namespace acl
 				{
 					space_context.initialize(
 						allocator,
+						settings.transform_space.space,
 						settings.transform_space.base_format,
 						transform_track_array_adapter_t(settings.transform_space.base, additive_clip_format8::none),
+						track_list,
 						track_list.get_num_samples_per_track(),
 						track_list.get_sample_rate(),
 						track_list.get_finite_duration());
@@ -131,8 +134,11 @@ namespace acl
 					for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 						sorted_transforms_parent_first[transform_index] = transform_index;
 
+					transform_track_array_adapter_t clip_adapter(track_list);
+					clip_adapter.space = settings.transform_space.space;
+
 					sort_transform_indices_parent_first(
-						transform_track_array_adapter_t(track_list),
+						clip_adapter,
 						sorted_transforms_parent_first,
 						num_transforms);
 				}
@@ -146,7 +152,7 @@ namespace acl
 				{
 					topology = allocate_type<clip_topology_t>(allocator);
 
-					build_clip_topology(allocator, track_list, *topology);
+					build_clip_topology(allocator, track_list, *topology, settings.transform_space.space);
 				}
 
 				return topology;

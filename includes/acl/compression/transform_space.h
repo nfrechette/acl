@@ -52,13 +52,44 @@ namespace acl
 		// A root transform is in object space.
 		// object_transform = mul(local_transform, parent_object_transform)
 		local				= 0,
+
+		//////////////////////////////////////////////////////////////////////////
+		// Each transform is in object space (mesh space): it does not use its parent transform.
+		// The error of a transform does not move its children.
+		// object_transform = transform
+		mesh				= 1,
 	};
 
 	//////////////////////////////////////////////////////////////////////////
 	// Returns the name of a transform space.
 	constexpr const char* get_transform_space_name(transform_space_t space)
 	{
-		return space == transform_space_t::local ? "local" : "<Invalid>";
+		return space == transform_space_t::local ? "local" : (space == transform_space_t::mesh ? "mesh" : "<Invalid>");
+	}
+
+	namespace acl_impl
+	{
+		//////////////////////////////////////////////////////////////////////////
+		// Returns true if 'name' starts with 'candidate' and no other name character follows.
+		// The name does not need a null terminator after the candidate.
+		inline bool is_transform_space_name(const char* name, const char* candidate)
+		{
+			const size_t length = std::strlen(candidate);
+			if (std::strncmp(name, candidate, length) != 0)
+				return false;
+
+			const char next = name[length];
+			const bool is_name_character = (next >= 'a' && next <= 'z') || (next >= 'A' && next <= 'Z') || (next >= '0' && next <= '9') || next == '_';
+			return !is_name_character;
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Returns the parent index that compression uses to measure the error of a transform.
+		// In mesh space, a transform does not use its parent: it has no parent for the error.
+		constexpr uint32_t get_error_parent_index(transform_space_t space, uint32_t parent_index)
+		{
+			return space == transform_space_t::mesh ? k_invalid_track_index : parent_index;
+		}
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -70,10 +101,15 @@ namespace acl
 		if (name == nullptr)
 			return false;
 
-		const char* local_name = "local";
-		if (std::strncmp(name, local_name, std::strlen(local_name)) == 0)
+		if (acl_impl::is_transform_space_name(name, "local"))
 		{
 			out_space = transform_space_t::local;
+			return true;
+		}
+
+		if (acl_impl::is_transform_space_name(name, "mesh"))
+		{
+			out_space = transform_space_t::mesh;
 			return true;
 		}
 
@@ -102,7 +138,10 @@ namespace acl
 		additive_clip_format8 base_format = additive_clip_format8::none;
 
 		//////////////////////////////////////////////////////////////////////////
-		// The base transform tracks (vqvf, vqf, or vqsf), in local space.
+		// The base transform tracks (vqvf, vqf, or vqsf), always in local space.
+		// In mesh space, compression puts the base in mesh space with 'rtm::vqv_mul' (the scale of a parent
+		// does not shear its children), then it combines each sample with the base in mesh space.
+		// The base must have the same transform hierarchy as the clip.
 		// The base can have a different transform type and a different number of samples than the clip.
 		// A clip sample uses the base sample at the same normalized time, rounded to the nearest sample.
 		// Required when 'base_format' is not 'none'. The caller owns the base.
@@ -121,7 +160,7 @@ namespace acl
 		//    - Without a base format, the base is null
 		error_result is_valid() const
 		{
-			if (space != transform_space_t::local)
+			if (space != transform_space_t::local && space != transform_space_t::mesh)
 				return error_result("Invalid transform space");
 
 			if (base_format > additive_clip_format8::additive1)

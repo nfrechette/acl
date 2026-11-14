@@ -51,6 +51,10 @@
 *  Add `pre_process_settings_t::transform_space`, and deprecate `pre_process_settings_t::additive_base` and `additive_format`, ACL 2.3 will remove them
 *  The `calculate_compression_error` overload with the compression settings and a base now takes a `transform_space_desc_t`
 *  The clip reader reads the optional `transform_space` value of a raw clip, it defaults to `local`
+*  Add the `mesh` transform space: each transform is in object space, compression measures the error of each transform without its parent, and it combines the clip with the base in mesh space
+*  Add the `-mesh_space` option and the `is_mesh_space` config option to `acl_compressor` and its python script, they convert a local space clip into mesh space
+*  Add two regression configurations in mesh space, without a base and with a relative base
+*  Fix the `max_error` stat of `acl_compressor` that ignored the additive base
 
 ## 2.1.0
 

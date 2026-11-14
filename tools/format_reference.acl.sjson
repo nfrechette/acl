@@ -54,7 +54,8 @@ clip =
 	// Introduced in version 3.
 	additive_base_sample_rate = 30
 
-	// The space of the transforms of the clip and its base, see 'transform_space_t'. Optional, defaults to 'local'.
+	// The space of the transforms of the clip, see 'transform_space_t': 'local' or 'mesh'. Optional, defaults to 'local'.
+	// The additive base is always in local space.
 	// Introduced in ACL 2.2.
 	transform_space = "local"
 }

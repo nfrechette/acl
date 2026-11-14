@@ -35,6 +35,7 @@
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/compression/compression_settings.h"
 #include "acl/compression/track_array.h"
+#include "acl/compression/transform_space.h"
 #include "acl/compression/impl/segment_context.h"
 #include "acl/compression/impl/topology_metadata.h"
 
@@ -246,7 +247,8 @@ namespace acl
 			const compression_settings& settings,
 			additive_clip_format8 additive_format,
 			clip_context& out_clip_context,
-			bool is_additive_base = false);
+			bool is_additive_base = false,
+			transform_space_t space = transform_space_t::local);
 		void destroy_clip_context(clip_context& context);
 
 		constexpr bool segment_context_has_scale(const segment_context& segment) { return segment.clip->has_scale; }

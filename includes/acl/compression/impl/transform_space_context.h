@@ -29,12 +29,15 @@
 #include "acl/core/error.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/impl/compiler_utils.h"
+#include "acl/compression/track_array.h"
+#include "acl/compression/transform_space.h"
 #include "acl/compression/impl/sample_streams.h"
 #include "acl/compression/impl/transform_clip_adapters.h"
 
 #include <rtm/scalarf.h>
 #include <rtm/vqvf.h>
 
+#include <algorithm>
 #include <cstdint>
 #include <type_traits>
 
@@ -47,15 +50,72 @@ namespace acl
 	namespace acl_impl
 	{
 		//////////////////////////////////////////////////////////////////////////
+		// Fills 'out_order' with each transform index, a parent before its children.
+		// 'scratch_is_sorted' must hold one value for each transform.
+		// With a parent cycle (not valid), the transforms of the cycle come last, in index order.
+		inline void sort_transforms_parent_first(const uint32_t* parent_indices, uint32_t num_transforms, uint32_t* out_order, bool* scratch_is_sorted)
+		{
+			std::fill(scratch_is_sorted, scratch_is_sorted + num_transforms, false);
+
+			uint32_t num_sorted = 0;
+			while (num_sorted < num_transforms)
+			{
+				const uint32_t num_sorted_before = num_sorted;
+
+				for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
+				{
+					if (scratch_is_sorted[transform_index])
+						continue;
+
+					const uint32_t parent_index = parent_indices[transform_index];
+					if (parent_index == k_invalid_track_index || parent_index >= num_transforms || scratch_is_sorted[parent_index])
+					{
+						out_order[num_sorted++] = transform_index;
+						scratch_is_sorted[transform_index] = true;
+					}
+				}
+
+				if (num_sorted == num_sorted_before)
+				{
+					// A cycle, we cannot sort the remaining transforms
+					for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
+					{
+						if (!scratch_is_sorted[transform_index])
+							out_order[num_sorted++] = transform_index;
+					}
+				}
+			}
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Puts a local space pose in mesh space with rtm::vqv_mul.
+		// 'order' lists each parent before its children, see 'sort_transforms_parent_first'.
+		// The output can be the input.
+		inline void local_to_mesh_space(const rtm::vqvf* local_pose, const uint32_t* parent_indices, const uint32_t* order, uint32_t num_transforms, rtm::vqvf* out_mesh_pose)
+		{
+			for (uint32_t order_index = 0; order_index < num_transforms; ++order_index)
+			{
+				const uint32_t transform_index = order[order_index];
+				const uint32_t parent_index = parent_indices[transform_index];
+
+				if (parent_index == k_invalid_track_index || parent_index >= num_transforms)
+					out_mesh_pose[transform_index] = local_pose[transform_index];	// A root is in mesh space
+				else
+					out_mesh_pose[transform_index] = rtm::vqv_normalize(rtm::vqv_mul(local_pose[transform_index], out_mesh_pose[parent_index]));
+			}
+		}
+
+		//////////////////////////////////////////////////////////////////////////
 		// Holds the data that compression uses to put a sample of a clip in the space
 		// where it measures the error.
 		//
-		// At the moment, it holds the additive base of a clip and its additive format:
-		//    - the pose of each sample of the base, as rtm::vqvf
+		// It holds the transform space of the clip, the additive base of the clip, and its additive format:
+		//    - the pose of each sample of the base, as rtm::vqvf, in the transform space of the clip
 		//    - the sample of the base that each sample of the clip uses
 		//
 		// The base holds raw data. Thus we sample it one time, when we initialize the context,
 		// and compression reads the base poses from here.
+		// The base is in local space. In mesh space, we put each base pose in mesh space here.
 		//
 		// A sample of the clip uses the sample of the base at the same normalized time,
 		// rounded to the nearest sample. We do not interpolate.
@@ -72,16 +132,22 @@ namespace acl
 
 			//////////////////////////////////////////////////////////////////////////
 			// Samples the base and finds the base sample of each clip sample.
+			//    - 'space': the transform space of the clip
 			//    - 'base_format': the additive format of the clip, 'none' when the clip has no base
 			//    - 'base_clip': the clip adapter of the base, not used when the format is 'none'
+			//    - 'clip_track_list': the clip that uses the base, it gives the transform hierarchy
 			//    - 'clip_num_samples', 'clip_sample_rate', 'clip_duration': the clip that uses the base
 			template<class clip_adapter_t>
-			void initialize(iallocator& allocator, additive_clip_format8 base_format, const clip_adapter_t& base_clip,
-				uint32_t clip_num_samples, float clip_sample_rate, float clip_duration);
+			void initialize(iallocator& allocator, transform_space_t space, additive_clip_format8 base_format, const clip_adapter_t& base_clip,
+				const track_array& clip_track_list, uint32_t clip_num_samples, float clip_sample_rate, float clip_duration);
 
 			//////////////////////////////////////////////////////////////////////////
 			// Frees the memory. The context then has no base.
 			void destroy();
+
+			//////////////////////////////////////////////////////////////////////////
+			// Returns the transform space of the clip.
+			transform_space_t get_space() const { return m_space; }
 
 			//////////////////////////////////////////////////////////////////////////
 			// Returns whether or not the clip has a base.
@@ -143,15 +209,18 @@ namespace acl
 			uint32_t m_num_clip_samples = 0;
 
 			additive_clip_format8 m_base_format = additive_clip_format8::none;
+			transform_space_t m_space = transform_space_t::local;
 		};
 
 		template<class clip_adapter_t>
-		inline void transform_space_context_t::initialize(iallocator& allocator, additive_clip_format8 base_format, const clip_adapter_t& base_clip,
-			uint32_t clip_num_samples, float clip_sample_rate, float clip_duration)
+		inline void transform_space_context_t::initialize(iallocator& allocator, transform_space_t space, additive_clip_format8 base_format, const clip_adapter_t& base_clip,
+			const track_array& clip_track_list, uint32_t clip_num_samples, float clip_sample_rate, float clip_duration)
 		{
 			static_assert(std::is_base_of<transform_clip_adapter_t, clip_adapter_t>::value, "Clip adapter must derive from transform_clip_adapter_t");
 
 			destroy();
+
+			m_space = space;
 
 			if (base_format == additive_clip_format8::none)
 				return;	// No base, nothing to sample
@@ -186,6 +255,32 @@ namespace acl
 				}
 			}
 
+			// In mesh space, the clip combines with the base in mesh space
+			// The base has the transform hierarchy of the clip
+			if (space == transform_space_t::mesh)
+			{
+				ACL_ASSERT(clip_track_list.get_num_tracks() == num_transforms, "The base and the clip must have the same number of transforms");
+
+				uint32_t* parent_indices = allocate_type_array<uint32_t>(allocator, num_transforms);
+				uint32_t* order = allocate_type_array<uint32_t>(allocator, num_transforms);
+				bool* is_sorted = allocate_type_array<bool>(allocator, num_transforms);
+
+				for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
+					parent_indices[transform_index] = clip_track_list[transform_index].get_description<track_desc_transformf>().parent_index;
+
+				sort_transforms_parent_first(parent_indices, num_transforms, order, is_sorted);
+
+				for (uint32_t base_sample_index = 0; base_sample_index < num_base_samples; ++base_sample_index)
+				{
+					rtm::vqvf* base_pose = m_base_poses + (size_t(base_sample_index) * num_transforms);
+					local_to_mesh_space(base_pose, parent_indices, order, num_transforms, base_pose);
+				}
+
+				deallocate_type_array(allocator, parent_indices, num_transforms);
+				deallocate_type_array(allocator, order, num_transforms);
+				deallocate_type_array(allocator, is_sorted, num_transforms);
+			}
+
 			// Find the base sample of each clip sample
 			for (uint32_t clip_sample_index = 0; clip_sample_index < clip_num_samples; ++clip_sample_index)
 			{
@@ -215,6 +310,7 @@ namespace acl
 			m_num_base_samples = 0;
 			m_num_clip_samples = 0;
 			m_base_format = additive_clip_format8::none;
+			m_space = transform_space_t::local;
 		}
 	}
 

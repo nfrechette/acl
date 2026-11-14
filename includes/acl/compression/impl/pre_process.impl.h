@@ -226,6 +226,10 @@ namespace acl
 		settings.additive_base = nullptr;
 		settings.additive_format = additive_clip_format8::none;
 
+		// The legacy error metric puts the transforms in object space itself, it supports only the local space
+		if (settings.error_metric != nullptr && settings.transform_space.space != transform_space_t::local)
+			return error_result("The legacy error metric supports only the local transform space");
+
 		if (settings.error_metric == nullptr)
 		{
 			// An empty track array has no type, we use vqvf

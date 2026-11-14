@@ -163,6 +163,7 @@ namespace acl
 			track_array& track_list = context.track_list;
 
 			transform_track_array_adapter_t clip_adapter(&track_list, context.settings.transform_space.base_format);
+			clip_adapter.space = context.settings.transform_space.space;
 
 			const bool is_looping = is_clip_looping(
 				context.allocator,

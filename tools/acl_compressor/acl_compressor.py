@@ -37,6 +37,7 @@ def parse_argv():
 	options['strip_keyframe_threshold'] = None
 	options['source_vq'] = False
 	options['source_vqs'] = False
+	options['mesh_space'] = False
 	options['print_help'] = False
 
 	for i in range(1, len(sys.argv)):
@@ -96,6 +97,9 @@ def parse_argv():
 
 		if value == '-source_vqs':
 			options['source_vqs'] = True
+
+		if value == '-mesh_space':
+			options['mesh_space'] = True
 
 		if value == '-help':
 			options['print_help'] = True
@@ -158,6 +162,7 @@ def print_help():
 	print('  -strip_keyframe_threshold: Enables keyframe stripping and sets the desired strip threshold')
 	print('  -source_vq: Compresses the transform clips without scale as VQ tracks (vqf)')
 	print('  -source_vqs: Compresses the transform clips without scale or with a uniform scale as VQS tracks (vqsf)')
+	print('  -mesh_space: Converts the local space transform clips into mesh space before compression')
 	print('  -help: Prints this help message.')
 
 def print_stat(stat):
@@ -391,6 +396,9 @@ def compress_clips(options):
 
 			if options['source_vqs']:
 				cmd = '{} -source_vqs'.format(cmd)
+
+			if options['mesh_space']:
+				cmd = '{} -mesh_space'.format(cmd)
 
 			if platform.system() == 'Windows':
 				cmd = cmd.replace('/', '\\')

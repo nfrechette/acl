@@ -506,8 +506,8 @@ namespace acl
 						transform_streams& bone_stream = segment.bone_streams[bone_index];
 						transform_streams& raw_bone_stream = raw_segment.bone_streams[bone_index];
 
-						const track_desc_transformf desc = get_transform_track_desc(track_list[bone_index], vq_scale);
-						const uint32_t parent_bone_index = desc.parent_index;
+						// The clip context holds the parent index that we use to measure the error (none in mesh space)
+						const uint32_t parent_bone_index = context.metadata[bone_index].parent_index;
 						const rtm::vqvf original_local_transform = rtm::vqv_set(
 							raw_bone_stream.rotations.get_raw_sample<rtm::quatf>(sample_index),
 							raw_bone_stream.translations.get_raw_sample<rtm::vector4f>(sample_index),

@@ -151,7 +151,6 @@ namespace acl
 			compressed_tracks*& out_compressed_tracks, output_stats& out_stats)
 		{
 			ACL_ASSERT(transform_space.is_valid().empty(), "Invalid transform space");
-			ACL_ASSERT(transform_space.space == transform_space_t::local, "Only the local space is supported");
 
 			const track_array* additive_base_track_list = transform_space.base;
 			additive_clip_format8 additive_format = transform_space.base_format;
@@ -164,6 +163,10 @@ namespace acl
 			error_result result = settings.is_valid();
 			if (result.any())
 				return result;
+
+			// The legacy error metric puts the transforms in object space itself, it supports only the local space
+			if (settings.error_metric != nullptr && transform_space.space != transform_space_t::local)
+				return error_result("The legacy error metric supports only the local transform space");
 
 			// When the settings do not supply a legacy error metric, we use the runtime transform type
 			// and the transform metric of the settings
@@ -244,11 +247,11 @@ namespace acl
 				additive_format = additive_clip_format8::none;
 
 			clip_context raw_clip_context;
-			if (!initialize_clip_context(allocator, track_list, settings, additive_format, raw_clip_context))
+			if (!initialize_clip_context(allocator, track_list, settings, additive_format, raw_clip_context, false, transform_space.space))
 				return error_result("Some samples are not finite");
 
 			clip_context lossy_clip_context;
-			initialize_clip_context(allocator, track_list, settings, additive_format, lossy_clip_context);
+			initialize_clip_context(allocator, track_list, settings, additive_format, lossy_clip_context, false, transform_space.space);
 
 			const bool is_additive = additive_format != additive_clip_format8::none;
 			clip_context additive_base_clip_context;
@@ -257,15 +260,15 @@ namespace acl
 
 			// Sample the base one time, compression reads the base poses from the space context
 			transform_space_context_t space_context;
-			space_context.initialize(allocator, additive_format, transform_clip_context_adapter_t(additive_base_clip_context),
-				raw_clip_context.num_samples, raw_clip_context.sample_rate, raw_clip_context.duration);
+			space_context.initialize(allocator, transform_space.space, additive_format, transform_clip_context_adapter_t(additive_base_clip_context),
+				track_list, raw_clip_context.num_samples, raw_clip_context.sample_rate, raw_clip_context.duration);
 
 			if (settings.level == compression_level8::automatic)
 				settings.level = find_best_compression_level(lossy_clip_context);
 
 			// Clip topology metadata, not specific to clip context
 			clip_topology_t clip_topology;
-			build_clip_topology(allocator, track_list, clip_topology);
+			build_clip_topology(allocator, track_list, clip_topology, transform_space.space);
 
 			raw_clip_context.topology = &clip_topology;
 			lossy_clip_context.topology = &clip_topology;

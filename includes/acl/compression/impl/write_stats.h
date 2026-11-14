@@ -161,9 +161,8 @@ namespace acl
 
 			for (uint32_t transform_index = 0; transform_index < num_bones; ++transform_index)
 			{
-				const track_desc_transformf& desc = track_list[transform_index].get_description<track_desc_transformf>();
-
-				parent_transform_indices[transform_index] = desc.parent_index;
+				// The clip context holds the parent index that we use to measure the error (none in mesh space)
+				parent_transform_indices[transform_index] = raw_clip_context.metadata[transform_index].parent_index;
 				self_transform_indices[transform_index] = transform_index;
 			}
 

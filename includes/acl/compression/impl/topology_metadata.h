@@ -29,6 +29,7 @@
 #include "acl/core/iterator.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/compression/track_array.h"
+#include "acl/compression/transform_space.h"
 
 #include <cstdint>
 
@@ -182,7 +183,9 @@ namespace acl
 			~clip_topology_t();
 		};
 
-		void build_clip_topology(iallocator& allocator, const track_array& track_list, clip_topology_t& out_topology);
+		// The topology holds the transform hierarchy that compression uses to measure the error
+		// In mesh space, a transform has no parent for the error: each transform is a root
+		void build_clip_topology(iallocator& allocator, const track_array& track_list, clip_topology_t& out_topology, transform_space_t space = transform_space_t::local);
 	}
 
 	ACL_IMPL_VERSION_NAMESPACE_END

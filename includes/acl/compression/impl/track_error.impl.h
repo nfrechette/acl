@@ -34,8 +34,10 @@
 #include "acl/core/impl/debug_track_writer.h"
 #include "acl/compression/track_array.h"
 #include "acl/compression/transform_error_metrics.h"
+#include "acl/compression/transform_space.h"
 #include "acl/compression/impl/track_list_context.h"
 #include "acl/compression/impl/transform_runtime_error_metric.h"
+#include "acl/compression/impl/transform_space_context.h"
 #include "acl/decompression/decompress.h"
 
 #include <rtm/scalarf.h>
@@ -169,6 +171,10 @@ namespace acl
 			bool are_base_tracks_vq = false;
 			float vq_scale = 1.0F;				// The scale of the VQ poses 0 and 1: 0.0 with additive1, 1.0 otherwise
 
+			// Transforms only: the transform space of the tracks
+			// In mesh space, a transform has no parent for the error, and we put the base in mesh space
+			transform_space_t space = transform_space_t::local;
+
 			// Optional
 			uint32_t base_num_samples = 0;
 			float base_duration = 0.0F;
@@ -276,11 +282,26 @@ namespace acl
 			uint32_t* parent_transform_indices = allocate_type_array<uint32_t>(allocator, num_tracks);
 			uint32_t* self_transform_indices = allocate_type_array<uint32_t>(allocator, num_tracks);
 
+			// In mesh space, we put the base in mesh space with the transform hierarchy of the clip
+			const bool is_base_in_mesh_space = has_additive_base && args.space == transform_space_t::mesh;
+			uint32_t* hierarchy_parent_indices = is_base_in_mesh_space ? allocate_type_array<uint32_t>(allocator, num_tracks) : nullptr;
+			uint32_t* hierarchy_order = is_base_in_mesh_space ? allocate_type_array<uint32_t>(allocator, num_tracks) : nullptr;
+
 			for (uint32_t transform_index = 0; transform_index < num_tracks; ++transform_index)
 			{
 				const uint32_t parent_index = args.adapter.get_parent_index(transform_index);
-				parent_transform_indices[transform_index] = parent_index;
+				parent_transform_indices[transform_index] = get_error_parent_index(args.space, parent_index);
 				self_transform_indices[transform_index] = transform_index;
+
+				if (is_base_in_mesh_space)
+					hierarchy_parent_indices[transform_index] = parent_index;
+			}
+
+			if (is_base_in_mesh_space)
+			{
+				bool* is_sorted = allocate_type_array<bool>(allocator, num_tracks);
+				sort_transforms_parent_first(hierarchy_parent_indices, num_tracks, hierarchy_order, is_sorted);
+				deallocate_type_array(allocator, is_sorted, num_tracks);
 			}
 
 			// The additive applies to the rtm::vqvf source transforms, before the conversion
@@ -350,6 +371,10 @@ namespace acl
 					if (args.are_base_tracks_vq)
 						tracks_writer_base.set_all_scales(rtm::vector_set(1.0F));
 
+					// The base is in local space, the clip combines with it in its own space
+					if (is_base_in_mesh_space)
+						local_to_mesh_space(tracks_writer_base.get_vqvf_tracks(), hierarchy_parent_indices, hierarchy_order, num_tracks, tracks_writer_base.get_vqvf_tracks());
+
 					error_metric.apply_additive_to_base(apply_additive_to_base_args_raw, tracks_writer0.get_vqvf_tracks());
 					error_metric.apply_additive_to_base(apply_additive_to_base_args_lossy, tracks_writer1_remapped.get_vqvf_tracks());
 				}
@@ -395,6 +420,8 @@ namespace acl
 			deallocate_type_array(allocator, lossy_object_pose, num_tracks * transform_size);
 			deallocate_type_array(allocator, parent_transform_indices, num_tracks);
 			deallocate_type_array(allocator, self_transform_indices, num_tracks);
+			deallocate_type_array(allocator, hierarchy_parent_indices, num_tracks);
+			deallocate_type_array(allocator, hierarchy_order, num_tracks);
 
 			return result;
 		}
@@ -574,122 +601,133 @@ namespace acl
 		return calculate_transform_track_error(allocator, args);
 	}
 
+	namespace acl_impl
+	{
+		//////////////////////////////////////////////////////////////////////////
+		// Calculates the worst compression error of transform tracks in a transform space.
+		template<class decompression_context_type>
+		inline track_error calculate_compression_error_in_space(iallocator& allocator, const track_array& raw_tracks, decompression_context_type& context, const itransform_error_metric& error_metric, const track_array& additive_base_tracks, transform_space_t space)
+		{
+
+			ACL_ASSERT(raw_tracks.is_valid().empty(), "Raw tracks are invalid");
+			ACL_ASSERT(context.is_initialized(), "Context isn't initialized");
+
+			struct error_calculation_adapter final : public ierror_calculation_adapter
+			{
+				const track_array& raw_tracks_;
+				decompression_context_type& context_;
+				const track_array& additive_base_tracks_;
+
+				iallocator& allocator_;
+				uint32_t* output_bone_mapping;
+				uint32_t num_output_bones;
+
+				error_calculation_adapter(iallocator& allocator__, const track_array& raw_tracks__, decompression_context_type& context__, const track_array& additive_base_tracks__)
+					: raw_tracks_(raw_tracks__)
+					, context_(context__)
+					, additive_base_tracks_(additive_base_tracks__)
+					, allocator_(allocator__)
+				{
+					output_bone_mapping = create_output_track_mapping(allocator__, raw_tracks__, num_output_bones);
+				}
+
+				virtual ~error_calculation_adapter() override
+				{
+					deallocate_type_array(allocator_, output_bone_mapping, num_output_bones);
+				}
+
+				// Cannot copy or move
+				error_calculation_adapter(const error_calculation_adapter&) = delete;
+				error_calculation_adapter& operator=(const error_calculation_adapter&) = delete;
+
+				virtual void initialize_bind_pose(debug_track_writer& track_writer0, debug_track_writer& tracks_writer1) override
+				{
+					(void)track_writer0;
+					tracks_writer1.initialize_with_defaults(raw_tracks_);
+				}
+
+				virtual void sample_tracks0(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
+				{
+					raw_tracks_.sample_tracks(sample_time, rounding_policy, track_writer);
+				}
+
+				virtual void sample_tracks1(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
+				{
+					context_.seek(sample_time, rounding_policy);
+					context_.decompress_tracks(track_writer);
+				}
+
+				virtual uint32_t get_output_index(uint32_t track_index) override
+				{
+					const track& track_ = raw_tracks_[track_index];
+					return track_.get_output_index();
+				}
+
+				virtual uint32_t get_parent_index(uint32_t track_index) override
+				{
+					return raw_tracks_[track_index].template get_description<track_desc_transformf>().parent_index;
+				}
+
+				virtual float get_shell_distance(uint32_t track_index) override
+				{
+					return raw_tracks_[track_index].template get_description<track_desc_transformf>().shell_distance;
+				}
+
+				virtual void remap_output(debug_track_writer& track_writer0, debug_track_writer& track_writer1, debug_track_writer& track_writer_remapped) override
+				{
+					// Perform remapping by copying the raw pose first and we overwrite with the decompressed pose if
+					// the data is available
+					std::memcpy(track_writer_remapped.get_vqvf_tracks(), track_writer0.get_vqvf_tracks(), sizeof(rtm::vqvf) * track_writer_remapped.num_tracks);
+					for (uint32_t output_index = 0; output_index < num_output_bones; ++output_index)
+					{
+						const uint32_t bone_index = output_bone_mapping[output_index];
+						track_writer_remapped.get_vqvf_tracks()[bone_index] = track_writer1.get_vqvf_tracks()[output_index];
+					}
+				}
+
+				virtual bool has_additive_base() const override { return !additive_base_tracks_.is_empty(); }
+				virtual void sample_tracks_base(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
+				{
+					additive_base_tracks_.sample_tracks(sample_time, rounding_policy, track_writer);
+				}
+			};
+
+			error_calculation_adapter adapter(allocator, raw_tracks, context, additive_base_tracks);
+
+			calculate_track_error_args args(adapter);
+			args.num_samples = raw_tracks.get_num_samples_per_track();
+			args.num_tracks = raw_tracks.get_num_tracks();
+			args.duration = raw_tracks.get_finite_duration();
+			args.sample_rate = raw_tracks.get_sample_rate();
+			args.track_type = raw_tracks.get_track_type();
+
+			// We use the nearest sample to accurately measure the loss that happened, if any
+			args.rounding_policy = sample_rounding_policy::nearest;
+
+			args.error_metric = &error_metric;
+			args.space = space;
+
+			if (!additive_base_tracks.is_empty())
+			{
+				args.base_num_samples = additive_base_tracks.get_num_samples_per_track();
+				args.base_duration = additive_base_tracks.get_finite_duration();
+			}
+
+			// The compressed tracks give the scale of a VQ track: 0.0 with additive1, 1.0 otherwise
+			const compressed_tracks* tracks = context.get_compressed_tracks();
+			args.are_tracks0_vq = raw_tracks.get_track_type() == track_type8::vqf;
+			args.are_tracks1_vq = tracks->get_track_type() == track_type8::vqf;
+			args.are_base_tracks_vq = additive_base_tracks.get_track_type() == track_type8::vqf;
+			args.vq_scale = float(tracks->get_default_scale());
+
+			return calculate_transform_track_error(allocator, args);
+		}
+	}
+
 	template<class decompression_context_type, acl_impl::is_decompression_context<decompression_context_type>>
 	inline track_error calculate_compression_error(iallocator& allocator, const track_array& raw_tracks, decompression_context_type& context, const itransform_error_metric& error_metric, const track_array& additive_base_tracks)
 	{
-		using namespace acl_impl;
-
-		ACL_ASSERT(raw_tracks.is_valid().empty(), "Raw tracks are invalid");
-		ACL_ASSERT(context.is_initialized(), "Context isn't initialized");
-
-		struct error_calculation_adapter final : public ierror_calculation_adapter
-		{
-			const track_array& raw_tracks_;
-			decompression_context_type& context_;
-			const track_array& additive_base_tracks_;
-
-			iallocator& allocator_;
-			uint32_t* output_bone_mapping;
-			uint32_t num_output_bones;
-
-			error_calculation_adapter(iallocator& allocator__, const track_array& raw_tracks__, decompression_context_type& context__, const track_array& additive_base_tracks__)
-				: raw_tracks_(raw_tracks__)
-				, context_(context__)
-				, additive_base_tracks_(additive_base_tracks__)
-				, allocator_(allocator__)
-			{
-				output_bone_mapping = create_output_track_mapping(allocator__, raw_tracks__, num_output_bones);
-			}
-
-			virtual ~error_calculation_adapter() override
-			{
-				deallocate_type_array(allocator_, output_bone_mapping, num_output_bones);
-			}
-
-			// Cannot copy or move
-			error_calculation_adapter(const error_calculation_adapter&) = delete;
-			error_calculation_adapter& operator=(const error_calculation_adapter&) = delete;
-
-			virtual void initialize_bind_pose(debug_track_writer& track_writer0, debug_track_writer& tracks_writer1) override
-			{
-				(void)track_writer0;
-				tracks_writer1.initialize_with_defaults(raw_tracks_);
-			}
-
-			virtual void sample_tracks0(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
-			{
-				raw_tracks_.sample_tracks(sample_time, rounding_policy, track_writer);
-			}
-
-			virtual void sample_tracks1(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
-			{
-				context_.seek(sample_time, rounding_policy);
-				context_.decompress_tracks(track_writer);
-			}
-
-			virtual uint32_t get_output_index(uint32_t track_index) override
-			{
-				const track& track_ = raw_tracks_[track_index];
-				return track_.get_output_index();
-			}
-
-			virtual uint32_t get_parent_index(uint32_t track_index) override
-			{
-				return raw_tracks_[track_index].template get_description<track_desc_transformf>().parent_index;
-			}
-
-			virtual float get_shell_distance(uint32_t track_index) override
-			{
-				return raw_tracks_[track_index].template get_description<track_desc_transformf>().shell_distance;
-			}
-
-			virtual void remap_output(debug_track_writer& track_writer0, debug_track_writer& track_writer1, debug_track_writer& track_writer_remapped) override
-			{
-				// Perform remapping by copying the raw pose first and we overwrite with the decompressed pose if
-				// the data is available
-				std::memcpy(track_writer_remapped.get_vqvf_tracks(), track_writer0.get_vqvf_tracks(), sizeof(rtm::vqvf) * track_writer_remapped.num_tracks);
-				for (uint32_t output_index = 0; output_index < num_output_bones; ++output_index)
-				{
-					const uint32_t bone_index = output_bone_mapping[output_index];
-					track_writer_remapped.get_vqvf_tracks()[bone_index] = track_writer1.get_vqvf_tracks()[output_index];
-				}
-			}
-
-			virtual bool has_additive_base() const override { return !additive_base_tracks_.is_empty(); }
-			virtual void sample_tracks_base(float sample_time, sample_rounding_policy rounding_policy, debug_track_writer& track_writer) override
-			{
-				additive_base_tracks_.sample_tracks(sample_time, rounding_policy, track_writer);
-			}
-		};
-
-		error_calculation_adapter adapter(allocator, raw_tracks, context, additive_base_tracks);
-
-		calculate_track_error_args args(adapter);
-		args.num_samples = raw_tracks.get_num_samples_per_track();
-		args.num_tracks = raw_tracks.get_num_tracks();
-		args.duration = raw_tracks.get_finite_duration();
-		args.sample_rate = raw_tracks.get_sample_rate();
-		args.track_type = raw_tracks.get_track_type();
-
-		// We use the nearest sample to accurately measure the loss that happened, if any
-		args.rounding_policy = sample_rounding_policy::nearest;
-
-		args.error_metric = &error_metric;
-
-		if (!additive_base_tracks.is_empty())
-		{
-			args.base_num_samples = additive_base_tracks.get_num_samples_per_track();
-			args.base_duration = additive_base_tracks.get_finite_duration();
-		}
-
-		// The compressed tracks give the scale of a VQ track: 0.0 with additive1, 1.0 otherwise
-		const compressed_tracks* tracks = context.get_compressed_tracks();
-		args.are_tracks0_vq = raw_tracks.get_track_type() == track_type8::vqf;
-		args.are_tracks1_vq = tracks->get_track_type() == track_type8::vqf;
-		args.are_base_tracks_vq = additive_base_tracks.get_track_type() == track_type8::vqf;
-		args.vq_scale = float(tracks->get_default_scale());
-
-		return calculate_transform_track_error(allocator, args);
+		return acl_impl::calculate_compression_error_in_space(allocator, raw_tracks, context, error_metric, additive_base_tracks, transform_space_t::local);
 	}
 
 	template<class decompression_context_type0, class decompression_context_type1, acl_impl::is_decompression_context<decompression_context_type0>, acl_impl::is_decompression_context<decompression_context_type1>>
@@ -892,7 +930,27 @@ namespace acl
 		if (transform_space.is_valid().any())
 			return invalid_track_error();
 
-		ACL_ASSERT(transform_space.space == transform_space_t::local, "Only the local space is supported");
+		if (transform_space.space != transform_space_t::local)
+		{
+			if (raw_tracks.is_empty() || !is_transform_track_type(raw_tracks.get_track_type()))
+				return calculate_compression_error(allocator, raw_tracks, context);	// Scalar tracks have no transform space
+
+			// The legacy error metric puts the transforms in object space itself, it supports only the local space
+			ACL_ASSERT(settings.error_metric == nullptr, "The legacy error metric supports only the local transform space");
+			if (settings.error_metric != nullptr)
+				return invalid_track_error();
+
+			const track_array no_base_tracks;
+			const track_array* base_tracks = transform_space.has_base() ? transform_space.base : nullptr;
+
+			transform_runtime_error_metric runtime_error_metric;
+			const itransform_error_metric* error_metric = get_settings_error_metric(settings, raw_tracks, transform_space.base_format, base_tracks, runtime_error_metric);
+			ACL_ASSERT(error_metric != nullptr, "The compression settings are not valid for these tracks");
+			if (error_metric == nullptr)
+				return invalid_track_error();
+
+			return calculate_compression_error_in_space(allocator, raw_tracks, context, *error_metric, base_tracks != nullptr ? *base_tracks : no_base_tracks, transform_space.space);
+		}
 
 		if (!transform_space.has_base())
 			return calculate_compression_error(allocator, raw_tracks, context, settings);

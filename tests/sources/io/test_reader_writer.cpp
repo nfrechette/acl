@@ -1746,6 +1746,15 @@ TEST_CASE("sjson_clip_reader transform space", "[io][transform_space]")
 	}
 
 	{
+		const std::string clip = make_clip("\ttransform_space = \"mesh\"\n");
+		clip_reader reader(allocator, clip.c_str(), clip.size());
+
+		sjson_raw_clip file_clip;
+		REQUIRE(reader.read_raw_clip(file_clip));
+		CHECK(file_clip.transform_space == transform_space_t::mesh);
+	}
+
+	{
 		const std::string clip = make_clip("\ttransform_space = \"unknown\"\n");
 		clip_reader reader(allocator, clip.c_str(), clip.size());
 

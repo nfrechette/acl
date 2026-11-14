@@ -81,8 +81,10 @@ namespace acl
 			std::sort(sorted_transforms_parent_first, sorted_transforms_parent_first + num_transforms, sort_predicate);
 		}
 
-		inline bool initialize_clip_context(iallocator& allocator, const track_array& track_list, const compression_settings& settings, additive_clip_format8 additive_format, clip_context& out_clip_context, bool is_additive_base)
+		inline bool initialize_clip_context(iallocator& allocator, const track_array& track_list, const compression_settings& settings, additive_clip_format8 additive_format, clip_context& out_clip_context, bool is_additive_base, transform_space_t space)
 		{
+			// The parent index of each transform is the one that compression uses to measure the error
+			// In mesh space, a transform has no parent for the error
 			ACL_ASSERT(track_list.is_empty() || is_transform_track_type(track_list.get_track_type()), "Expected transform tracks");
 
 			// A VQ track has no scale, each of its samples uses this scale
@@ -133,7 +135,7 @@ namespace acl
 
 				bone_stream.segment = &segment;
 				bone_stream.bone_index = transform_index;
-				bone_stream.parent_bone_index = desc.parent_index;
+				bone_stream.parent_bone_index = get_error_parent_index(space, desc.parent_index);
 				bone_stream.output_index = desc.output_index;
 				bone_stream.default_value = desc.default_value;
 
@@ -172,7 +174,7 @@ namespace acl
 
 				transform_metadata& metadata = out_clip_context.metadata[transform_index];
 				metadata.transform_chain = nullptr;
-				metadata.parent_index = desc.parent_index;
+				metadata.parent_index = get_error_parent_index(space, desc.parent_index);
 				metadata.precision = desc.precision;
 				metadata.shell_distance = desc.shell_distance;
 
