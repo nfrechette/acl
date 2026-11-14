@@ -30,6 +30,7 @@
 #include "acl/io/clip_reader_error.h"
 #include "acl/compression/compression_settings.h"
 #include "acl/compression/track_array.h"
+#include "acl/compression/transform_space.h"
 #include "acl/core/algorithm_types.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/iallocator.h"
@@ -85,6 +86,9 @@ namespace acl
 
 		track_array_vqvf additive_base_track_list;
 		additive_clip_format8 additive_format = additive_clip_format8::none;
+
+		// The space of the transforms in 'track_list' and 'additive_base_track_list'
+		transform_space_t transform_space = transform_space_t::local;
 
 		ACL_DEPRECATED("No longer used, see track description, to be removed in v3.0")
 		track_vqvf bind_pose;
@@ -184,6 +188,7 @@ namespace acl
 				return false;
 
 			out_data.additive_format = !out_data.additive_base_track_list.is_empty() ? m_additive_format : additive_clip_format8::none;
+			out_data.transform_space = m_transform_space;
 
 			return nothing_follows();
 		}
@@ -226,6 +231,7 @@ namespace acl
 		sjson::StringView m_additive_base_name;
 		uint32_t m_additive_base_num_samples			= 0;
 		float m_additive_base_sample_rate				= 0.0F;
+		transform_space_t m_transform_space				= transform_space_t::local;
 
 		bool m_has_settings								= false;
 		float m_error_threshold							= 0.0F;
@@ -264,6 +270,7 @@ namespace acl
 		bool read_raw_clip_header()
 		{
 			sjson::StringView additive_format;
+			sjson::StringView transform_space;
 
 			if (!m_parser.object_begins("clip"))
 				goto error;
@@ -321,6 +328,14 @@ namespace acl
 			if (m_additive_base_sample_rate <= 0.0F)
 			{
 				set_error(clip_reader_error::PositiveValueExpected);
+				return false;
+			}
+
+			// Optional value
+			m_parser.try_read("transform_space", transform_space, "local");
+			if (!get_transform_space(transform_space.c_str(), m_transform_space))
+			{
+				set_error(clip_reader_error::InvalidTransformSpace);
 				return false;
 			}
 

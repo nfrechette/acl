@@ -53,6 +53,10 @@ clip =
 	// The additive base clip sample rate. Optional, defaults to 1.
 	// Introduced in version 3.
 	additive_base_sample_rate = 30
+
+	// The space of the transforms of the clip and its base, see 'transform_space_t'. Optional, defaults to 'local'.
+	// Introduced in ACL 2.2.
+	transform_space = "local"
 }
 
 // Optional clip compression settings.

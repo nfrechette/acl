@@ -33,12 +33,13 @@
 #include "acl/compression/transform_error_metrics.h"
 #include "acl/compression/transform_metrics.h"
 #include "acl/compression/track_array.h"
+#include "acl/compression/transform_space.h"
 
 #include <cstdint>
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
-// This file reads the deprecated error metric of the settings
+// This file reads the deprecated error metric and additive base of the settings
 ACL_IMPL_DEPRECATION_WARNING_PUSH
 
 namespace acl
@@ -153,11 +154,24 @@ namespace acl
 		// Transform tracks only
 		track_type8 transform_type = track_type8::vqvf;
 
-		// The optional additive track list to use with transform tracks (vqvf, vqf, or vqsf)
-		// It can have a different type than the track list to pre-process
+		// The transform space of the track list and its base, if any. See 'transform_space_desc_t'.
+		// Use the same value as for compression.
+		// Defaults to local space transforms without a base.
 		// Lossy pre-processing only
 		// Transform tracks only
+		transform_space_desc_t transform_space;
+
+		// DEPRECATED: use 'transform_space' instead.
+		// These values will be removed in v2.3.
+		// The optional additive track list to use with transform tracks (vqvf, vqf, or vqsf)
+		// It can have a different type than the track list to pre-process
+		// When 'additive_format' is not 'none', 'transform_space' cannot have a base
+		// Lossy pre-processing only
+		// Transform tracks only
+		ACL_DEPRECATED("Use transform_space instead, to be removed in v2.3")
 		const track_array* additive_base = nullptr;
+
+		ACL_DEPRECATED("Use transform_space instead, to be removed in v2.3")
 		additive_clip_format8 additive_format = additive_clip_format8::none;
 	};
 

@@ -86,7 +86,7 @@ namespace acl
 				{
 					transform_track_array_adapter_t clip_adapter(
 						&track_list,
-						settings.additive_format);
+						settings.transform_space.base_format);
 					clip_adapter.sorted_transforms_parent_first = get_sorted_transforms_parent_first();
 					clip_adapter.topology = get_topology();
 
@@ -108,8 +108,8 @@ namespace acl
 				{
 					space_context.initialize(
 						allocator,
-						settings.additive_format,
-						transform_track_array_adapter_t(settings.additive_base, additive_clip_format8::none),
+						settings.transform_space.base_format,
+						transform_track_array_adapter_t(settings.transform_space.base, additive_clip_format8::none),
 						track_list.get_num_samples_per_track(),
 						track_list.get_sample_rate(),
 						track_list.get_finite_duration());

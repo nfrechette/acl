@@ -39,6 +39,7 @@
 #include "acl/compression/compression_settings.h"
 #include "acl/compression/output_stats.h"
 #include "acl/compression/track_array.h"
+#include "acl/compression/transform_space.h"
 #include "acl/compression/impl/clip_context.h"
 #include "acl/compression/impl/compression_stats.h"
 #include "acl/compression/impl/track_stream.h"
@@ -146,9 +147,15 @@ namespace acl
 		}
 
 		inline error_result compress_transform_track_list(iallocator& allocator, const track_array& track_list, compression_settings settings,
-			const track_array* additive_base_track_list, additive_clip_format8 additive_format,
+			const transform_space_desc_t& transform_space,
 			compressed_tracks*& out_compressed_tracks, output_stats& out_stats)
 		{
+			ACL_ASSERT(transform_space.is_valid().empty(), "Invalid transform space");
+			ACL_ASSERT(transform_space.space == transform_space_t::local, "Only the local space is supported");
+
+			const track_array* additive_base_track_list = transform_space.base;
+			additive_clip_format8 additive_format = transform_space.base_format;
+
 			ACL_ASSERT(track_list.is_empty() || is_transform_track_type(track_list.get_track_type()), "Expected transform tracks");
 
 			// An empty track array has no type, we use vqvf

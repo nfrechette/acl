@@ -102,7 +102,7 @@ static void stream_out_database_tier(database_context<debug_database_settings>& 
 	ACL_ASSERT(num_chunks == 0 || is_streamed_out, "Failed to stream out tier 1");
 }
 
-static void validate_db_streaming(iallocator& allocator, const track_array& raw_tracks, const track_array& additive_base_tracks, additive_clip_format8 additive_format, const compression_settings& metric_settings,
+static void validate_db_streaming(iallocator& allocator, const track_array& raw_tracks, const transform_space_desc_t& transform_space, const compression_settings& metric_settings,
 	const track_error& high_quality_tier_error_ref,
 	const compressed_tracks& tracks0, const compressed_tracks& tracks1,
 	const compressed_database& db, const uint8_t* db_bulk_data_medium, const uint8_t* db_bulk_data_low)
@@ -144,17 +144,17 @@ static void validate_db_streaming(iallocator& allocator, const track_array& raw_
 	ACL_ASSERT(!db_context.is_streamed_in(quality_tier::lowest_importance) || db.get_num_chunks(quality_tier::lowest_importance) == 0, "Tier shouldn't be streamed in yet");
 
 	// Nothing is streamed in yet, we have low quality
-	const track_error low_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, additive_base_tracks, additive_format);
+	const track_error low_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, transform_space);
 	ACL_ASSERT(low_quality_tier_error0.error + threshold >= high_quality_tier_error_ref.error, "Low quality tier split error should be higher or equal to high quality tier inline");
-	const track_error low_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, additive_base_tracks, additive_format);
+	const track_error low_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, transform_space);
 	ACL_ASSERT(low_quality_tier_error1.error + threshold >= high_quality_tier_error_ref.error, "Low quality tier split error should be higher or equal to high quality tier inline");
 
 	// Stream in our medium importance tier
 	stream_in_database_tier(db_context, db_medium_streamer, db, quality_tier::medium_importance);
 
-	const track_error medium_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, additive_base_tracks, additive_format);
+	const track_error medium_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, transform_space);
 	ACL_ASSERT(medium_quality_tier_error0.error + threshold >= high_quality_tier_error_ref.error, "Medium quality tier split error should be higher or equal to high quality tier inline");
-	const track_error medium_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, additive_base_tracks, additive_format);
+	const track_error medium_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, transform_space);
 	ACL_ASSERT(medium_quality_tier_error1.error + threshold >= high_quality_tier_error_ref.error, "Medium quality tier split error should be higher or equal to high quality tier inline");
 
 	ACL_ASSERT(low_quality_tier_error0.error + threshold >= medium_quality_tier_error0.error, "Low quality tier split error should be higher or equal to medium quality tier split error");
@@ -164,9 +164,9 @@ static void validate_db_streaming(iallocator& allocator, const track_array& raw_
 	stream_in_database_tier(db_context, db_low_streamer, db, quality_tier::lowest_importance);
 
 	{
-		const track_error high_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, additive_base_tracks, additive_format);
+		const track_error high_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, transform_space);
 		ACL_ASSERT(rtm::scalar_near_equal(high_quality_tier_error0.error, high_quality_tier_error_ref.error, threshold), "High quality tier split error should be equal to high quality tier inline");
-		const track_error high_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, additive_base_tracks, additive_format);
+		const track_error high_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, transform_space);
 		ACL_ASSERT(rtm::scalar_near_equal(high_quality_tier_error1.error, high_quality_tier_error_ref.error, threshold), "High quality tier split error should be equal to high quality tier inline");
 	}
 
@@ -175,8 +175,8 @@ static void validate_db_streaming(iallocator& allocator, const track_array& raw_
 
 	{
 		// Not guaranteed to always be the case due to linear interpolation
-		//const track_error mixed_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, additive_base_tracks, additive_format);
-		//const track_error mixed_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, additive_base_tracks, additive_format);
+		//const track_error mixed_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, transform_space);
+		//const track_error mixed_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, transform_space);
 
 		//ACL_ASSERT(mixed_quality_tier_error0.error >= high_quality_tier_error_ref.error, "Mixed quality split error should be higher or equal to high quality tier inline");
 		//ACL_ASSERT(mixed_quality_tier_error1.error >= high_quality_tier_error_ref.error, "Mixed quality split error should be higher or equal to high quality tier inline");
@@ -189,9 +189,9 @@ static void validate_db_streaming(iallocator& allocator, const track_array& raw_
 	stream_in_database_tier(db_context, db_medium_streamer, db, quality_tier::medium_importance);
 
 	{
-		const track_error high_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, additive_base_tracks, additive_format);
+		const track_error high_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, transform_space);
 		ACL_ASSERT(rtm::scalar_near_equal(high_quality_tier_error0.error, high_quality_tier_error_ref.error, threshold), "High quality tier split error should be equal to high quality tier inline");
-		const track_error high_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, additive_base_tracks, additive_format);
+		const track_error high_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, transform_space);
 		ACL_ASSERT(rtm::scalar_near_equal(high_quality_tier_error1.error, high_quality_tier_error_ref.error, threshold), "High quality tier split error should be equal to high quality tier inline");
 	}
 
@@ -199,9 +199,9 @@ static void validate_db_streaming(iallocator& allocator, const track_array& raw_
 	stream_out_database_tier(db_context, db_low_streamer, db, quality_tier::lowest_importance);
 
 	{
-		const track_error medium_quality_tier_error0_ = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, additive_base_tracks, additive_format);
+		const track_error medium_quality_tier_error0_ = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, transform_space);
 		ACL_ASSERT(medium_quality_tier_error0_.error == medium_quality_tier_error0.error, "Medium quality should be restored");
-		const track_error medium_quality_tier_error1_ = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, additive_base_tracks, additive_format);
+		const track_error medium_quality_tier_error1_ = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, transform_space);
 		ACL_ASSERT(medium_quality_tier_error1_.error == medium_quality_tier_error1.error, "Medium quality should be restored");
 	}
 
@@ -209,14 +209,14 @@ static void validate_db_streaming(iallocator& allocator, const track_array& raw_
 	stream_out_database_tier(db_context, db_medium_streamer, db, quality_tier::medium_importance);
 
 	{
-		const track_error low_quality_tier_error0_ = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, additive_base_tracks, additive_format);
+		const track_error low_quality_tier_error0_ = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, transform_space);
 		ACL_ASSERT(low_quality_tier_error0_.error == low_quality_tier_error0.error, "Low quality should be restored");
-		const track_error low_quality_tier_error1_ = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, additive_base_tracks, additive_format);
+		const track_error low_quality_tier_error1_ = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, transform_space);
 		ACL_ASSERT(low_quality_tier_error1_.error == low_quality_tier_error1.error, "Low quality should be restored");
 	}
 }
 
-static void validate_db_stripping(iallocator& allocator, const track_array& raw_tracks, const track_array& additive_base_tracks, additive_clip_format8 additive_format, const compression_settings& metric_settings,
+static void validate_db_stripping(iallocator& allocator, const track_array& raw_tracks, const transform_space_desc_t& transform_space, const compression_settings& metric_settings,
 	const compressed_tracks& tracks0, const compressed_tracks& tracks1,
 	const compressed_database& db, const uint8_t* db_bulk_data_medium, const uint8_t* db_bulk_data_low)
 {
@@ -253,14 +253,14 @@ static void validate_db_stripping(iallocator& allocator, const track_array& raw_
 		ACL_ASSERT(is_bound, "Failed to bind decompression context");
 
 		// Nothing is streamed in yet, we have low quality
-		low_quality_tier_error_ref0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, additive_base_tracks, additive_format);
-		low_quality_tier_error_ref1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, additive_base_tracks, additive_format);
+		low_quality_tier_error_ref0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, transform_space);
+		low_quality_tier_error_ref1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, transform_space);
 
 		// Stream in our medium importance tier
 		stream_in_database_tier(db_context, db_medium_streamer, db, quality_tier::medium_importance);
 
-		medium_quality_tier_error_ref0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, additive_base_tracks, additive_format);
-		medium_quality_tier_error_ref1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, additive_base_tracks, additive_format);
+		medium_quality_tier_error_ref0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, transform_space);
+		medium_quality_tier_error_ref1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, transform_space);
 
 		// Stream in our low importance tier, restoring the full high quality
 		stream_in_database_tier(db_context, db_low_streamer, db, quality_tier::lowest_importance);
@@ -268,8 +268,8 @@ static void validate_db_stripping(iallocator& allocator, const track_array& raw_
 		// Stream out our medium importance tier, we'll have mixed quality
 		stream_out_database_tier(db_context, db_medium_streamer, db, quality_tier::medium_importance);
 
-		mixed_quality_tier_error_ref0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, additive_base_tracks, additive_format);
-		mixed_quality_tier_error_ref1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, additive_base_tracks, additive_format);
+		mixed_quality_tier_error_ref0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, transform_space);
+		mixed_quality_tier_error_ref1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, transform_space);
 	}
 
 	// Strip medium tier
@@ -298,9 +298,9 @@ static void validate_db_stripping(iallocator& allocator, const track_array& raw_
 
 		// Nothing is streamed in yet, we have low quality
 		{
-			const track_error low_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, additive_base_tracks, additive_format);
+			const track_error low_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, transform_space);
 			ACL_ASSERT(low_quality_tier_error0.error == low_quality_tier_error_ref0.error, "Low quality tier stripped error should be equal to low quality tier whole");
-			const track_error low_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, additive_base_tracks, additive_format);
+			const track_error low_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, transform_space);
 			ACL_ASSERT(low_quality_tier_error1.error == low_quality_tier_error_ref1.error, "Low quality tier stripped error should be equal to low quality tier whole");
 		}
 
@@ -308,9 +308,9 @@ static void validate_db_stripping(iallocator& allocator, const track_array& raw_
 		stream_in_database_tier(db_context, db_medium_streamer, *db_no_medium, quality_tier::medium_importance);
 
 		{
-			const track_error medium_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, additive_base_tracks, additive_format);
+			const track_error medium_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, transform_space);
 			ACL_ASSERT(medium_quality_tier_error0.error == low_quality_tier_error_ref0.error, "Medium quality tier stripped error should be equal to low quality tier whole");
-			const track_error medium_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, additive_base_tracks, additive_format);
+			const track_error medium_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, transform_space);
 			ACL_ASSERT(medium_quality_tier_error1.error == low_quality_tier_error_ref1.error, "Medium quality tier stripped error should be equal to low quality tier whole");
 		}
 
@@ -318,9 +318,9 @@ static void validate_db_stripping(iallocator& allocator, const track_array& raw_
 		stream_in_database_tier(db_context, db_low_streamer, *db_no_medium, quality_tier::lowest_importance);
 
 		{
-			const track_error high_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, additive_base_tracks, additive_format);
+			const track_error high_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, transform_space);
 			ACL_ASSERT(high_quality_tier_error0.error == mixed_quality_tier_error_ref0.error, "High quality tier stripped error should be equal to mixed quality tier whole");
-			const track_error high_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, additive_base_tracks, additive_format);
+			const track_error high_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, transform_space);
 			ACL_ASSERT(high_quality_tier_error1.error == mixed_quality_tier_error_ref1.error, "High quality tier stripped error should be equal to mixed quality tier whole");
 		}
 
@@ -328,9 +328,9 @@ static void validate_db_stripping(iallocator& allocator, const track_array& raw_
 		stream_out_database_tier(db_context, db_medium_streamer, *db_no_medium, quality_tier::medium_importance);
 
 		{
-			const track_error mixed_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, additive_base_tracks, additive_format);
+			const track_error mixed_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, transform_space);
 			ACL_ASSERT(mixed_quality_tier_error0.error == mixed_quality_tier_error_ref0.error, "Mixed quality tier stripped error should be equal to mixed quality tier whole");
-			const track_error mixed_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, additive_base_tracks, additive_format);
+			const track_error mixed_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, transform_space);
 			ACL_ASSERT(mixed_quality_tier_error1.error == mixed_quality_tier_error_ref1.error, "Mixed quality tier stripped error should be equal to mixed quality tier whole");
 		}
 	}
@@ -361,9 +361,9 @@ static void validate_db_stripping(iallocator& allocator, const track_array& raw_
 
 		// Nothing is streamed in yet, we have low quality
 		{
-			const track_error low_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, additive_base_tracks, additive_format);
+			const track_error low_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, transform_space);
 			ACL_ASSERT(low_quality_tier_error0.error == low_quality_tier_error_ref0.error, "Low quality tier stripped error should be equal to low quality tier whole");
-			const track_error low_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, additive_base_tracks, additive_format);
+			const track_error low_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, transform_space);
 			ACL_ASSERT(low_quality_tier_error1.error == low_quality_tier_error_ref1.error, "Low quality tier stripped error should be equal to low quality tier whole");
 		}
 
@@ -371,9 +371,9 @@ static void validate_db_stripping(iallocator& allocator, const track_array& raw_
 		stream_in_database_tier(db_context, db_medium_streamer, *db_no_low, quality_tier::medium_importance);
 
 		{
-			const track_error medium_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, additive_base_tracks, additive_format);
+			const track_error medium_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, transform_space);
 			ACL_ASSERT(medium_quality_tier_error0.error == medium_quality_tier_error_ref0.error, "Medium quality tier stripped error should be equal to medium quality tier whole");
-			const track_error medium_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, additive_base_tracks, additive_format);
+			const track_error medium_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, transform_space);
 			ACL_ASSERT(medium_quality_tier_error1.error == medium_quality_tier_error_ref1.error, "Medium quality tier stripped error should be equal to medium quality tier whole");
 		}
 
@@ -381,9 +381,9 @@ static void validate_db_stripping(iallocator& allocator, const track_array& raw_
 		stream_in_database_tier(db_context, db_low_streamer, *db_no_low, quality_tier::lowest_importance);
 
 		{
-			const track_error high_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, additive_base_tracks, additive_format);
+			const track_error high_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, transform_space);
 			ACL_ASSERT(high_quality_tier_error0.error == medium_quality_tier_error_ref0.error, "High quality tier stripped error should be equal to medium quality tier whole");
-			const track_error high_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, additive_base_tracks, additive_format);
+			const track_error high_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, transform_space);
 			ACL_ASSERT(high_quality_tier_error1.error == medium_quality_tier_error_ref1.error, "High quality tier stripped error should be equal to medium quality tier whole");
 		}
 
@@ -391,9 +391,9 @@ static void validate_db_stripping(iallocator& allocator, const track_array& raw_
 		stream_out_database_tier(db_context, db_medium_streamer, *db_no_low, quality_tier::medium_importance);
 
 		{
-			const track_error mixed_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, additive_base_tracks, additive_format);
+			const track_error mixed_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, transform_space);
 			ACL_ASSERT(mixed_quality_tier_error0.error == low_quality_tier_error_ref0.error, "Mixed quality tier stripped error should be equal to low quality tier whole");
-			const track_error mixed_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, additive_base_tracks, additive_format);
+			const track_error mixed_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, transform_space);
 			ACL_ASSERT(mixed_quality_tier_error1.error == low_quality_tier_error_ref1.error, "Mixed quality tier stripped error should be equal to low quality tier whole");
 		}
 	}
@@ -430,9 +430,9 @@ static void validate_db_stripping(iallocator& allocator, const track_array& raw_
 
 		// Nothing is streamed in yet, we have low quality
 		{
-			const track_error low_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, additive_base_tracks, additive_format);
+			const track_error low_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, transform_space);
 			ACL_ASSERT(low_quality_tier_error0.error == low_quality_tier_error_ref0.error, "Low quality tier stripped error should be equal to low quality tier whole");
-			const track_error low_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, additive_base_tracks, additive_format);
+			const track_error low_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, transform_space);
 			ACL_ASSERT(low_quality_tier_error1.error == low_quality_tier_error_ref1.error, "Low quality tier stripped error should be equal to low quality tier whole");
 		}
 
@@ -440,9 +440,9 @@ static void validate_db_stripping(iallocator& allocator, const track_array& raw_
 		stream_in_database_tier(db_context, db_medium_streamer, *db_neither0, quality_tier::medium_importance);
 
 		{
-			const track_error medium_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, additive_base_tracks, additive_format);
+			const track_error medium_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, transform_space);
 			ACL_ASSERT(medium_quality_tier_error0.error == low_quality_tier_error_ref0.error, "Medium quality tier stripped error should be equal to low quality tier whole");
-			const track_error medium_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, additive_base_tracks, additive_format);
+			const track_error medium_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, transform_space);
 			ACL_ASSERT(medium_quality_tier_error1.error == low_quality_tier_error_ref1.error, "Medium quality tier stripped error should be equal to low quality tier whole");
 		}
 
@@ -450,9 +450,9 @@ static void validate_db_stripping(iallocator& allocator, const track_array& raw_
 		stream_in_database_tier(db_context, db_low_streamer, *db_neither0, quality_tier::lowest_importance);
 
 		{
-			const track_error high_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, additive_base_tracks, additive_format);
+			const track_error high_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, transform_space);
 			ACL_ASSERT(high_quality_tier_error0.error == low_quality_tier_error_ref0.error, "High quality tier stripped error should be equal to low quality tier whole");
-			const track_error high_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, additive_base_tracks, additive_format);
+			const track_error high_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, transform_space);
 			ACL_ASSERT(high_quality_tier_error1.error == low_quality_tier_error_ref1.error, "High quality tier stripped error should be equal to low quality tier whole");
 		}
 
@@ -460,9 +460,9 @@ static void validate_db_stripping(iallocator& allocator, const track_array& raw_
 		stream_out_database_tier(db_context, db_medium_streamer, *db_neither0, quality_tier::medium_importance);
 
 		{
-			const track_error mixed_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, additive_base_tracks, additive_format);
+			const track_error mixed_quality_tier_error0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, transform_space);
 			ACL_ASSERT(mixed_quality_tier_error0.error == low_quality_tier_error_ref0.error, "Mixed quality tier stripped error should be equal to low quality tier whole");
-			const track_error mixed_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, additive_base_tracks, additive_format);
+			const track_error mixed_quality_tier_error1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, transform_space);
 			ACL_ASSERT(mixed_quality_tier_error1.error == low_quality_tier_error_ref1.error, "Mixed quality tier stripped error should be equal to low quality tier whole");
 		}
 	}
@@ -501,7 +501,7 @@ static bool has_zero_scale(const track_array& raw_tracks)
 	return false;
 }
 
-void validate_db(iallocator& allocator, const track_array& raw_tracks, const track_array& additive_base_tracks, additive_clip_format8 additive_format,
+void validate_db(iallocator& allocator, const track_array& raw_tracks, const transform_space_desc_t& transform_space,
 	const compression_database_settings& settings, const compression_settings& metric_settings,
 	const compressed_tracks& compressed_tracks0, const compressed_tracks& compressed_tracks1)
 {
@@ -582,7 +582,7 @@ void validate_db(iallocator& allocator, const track_array& raw_tracks, const tra
 		const bool is_bound = context.is_bound_to(compressed_tracks0);
 		ACL_ASSERT(is_bound, "Failed to bind decompression context");
 
-		high_quality_tier_error_ref = calculate_compression_error(allocator, raw_tracks, context, metric_settings, additive_base_tracks, additive_format);
+		high_quality_tier_error_ref = calculate_compression_error(allocator, raw_tracks, context, metric_settings, transform_space);
 	}
 
 	// Make sure the databases agree with our reference
@@ -599,7 +599,7 @@ void validate_db(iallocator& allocator, const track_array& raw_tracks, const tra
 		is_bound = is_bound && context.is_bound_to(*db0);
 		ACL_ASSERT(is_bound, "Failed to bind decompression context");
 
-		const track_error error_tier0 = calculate_compression_error(allocator, raw_tracks, context, metric_settings, additive_base_tracks, additive_format);
+		const track_error error_tier0 = calculate_compression_error(allocator, raw_tracks, context, metric_settings, transform_space);
 		ACL_ASSERT(rtm::scalar_near_equal(error_tier0.error, high_quality_tier_error_ref.error, threshold), "Database 0 should have the same error");
 	}
 
@@ -616,7 +616,7 @@ void validate_db(iallocator& allocator, const track_array& raw_tracks, const tra
 		is_bound = is_bound && context.is_bound_to(*db1);
 		ACL_ASSERT(is_bound, "Failed to bind decompression context");
 
-		const track_error error_tier1 = calculate_compression_error(allocator, raw_tracks, context, metric_settings, additive_base_tracks, additive_format);
+		const track_error error_tier1 = calculate_compression_error(allocator, raw_tracks, context, metric_settings, transform_space);
 		ACL_ASSERT(rtm::scalar_near_equal(error_tier1.error, high_quality_tier_error_ref.error, threshold), "Database 1 should have the same error");
 	}
 
@@ -637,10 +637,10 @@ void validate_db(iallocator& allocator, const track_array& raw_tracks, const tra
 		is_bound = is_bound && context1.is_bound_to(*db01);
 		ACL_ASSERT(is_bound, "Failed to bind decompression context");
 
-		const track_error error_tier0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, additive_base_tracks, additive_format);
+		const track_error error_tier0 = calculate_compression_error(allocator, raw_tracks, context0, metric_settings, transform_space);
 		ACL_ASSERT(rtm::scalar_near_equal(error_tier0.error, high_quality_tier_error_ref.error, threshold), "Database 01 should have the same error");
 
-		const track_error error_tier1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, additive_base_tracks, additive_format);
+		const track_error error_tier1 = calculate_compression_error(allocator, raw_tracks, context1, metric_settings, transform_space);
 		ACL_ASSERT(rtm::scalar_near_equal(error_tier1.error, high_quality_tier_error_ref.error, threshold), "Database 01 should have the same error");
 	}
 
@@ -667,7 +667,7 @@ void validate_db(iallocator& allocator, const track_array& raw_tracks, const tra
 	}
 
 	// Measure the tier error when stripping
-	validate_db_stripping(allocator, raw_tracks, additive_base_tracks, additive_format, metric_settings, *db_tracks01[0], *db_tracks01[1], *db01, db01->get_bulk_data(quality_tier::medium_importance), db01->get_bulk_data(quality_tier::lowest_importance));
+	validate_db_stripping(allocator, raw_tracks, transform_space, metric_settings, *db_tracks01[0], *db_tracks01[1], *db01, db01->get_bulk_data(quality_tier::medium_importance), db01->get_bulk_data(quality_tier::lowest_importance));
 
 	// Split the database bulk data out
 	compressed_database* split_db = nullptr;
@@ -681,10 +681,10 @@ void validate_db(iallocator& allocator, const track_array& raw_tracks, const tra
 	ACL_ASSERT(split_db->contains(*db_tracks01[1]), "Database should contain our clip");
 
 	// Measure the tier error through simulated streaming
-	validate_db_streaming(allocator, raw_tracks, additive_base_tracks, additive_format, metric_settings, high_quality_tier_error_ref, *db_tracks01[0], *db_tracks01[1], *split_db, split_db_bulk_data_medium, split_db_bulk_data_low);
+	validate_db_streaming(allocator, raw_tracks, transform_space, metric_settings, high_quality_tier_error_ref, *db_tracks01[0], *db_tracks01[1], *split_db, split_db_bulk_data_medium, split_db_bulk_data_low);
 
 	// Measure the tier error when stripping
-	validate_db_stripping(allocator, raw_tracks, additive_base_tracks, additive_format, metric_settings, *db_tracks01[0], *db_tracks01[1], *split_db, split_db_bulk_data_medium, split_db_bulk_data_low);
+	validate_db_stripping(allocator, raw_tracks, transform_space, metric_settings, *db_tracks01[0], *db_tracks01[1], *split_db, split_db_bulk_data_medium, split_db_bulk_data_low);
 
 	// Duplicate our clips so we can modify them
 	compressed_tracks* compressed_tracks_copy0 = safe_ptr_cast<compressed_tracks>(allocate_type_array_aligned<uint8_t>(allocator, db_tracks0[0]->get_size(), alignof(compressed_tracks)));

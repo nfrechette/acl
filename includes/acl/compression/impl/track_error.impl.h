@@ -884,17 +884,28 @@ namespace acl
 	}
 
 	template<class decompression_context_type, acl_impl::is_decompression_context<decompression_context_type>>
-	inline track_error calculate_compression_error(iallocator& allocator, const track_array& raw_tracks, decompression_context_type& context, const compression_settings& settings, const track_array& additive_base_tracks, additive_clip_format8 additive_format)
+	inline track_error calculate_compression_error(iallocator& allocator, const track_array& raw_tracks, decompression_context_type& context, const compression_settings& settings, const transform_space_desc_t& transform_space)
 	{
 		using namespace acl_impl;
 
+		ACL_ASSERT(transform_space.is_valid().empty(), "The transform space is not valid");
+		if (transform_space.is_valid().any())
+			return invalid_track_error();
+
+		ACL_ASSERT(transform_space.space == transform_space_t::local, "Only the local space is supported");
+
+		if (!transform_space.has_base())
+			return calculate_compression_error(allocator, raw_tracks, context, settings);
+
+		const track_array& base_tracks = *transform_space.base;
+
 		transform_runtime_error_metric runtime_error_metric;
-		const itransform_error_metric* error_metric = get_settings_error_metric(settings, raw_tracks, additive_format, &additive_base_tracks, runtime_error_metric);
+		const itransform_error_metric* error_metric = get_settings_error_metric(settings, raw_tracks, transform_space.base_format, &base_tracks, runtime_error_metric);
 		ACL_ASSERT(error_metric != nullptr, "The compression settings are not valid for these tracks");
 		if (error_metric == nullptr)
 			return invalid_track_error();
 
-		return calculate_compression_error(allocator, raw_tracks, context, *error_metric, additive_base_tracks);
+		return calculate_compression_error(allocator, raw_tracks, context, *error_metric, base_tracks);
 	}
 
 	inline track_error calculate_compression_error(iallocator& allocator, const track_array& raw_tracks0, const track_array& raw_tracks1, const compression_settings& settings)

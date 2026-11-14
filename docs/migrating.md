@@ -16,6 +16,26 @@ To measure the error as compression does, use the `calculate_compression_error` 
 
 `itransform_error_metric` and the legacy error metrics (`vqvf_transform_error_metric` and the others) are also deprecated. To measure the error with your own transform type, implement an `itransform_adapter`. To measure it in your own way, implement an `itransform_metric`.
 
+### Additive clips and the transform space
+
+A `transform_space_desc_t` now holds the base of an additive clip and its additive format (see [here](additive_clips.md#the-transform-space)). These APIs are deprecated, and ACL 2.3 will remove them:
+
+*  The `compress_track_list` overload that takes `additive_base_track_list` and `additive_format`. Use the overload that takes a `transform_space_desc_t`. The old overload ignores an empty base. The new overload returns an error when the base format is not `none` and the base is null or empty.
+*  `pre_process_settings_t::additive_base` and `pre_process_settings_t::additive_format`. Use `pre_process_settings_t::transform_space`. Pre-processing returns an error when you set both.
+
+The `calculate_compression_error` overload that takes the compression settings, the additive base, and the additive format is new in 2.2. It now takes a `transform_space_desc_t` in place of the base and the format.
+
+```c++
+// ACL 2.1
+compress_track_list(allocator, tracks, settings, base_tracks, additive_clip_format8::additive1, out_compressed_tracks, stats);
+
+// ACL 2.2
+transform_space_desc_t transform_space;
+transform_space.base_format = additive_clip_format8::additive1;
+transform_space.base = &base_tracks;
+compress_track_list(allocator, tracks, settings, transform_space, out_compressed_tracks, stats);
+```
+
 ## Migrating to ACL 2.0 from 1.3
 
 ACL 2.0 brought along with it a lot of cleanup of high level APIs, file organization, and migrated all math usage to [Realtime Math](https://github.com/nfrechette/rtm).

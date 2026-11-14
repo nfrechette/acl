@@ -33,6 +33,7 @@
 #include "acl/compression/compression_settings.h"
 #include "acl/compression/output_stats.h"
 #include "acl/compression/track_array.h"
+#include "acl/compression/transform_space.h"
 
 #include <cstdint>
 
@@ -63,15 +64,27 @@ namespace acl
 		compressed_tracks*& out_compressed_tracks, output_stats& out_stats);
 
 	//////////////////////////////////////////////////////////////////////////
-	// Compresses a transform track array using its additive base with uniform sampling.
+	// Compresses a transform track array in a transform space with uniform sampling.
+	// The transform space tells compression how to measure the error: the space of the
+	// samples and their base, if any. See 'transform_space_desc_t'.
+	// The overload without a transform space uses local space transforms without a base.
 	//
-	// This compression algorithm is the simplest by far and as such it offers
-	// the fastest compression and decompression. Every sample is retained and
-	// every track has the same number of samples playing back at the same
-	// sample rate. This means that when we sample at a particular time within
-	// the clip, we can trivially calculate the offsets required to read the
-	// desired data. All the data is sorted in order to ensure all reads are
-	// as contiguous as possible for optimal cache locality during decompression.
+	//    allocator:				The allocator instance to use to allocate and free memory.
+	//    track_list:				The transform track list to compress (vqvf, vqf, or vqsf).
+	//    settings:					The compression settings to use.
+	//    transform_space:			The transform space of 'track_list' and its base, if any.
+	//    out_compressed_tracks:	The resulting compressed tracks. The caller owns the returned memory and must free it.
+	//    out_stats:				Stat output structure.
+	//////////////////////////////////////////////////////////////////////////
+	error_result compress_track_list(iallocator& allocator, const track_array& track_list, const compression_settings& settings,
+		const transform_space_desc_t& transform_space,
+		compressed_tracks*& out_compressed_tracks, output_stats& out_stats);
+
+	//////////////////////////////////////////////////////////////////////////
+	// DEPRECATED: use the overload with a 'transform_space_desc_t' instead.
+	// This overload will be removed in v2.3.
+	// Compresses a transform track array using its additive base with uniform sampling.
+	// The transforms are in local space. When the base is empty, the clip has no base.
 	//
 	//    allocator:				The allocator instance to use to allocate and free memory.
 	//    track_list:				The transform track list to compress (vqvf, vqf, or vqsf).
@@ -81,6 +94,7 @@ namespace acl
 	//    out_compressed_tracks:	The resulting compressed tracks. The caller owns the returned memory and must free it.
 	//    out_stats:				Stat output structure.
 	//////////////////////////////////////////////////////////////////////////
+	ACL_DEPRECATED("Use the overload with a transform_space_desc_t instead, to be removed in v2.3")
 	error_result compress_track_list(iallocator& allocator, const track_array& track_list, const compression_settings& settings,
 		const track_array& additive_base_track_list, additive_clip_format8 additive_format,
 		compressed_tracks*& out_compressed_tracks, output_stats& out_stats);

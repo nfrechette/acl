@@ -46,6 +46,11 @@
 *  The built-in transform adapters and metrics use code without virtual function calls, compression is faster
 *  Fix the bit rate algorithm v1 that converted transforms that it did not sample, an assert could fail with an additive base
 *  Disable floating point contraction (FMA) in the ACL headers with the `optimize` pragma under GCC
+*  Add `transform_space_t` and `transform_space_desc_t`: the space of the transform tracks and their base, see [additive clips](docs/additive_clips.md)
+*  Add the `compress_track_list` overload that takes a `transform_space_desc_t`, and deprecate the overload that takes an additive base and an additive format, ACL 2.3 will remove it
+*  Add `pre_process_settings_t::transform_space`, and deprecate `pre_process_settings_t::additive_base` and `additive_format`, ACL 2.3 will remove them
+*  The `calculate_compression_error` overload with the compression settings and a base now takes a `transform_space_desc_t`
+*  The clip reader reads the optional `transform_space` value of a raw clip, it defaults to `local`
 
 ## 2.1.0
 

@@ -31,6 +31,7 @@
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/compression/compression_settings.h"
 #include "acl/compression/track_array.h"
+#include "acl/compression/transform_space.h"
 #include "acl/compression/transform_error_metrics.h"
 #include "acl/decompression/decompress.h"
 
@@ -108,14 +109,15 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// Calculates the worst compression error between a raw track array and its
 	// compressed tracks.
-	// Supports transform tracks (vqvf, vqf, or vqsf) with an additive base.
-	// The additive base can have a different transform type than the raw tracks.
-	// It measures the error as compression does with these settings:
+	// Supports transform tracks (vqvf, vqf, or vqsf) in a transform space, see 'transform_space_desc_t'.
+	// The base, if any, can have a different transform type than the raw tracks.
+	// It measures the error as compression does with these settings and this transform space:
 	// with the legacy error metric when it is set, otherwise with the runtime transform type and the transform metric.
+	// Returns an invalid error when the transform space is not valid.
 	//
 	// Note: This function uses SFINAE to prevent it from matching when it shouldn't.
 	template<class decompression_context_type, acl_impl::is_decompression_context<decompression_context_type> = nullptr>
-	track_error calculate_compression_error(iallocator& allocator, const track_array& raw_tracks, decompression_context_type& context, const compression_settings& settings, const track_array& additive_base_tracks, additive_clip_format8 additive_format);
+	track_error calculate_compression_error(iallocator& allocator, const track_array& raw_tracks, decompression_context_type& context, const compression_settings& settings, const transform_space_desc_t& transform_space);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Calculates the worst compression error between two compressed tracks instances.

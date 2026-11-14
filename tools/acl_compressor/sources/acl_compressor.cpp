@@ -460,7 +460,7 @@ static bool parse_options(int argc, char** argv, Options& options)
 #if defined(ACL_USE_SJSON)
 
 static void try_algorithm(const Options& options, iallocator& allocator, const track_array& transform_tracks,
-	const track_array& additive_base, additive_clip_format8 additive_format,
+	const transform_space_desc_t& transform_space,
 	compression_settings settings, const compression_database_settings& database_settings,
 	stat_logging logging, sjson::ArrayWriter* runs_writer, double regression_error_threshold)
 {
@@ -484,7 +484,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 
 		compressed_tracks* compressed_tracks_ = nullptr;
 
-		error_result result = compress_track_list(allocator, transform_tracks, settings, additive_base, additive_format, compressed_tracks_, stats);
+		error_result result = compress_track_list(allocator, transform_tracks, settings, transform_space, compressed_tracks_, stats);
 
 		ACL_ASSERT(result.empty(), result.c_str());
 		ACL_ASSERT(compressed_tracks_->is_valid(true).empty(), "Compressed tracks are invalid");
@@ -523,7 +523,7 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 #if defined(ACL_HAS_ASSERT_CHECKS)
 		if (options.regression_testing)
 		{
-			validate_accuracy(allocator, transform_tracks, additive_base, additive_format, settings, *compressed_tracks_, regression_error_threshold);
+			validate_accuracy(allocator, transform_tracks, transform_space, settings, *compressed_tracks_, regression_error_threshold);
 			validate_metadata(transform_tracks, *compressed_tracks_);
 			validate_convert(allocator, transform_tracks);
 
@@ -541,13 +541,13 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 
 				compressed_tracks* compressed_tracks1 = nullptr;
 
-				result = compress_track_list(allocator, transform_tracks, settings, additive_base, additive_format, compressed_tracks1, stats1);
+				result = compress_track_list(allocator, transform_tracks, settings, transform_space, compressed_tracks1, stats1);
 
 				ACL_ASSERT(result.empty(), result.c_str());
 				ACL_ASSERT(compressed_tracks1->is_valid(true).empty(), "Compressed tracks are invalid");
 				ACL_ASSERT(compressed_tracks_->get_hash() != compressed_tracks1->get_hash(), "Hashes should not match");
 
-				validate_db(allocator, transform_tracks, additive_base, additive_format, database_settings, settings, *compressed_tracks_, *compressed_tracks1);
+				validate_db(allocator, transform_tracks, transform_space, database_settings, settings, *compressed_tracks_, *compressed_tracks1);
 
 				allocator.deallocate(compressed_tracks1, compressed_tracks1->get_size());
 			}
@@ -1063,6 +1063,7 @@ static int safe_main_impl(int argc, char* argv[])
 	track_array transform_tracks;
 	track_array_vqvf base_clip;
 	additive_clip_format8 additive_format = additive_clip_format8::none;
+	transform_space_t transform_space_type = transform_space_t::local;
 	track_array scalar_tracks;
 
 #if defined(__ANDROID__)
@@ -1131,6 +1132,7 @@ static int safe_main_impl(int argc, char* argv[])
 			transform_tracks = std::move(sjson_clip.track_list);
 			base_clip = std::move(sjson_clip.additive_base_track_list);
 			additive_format = sjson_clip.additive_format;
+			transform_space_type = sjson_clip.transform_space;
 			scalar_tracks = std::move(sjson_track_list.track_list);
 		}
 	}
@@ -1254,6 +1256,15 @@ static int safe_main_impl(int argc, char* argv[])
 	ACL_IMPL_DEPRECATION_WARNING_POP
 	settings.transform_runtime_type = transform_runtime_type;
 
+	// The transform space of the clip and its base, if any
+	transform_space_desc_t transform_space;
+	transform_space.space = transform_space_type;
+	if (additive_format != additive_clip_format8::none && !base_clip.is_empty())
+	{
+		transform_space.base_format = additive_format;
+		transform_space.base = &base_clip;
+	}
+
 	// Pre-process
 	{
 		pre_process_settings_t pre_process_settings;
@@ -1275,8 +1286,7 @@ static int safe_main_impl(int argc, char* argv[])
 			pre_process_settings.transform_runtime_type = settings.transform_runtime_type;
 			pre_process_settings.custom_transform_adapter = settings.custom_transform_adapter;
 			pre_process_settings.transform_metric = settings.transform_metric;
-			pre_process_settings.additive_base = &base_clip;
-			pre_process_settings.additive_format = additive_format;
+			pre_process_settings.transform_space = transform_space;
 
 			// Compress the clips without scale as VQ tracks
 			if (options.use_vq_source)
@@ -1308,7 +1318,7 @@ static int safe_main_impl(int argc, char* argv[])
 			logging |= stat_logging::exhaustive;
 
 		if (sjson_type == sjson_file_type::raw_clip)
-			try_algorithm(options, allocator, transform_tracks, base_clip, additive_format, settings, database_settings, logging, runs_writer, regression_error_threshold);
+			try_algorithm(options, allocator, transform_tracks, transform_space, settings, database_settings, logging, runs_writer, regression_error_threshold);
 		else if (sjson_type == sjson_file_type::raw_track_list)
 			try_algorithm(options, allocator, scalar_tracks, settings, logging, runs_writer, regression_error_threshold);
 	};

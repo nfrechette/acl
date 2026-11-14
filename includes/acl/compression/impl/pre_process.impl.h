@@ -211,13 +211,28 @@ namespace acl
 		// Pre-processing does not know whether the clip has scale: it uses the selection with scale
 		transform_runtime_error_metric runtime_error_metric;
 		pre_process_settings_t settings = input_settings;
+
+		// The deprecated 'additive_base' and 'additive_format' describe a base of local space transforms
+		// Internally, we use only the transform space
+		if (input_settings.additive_format != additive_clip_format8::none)
+		{
+			if (input_settings.transform_space.has_base() || input_settings.transform_space.base != nullptr)
+				return error_result("Cannot use 'additive_base' and 'additive_format' with a base in 'transform_space'");
+
+			settings.transform_space.base_format = input_settings.additive_format;
+			settings.transform_space.base = input_settings.additive_base;
+		}
+
+		settings.additive_base = nullptr;
+		settings.additive_format = additive_clip_format8::none;
+
 		if (settings.error_metric == nullptr)
 		{
 			// An empty track array has no type, we use vqvf
 			const track_type8 track_type = track_list.is_empty() ? track_type8::vqvf : track_list.get_track_type();
 			const error_result runtime_error_metric_result = runtime_error_metric.initialize(
 				settings.transform_runtime_type, settings.custom_transform_adapter, settings.transform_metric,
-				track_type, settings.additive_format, settings.additive_base);
+				track_type, settings.transform_space.base_format, settings.transform_space.base);
 			if (runtime_error_metric_result.any())
 				return runtime_error_metric_result;
 
@@ -230,20 +245,12 @@ namespace acl
 		if (track_list.get_num_samples_per_track() == 0)
 			return error_result();	// No samples, nothing to do
 
-		if (settings.additive_format != additive_clip_format8::none)
-		{
-			if (!is_transform_track_type(track_list.get_track_type()))
-				return error_result("'additive_format' is only supported with transform tracks");
+		const error_result transform_space_result = settings.transform_space.is_valid();
+		if (transform_space_result.any())
+			return transform_space_result;
 
-			if (settings.additive_base == nullptr)
-				return error_result("Missing 'additive_base' when 'additive_format' is used");
-
-			if (settings.additive_base->is_empty())
-				return error_result("'additive_base' cannot be empty when 'additive_format' is used");
-
-			if (!is_transform_track_type(settings.additive_base->get_track_type()))
-				return error_result("'additive_base' must contain transform tracks");
-		}
+		if (settings.transform_space.has_base() && !is_transform_track_type(track_list.get_track_type()))
+			return error_result("A base is only supported with transform tracks");
 
 		const bool is_transform = is_transform_track_type(track_list.get_track_type());
 		if (is_transform && are_any_enum_flags_set(settings.actions, pre_process_actions::convert_transform_type) && !is_transform_track_type(settings.transform_type))

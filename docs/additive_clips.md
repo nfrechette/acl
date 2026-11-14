@@ -2,7 +2,26 @@
 
 Additive animation clips are a core tool within an animation runtime but sadly, how additive animations are blended and applied is not standard. As such, this library aims to support the most common additive modes. Contributions welcome!
 
-The core logic for additive clips lives [here](../includes/acl/additive_utils.h).
+The core logic for additive clips lives [here](../includes/acl/core/additive_utils.h).
+
+## The transform space
+
+A `transform_space_desc_t` (see [here](../includes/acl/compression/transform_space.h)) tells compression how to measure the error of a clip. It holds two independent properties:
+
+*  `space`: how a sample uses the transform hierarchy, see `transform_space_t`. At the moment, ACL supports only `local`: each transform is relative to its parent transform.
+*  `base_format` and `base`: how a sample combines with its base clip, see `additive_clip_format8` and the formats below. With `none`, the clip has no base.
+
+Compression first combines each sample with the base. Then it puts the result in object space to measure the error. The transform space does not change the compressed data: decompression returns the samples of the clip, and your runtime applies them to the base.
+
+```c++
+transform_space_desc_t transform_space;
+transform_space.base_format = additive_clip_format8::additive1;
+transform_space.base = &base_track_list;
+
+error_result result = compress_track_list(allocator, raw_track_list, settings, transform_space, out_compressed_tracks, stats);
+```
+
+Use the same transform space for [pre-processing](pre_processing_raw_tracks.md) (`pre_process_settings_t::transform_space`) and to [measure the error](error_metrics.md) (`calculate_compression_error`).
 
 ## Relative additive clips
 

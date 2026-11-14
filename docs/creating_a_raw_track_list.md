@@ -103,7 +103,7 @@ raw_transform_tracks[0] = std::move(raw_track);
 
 ## Additive animation clips
 
-If the clip you are compressing is an additive clip, you will also need to create an instance for the base clip. Once you have both clip instances, you can compress them together with `compress_track_list(..)`. This will allow you to specify the clip instance that represents the base clip as well as the [format](additive_clips.md) used by the additive clip.
+If the clip you are compressing is an additive clip, you will also need to create an instance for the base clip. Put the base clip and the [format](additive_clips.md) of the additive clip in a `transform_space_desc_t`, and give it to `compress_track_list(..)`. See [the transform space](additive_clips.md#the-transform-space) for an example.
 
 The library assumes that the raw clip data has already been transformed to be in additive or relative space.
 

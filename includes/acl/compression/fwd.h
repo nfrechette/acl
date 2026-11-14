@@ -88,6 +88,9 @@ namespace acl
 
 	enum class additive_clip_format8 : uint8_t;
 
+	enum class transform_space_t : uint8_t;
+	struct transform_space_desc_t;
+
 	enum class transform_runtime_type_t : uint8_t;
 
 	class itransform_adapter;

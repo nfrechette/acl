@@ -1702,3 +1702,56 @@ TEST_CASE("sjson_track_list_reader_writer vqsf", "[io]")
 	}
 #endif
 }
+
+TEST_CASE("sjson_clip_reader transform space", "[io][transform_space]")
+{
+#if defined(ACL_IMPL_ENABLE_IO_UNIT_TESTS)
+	ansi_allocator allocator;
+
+	// A raw clip with one bone, its samples use the default values
+	auto make_clip = [](const char* transform_space_line) -> std::string
+	{
+		std::string clip;
+		clip += "version = 6\n";
+		clip += "clip =\n{\n";
+		clip += "\tname = \"test\"\n";
+		clip += "\tnum_samples = 2\n";
+		clip += "\tsample_rate = 30\n";
+		clip += transform_space_line;
+		clip += "}\n";
+		clip += "bones =\n[\n\t{\n\t\tname = \"root\"\n\t\tparent = \"\"\n\t\tvertex_distance = 1.0\n\t}\n]\n";
+		clip += "tracks =\n[\n\t{\n\t\tname = \"root\"\n\t}\n]\n";
+		return clip;
+	};
+
+	{
+		// Without the key, the transform space is local
+		const std::string clip = make_clip("");
+		clip_reader reader(allocator, clip.c_str(), clip.size());
+		REQUIRE(reader.get_file_type() == sjson_file_type::raw_clip);
+
+		sjson_raw_clip file_clip;
+		REQUIRE(reader.read_raw_clip(file_clip));
+		CHECK(file_clip.transform_space == transform_space_t::local);
+		CHECK(file_clip.track_list.get_num_tracks() == 1);
+	}
+
+	{
+		const std::string clip = make_clip("\ttransform_space = \"local\"\n");
+		clip_reader reader(allocator, clip.c_str(), clip.size());
+
+		sjson_raw_clip file_clip;
+		REQUIRE(reader.read_raw_clip(file_clip));
+		CHECK(file_clip.transform_space == transform_space_t::local);
+	}
+
+	{
+		const std::string clip = make_clip("\ttransform_space = \"unknown\"\n");
+		clip_reader reader(allocator, clip.c_str(), clip.size());
+
+		sjson_raw_clip file_clip;
+		CHECK_FALSE(reader.read_raw_clip(file_clip));
+		CHECK(reader.get_error().error == clip_reader_error::InvalidTransformSpace);
+	}
+#endif
+}
