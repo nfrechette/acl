@@ -413,12 +413,10 @@ namespace acl
 			static rtm::matrix3x4f mul(const rtm::matrix3x4f& lhs, const rtm::matrix3x4f& rhs) { return rtm::matrix_mul(lhs, rhs); }
 
 			// A matrix has no rotation that we can replace
+			// The selector rejects this type in the mesh rotation space and the policies assert that the type supports it,
+			// thus compression does not call 'mul_mesh_rotation'. It exists to compile and it uses the local space product.
 			static constexpr bool supports_mesh_rotation() { return false; }
-			static rtm::matrix3x4f mul_mesh_rotation(const rtm::matrix3x4f& transform, const rtm::matrix3x4f& parent_object_transform)
-			{
-				ACL_ASSERT(false, "Matrix transforms do not support the mesh rotation space");
-				return mul(transform, parent_object_transform);
-			}
+			static rtm::matrix3x4f mul_mesh_rotation(const rtm::matrix3x4f& transform, const rtm::matrix3x4f& parent_object_transform) { return mul(transform, parent_object_transform); }
 
 			static RTM_FORCE_INLINE void RTM_SIMD_CALL mul_point3_x4(
 				rtm::vector4f_arg0 point_xxxx, rtm::vector4f_arg1 point_yyyy, rtm::vector4f_arg2 point_zzzz,

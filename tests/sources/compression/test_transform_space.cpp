@@ -168,13 +168,28 @@ namespace
 	}
 
 	// A track writer that keeps one pose
+	// The compressed tracks of these tests have 'k_num_transforms' tracks, the writer ignores the other track indices
 	struct pose_writer final : public track_writer
 	{
 		rtm::vqvf pose[k_num_transforms];
 
-		void RTM_SIMD_CALL write_rotation(uint32_t track_index, rtm::quatf_arg0 rotation) { pose[track_index].rotation = rotation; }
-		void RTM_SIMD_CALL write_translation(uint32_t track_index, rtm::vector4f_arg0 translation) { pose[track_index].translation = translation; }
-		void RTM_SIMD_CALL write_scale(uint32_t track_index, rtm::vector4f_arg0 scale) { pose[track_index].scale = scale; }
+		void RTM_SIMD_CALL write_rotation(uint32_t track_index, rtm::quatf_arg0 rotation)
+		{
+			if (track_index < k_num_transforms)
+				pose[track_index].rotation = rotation;
+		}
+
+		void RTM_SIMD_CALL write_translation(uint32_t track_index, rtm::vector4f_arg0 translation)
+		{
+			if (track_index < k_num_transforms)
+				pose[track_index].translation = translation;
+		}
+
+		void RTM_SIMD_CALL write_scale(uint32_t track_index, rtm::vector4f_arg0 scale)
+		{
+			if (track_index < k_num_transforms)
+				pose[track_index].scale = scale;
+		}
 	};
 
 	// Returns the largest distance between the reference and the decompressed translations, after we apply the base
@@ -827,10 +842,10 @@ TEST_CASE("the legacy error metric supports only the local space", "[compression
 	const transform_base_desc_t transform_base;
 
 	ACL_IMPL_DEPRECATION_WARNING_PUSH
-	const vqvf_transform_error_metric legacy_metric;
+	vqvf_transform_error_metric legacy_metric;
 
 	compression_settings settings = get_default_compression_settings();
-	settings.error_metric = const_cast<vqvf_transform_error_metric*>(&legacy_metric);
+	settings.error_metric = &legacy_metric;
 
 	output_stats stats;
 	compressed_tracks* tracks = nullptr;
@@ -1181,7 +1196,13 @@ TEST_CASE("compression with a custom base format", "[compression][transform_spac
 	const additive_clip_format8 base_formats[] = { additive_clip_format8::relative, additive_clip_format8::additive0, additive_clip_format8::additive1 };
 	for (const transform_space_t space : spaces)
 	{
-		const track_array_vqvf& vqv_clip = space == transform_space_t::local ? local_clip : (space == transform_space_t::mesh ? mesh_clip : mesh_rotation_clip);
+		const track_array_vqvf* vqv_clip_ptr = &local_clip;
+		if (space == transform_space_t::mesh)
+			vqv_clip_ptr = &mesh_clip;
+		else if (space == transform_space_t::mesh_rotation)
+			vqv_clip_ptr = &mesh_rotation_clip;
+
+		const track_array_vqvf& vqv_clip = *vqv_clip_ptr;
 		const track_array_vqf vq_clip = make_vq_clip(allocator, vqv_clip);
 
 		for (const additive_clip_format8 base_format : base_formats)
@@ -1333,10 +1354,10 @@ TEST_CASE("the legacy error metric does not support the custom base format", "[c
 	transform_base.adapter = &base_adapter;
 
 	ACL_IMPL_DEPRECATION_WARNING_PUSH
-	const vqvf_transform_error_metric legacy_metric;
+	vqvf_transform_error_metric legacy_metric;
 
 	compression_settings settings = get_default_compression_settings();
-	settings.error_metric = const_cast<vqvf_transform_error_metric*>(&legacy_metric);
+	settings.error_metric = &legacy_metric;
 
 	output_stats stats;
 	compressed_tracks* tracks = nullptr;

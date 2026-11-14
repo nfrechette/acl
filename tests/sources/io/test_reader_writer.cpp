@@ -1709,7 +1709,7 @@ TEST_CASE("sjson_clip_reader transform space", "[io][transform_space]")
 	ansi_allocator allocator;
 
 	// A raw clip with one bone, its samples use the default values
-	auto make_clip = [](const char* transform_space_line) -> std::string
+	auto make_clip = [](const char* transform_space_line)
 	{
 		std::string clip;
 		clip += "version = 6\n";

@@ -215,7 +215,7 @@ namespace acl
 		track*					m_tracks;			// The track list
 		uint32_t				m_num_tracks;		// The number of tracks
 		sample_looping_policy	m_looping_policy;	// The looping policy
-		transform_space_t		m_transform_space;	// The space of the transform tracks
+		transform_space_t		m_transform_space = transform_space_t::local;	// The space of the transform tracks
 
 		string					m_name;				// An optional name
 	};

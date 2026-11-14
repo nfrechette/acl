@@ -1188,7 +1188,11 @@ namespace acl
 
 							const bool is_transform_being_optimized = critical_transform_index == transform_index_being_optimized;
 							const bool is_chain_child = critical_transform_index == chain_child_index;
-							const uint32_t critical_pass_index = is_transform_being_optimized ? 2 : (is_chain_child ? 1 : 0);
+							uint32_t critical_pass_index = 0;
+							if (is_transform_being_optimized)
+								critical_pass_index = 2;
+							else if (is_chain_child)
+								critical_pass_index = 1;
 							if (critical_pass_index != pass_index)
 								continue;
 

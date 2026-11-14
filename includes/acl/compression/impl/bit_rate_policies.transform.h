@@ -27,6 +27,7 @@
 #include "acl/version.h"
 #include "acl/core/error.h"
 #include "acl/core/iterator.h"
+#include "acl/core/memory_utils.h"
 #include "acl/core/track_types.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/compression/transform_adapters.h"
@@ -750,7 +751,7 @@ namespace acl
 				const rtm::quatf rotation = static_cast<const transform_type*>(transform)->rotation;
 				const rtm::quatf parent_rotation = static_cast<const transform_type*>(parent_object_transform)->rotation;
 
-				transform_type& local_transform = *reinterpret_cast<transform_type*>(m_transform_to_root);
+				transform_type& local_transform = *safe_ptr_cast<transform_type>(m_transform_to_root);
 				std::memcpy(&local_transform, transform, sizeof(transform_type));
 				local_transform.rotation = rtm::quat_normalize(rtm::quat_mul(rotation, rtm::quat_conjugate(parent_rotation)));
 
@@ -764,7 +765,7 @@ namespace acl
 			void measure_mesh_rotation_cached(const void* chain_child, const void* measured) const
 			{
 				using transform_type = typename transform_math_t::transform_type;
-				transform_type& measured_to_root = *reinterpret_cast<transform_type*>(m_measured_to_root);
+				transform_type& measured_to_root = *safe_ptr_cast<transform_type>(m_measured_to_root);
 				measured_to_root = mesh_rotation_cache_t<transform_math_t>::measure(
 					measured_to_root, *static_cast<const transform_type*>(chain_child), *static_cast<const transform_type*>(measured), measured == chain_child);
 			}
@@ -777,7 +778,7 @@ namespace acl
 				using transform_type = typename transform_math_t::transform_type;
 				transform_type& measured_ = *static_cast<transform_type*>(measured);
 				measured_ = mesh_rotation_cache_t<transform_math_t>::update(
-					*reinterpret_cast<const transform_type*>(m_local_transform), *static_cast<const transform_type*>(chain_child), measured_, measured == chain_child);
+					*safe_ptr_cast<const transform_type>(m_local_transform), *static_cast<const transform_type*>(chain_child), measured_, measured == chain_child);
 			}
 
 			// Converts one lossy transform
