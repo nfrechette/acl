@@ -57,7 +57,7 @@ namespace acl
 		inline bool is_clip_looping(
 			iallocator& allocator,
 			const clip_adapter_t& raw_clip,
-			const transform_space_context& space_context,
+			const transform_space_context_t& space_context,
 			const itransform_error_metric& error_metric)
 		{
 			static_assert(std::is_base_of<transform_clip_adapter_t, clip_adapter_t>::value, "Clip adapter must derive from transform_clip_adapter_t");
@@ -211,7 +211,7 @@ namespace acl
 
 		inline void optimize_looping(
 			clip_context& context,
-			const transform_space_context& space_context,
+			const transform_space_context_t& space_context,
 			const compression_settings& settings,
 			compression_stats_t& compression_stats)
 		{

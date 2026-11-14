@@ -132,7 +132,7 @@ namespace acl
 			writer["decomp_touched_cache_lines"] = segment.clip->decomp_touched_cache_lines + num_segment_header_cache_lines + num_animated_pose_cache_lines;
 		}
 
-		inline void write_exhaustive_segment_stats(iallocator& allocator, const segment_context& segment, const clip_context& raw_clip_context, const transform_space_context& space_context, const compression_settings& settings, const track_array& track_list, sjson::ObjectWriter& writer)
+		inline void write_exhaustive_segment_stats(iallocator& allocator, const segment_context& segment, const clip_context& raw_clip_context, const transform_space_context_t& space_context, const compression_settings& settings, const track_array& track_list, sjson::ObjectWriter& writer)
 		{
 			const uint32_t num_bones = raw_clip_context.num_bones;
 
@@ -448,7 +448,7 @@ namespace acl
 		inline void write_stats(iallocator& allocator, const track_array& track_list, const clip_context& clip,
 			const compressed_tracks& compressed_clip, const compression_settings& settings, const compression_segmenting_settings& segmenting_settings,
 			range_reduction_flags8 range_reduction, const clip_context& raw_clip,
-			const transform_space_context& space_context,
+			const transform_space_context_t& space_context,
 			const compression_stats_t& compression_stats,
 			output_stats& stats)
 		{

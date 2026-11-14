@@ -256,7 +256,7 @@ namespace acl
 				return error_result("Some base samples are not finite");
 
 			// Sample the base one time, compression reads the base poses from the space context
-			transform_space_context space_context;
+			transform_space_context_t space_context;
 			space_context.initialize(allocator, additive_format, transform_clip_context_adapter_t(additive_base_clip_context),
 				raw_clip_context.num_samples, raw_clip_context.sample_rate, raw_clip_context.duration);
 

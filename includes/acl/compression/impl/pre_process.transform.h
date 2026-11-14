@@ -239,7 +239,7 @@ namespace acl
 			const itransform_error_metric& error_metric = *settings.error_metric;
 
 			const bool has_scale = true;	// Assume we have scale
-			const transform_space_context& space_context = context.get_space_context();
+			const transform_space_context_t& space_context = context.get_space_context();
 			const bool has_additive_base = space_context.has_base();
 			const bool needs_conversion = error_metric.needs_conversion(has_scale);
 

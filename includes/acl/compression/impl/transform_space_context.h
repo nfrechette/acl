@@ -60,15 +60,15 @@ namespace acl
 		// A sample of the clip uses the sample of the base at the same normalized time,
 		// rounded to the nearest sample. We do not interpolate.
 		//////////////////////////////////////////////////////////////////////////
-		class transform_space_context
+		class transform_space_context_t
 		{
 		public:
-			transform_space_context() = default;
-			~transform_space_context() { destroy(); }
+			transform_space_context_t() = default;
+			~transform_space_context_t() { destroy(); }
 
 			// We own memory, we cannot be copied
-			transform_space_context(const transform_space_context&) = delete;
-			transform_space_context& operator=(const transform_space_context&) = delete;
+			transform_space_context_t(const transform_space_context_t&) = delete;
+			transform_space_context_t& operator=(const transform_space_context_t&) = delete;
 
 			//////////////////////////////////////////////////////////////////////////
 			// Samples the base and finds the base sample of each clip sample.
@@ -146,7 +146,7 @@ namespace acl
 		};
 
 		template<class clip_adapter_t>
-		inline void transform_space_context::initialize(iallocator& allocator, additive_clip_format8 base_format, const clip_adapter_t& base_clip,
+		inline void transform_space_context_t::initialize(iallocator& allocator, additive_clip_format8 base_format, const clip_adapter_t& base_clip,
 			uint32_t clip_num_samples, float clip_sample_rate, float clip_duration)
 		{
 			static_assert(std::is_base_of<transform_clip_adapter_t, clip_adapter_t>::value, "Clip adapter must derive from transform_clip_adapter_t");
@@ -200,7 +200,7 @@ namespace acl
 			}
 		}
 
-		inline void transform_space_context::destroy()
+		inline void transform_space_context_t::destroy()
 		{
 			if (m_allocator != nullptr)
 			{

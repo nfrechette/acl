@@ -56,7 +56,7 @@ namespace acl
 		inline rigid_shell_metadata_t* compute_clip_shell_distances(
 			iallocator& allocator,
 			const clip_adapter_t& raw_clip,
-			const transform_space_context& space_context)
+			const transform_space_context_t& space_context)
 		{
 			static_assert(std::is_base_of<transform_clip_adapter_t, clip_adapter_t>::value, "Clip adapter must derive from transform_clip_adapter_t");
 
@@ -282,7 +282,7 @@ namespace acl
 		inline void compute_dominance_map(
 			iallocator& allocator,
 			const clip_adapter_t& raw_clip,
-			const transform_space_context& space_context,
+			const transform_space_context_t& space_context,
 			const itransform_error_metric& error_metric,
 			clip_topology_t& clip_topology)
 		{
@@ -512,7 +512,7 @@ namespace acl
 		// We use the raw data to compute the rigid shell
 		// For each transform, its rigid shell is formed by the dominant joint (itself or a child)
 		// We compute the largest value over the whole segment per transform
-		inline void compute_segment_shell_distances(const segment_context& segment, const transform_space_context& space_context, rigid_shell_metadata_t* out_shell_metadata)
+		inline void compute_segment_shell_distances(const segment_context& segment, const transform_space_context_t& space_context, rigid_shell_metadata_t* out_shell_metadata)
 		{
 			const uint32_t num_transforms = segment.num_bones;
 			if (num_transforms == 0)

@@ -53,7 +53,7 @@ namespace acl
 			rigid_shell_metadata_t* shell_metadata = nullptr;
 			uint32_t* sorted_transforms_parent_first = nullptr;
 			clip_topology_t* topology = nullptr;
-			transform_space_context space_context;
+			transform_space_context_t space_context;
 			bool is_space_context_initialized = false;
 
 			//////////////////////////////////////////////////////////////////////////
@@ -102,7 +102,7 @@ namespace acl
 			//////////////////////////////////////////////////////////////////////////
 			// Returns the space context of the track list: it holds the base poses.
 			// The pre-process actions do not change the number of samples, the sample rate, or the base.
-			const transform_space_context& get_space_context()
+			const transform_space_context_t& get_space_context()
 			{
 				if (!is_space_context_initialized)
 				{

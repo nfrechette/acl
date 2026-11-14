@@ -88,7 +88,7 @@ namespace acl
 		// sub-track value to determine if it is a default sub-track.
 
 		inline bool RTM_SIMD_CALL are_samples_constant(const compression_settings& settings,
-			const clip_context& lossy_clip_context, const transform_space_context& space_context,
+			const clip_context& lossy_clip_context, const transform_space_context_t& space_context,
 			rtm::vector4f_arg0 reference, uint32_t transform_index, animation_track_type8 sub_track_type)
 		{
 			const segment_context& lossy_segment = lossy_clip_context.segments[0];
@@ -188,7 +188,7 @@ namespace acl
 			return true;
 		}
 
-		inline bool are_rotations_constant(const compression_settings& settings, const clip_context& lossy_clip_context, const transform_space_context& space_context, uint32_t transform_index)
+		inline bool are_rotations_constant(const compression_settings& settings, const clip_context& lossy_clip_context, const transform_space_context_t& space_context, uint32_t transform_index)
 		{
 			if (lossy_clip_context.num_samples == 0)
 				return true;	// We are constant if we have no samples
@@ -207,7 +207,7 @@ namespace acl
 			return are_samples_constant(settings, lossy_clip_context, space_context, rtm::quat_to_vector(raw_transform_stream.rotations.get_sample(0)), transform_index, animation_track_type8::rotation);
 		}
 
-		inline bool are_rotations_default(const compression_settings& settings, const clip_context& lossy_clip_context, const transform_space_context& space_context, const track_desc_transformf& desc, uint32_t transform_index)
+		inline bool are_rotations_default(const compression_settings& settings, const clip_context& lossy_clip_context, const transform_space_context_t& space_context, const track_desc_transformf& desc, uint32_t transform_index)
 		{
 			if (lossy_clip_context.num_samples == 0)
 				return true;	// We are default if we have no samples
@@ -231,7 +231,7 @@ namespace acl
 			return are_samples_constant(settings, lossy_clip_context, space_context, default_bind_rotation, transform_index, animation_track_type8::rotation);
 		}
 
-		inline bool are_translations_constant(const compression_settings& settings, const clip_context& lossy_clip_context, const transform_space_context& space_context, uint32_t transform_index)
+		inline bool are_translations_constant(const compression_settings& settings, const clip_context& lossy_clip_context, const transform_space_context_t& space_context, uint32_t transform_index)
 		{
 			if (lossy_clip_context.num_samples == 0)
 				return true;	// We are constant if we have no samples
@@ -250,7 +250,7 @@ namespace acl
 			return are_samples_constant(settings, lossy_clip_context, space_context, raw_transform_stream.translations.get_sample(0), transform_index, animation_track_type8::translation);
 		}
 
-		inline bool are_translations_default(const compression_settings& settings, const clip_context& lossy_clip_context, const transform_space_context& space_context, const track_desc_transformf& desc, uint32_t transform_index)
+		inline bool are_translations_default(const compression_settings& settings, const clip_context& lossy_clip_context, const transform_space_context_t& space_context, const track_desc_transformf& desc, uint32_t transform_index)
 		{
 			if (lossy_clip_context.num_samples == 0)
 				return true;	// We are default if we have no samples
@@ -274,7 +274,7 @@ namespace acl
 			return are_samples_constant(settings, lossy_clip_context, space_context, default_bind_translation, transform_index, animation_track_type8::translation);
 		}
 
-		inline bool are_scales_constant(const compression_settings& settings, const clip_context& lossy_clip_context, const transform_space_context& space_context, uint32_t transform_index)
+		inline bool are_scales_constant(const compression_settings& settings, const clip_context& lossy_clip_context, const transform_space_context_t& space_context, uint32_t transform_index)
 		{
 			if (lossy_clip_context.num_samples == 0)
 				return true;	// We are constant if we have no samples
@@ -296,7 +296,7 @@ namespace acl
 			return are_samples_constant(settings, lossy_clip_context, space_context, raw_transform_stream.scales.get_sample(0), transform_index, animation_track_type8::scale);
 		}
 
-		inline bool are_scales_default(const compression_settings& settings, const clip_context& lossy_clip_context, const transform_space_context& space_context, const track_desc_transformf& desc, uint32_t transform_index)
+		inline bool are_scales_default(const compression_settings& settings, const clip_context& lossy_clip_context, const transform_space_context_t& space_context, const track_desc_transformf& desc, uint32_t transform_index)
 		{
 			if (lossy_clip_context.num_samples == 0)
 				return true;	// We are default if we have no samples
@@ -332,7 +332,7 @@ namespace acl
 		inline void compact_constant_streams(
 			iallocator& allocator,
 			clip_context& context,
-			const transform_space_context& space_context,
+			const transform_space_context_t& space_context,
 			const track_array& track_list,
 			const compression_settings& settings,
 			compression_stats_t& compression_stats)
@@ -766,7 +766,7 @@ namespace acl
 		inline void compact_constant_streams(
 			iallocator& allocator,
 			clip_context& lossy_clip_context,
-			const transform_space_context& space_context,
+			const transform_space_context_t& space_context,
 			const track_array& track_list,
 			const compression_settings& settings,
 			compression_stats_t& compression_stats)

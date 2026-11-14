@@ -96,7 +96,7 @@ namespace acl
 			iallocator& allocator;
 			clip_context& clip;
 			const clip_context& raw_clip;
-			const transform_space_context& space_context;
+			const transform_space_context_t& space_context;
 			segment_context* segment = nullptr;
 			transform_streams* bone_streams = nullptr;
 			const transform_metadata* metadata = nullptr;
@@ -182,7 +182,7 @@ namespace acl
 
 			uint32_t* target_chain_bone_indices = nullptr;		// 1 per transform, the chain of the transform that we measure in calculate_max_error_at_bit_rate_object
 
-			quantization_context(iallocator& allocator_, clip_context& clip_, const clip_context& raw_clip_, const transform_space_context& space_context_, const compression_settings& settings_, const compression_segmenting_settings& segmenting_settings_, const transform_runtime_error_metric* runtime_error_metric_)
+			quantization_context(iallocator& allocator_, clip_context& clip_, const clip_context& raw_clip_, const transform_space_context_t& space_context_, const compression_settings& settings_, const compression_segmenting_settings& segmenting_settings_, const transform_runtime_error_metric* runtime_error_metric_)
 				: allocator(allocator_)
 				, clip(clip_)
 				, raw_clip(raw_clip_)
@@ -2920,7 +2920,7 @@ namespace acl
 			const compression_settings& settings,
 			const compression_segmenting_settings& segmenting_settings,
 			const clip_context& raw_clip_context,
-			const transform_space_context& space_context,
+			const transform_space_context_t& space_context,
 			const transform_runtime_error_metric* runtime_error_metric,
 			const output_stats& out_stats,
 			compression_stats_t& compression_stats)
