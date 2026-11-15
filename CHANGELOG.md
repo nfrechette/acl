@@ -66,7 +66,7 @@
 *  Compression no longer normalizes a transform after it combines it with the additive base, as the error measurement and the runtime: the bit rate search, the constant track detection, and the shell distances now measure the same error as `calculate_compression_error`
 *  Add the uniform playback scale of a clip with `track_array::set_playback_scale`: the precision, the keyframe stripping threshold, and the measured error are in playback units, see [playback scale](docs/creating_a_raw_track_list.md#playback-scale)
 *  Add the `-playback_scale=` option and the `playback_scale` config option to `acl_compressor` and its python script, and a regression configuration
-*  The clip reader reads the optional `playback_scale` value of a raw clip
+*  The clip writer writes the transform space and the playback scale of transform tracks, and the clip reader reads the optional `transform_space` and `playback_scale` values in the raw clip and the track list formats
 
 ## 2.1.0
 

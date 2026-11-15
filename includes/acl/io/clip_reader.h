@@ -210,6 +210,9 @@ namespace acl
 			if (!create_track_list(out_data.track_list))
 				return false;
 
+			out_data.track_list.set_transform_space(m_transform_space);
+			out_data.track_list.set_playback_scale(m_playback_scale);
+
 			return nothing_follows();
 		}
 
@@ -272,7 +275,6 @@ namespace acl
 		bool read_raw_clip_header()
 		{
 			sjson::StringView additive_format;
-			sjson::StringView transform_space;
 
 			if (!m_parser.object_begins("clip"))
 				goto error;
@@ -333,23 +335,8 @@ namespace acl
 				return false;
 			}
 
-			// Optional value
-			m_parser.try_read("transform_space", transform_space, "local");
-			if (!get_transform_space(transform_space.c_str(), m_transform_space))
-			{
-				set_error(clip_reader_error::InvalidTransformSpace);
+			if (!read_transform_space_and_playback_scale())
 				return false;
-			}
-
-			// Optional value, see 'track_array::get_playback_scale'
-			double playback_scale;
-			m_parser.try_read("playback_scale", playback_scale, 1.0);
-			m_playback_scale = static_cast<float>(playback_scale);
-			if (!(m_playback_scale > 0.0F) || !rtm::scalar_is_finite(m_playback_scale))
-			{
-				set_error(clip_reader_error::PositiveValueExpected);
-				return false;
-			}
 
 			if (!m_parser.object_ends())
 				goto error;
@@ -359,6 +346,29 @@ namespace acl
 		error:
 			m_error = m_parser.get_error();
 			return false;
+		}
+
+		// Reads the optional transform space and playback scale of a header, transform tracks use them
+		// It reads the playback scale after 'is_binary_exact': a binary exact file holds it in hexadecimal
+		bool read_transform_space_and_playback_scale()
+		{
+			sjson::StringView transform_space;
+			m_parser.try_read("transform_space", transform_space, "local");
+			if (!get_transform_space(transform_space.c_str(), m_transform_space))
+			{
+				set_error(clip_reader_error::InvalidTransformSpace);
+				return false;
+			}
+
+			// See 'track_array::get_playback_scale', the comparison is false with NaN
+			m_playback_scale = read_optional_float("playback_scale", 1.0F);
+			if (!(m_playback_scale > 0.0F) || !rtm::scalar_is_finite(m_playback_scale))
+			{
+				set_error(clip_reader_error::PositiveValueExpected);
+				return false;
+			}
+
+			return true;
 		}
 
 		bool read_raw_track_list_header()
@@ -392,6 +402,9 @@ namespace acl
 
 			// Optional values
 			m_parser.try_read("is_binary_exact", m_is_binary_exact, false);
+
+			if (!read_transform_space_and_playback_scale())
+				return false;
 
 			if (!m_parser.object_ends())
 				goto parsing_error;

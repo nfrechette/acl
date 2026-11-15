@@ -212,6 +212,10 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 
 	track_list.set_name(acl::string(allocator, "some track list"));
 
+	// Not the default values, the playback scale has no exact decimal form
+	track_list.set_transform_space(transform_space_t::mesh);
+	track_list.set_playback_scale(2.3F);
+
 	compression_settings settings;
 	settings.level = compression_level8::high;
 	settings.rotation_format = rotation_format8::quatf_drop_w_variable;
@@ -278,6 +282,8 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 	CHECK(file_clip.track_list.get_track_type() == track_list.get_track_type());
 	CHECK(file_clip.track_list.get_track_category() == track_list.get_track_category());
 	CHECK(file_clip.track_list.get_name() == track_list.get_name());
+	CHECK(file_clip.track_list.get_transform_space() == transform_space_t::mesh);
+	CHECK(file_clip.track_list.get_playback_scale() == track_list.get_playback_scale());
 
 	for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 	{
