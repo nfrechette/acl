@@ -249,8 +249,9 @@ namespace acl
 								calculate_error_args.transform1 = lossy_object_pose + (metric_transform_size * bone_index);
 								calculate_error_args.construct_sphere_shell(desc.shell_distance);
 
+								// The error at playback, see 'track_array::get_playback_scale'
 								const float error_sq = rtm::scalar_cast(calculate_error_squared_impl(settings.error_metric, calculate_error_args));
-								const float error = rtm::scalar_sqrt(error_sq);
+								const float error = rtm::scalar_sqrt(error_sq) * track_list.get_playback_scale();
 
 								frame_writer.push(error);
 

@@ -42,6 +42,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <cstdint>
 #include <utility>
 
@@ -661,6 +662,127 @@ TEST_CASE("transform runtime error with the legacy error metric", "[compression]
 	CHECK(settings_error.index == legacy_error.index);
 
 	allocator.deallocate(tracks, tracks->get_size());
+}
+
+TEST_CASE("track_array playback scale", "[compression][transform][playback_scale]")
+{
+	ansi_allocator allocator;
+
+	track_array_vqvf track_list = make_vqv_clip(allocator, scale_kind::none);
+	CHECK(track_list.get_playback_scale() == 1.0F);
+	CHECK(track_list.is_valid().empty());
+
+	track_list.set_playback_scale(2.5F);
+	CHECK(track_list.is_valid().empty());
+
+	// A move keeps the playback scale
+	track_array_vqvf moved_track_list(std::move(track_list));
+	CHECK(moved_track_list.get_playback_scale() == 2.5F);
+
+	// The playback scale must be positive and finite
+	const float invalid_scales[] = { 0.0F, -1.0F, std::numeric_limits<float>::infinity(), std::numeric_limits<float>::quiet_NaN() };
+	for (const float invalid_scale : invalid_scales)
+	{
+		moved_track_list.set_playback_scale(invalid_scale);
+		CHECK(moved_track_list.is_valid().any());
+	}
+}
+
+TEST_CASE("the playback scale divides the precision and multiplies the error", "[compression][transform][playback_scale]")
+{
+	ansi_allocator allocator;
+
+	const track_array_vqvf base_track_list = make_base(allocator);
+	vqvf_transform_error_metric legacy_metric;
+	vqvf_matrix3x4f_transform_error_metric legacy_matrix_metric;	// Uses the bit rate algorithm v1
+
+	struct test_case
+	{
+		transform_runtime_type_t type;
+		itransform_error_metric* legacy_metric;
+		additive_clip_format8 additive_format;
+		float keyframe_stripping_threshold;
+	};
+
+	const test_case test_cases[] =
+	{
+		{ transform_runtime_type_t::automatic, nullptr, additive_clip_format8::none, 0.0F },
+		{ transform_runtime_type_t::vqvf, nullptr, additive_clip_format8::none, 0.0F },
+		{ transform_runtime_type_t::matrix3x4f, nullptr, additive_clip_format8::none, 0.0F },
+		{ transform_runtime_type_t::automatic, nullptr, additive_clip_format8::additive1, 0.0F },
+		{ transform_runtime_type_t::automatic, nullptr, additive_clip_format8::none, 0.004F },
+		{ transform_runtime_type_t::automatic, &legacy_metric, additive_clip_format8::none, 0.0F },
+		{ transform_runtime_type_t::automatic, &legacy_matrix_metric, additive_clip_format8::none, 0.004F },
+	};
+
+	// With a power of two, the division of the precision and the multiplication of the error are exact
+	const float playback_scales[] = { 4.0F, 0.5F };
+
+	for (const test_case& case_ : test_cases)
+	{
+		const track_array* base_track_list_ptr = case_.additive_format != additive_clip_format8::none ? &base_track_list : nullptr;
+
+		for (const float playback_scale : playback_scales)
+		{
+			// The clip at playback: the precision and the threshold are in playback units
+			track_array_vqvf scaled_track_list = make_vqv_clip(allocator, scale_kind::non_uniform);
+			scaled_track_list.set_playback_scale(playback_scale);
+
+			// The same clip without a playback scale: the precision and the threshold are in the units of the clip
+			track_array_vqvf track_list = make_vqv_clip(allocator, scale_kind::non_uniform);
+			for (track& track_ : track_list)
+				track_.get_description<track_desc_transformf>().precision = k_precision / playback_scale;
+
+			compression_settings scaled_settings = get_default_compression_settings();
+			scaled_settings.transform_runtime_type = case_.type;
+			scaled_settings.error_metric = case_.legacy_metric;
+			scaled_settings.keyframe_stripping.threshold = case_.keyframe_stripping_threshold;
+
+			compression_settings settings = scaled_settings;
+			settings.keyframe_stripping.threshold = case_.keyframe_stripping_threshold / playback_scale;
+
+			compressed_tracks* scaled_tracks = compress(allocator, scaled_track_list, scaled_settings, base_track_list_ptr, case_.additive_format);
+			compressed_tracks* tracks = compress(allocator, track_list, settings, base_track_list_ptr, case_.additive_format);
+
+			// Compression makes the same decisions
+			CHECK(scaled_tracks->get_size() == tracks->get_size());
+			CHECK(scaled_tracks->get_hash() == tracks->get_hash());
+
+			// The error at playback is the error in the units of the clip multiplied by the playback scale
+			const float scaled_error = measure_error(allocator, scaled_track_list, *scaled_tracks, scaled_settings, base_track_list_ptr, case_.additive_format);
+			const float error = measure_error(allocator, track_list, *tracks, settings, base_track_list_ptr, case_.additive_format);
+			CHECK(scaled_error == error * playback_scale);
+
+			allocator.deallocate(scaled_tracks, scaled_tracks->get_size());
+			allocator.deallocate(tracks, tracks->get_size());
+		}
+	}
+}
+
+TEST_CASE("the error between two raw track arrays uses the playback scale", "[compression][transform][playback_scale]")
+{
+	ansi_allocator allocator;
+
+	track_array_vqvf track_list0 = make_vqv_clip(allocator, scale_kind::non_uniform);
+	track_array_vqvf track_list1 = make_vqv_clip(allocator, scale_kind::non_uniform);
+
+	// Move one sample a little
+	track_vqvf& track1 = track_list1[k_num_transforms - 1];
+	track1[k_num_samples / 2].translation = rtm::vector_add(track1[k_num_samples / 2].translation, rtm::vector_set(0.01F, 0.0F, 0.0F));
+
+	const compression_settings settings = get_default_compression_settings();
+	const track_error error = calculate_compression_error(allocator, track_list0, track_list1, settings);
+	CHECK(error.error > 0.0F);
+
+	track_list0.set_playback_scale(2.0F);
+	track_list1.set_playback_scale(2.0F);
+	const track_error scaled_error = calculate_compression_error(allocator, track_list0, track_list1, settings);
+	CHECK(scaled_error.error == error.error * 2.0F);
+	CHECK(scaled_error.index == error.index);
+
+	// Both track arrays must have the same playback scale
+	track_list1.set_playback_scale(1.0F);
+	CHECK_THROWS(calculate_compression_error(allocator, track_list0, track_list1, settings));
 }
 
 ACL_IMPL_DEPRECATION_WARNING_POP

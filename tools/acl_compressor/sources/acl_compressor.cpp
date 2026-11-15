@@ -174,6 +174,10 @@ struct Options
 
 	bool			use_custom_base_format			= false;
 
+	// The uniform scale of the clip at playback, see 'track_array::get_playback_scale'
+	float			playback_scale					= 1.0F;
+	bool			playback_scale_specified		= false;
+
 	bool			split_into_database				= false;
 
 	float			strip_keyframe_proportion		= 0.0F;
@@ -234,6 +238,7 @@ static constexpr const char* k_vqs_source_option = "-source_vqs";
 static constexpr const char* k_split_into_database_option = "-db";
 static constexpr const char* k_strip_keyframe_proportion_option = "-strip_keyframe_proportion=";
 static constexpr const char* k_strip_keyframe_threshold_option = "-strip_keyframe_threshold=";
+static constexpr const char* k_playback_scale_option = "-playback_scale=";
 static constexpr const char* k_stat_detailed_output_option = "-stat_detailed";
 static constexpr const char* k_stat_exhaustive_output_option = "-stat_exhaustive";
 
@@ -475,6 +480,14 @@ static bool parse_options(int argc, char** argv, Options& options)
 		if (std::strncmp(argument, k_strip_keyframe_threshold_option, option_length) == 0)
 		{
 			options.strip_keyframe_threshold = static_cast<float>(std::atof(argument + option_length));
+			continue;
+		}
+
+		option_length = std::strlen(k_playback_scale_option);
+		if (std::strncmp(argument, k_playback_scale_option, option_length) == 0)
+		{
+			options.playback_scale = static_cast<float>(std::atof(argument + option_length));
+			options.playback_scale_specified = true;
 			continue;
 		}
 
@@ -986,6 +999,13 @@ static bool read_config(iallocator& allocator, Options& options, compression_set
 	if (parser.try_read("use_custom_base_format", use_custom_base_format, false))
 		options.use_custom_base_format = use_custom_base_format;
 
+	double playback_scale;
+	if (parser.try_read("playback_scale", playback_scale, 1.0))
+	{
+		options.playback_scale = static_cast<float>(playback_scale);
+		options.playback_scale_specified = true;
+	}
+
 	bool use_matrix_error_metric;
 	if (parser.try_read("use_matrix_error_metric", use_matrix_error_metric, false))
 		options.use_matrix_error_metric = use_matrix_error_metric;
@@ -1389,6 +1409,19 @@ static int safe_main_impl(int argc, char* argv[])
 	{
 		printf("'-base_custom' requires a clip with a base: use a clip file with a base or a '-bind_*' option\n");
 		return -1;
+	}
+
+	// The option and the config replace the playback scale of the clip file, scalar tracks do not use it
+	if (options.playback_scale_specified)
+	{
+		// The comparison is false with NaN
+		if (!(options.playback_scale > 0.0F) || !rtm::scalar_is_finite(options.playback_scale))
+		{
+			printf("The playback scale must be positive and finite\n");
+			return -1;
+		}
+
+		transform_tracks.set_playback_scale(options.playback_scale);
 	}
 
 	// The legacy error metric that compression uses, null to use the runtime transform type and the transform metric

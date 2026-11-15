@@ -122,6 +122,7 @@ namespace acl
 				return context.metadata[transform_index].shell_distance;
 			}
 
+			// The precision in the units of the clip, see 'clip_context::playback_scale'
 			float get_transform_precision(uint32_t transform_index) const
 			{
 				return context.metadata[transform_index].precision;
@@ -229,10 +230,11 @@ namespace acl
 				return desc.shell_distance;
 			}
 
+			// The precision in the units of the clip, see 'track_array::get_playback_scale'
 			float get_transform_precision(uint32_t transform_index) const
 			{
 				const track_desc_transformf& desc = (*track_list)[transform_index].get_description<track_desc_transformf>();
-				return desc.precision;
+				return desc.precision / track_list->get_playback_scale();
 			}
 
 			uint32_t get_transform_parent_index(uint32_t transform_index) const

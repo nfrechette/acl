@@ -1764,3 +1764,59 @@ TEST_CASE("sjson_clip_reader transform space", "[io][transform_space]")
 	}
 #endif
 }
+
+TEST_CASE("sjson_clip_reader playback scale", "[io][playback_scale]")
+{
+#if defined(ACL_IMPL_ENABLE_IO_UNIT_TESTS)
+	ansi_allocator allocator;
+
+	// A raw clip with one bone, its samples use the default values
+	auto make_clip = [](const char* playback_scale_line)
+	{
+		std::string clip;
+		clip += "version = 6\n";
+		clip += "clip =\n{\n";
+		clip += "\tname = \"test\"\n";
+		clip += "\tnum_samples = 2\n";
+		clip += "\tsample_rate = 30\n";
+		clip += "\ttransform_space = \"local\"\n";
+		clip += playback_scale_line;
+		clip += "}\n";
+		clip += "bones =\n[\n\t{\n\t\tname = \"root\"\n\t\tparent = \"\"\n\t\tvertex_distance = 1.0\n\t}\n]\n";
+		clip += "tracks =\n[\n\t{\n\t\tname = \"root\"\n\t}\n]\n";
+		return clip;
+	};
+
+	{
+		// Without the key, the playback scale is 1.0
+		const std::string clip = make_clip("");
+		clip_reader reader(allocator, clip.c_str(), clip.size());
+
+		sjson_raw_clip file_clip;
+		REQUIRE(reader.read_raw_clip(file_clip));
+		CHECK(file_clip.track_list.get_playback_scale() == 1.0F);
+	}
+
+	{
+		const std::string clip = make_clip("\tplayback_scale = 2.5\n");
+		clip_reader reader(allocator, clip.c_str(), clip.size());
+
+		sjson_raw_clip file_clip;
+		REQUIRE(reader.read_raw_clip(file_clip));
+		CHECK(file_clip.track_list.get_playback_scale() == 2.5F);
+		CHECK(file_clip.track_list.is_valid().empty());
+	}
+
+	// The playback scale must be positive
+	const char* invalid_lines[] = { "\tplayback_scale = 0.0\n", "\tplayback_scale = -1.0\n" };
+	for (const char* invalid_line : invalid_lines)
+	{
+		const std::string clip = make_clip(invalid_line);
+		clip_reader reader(allocator, clip.c_str(), clip.size());
+
+		sjson_raw_clip file_clip;
+		CHECK_FALSE(reader.read_raw_clip(file_clip));
+		CHECK(reader.get_error().error == clip_reader_error::PositiveValueExpected);
+	}
+#endif
+}

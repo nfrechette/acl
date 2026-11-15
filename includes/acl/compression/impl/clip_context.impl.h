@@ -115,6 +115,7 @@ namespace acl
 			out_clip_context.looping_policy = looping_policy;
 			out_clip_context.additive_format = additive_format;
 			out_clip_context.default_scale = clip_default_scale;
+			out_clip_context.playback_scale = track_list.get_playback_scale();
 			out_clip_context.are_rotations_normalized = false;
 			out_clip_context.are_translations_normalized = false;
 			out_clip_context.are_scales_normalized = false;
@@ -177,7 +178,9 @@ namespace acl
 				transform_metadata& metadata = out_clip_context.metadata[transform_index];
 				metadata.transform_chain = nullptr;
 				metadata.parent_index = get_error_parent_index(space, desc.parent_index);
-				metadata.precision = desc.precision;
+				// The error at playback is the error in the units of the clip multiplied by the playback scale
+				// We compare the error in the units of the clip with the precision in the same units
+				metadata.precision = desc.precision / track_list.get_playback_scale();
 				metadata.shell_distance = desc.shell_distance;
 
 				out_clip_context.sorted_transforms_parent_first[transform_index] = transform_index;

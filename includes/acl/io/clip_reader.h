@@ -42,6 +42,7 @@
 
 #include <rtm/quatd.h>
 #include <rtm/quatf.h>
+#include <rtm/scalarf.h>
 #include <rtm/vector4d.h>
 #include <rtm/vector4f.h>
 #include <rtm/vqvd.h>
@@ -188,6 +189,7 @@ namespace acl
 
 			out_data.additive_format = !out_data.additive_base_track_list.is_empty() ? m_additive_format : additive_clip_format8::none;
 			out_data.track_list.set_transform_space(m_transform_space);
+			out_data.track_list.set_playback_scale(m_playback_scale);
 
 			return nothing_follows();
 		}
@@ -231,6 +233,7 @@ namespace acl
 		uint32_t m_additive_base_num_samples			= 0;
 		float m_additive_base_sample_rate				= 0.0F;
 		transform_space_t m_transform_space				= transform_space_t::local;
+		float m_playback_scale							= 1.0F;
 
 		bool m_has_settings								= false;
 		float m_error_threshold							= 0.0F;
@@ -335,6 +338,16 @@ namespace acl
 			if (!get_transform_space(transform_space.c_str(), m_transform_space))
 			{
 				set_error(clip_reader_error::InvalidTransformSpace);
+				return false;
+			}
+
+			// Optional value, see 'track_array::get_playback_scale'
+			double playback_scale;
+			m_parser.try_read("playback_scale", playback_scale, 1.0);
+			m_playback_scale = static_cast<float>(playback_scale);
+			if (!(m_playback_scale > 0.0F) || !rtm::scalar_is_finite(m_playback_scale))
+			{
+				set_error(clip_reader_error::PositiveValueExpected);
 				return false;
 			}
 

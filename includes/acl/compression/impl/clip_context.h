@@ -209,6 +209,10 @@ namespace acl
 			// See 'get_base_default_scale'
 			float default_scale							= 1.0F;
 
+			// The uniform scale of the clip at playback, see 'track_array::get_playback_scale'
+			// The precision in 'metadata' is already divided by it: it is in the units of the clip
+			float playback_scale						= 1.0F;
+
 			bool are_rotations_normalized				= false;
 			bool are_translations_normalized			= false;
 			bool are_scales_normalized					= false;

@@ -2985,6 +2985,7 @@ namespace acl
 			const float sample_rate = context.sample_rate;
 			const float clip_duration = context.clip_duration;
 			const uint32_t segment_sample_start_index = context.segment_sample_start_index;
+			const float playback_scale = context.clip.playback_scale;
 
 			if (context.lossy_transforms_start == nullptr)
 			{
@@ -3061,7 +3062,9 @@ namespace acl
 						pose_error.measure(interp_frame_index, max_contributing_error_sq, is_keyframe_trivial);
 					}
 
-					const float max_contributing_errorf = rtm::scalar_cast(rtm::scalar_sqrt(max_contributing_error_sq));
+					// The keyframe stripping threshold and the database compare the contributing error of clips with
+					// different playback scales, thus we store it in playback units, see 'track_array::get_playback_scale'
+					const float max_contributing_errorf = rtm::scalar_cast(rtm::scalar_sqrt(max_contributing_error_sq)) * playback_scale;
 
 #if ACL_IMPL_DEBUG_CONTRIBUTING_ERROR
 					printf("    Error between frame [%u, %u] while testing %u: %f\n", interp_start_frame_index, interp_end_frame_index, frame_index, max_contributing_errorf);
