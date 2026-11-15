@@ -400,6 +400,38 @@ TEST_CASE("transform runtime compression matches the legacy error metrics", "[co
 	}
 }
 
+TEST_CASE("keyframe stripping with a legacy error metric without the bit rate algorithm v2", "[compression][transform]")
+{
+	ansi_allocator allocator;
+
+	// The legacy matrix error metric does not support the bit rate algorithm v2
+	// Thus compression finds the contributing error of each keyframe with the v1 data
+	vqvf_matrix3x4f_transform_error_metric legacy_metric;
+	REQUIRE(!legacy_metric.supports_bit_rate_algorithm_v2());
+
+	const track_array_vqvf track_list = make_vqv_clip(allocator, scale_kind::non_uniform);
+
+	compression_settings settings = get_default_compression_settings();
+	settings.error_metric = &legacy_metric;
+
+	compressed_tracks* tracks = compress(allocator, track_list, settings, nullptr, additive_clip_format8::none);
+
+	settings.keyframe_stripping.proportion = 0.5F;
+
+	compressed_tracks* stripped_tracks = compress(allocator, track_list, settings, nullptr, additive_clip_format8::none);
+
+	// We strip half of the keyframes: the compressed tracks are smaller and the error is higher
+	CHECK(stripped_tracks->get_size() < tracks->get_size());
+
+	const float error = measure_error(allocator, track_list, *tracks, settings, nullptr, additive_clip_format8::none);
+	const float stripped_error = measure_error(allocator, track_list, *stripped_tracks, settings, nullptr, additive_clip_format8::none);
+	CHECK(std::isfinite(stripped_error));
+	CHECK(stripped_error >= error);
+
+	allocator.deallocate(tracks, tracks->get_size());
+	allocator.deallocate(stripped_tracks, stripped_tracks->get_size());
+}
+
 ACL_IMPL_DEPRECATION_WARNING_POP
 
 TEST_CASE("transform runtime compression keeps the precision", "[compression][transform]")
