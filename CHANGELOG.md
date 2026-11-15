@@ -63,6 +63,7 @@
 *  Add the `custom` base format and `itransform_base_adapter_t`: a base adapter combines each transform with the base, set it in `transform_base_desc_t::adapter`, see [additive clips](docs/additive_clips.md#custom-base-format)
 *  Add the `-base_custom` option and the `use_custom_base_format` config option to `acl_compressor`, and a regression configuration: they compress the clip with the `custom` base format and a base adapter that applies the built-in base format of the clip
 *  Fix the `max_error` stat of `acl_compressor` that ignored the additive base
+*  Compression no longer normalizes a transform after it combines it with the additive base, as the error measurement and the runtime: the bit rate search, the constant track detection, and the shell distances now measure the same error as `calculate_compression_error`
 
 ## 2.1.0
 

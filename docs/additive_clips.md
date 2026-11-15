@@ -39,6 +39,8 @@ A clip without a base needs only its transform space: the `compress_track_list` 
 
 [Pre-processing](pre_processing_raw_tracks.md) and the [error measurement](error_metrics.md) (`calculate_compression_error`) also use the transform space of the track array. Give them the same base as compression (`pre_process_settings_t::transform_base`).
 
+With a built-in format, compression and the error measurement combine each transform with its base with `apply_additive_to_base` (see [here](../includes/acl/core/additive_utils.h)). They do not normalize the result. Thus the measured error is the error of your runtime when it uses the same function and does not normalize the result.
+
 ## Relative additive clips
 
 Clips in this space are applied on top of their base clip with a simple multiplication:
@@ -105,6 +107,7 @@ The adapter combines one transform at a time:
 *  The default scale is the scale of the samples of a track without scale (for example, a `vqf` track). Decompression returns it when the compressed tracks have no scale. The compressed data keeps one bit for it, thus it must be 0.0 or 1.0.
 *  When the clip and the base have no scale, compression ignores the scale of the combined transform.
 *  Compression calls the adapter in its inner loops, with the raw and the lossy samples. The same input must always give the same output.
+*  Compression and the error measurement use the combined transform as is: they do not normalize its rotation. Thus the measured error is the error of your runtime when it combines the transforms with the same function. If your runtime normalizes the combined transform, the adapter must normalize it too.
 
 The custom base format has these limits:
 

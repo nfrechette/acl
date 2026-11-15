@@ -2901,7 +2901,10 @@ namespace acl
 
 					// Apply our additives onto our base, before the conversion
 					if (context.has_additive_base)
-						combine_with_base(clip_sample_index, local_pose_raw);
+					{
+						for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
+							local_pose_raw[transform_index] = context.space_context.apply_base(clip_sample_index, transform_index, local_pose_raw[transform_index]);
+					}
 
 					policy.local_to_object_space(*context.topology, local_pose_raw, m_object_transforms_raw + (sample_index * pose_size), clip_sample_index, false);
 				}
@@ -2923,7 +2926,10 @@ namespace acl
 
 				// Apply our additives onto our base, before the conversion
 				if (context.has_additive_base)
-					combine_with_base(clip_sample_index, lossy_local_pose);
+				{
+					for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
+						lossy_local_pose[transform_index] = context.space_context.apply_base(clip_sample_index, transform_index, lossy_local_pose[transform_index]);
+				}
 
 				// When the runtime transform type is rtm::vqvf, the object space pose replaces the local space pose
 				m_policy.local_to_object_space(*context.topology, lossy_local_pose, m_lossy_object_pose, clip_sample_index, true);
@@ -2946,18 +2952,6 @@ namespace acl
 			}
 
 		private:
-			// Combines each transform of a local space pose with its base transform
-			// We do not normalize the result: the measured error must agree with the error of the whole clip,
-			// and that error does not normalize it either
-			void combine_with_base(uint32_t clip_sample_index, rtm::vqvf* local_pose) const
-			{
-				const transform_space_context_t& space_context = m_context.space_context;
-				const rtm::vqvf* base_pose = space_context.get_base_pose(clip_sample_index);
-
-				for (uint32_t transform_index = 0; transform_index < m_context.num_bones; ++transform_index)
-					local_pose[transform_index] = space_context.combine_with_base(transform_index, base_pose[transform_index], local_pose[transform_index]);
-			}
-
 			const quantization_context& m_context;
 			const policy_t& m_policy;
 			size_t m_transform_size;
