@@ -141,6 +141,24 @@ namespace acl
 		void set_transform_space(transform_space_t space) { m_transform_space = space; }
 
 		//////////////////////////////////////////////////////////////////////////
+		// Returns the uniform scale that the runtime applies to the whole clip at playback.
+		// For example, a designer scales a character, or the game spawns it with a random scale.
+		// The error that the runtime shows is the object space error multiplied by this scale.
+		// Thus compression divides the precision of each transform track by this scale,
+		// and the error functions multiply the error of the transform tracks by this scale.
+		// The precision, the error, and the keyframe stripping threshold are in playback units.
+		// The shell distance stays in the units of the clip.
+		// Scalar tracks do not use it.
+		// Defaults to 1.0.
+		float get_playback_scale() const { return m_playback_scale; }
+
+		//////////////////////////////////////////////////////////////////////////
+		// Sets the uniform scale that the runtime applies to the whole clip at playback.
+		// It must be positive and finite. See 'get_playback_scale'.
+		// Scalar tracks do not use it.
+		void set_playback_scale(float scale) { m_playback_scale = scale; }
+
+		//////////////////////////////////////////////////////////////////////////
 		// Sets the looping policy.
 		// Note that when wrap policy is used, an extra repeating
 		// first sample is artificially inserted at the end of the clip.
@@ -216,6 +234,7 @@ namespace acl
 		uint32_t				m_num_tracks;		// The number of tracks
 		sample_looping_policy	m_looping_policy;	// The looping policy
 		transform_space_t		m_transform_space = transform_space_t::local;	// The space of the transform tracks
+		float					m_playback_scale = 1.0F;	// The uniform scale of the clip at playback
 
 		string					m_name;				// An optional name
 	};

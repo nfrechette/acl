@@ -235,12 +235,14 @@ namespace acl
 			}
 
 			//////////////////////////////////////////////////////////////////////////
-			// Applies the base to a transform of a clip sample and returns the normalized result.
+			// Applies the base to a transform of a clip sample and returns the result, it does not normalize it.
+			// The error measurement and the runtime combine the transforms with the same function and do not
+			// normalize the result. Thus compression must not normalize it either, or its error does not agree.
 			rtm::vqvf RTM_SIMD_CALL apply_base(uint32_t clip_sample_index, uint32_t transform_index, rtm::vqvf_arg0 transform) const
 			{
 				ACL_ASSERT(transform_index < m_num_transforms, "Invalid transform index");
 				const rtm::vqvf& base_transform = get_base_pose(clip_sample_index)[transform_index];
-				return rtm::vqv_normalize(combine_with_base(transform_index, base_transform, transform));
+				return combine_with_base(transform_index, base_transform, transform);
 			}
 
 			//////////////////////////////////////////////////////////////////////////

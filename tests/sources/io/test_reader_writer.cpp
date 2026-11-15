@@ -212,6 +212,10 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 
 	track_list.set_name(acl::string(allocator, "some track list"));
 
+	// Not the default values, the playback scale has no exact decimal form
+	track_list.set_transform_space(transform_space_t::mesh);
+	track_list.set_playback_scale(2.3F);
+
 	compression_settings settings;
 	settings.level = compression_level8::high;
 	settings.rotation_format = rotation_format8::quatf_drop_w_variable;
@@ -278,6 +282,8 @@ TEST_CASE("sjson_clip_reader_writer", "[io]")
 	CHECK(file_clip.track_list.get_track_type() == track_list.get_track_type());
 	CHECK(file_clip.track_list.get_track_category() == track_list.get_track_category());
 	CHECK(file_clip.track_list.get_name() == track_list.get_name());
+	CHECK(file_clip.track_list.get_transform_space() == transform_space_t::mesh);
+	CHECK(file_clip.track_list.get_playback_scale() == track_list.get_playback_scale());
 
 	for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 	{
@@ -1761,6 +1767,62 @@ TEST_CASE("sjson_clip_reader transform space", "[io][transform_space]")
 		sjson_raw_clip file_clip;
 		CHECK_FALSE(reader.read_raw_clip(file_clip));
 		CHECK(reader.get_error().error == clip_reader_error::InvalidTransformSpace);
+	}
+#endif
+}
+
+TEST_CASE("sjson_clip_reader playback scale", "[io][playback_scale]")
+{
+#if defined(ACL_IMPL_ENABLE_IO_UNIT_TESTS)
+	ansi_allocator allocator;
+
+	// A raw clip with one bone, its samples use the default values
+	auto make_clip = [](const char* playback_scale_line)
+	{
+		std::string clip;
+		clip += "version = 6\n";
+		clip += "clip =\n{\n";
+		clip += "\tname = \"test\"\n";
+		clip += "\tnum_samples = 2\n";
+		clip += "\tsample_rate = 30\n";
+		clip += "\ttransform_space = \"local\"\n";
+		clip += playback_scale_line;
+		clip += "}\n";
+		clip += "bones =\n[\n\t{\n\t\tname = \"root\"\n\t\tparent = \"\"\n\t\tvertex_distance = 1.0\n\t}\n]\n";
+		clip += "tracks =\n[\n\t{\n\t\tname = \"root\"\n\t}\n]\n";
+		return clip;
+	};
+
+	{
+		// Without the key, the playback scale is 1.0
+		const std::string clip = make_clip("");
+		clip_reader reader(allocator, clip.c_str(), clip.size());
+
+		sjson_raw_clip file_clip;
+		REQUIRE(reader.read_raw_clip(file_clip));
+		CHECK(file_clip.track_list.get_playback_scale() == 1.0F);
+	}
+
+	{
+		const std::string clip = make_clip("\tplayback_scale = 2.5\n");
+		clip_reader reader(allocator, clip.c_str(), clip.size());
+
+		sjson_raw_clip file_clip;
+		REQUIRE(reader.read_raw_clip(file_clip));
+		CHECK(file_clip.track_list.get_playback_scale() == 2.5F);
+		CHECK(file_clip.track_list.is_valid().empty());
+	}
+
+	// The playback scale must be positive
+	const char* invalid_lines[] = { "\tplayback_scale = 0.0\n", "\tplayback_scale = -1.0\n" };
+	for (const char* invalid_line : invalid_lines)
+	{
+		const std::string clip = make_clip(invalid_line);
+		clip_reader reader(allocator, clip.c_str(), clip.size());
+
+		sjson_raw_clip file_clip;
+		CHECK_FALSE(reader.read_raw_clip(file_clip));
+		CHECK(reader.get_error().error == clip_reader_error::PositiveValueExpected);
 	}
 #endif
 }

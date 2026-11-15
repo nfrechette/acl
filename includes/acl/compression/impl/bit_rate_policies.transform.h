@@ -472,6 +472,12 @@ namespace acl
 				*static_cast<transform_type*>(out_transform) = transform_math_t::from_vqv(local_transform_vqv);
 			}
 
+			// Returns the squared error between a raw and a lossy object space transform
+			rtm::scalarf RTM_SIMD_CALL measure(const error_args_type& args, const void* raw_transform, const void* lossy_transform) const
+			{
+				return m_metric.calculate_error_squared(args, *static_cast<const transform_type*>(raw_transform), *static_cast<const transform_type*>(lossy_transform));
+			}
+
 		private:
 			// VQ math does not use the scale: the scale of each transform is 1.0
 			static void compute_shell_distances_impl(std::true_type, const segment_context& segment, const rtm::vqvf* object_poses, rigid_shell_metadata_t* out_shell_metadata)
@@ -726,6 +732,12 @@ namespace acl
 			void store_local(const rtm::vqvf& local_transform_vqv, uint32_t transform_index, uint32_t sample_index, void* out_transform) const
 			{
 				convert_lossy(local_transform_vqv, transform_index, sample_index, out_transform);
+			}
+
+			// Returns the squared error between a raw and a lossy object space transform
+			rtm::scalarf RTM_SIMD_CALL measure(const error_args_type& args, const void* raw_transform, const void* lossy_transform) const
+			{
+				return calculate_error_squared(args, raw_transform, lossy_transform);
 			}
 
 		private:

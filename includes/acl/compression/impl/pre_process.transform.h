@@ -529,6 +529,7 @@ namespace acl
 			out_track_list.set_name(track_list.get_name());
 			out_track_list.set_looping_policy(track_list.get_looping_policy());
 			out_track_list.set_transform_space(track_list.get_transform_space());
+			out_track_list.set_playback_scale(track_list.get_playback_scale());
 
 			for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
 			{

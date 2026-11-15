@@ -77,7 +77,9 @@ namespace acl
 		//    - 'transform_index': the index of the transform in the clip
 		//    - 'base_transform': the base transform, in the transform space of the clip
 		//    - 'transform': the transform of the clip sample, in the transform space of the clip
-		// Compression normalizes the rotation of the result.
+		// Compression and the error measurement use the result as is: they do not normalize its rotation.
+		// Thus the measured error is the error of your runtime when it combines the transforms with the
+		// same function and does not normalize the result. If your runtime normalizes the result, normalize it here.
 		virtual rtm::vqvf apply_base(uint32_t transform_index, const rtm::vqvf& base_transform, const rtm::vqvf& transform) const = 0;
 	};
 

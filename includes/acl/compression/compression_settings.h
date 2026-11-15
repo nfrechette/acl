@@ -180,6 +180,7 @@ namespace acl
 		// Keyframes that yield an error below or equal to this threshold will
 		// be removed. Keyframes that contribute more error than the threshold
 		// are retained.
+		// The threshold is in playback units, as the precision: see 'track_array::get_playback_scale'.
 		// Defaults to '0.0' centimeters (no stripping)
 		float threshold = 0.0F;
 

@@ -101,6 +101,25 @@ raw_track[0] = rtm::vq_set(rtm::quat_identity(), rtm::vector_set(0.0F, 1.0F, 0.0
 raw_transform_tracks[0] = std::move(raw_track);
 ```
 
+## Playback scale
+
+The runtime can play a clip at another scale than the scale of its authoring. For example, a designer scales a boss character, or the game spawns a character with a random scale. Then the error that you see is the object space error multiplied by that scale. Set the uniform scale of the clip at playback with `set_playback_scale(..)` on the track array:
+
+```c++
+track_array_vqvf raw_transform_tracks(allocator, num_tracks);
+// ...
+raw_transform_tracks.set_playback_scale(4.0F);
+```
+
+*  The precision of each track, the keyframe stripping threshold, and the error that `calculate_compression_error` returns are in playback units. Thus a precision of `0.01` keeps the error at playback below `0.01`.
+*  The shell distance stays in the units of the clip.
+*  Compression divides the precision by the playback scale: with a scale of `4.0` and a precision of `0.01`, it compresses the clip as with a precision of `0.0025` and a scale of `1.0`.
+*  The compressed data does not store the playback scale: decompression does not use it. The track descriptions in the compressed data keep the precision that you set.
+*  The playback scale must be positive and finite. It defaults to `1.0`. Scalar tracks do not use it.
+*  To compare two raw track arrays with `calculate_compression_error`, both must have the same playback scale.
+
+When the clip plays at different scales, use the largest scale.
+
 ## Additive animation clips
 
 If the clip you are compressing is an additive clip, you will also need to create an instance for the base clip. Put the base clip and the [format](additive_clips.md) of the additive clip in a `transform_base_desc_t`, and give it to `compress_track_list(..)`. See [the transform space](additive_clips.md#the-transform-space) for an example.

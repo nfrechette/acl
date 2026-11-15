@@ -29,10 +29,12 @@
 #include "acl/version.h"
 #include "acl/compression/compression_settings.h"
 #include "acl/compression/track_array.h"
+#include "acl/compression/transform_space.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/error.h"
 #include "acl/core/track_desc.h"
+#include "acl/core/track_types.h"
 
 #include <rtm/quatd.h>
 #include <rtm/vector4d.h>
@@ -90,6 +92,14 @@ namespace acl
 				header_writer["num_samples"] = track_list.get_num_samples_per_track();
 				header_writer["sample_rate"] = track_list.get_sample_rate();
 				header_writer["is_binary_exact"] = true;
+
+				// Transform tracks only, in the order that the reader reads them
+				if (!track_list.is_empty() && is_transform_track_type(track_list.get_track_type()))
+				{
+					char buffer[32];
+					header_writer["transform_space"] = get_transform_space_name(track_list.get_transform_space());
+					header_writer["playback_scale"] = format_hex_float(track_list.get_playback_scale(), buffer, sizeof(buffer));
+				}
 
 			#if 0	// TODO
 				clip_writer["additive_format"] = get_additive_clip_format_name(clip.get_additive_format());

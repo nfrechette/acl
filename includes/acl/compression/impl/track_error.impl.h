@@ -176,6 +176,10 @@ namespace acl
 			// In mesh space, a transform has no parent for the error, and we put the base in mesh space
 			transform_space_t space = transform_space_t::local;
 
+			// Transforms only: the uniform scale of the clip at playback, see 'track_array::get_playback_scale'
+			// We multiply the error by it, the error is in playback units
+			float playback_scale = 1.0F;
+
 			// Optional
 			uint32_t base_num_samples = 0;
 			float base_duration = 0.0F;
@@ -412,8 +416,8 @@ namespace acl
 				}
 			}
 
-			// We computed the squared error
-			result.error = rtm::scalar_sqrt(result.error);
+			// We computed the squared error in the units of the clip, we return it in playback units
+			result.error = rtm::scalar_sqrt(result.error) * args.playback_scale;
 
 			deallocate_type_array(allocator, raw_local_pose_converted, num_tracks * transform_size);
 			deallocate_type_array(allocator, lossy_local_pose_converted, num_tracks * transform_size);
@@ -599,6 +603,7 @@ namespace acl
 			return calculate_scalar_track_error(allocator, args);
 
 		args.error_metric = &error_metric;
+		args.playback_scale = raw_tracks.get_playback_scale();
 
 		const compressed_tracks* tracks = context.get_compressed_tracks();
 		args.are_tracks0_vq = raw_tracks.get_track_type() == track_type8::vqf;
@@ -713,6 +718,7 @@ namespace acl
 
 			args.error_metric = &error_metric;
 			args.space = space;
+			args.playback_scale = raw_tracks.get_playback_scale();
 
 			if (!additive_base_tracks.is_empty())
 			{
@@ -858,6 +864,13 @@ namespace acl
 		ACL_ASSERT(raw_tracks0.is_valid().empty(), "Raw tracks are invalid");
 		ACL_ASSERT(raw_tracks1.is_valid().empty(), "Raw tracks are invalid");
 
+		// Both track arrays must have the same playback scale, scalar tracks do not use it
+		const bool has_transforms = !raw_tracks0.is_empty() && is_transform_track_type(raw_tracks0.get_track_type());
+		const bool is_same_playback_scale = raw_tracks0.get_playback_scale() == raw_tracks1.get_playback_scale();
+		ACL_ASSERT(!has_transforms || is_same_playback_scale, "Both track arrays must have the same playback scale");
+		if (has_transforms && !is_same_playback_scale)
+			return invalid_track_error();
+
 		struct error_calculation_adapter final : public ierror_calculation_adapter
 		{
 			const track_array& raw_tracks0_;
@@ -911,6 +924,7 @@ namespace acl
 
 		args.error_metric = &error_metric;
 		args.space = space;
+		args.playback_scale = raw_tracks0.get_playback_scale();
 
 		// There is no additive base, thus a VQ track uses a scale of 1.0
 		args.are_tracks0_vq = raw_tracks0.get_track_type() == track_type8::vqf;

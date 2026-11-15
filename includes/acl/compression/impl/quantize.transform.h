@@ -157,14 +157,15 @@ namespace acl
 			uint32_t max_num_transform_chains = 0;
 			uint32_t max_chain_length = 0;
 
+			// Contributing error, v1 and v2
+			rtm::vqvf* lossy_transforms_start = nullptr;		// 1 per transform
+			rtm::vqvf* lossy_transforms_end = nullptr;			// 1 per transform
+
 			// v1
 			rigid_shell_metadata_t* shell_metadata_per_transform = nullptr;	// 1 per transform
 
 			rtm::vqvf* raw_local_pose = nullptr;				// 1 per transform
 			rtm::vqvf* lossy_local_pose = nullptr;				// 1 per transform
-
-			rtm::vqvf* lossy_transforms_start = nullptr;		// 1 per transform, for calculating the contributing error
-			rtm::vqvf* lossy_transforms_end = nullptr;			// 1 per transform, for calculating the contributing error
 
 			uint8_t* raw_local_transforms = nullptr;			// 1 per transform per sample in segment
 			uint8_t* raw_object_transforms = nullptr;			// 1 per transform per sample in segment
@@ -2559,6 +2560,72 @@ namespace acl
 			}
 		}
 
+		// Calls 'fn' with the policy of the bit rate algorithm v2 that measures the error of the current segment
+		// 'has_scale' selects the policy for a segment with or without scale
+		template<class fn_t>
+		inline void dispatch_v2_policy(quantization_context& context, bool has_scale, fn_t& fn)
+		{
+			if (context.runtime_error_metric != nullptr)
+			{
+				// The runtime error metric selects a transform adapter and a transform metric for segments with and without scale
+				const transform_runtime_selection& selection = context.runtime_error_metric->get_selection(has_scale);
+				const transform_runtime_selector& selector = context.runtime_error_metric->get_selector();
+				const transform_runtime_type_t type = selection.adapter->get_type();
+
+				// With a built-in transform adapter and a built-in transform metric, we know the code at compile time
+				const bool is_builtin_adapter = type != transform_runtime_type_t::custom && selection.adapter == selector.get_builtin_adapter(type);
+				const bool is_precise_metric = selection.metric == selector.get_precise_metric();
+				const bool is_shell_metric = selection.metric == selector.get_shell_metric();
+
+				// In mesh rotation space, the policies compose the transforms with the mesh rotation product
+				const bool is_mesh_rotation = context.space_context.get_space() == transform_space_t::mesh_rotation;
+
+				if (is_builtin_adapter && is_precise_metric && type == transform_runtime_type_t::vqf)
+					fn(v2_static_policy<vq_transform_math, v2_precise_metric>(v2_precise_metric(), is_mesh_rotation));
+				else if (is_builtin_adapter && is_precise_metric && type == transform_runtime_type_t::vqsf)
+					fn(v2_static_policy<vqs_transform_math, v2_precise_metric>(v2_precise_metric(), is_mesh_rotation));
+				else if (is_builtin_adapter && is_shell_metric && type == transform_runtime_type_t::vqf)
+					fn(v2_static_policy<vq_transform_math, v2_shell_metric<vq_transform_math>>(v2_shell_metric<vq_transform_math>(), is_mesh_rotation));
+				else if (is_builtin_adapter && is_shell_metric && type == transform_runtime_type_t::vqsf)
+					fn(v2_static_policy<vqs_transform_math, v2_shell_metric<vqs_transform_math>>(v2_shell_metric<vqs_transform_math>(), is_mesh_rotation));
+				else if (is_builtin_adapter && is_shell_metric && type == transform_runtime_type_t::vqvf)
+					fn(v2_static_policy<vqv_transform_math, v2_shell_metric<vqv_transform_math>>(v2_shell_metric<vqv_transform_math>(), is_mesh_rotation));
+				else if (is_builtin_adapter && is_shell_metric && type == transform_runtime_type_t::vqmf)
+					fn(v2_static_policy<vqm_transform_math, v2_shell_metric<vqm_transform_math>>(v2_shell_metric<vqm_transform_math>(), is_mesh_rotation));
+				else if (is_builtin_adapter && is_shell_metric && type == transform_runtime_type_t::matrix3x4f)
+					fn(v2_static_policy<matrix3x4_transform_math, v2_shell_metric<matrix3x4_transform_math>>(v2_shell_metric<matrix3x4_transform_math>(), is_mesh_rotation));
+				else
+				{
+					// A custom transform adapter or a custom transform metric, we use their virtual functions
+					context.initialize_v2_runtime(selection.adapter->get_transform_size());
+					fn(v2_adapter_policy(*selection.adapter, *selection.metric, context.get_v2_adapter_policy_scratch(), is_mesh_rotation));
+				}
+			}
+			else
+			{
+				// A legacy error metric that supports the bit rate algorithm v2: the VQV error metrics
+				// Without 3D scale, we use VQ math and the functions without scale
+				// With 3D scale, we use VQV math: the product discards the shear and it is not associative,
+				// thus we fall back to the transform chain
+				const itransform_error_metric* error_metric = context.error_metric;
+
+				if (!has_scale)
+					fn(v2_static_policy<vq_transform_math, v2_legacy_metric<false>>(v2_legacy_metric<false>{ error_metric }));
+				else
+					fn(v2_static_policy<vqv_transform_math, v2_legacy_metric<true>>(v2_legacy_metric<true>{ error_metric }));
+			}
+		}
+
+		// Calls 'find_optimal_bit_rates_v2_impl' with the policy that 'dispatch_v2_policy' selects
+		// C++11 has no generic lambda, thus we use a function object
+		struct find_optimal_bit_rates_v2_fn_t
+		{
+			quantization_context& context;
+
+			template<class policy_t>
+			void operator()(const policy_t& policy) const { find_optimal_bit_rates_v2_impl(context, policy); }
+		};
+
 		inline void find_optimal_bit_rates_v2(quantization_context& context)
 		{
 			// For algorithm from ACL 2.2 and later
@@ -2622,55 +2689,8 @@ namespace acl
 
 			const bool has_scale = rtm::mask_any_true3(rtm::mask_not(has_default_scale));
 
-			if (context.runtime_error_metric != nullptr)
-			{
-				// The runtime error metric selects a transform adapter and a transform metric for segments with and without scale
-				const transform_runtime_selection& selection = context.runtime_error_metric->get_selection(has_scale);
-				const transform_runtime_selector& selector = context.runtime_error_metric->get_selector();
-				const transform_runtime_type_t type = selection.adapter->get_type();
-
-				// With a built-in transform adapter and a built-in transform metric, we know the code at compile time
-				const bool is_builtin_adapter = type != transform_runtime_type_t::custom && selection.adapter == selector.get_builtin_adapter(type);
-				const bool is_precise_metric = selection.metric == selector.get_precise_metric();
-				const bool is_shell_metric = selection.metric == selector.get_shell_metric();
-
-				// In mesh rotation space, the policies compose the transforms with the mesh rotation product
-				const bool is_mesh_rotation = context.space_context.get_space() == transform_space_t::mesh_rotation;
-
-				if (is_builtin_adapter && is_precise_metric && type == transform_runtime_type_t::vqf)
-					find_optimal_bit_rates_v2_impl(context, v2_static_policy<vq_transform_math, v2_precise_metric>(v2_precise_metric(), is_mesh_rotation));
-				else if (is_builtin_adapter && is_precise_metric && type == transform_runtime_type_t::vqsf)
-					find_optimal_bit_rates_v2_impl(context, v2_static_policy<vqs_transform_math, v2_precise_metric>(v2_precise_metric(), is_mesh_rotation));
-				else if (is_builtin_adapter && is_shell_metric && type == transform_runtime_type_t::vqf)
-					find_optimal_bit_rates_v2_impl(context, v2_static_policy<vq_transform_math, v2_shell_metric<vq_transform_math>>(v2_shell_metric<vq_transform_math>(), is_mesh_rotation));
-				else if (is_builtin_adapter && is_shell_metric && type == transform_runtime_type_t::vqsf)
-					find_optimal_bit_rates_v2_impl(context, v2_static_policy<vqs_transform_math, v2_shell_metric<vqs_transform_math>>(v2_shell_metric<vqs_transform_math>(), is_mesh_rotation));
-				else if (is_builtin_adapter && is_shell_metric && type == transform_runtime_type_t::vqvf)
-					find_optimal_bit_rates_v2_impl(context, v2_static_policy<vqv_transform_math, v2_shell_metric<vqv_transform_math>>(v2_shell_metric<vqv_transform_math>(), is_mesh_rotation));
-				else if (is_builtin_adapter && is_shell_metric && type == transform_runtime_type_t::vqmf)
-					find_optimal_bit_rates_v2_impl(context, v2_static_policy<vqm_transform_math, v2_shell_metric<vqm_transform_math>>(v2_shell_metric<vqm_transform_math>(), is_mesh_rotation));
-				else if (is_builtin_adapter && is_shell_metric && type == transform_runtime_type_t::matrix3x4f)
-					find_optimal_bit_rates_v2_impl(context, v2_static_policy<matrix3x4_transform_math, v2_shell_metric<matrix3x4_transform_math>>(v2_shell_metric<matrix3x4_transform_math>(), is_mesh_rotation));
-				else
-				{
-					// A custom transform adapter or a custom transform metric, we use their virtual functions
-					context.initialize_v2_runtime(selection.adapter->get_transform_size());
-					find_optimal_bit_rates_v2_impl(context, v2_adapter_policy(*selection.adapter, *selection.metric, context.get_v2_adapter_policy_scratch(), is_mesh_rotation));
-				}
-			}
-			else
-			{
-				// A legacy error metric that supports the bit rate algorithm v2: the VQV error metrics
-				// Without 3D scale, we use VQ math and the functions without scale
-				// With 3D scale, we use VQV math: the product discards the shear and it is not associative,
-				// thus we fall back to the transform chain
-				const itransform_error_metric* error_metric = context.error_metric;
-
-				if (!has_scale)
-					find_optimal_bit_rates_v2_impl(context, v2_static_policy<vq_transform_math, v2_legacy_metric<false>>(v2_legacy_metric<false>{ error_metric }));
-				else
-					find_optimal_bit_rates_v2_impl(context, v2_static_policy<vqv_transform_math, v2_legacy_metric<true>>(v2_legacy_metric<true>{ error_metric }));
-			}
+			find_optimal_bit_rates_v2_fn_t find_optimal_bit_rates_fn{ context };
+			dispatch_v2_policy(context, has_scale, find_optimal_bit_rates_fn);
 
 #if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_SUMMARY_ONLY
 			uint32_t total_num_bits = 0;
@@ -2738,15 +2758,212 @@ namespace acl
 		// This is thus a globally optimal process. If we wish to retain the 20% most important frames in tier 0 (our compressed clips) and 80% in the database, we can.
 		// Some clips might see more than 80% of their frames moved to the database while others might see less.
 
-		inline void find_contributing_error(quantization_context& context)
+		// Measures the error of an interpolated lossy pose with the legacy error metric and the v1 data
+		// Only a legacy error metric that does not support the bit rate algorithm v2 uses it
+		// See 'find_contributing_error_impl'
+		class contributing_error_v1_t
 		{
-			ACL_ASSERT(context.num_samples <= 32, "Expected no more than 32 samples per track");
+		public:
+			explicit contributing_error_v1_t(quantization_context& context)
+				: m_context(context)
+			{
+				const uint32_t num_bones = context.num_bones;
 
-			context.initialize_v1();
+				m_convert_transforms_args.dirty_transform_indices = context.self_transform_indices;
+				m_convert_transforms_args.num_dirty_transforms = num_bones;
+				m_convert_transforms_args.transforms = context.lossy_local_pose;
+				m_convert_transforms_args.num_transforms = num_bones;
+				m_convert_transforms_args.sample_index = 0;
+				m_convert_transforms_args.is_lossy = true;
+				m_convert_transforms_args.is_additive_base = false;
 
-			// Still using old v1 code/data
-			cache_raw_transforms_v1(context);
+				m_apply_additive_to_base_args.dirty_transform_indices = context.self_transform_indices;
+				m_apply_additive_to_base_args.num_dirty_transforms = num_bones;
+				m_apply_additive_to_base_args.local_transforms = context.lossy_local_pose;
+				m_apply_additive_to_base_args.base_transforms = nullptr;
+				m_apply_additive_to_base_args.num_transforms = num_bones;
 
+				m_local_to_object_space_args.dirty_transform_indices = context.self_transform_indices;
+				m_local_to_object_space_args.num_dirty_transforms = num_bones;
+				m_local_to_object_space_args.parent_transform_indices = context.parent_transform_indices;
+				m_local_to_object_space_args.local_transforms = context.needs_conversion ? (const void*)(context.local_transforms_converted) : (const void*)context.lossy_local_pose;
+				m_local_to_object_space_args.num_transforms = num_bones;
+			}
+
+			contributing_error_v1_t(const contributing_error_v1_t&) = delete;
+			contributing_error_v1_t& operator=(const contributing_error_v1_t&) = delete;
+
+			// The pose that 'find_contributing_error_impl' writes the interpolated lossy local transforms into
+			rtm::vqvf* get_lossy_local_pose() const { return m_context.lossy_local_pose; }
+
+			// Measures the error of the lossy local pose at a sample of the segment
+			void measure(uint32_t sample_index, rtm::scalarf& max_error_sq, bool& is_keyframe_trivial)
+			{
+				const quantization_context& context = m_context;
+				const itransform_error_metric* error_metric = context.error_metric;
+				const bool metric_has_scale = context.metric_has_scale;
+				const uint32_t num_bones = context.num_bones;
+				const uint32_t clip_sample_index = context.segment_sample_start_index + sample_index;
+
+				// The additive applies to the rtm::vqvf source transforms, before the conversion
+				if (context.has_additive_base)
+				{
+					m_apply_additive_to_base_args.base_transforms = context.space_context.get_base_pose(clip_sample_index);
+
+					if (metric_has_scale)
+						error_metric->apply_additive_to_base(m_apply_additive_to_base_args, context.lossy_local_pose);
+					else
+						error_metric->apply_additive_to_base_no_scale(m_apply_additive_to_base_args, context.lossy_local_pose);
+				}
+
+				// Convert to our object space representation
+				if (context.needs_conversion)
+				{
+					m_convert_transforms_args.sample_index = clip_sample_index;	// In the clip
+
+					if (metric_has_scale)
+						error_metric->convert_transforms(m_convert_transforms_args, context.local_transforms_converted);
+					else
+						error_metric->convert_transforms_no_scale(m_convert_transforms_args, context.local_transforms_converted);
+				}
+
+				if (metric_has_scale)
+					error_metric->local_to_object_space(m_local_to_object_space_args, context.lossy_object_pose);
+				else
+					error_metric->local_to_object_space_no_scale(m_local_to_object_space_args, context.lossy_object_pose);
+
+				// Calculate our error
+				const uint8_t* raw_object_pose = context.raw_object_transforms + (sample_index * context.metric_transform_size * num_bones);
+
+				for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
+				{
+					itransform_error_metric::calculate_error_args calculate_error_args;
+					calculate_error_args.transform0 = raw_object_pose + (bone_index * context.metric_transform_size);
+					calculate_error_args.transform1 = context.lossy_object_pose + (bone_index * context.metric_transform_size);
+
+					const transform_metadata& transform_data = context.metadata[bone_index];
+					calculate_error_args.construct_sphere_shell(transform_data.shell_distance);
+
+					// We always include the scale to ensure that when we strip keyframes based on the measured error
+					// the resulting clip error remains consistent
+					const rtm::scalarf error_sq = error_metric->calculate_error_squared(calculate_error_args);
+					const float precision_sq = transform_data.precision * transform_data.precision;
+
+					max_error_sq = rtm::scalar_max(max_error_sq, error_sq);
+					is_keyframe_trivial &= rtm::scalar_cast(error_sq) <= precision_sq;
+				}
+			}
+
+		private:
+			quantization_context& m_context;
+
+			itransform_error_metric::convert_transforms_args m_convert_transforms_args;
+			itransform_error_metric::apply_additive_to_base_args m_apply_additive_to_base_args;
+			itransform_error_metric::local_to_object_space_args m_local_to_object_space_args;
+		};
+
+		// Measures the error of an interpolated lossy pose with a policy of the bit rate algorithm v2 and the v2 data
+		// See 'find_contributing_error_impl'
+		template<class policy_t>
+		class contributing_error_v2_t
+		{
+		public:
+			// Samples the raw poses of the segment and converts them to object space
+			contributing_error_v2_t(quantization_context& context, const policy_t& policy)
+				: m_context(context)
+				, m_policy(policy)
+				, m_transform_size(policy.get_transform_size())
+				, m_object_transforms_raw(reinterpret_cast<uint8_t*>(context.object_transforms_raw))
+				, m_lossy_object_pose(reinterpret_cast<uint8_t*>(context.cached_transforms_lossy))
+			{
+				// When the runtime transform type is rtm::vqvf, we convert the poses in place
+				if (policy.needs_conversion())
+				{
+					context.initialize_v2_runtime(m_transform_size);
+
+					m_object_transforms_raw = context.object_transforms_raw_runtime;
+					m_lossy_object_pose = context.cached_transforms_lossy_runtime;
+				}
+
+				const uint32_t num_transforms = context.num_bones;
+				const size_t pose_size = m_transform_size * num_transforms;
+
+				for (uint32_t sample_index = 0; sample_index < context.num_samples; ++sample_index)
+				{
+					const uint32_t clip_sample_index = context.segment_sample_start_index + sample_index;
+
+					// The sample time is calculated from the full clip duration to be consistent with decompression
+					const float sample_time = rtm::scalar_min(float(clip_sample_index) / context.sample_rate, context.clip_duration);
+
+					// In local space
+					rtm::vqvf* local_pose_raw = context.object_transforms_raw + (sample_index * num_transforms);
+					sample_streams(context.raw_bone_streams, num_transforms, sample_time, local_pose_raw);
+
+					// Apply our additives onto our base, before the conversion
+					if (context.has_additive_base)
+					{
+						for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
+							local_pose_raw[transform_index] = context.space_context.apply_base(clip_sample_index, transform_index, local_pose_raw[transform_index]);
+					}
+
+					policy.local_to_object_space(*context.topology, local_pose_raw, m_object_transforms_raw + (sample_index * pose_size), clip_sample_index, false);
+				}
+			}
+
+			contributing_error_v2_t(const contributing_error_v2_t&) = delete;
+			contributing_error_v2_t& operator=(const contributing_error_v2_t&) = delete;
+
+			// The pose that 'find_contributing_error_impl' writes the interpolated lossy local transforms into
+			rtm::vqvf* get_lossy_local_pose() const { return m_context.cached_transforms_lossy; }
+
+			// Measures the error of the lossy local pose at a sample of the segment
+			void measure(uint32_t sample_index, rtm::scalarf& max_error_sq, bool& is_keyframe_trivial) const
+			{
+				const quantization_context& context = m_context;
+				const uint32_t num_transforms = context.num_bones;
+				const uint32_t clip_sample_index = context.segment_sample_start_index + sample_index;
+				rtm::vqvf* lossy_local_pose = context.cached_transforms_lossy;
+
+				// Apply our additives onto our base, before the conversion
+				if (context.has_additive_base)
+				{
+					for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
+						lossy_local_pose[transform_index] = context.space_context.apply_base(clip_sample_index, transform_index, lossy_local_pose[transform_index]);
+				}
+
+				// When the runtime transform type is rtm::vqvf, the object space pose replaces the local space pose
+				m_policy.local_to_object_space(*context.topology, lossy_local_pose, m_lossy_object_pose, clip_sample_index, true);
+
+				const uint8_t* object_pose_raw = m_object_transforms_raw + (sample_index * m_transform_size * num_transforms);
+
+				for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
+				{
+					const transform_metadata& transform_data = context.metadata[transform_index];
+
+					typename policy_t::error_args_type error_args;
+					m_policy.init_error_args(error_args, transform_data.shell_distance);
+
+					const rtm::scalarf error_sq = m_policy.measure(error_args, object_pose_raw + (transform_index * m_transform_size), m_lossy_object_pose + (transform_index * m_transform_size));
+					const float precision_sq = transform_data.precision * transform_data.precision;
+
+					max_error_sq = rtm::scalar_max(max_error_sq, error_sq);
+					is_keyframe_trivial &= rtm::scalar_cast(error_sq) <= precision_sq;
+				}
+			}
+
+		private:
+			const quantization_context& m_context;
+			const policy_t& m_policy;
+			size_t m_transform_size;
+			uint8_t* m_object_transforms_raw;		// 1 runtime transform per transform, per sample, in segment
+			uint8_t* m_lossy_object_pose;			// 1 runtime transform per transform
+		};
+
+		// Finds the order in which we strip the keyframes of the current segment, and the error that each keyframe contributes
+		// 'pose_error' measures the error of one interpolated lossy pose, see 'contributing_error_v1_t' and 'contributing_error_v2_t'
+		template<class pose_error_t>
+		inline void find_contributing_error_impl(quantization_context& context, pose_error_t& pose_error)
+		{
 			if (context.segment->contributing_error == nullptr)
 				context.segment->contributing_error = allocate_type_array<keyframe_stripping_metadata_t>(context.allocator, 32);	// Always no more than 32 frames per segment
 
@@ -2765,43 +2982,10 @@ namespace acl
 			contributing_error[0] = keyframe_stripping_metadata_t(0, segment_index, ~0U, infinity, false);
 			contributing_error[num_frames - 1] = keyframe_stripping_metadata_t(num_frames - 1, segment_index, ~0U, infinity, false);
 
-			// START OF ERROR METRIC STUFF
-			const itransform_error_metric* error_metric = context.error_metric;
-			const bool needs_conversion = context.needs_conversion;
-			const bool has_additive_base = context.has_additive_base;
-			const size_t sample_transform_size = context.metric_transform_size * num_bones;
 			const float sample_rate = context.sample_rate;
 			const float clip_duration = context.clip_duration;
 			const uint32_t segment_sample_start_index = context.segment_sample_start_index;
-
-			const auto convert_transforms_impl = std::mem_fn(context.metric_has_scale ? &itransform_error_metric::convert_transforms : &itransform_error_metric::convert_transforms_no_scale);
-			const auto apply_additive_to_base_impl = std::mem_fn(context.metric_has_scale ? &itransform_error_metric::apply_additive_to_base : &itransform_error_metric::apply_additive_to_base_no_scale);
-			const auto local_to_object_space_impl = std::mem_fn(context.metric_has_scale ? &itransform_error_metric::local_to_object_space : &itransform_error_metric::local_to_object_space_no_scale);
-
-			itransform_error_metric::convert_transforms_args convert_transforms_args_lossy;
-			convert_transforms_args_lossy.dirty_transform_indices = context.self_transform_indices;
-			convert_transforms_args_lossy.num_dirty_transforms = num_bones;
-			convert_transforms_args_lossy.transforms = context.lossy_local_pose;
-			convert_transforms_args_lossy.num_transforms = num_bones;
-			convert_transforms_args_lossy.sample_index = 0;
-			convert_transforms_args_lossy.is_lossy = true;
-			convert_transforms_args_lossy.is_additive_base = false;
-
-			itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args_lossy;
-			apply_additive_to_base_args_lossy.dirty_transform_indices = context.self_transform_indices;
-			apply_additive_to_base_args_lossy.num_dirty_transforms = num_bones;
-			apply_additive_to_base_args_lossy.local_transforms = context.lossy_local_pose;
-			apply_additive_to_base_args_lossy.base_transforms = nullptr;
-			apply_additive_to_base_args_lossy.num_transforms = num_bones;
-
-			itransform_error_metric::local_to_object_space_args local_to_object_space_args_lossy;
-			local_to_object_space_args_lossy.dirty_transform_indices = context.self_transform_indices;
-			local_to_object_space_args_lossy.num_dirty_transforms = num_bones;
-			local_to_object_space_args_lossy.parent_transform_indices = context.parent_transform_indices;
-			local_to_object_space_args_lossy.local_transforms = needs_conversion ? (const void*)(context.local_transforms_converted) : (const void*)context.lossy_local_pose;
-			local_to_object_space_args_lossy.num_transforms = num_bones;
-
-			const uint8_t* raw_transform = context.raw_object_transforms;
+			const float playback_scale = context.clip.playback_scale;
 
 			if (context.lossy_transforms_start == nullptr)
 			{
@@ -2815,9 +2999,9 @@ namespace acl
 
 			rtm::vqvf* lossy_transforms_start = context.lossy_transforms_start;
 			rtm::vqvf* lossy_transforms_end = context.lossy_transforms_end;
+			rtm::vqvf* lossy_local_pose = pose_error.get_lossy_local_pose();
 
 			context.all_local_query.build(context.bit_rate_per_bone);
-			// END OF ERROR METRIC STUFF
 
 			// We iterate until every frame but the first and last have been removed
 			for (uint32_t iteration_count = 1; iteration_count < num_frames - 1; ++iteration_count)
@@ -2872,49 +3056,15 @@ namespace acl
 							const rtm::vector4f interp_translation = rtm::vector_lerp(lossy_transforms_start[bone_index].translation, lossy_transforms_end[bone_index].translation, interpolation_alpha);
 							const rtm::vector4f interp_scale = rtm::vector_lerp(lossy_transforms_start[bone_index].scale, lossy_transforms_end[bone_index].scale, interpolation_alpha);
 
-							context.lossy_local_pose[bone_index] = rtm::vqv_set(interp_rotation, interp_translation, interp_scale);
+							lossy_local_pose[bone_index] = rtm::vqv_set(interp_rotation, interp_translation, interp_scale);
 						}
 
-						// The additive applies to the rtm::vqvf source transforms, before the conversion
-						if (has_additive_base)
-						{
-							apply_additive_to_base_args_lossy.base_transforms = context.space_context.get_base_pose(segment_sample_start_index + interp_frame_index);
-
-							apply_additive_to_base_impl(error_metric, apply_additive_to_base_args_lossy, context.lossy_local_pose);
-						}
-
-						// Convert to our object space representation
-						if (needs_conversion)
-						{
-							convert_transforms_args_lossy.sample_index = segment_sample_start_index + interp_frame_index;	// In the clip
-							convert_transforms_impl(error_metric, convert_transforms_args_lossy, context.local_transforms_converted);
-						}
-
-						local_to_object_space_impl(error_metric, local_to_object_space_args_lossy, context.lossy_object_pose);
-
-						// Calculate our error
-						const uint8_t* raw_frame_transform = raw_transform + (interp_frame_index * sample_transform_size);
-
-						for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
-						{
-							itransform_error_metric::calculate_error_args calculate_error_args;
-							calculate_error_args.transform0 = raw_frame_transform + (bone_index * context.metric_transform_size);
-							calculate_error_args.transform1 = context.lossy_object_pose + (bone_index * context.metric_transform_size);
-
-							const transform_metadata& transform_data = context.metadata[bone_index];
-							calculate_error_args.construct_sphere_shell(transform_data.shell_distance);
-
-							// We always include the scale to ensure that when we strip keyframes based on the measured error
-							// the resulting clip error remains consistent
-							const rtm::scalarf error_sq = error_metric->calculate_error_squared(calculate_error_args);
-							const float precision_sq = transform_data.precision * transform_data.precision;
-
-							max_contributing_error_sq = rtm::scalar_max(max_contributing_error_sq, error_sq);
-							is_keyframe_trivial &= rtm::scalar_cast(error_sq) <= precision_sq;
-						}
+						pose_error.measure(interp_frame_index, max_contributing_error_sq, is_keyframe_trivial);
 					}
 
-					const float max_contributing_errorf = rtm::scalar_cast(rtm::scalar_sqrt(max_contributing_error_sq));
+					// The keyframe stripping threshold and the database compare the contributing error of clips with
+					// different playback scales, thus we store it in playback units, see 'track_array::get_playback_scale'
+					const float max_contributing_errorf = rtm::scalar_cast(rtm::scalar_sqrt(max_contributing_error_sq)) * playback_scale;
 
 #if ACL_IMPL_DEBUG_CONTRIBUTING_ERROR
 					printf("    Error between frame [%u, %u] while testing %u: %f\n", interp_start_frame_index, interp_end_frame_index, frame_index, max_contributing_errorf);
@@ -2942,6 +3092,52 @@ namespace acl
 			// We found the contributing error for every keyframe, sort them by the order they should be stripped from this segment
 			auto sort_predicate = [](const keyframe_stripping_metadata_t& lhs, const keyframe_stripping_metadata_t& rhs) { return lhs.stripping_index < rhs.stripping_index; };
 			std::sort(contributing_error, contributing_error + num_frames, sort_predicate);
+		}
+
+		// For a legacy error metric that does not support the bit rate algorithm v2
+		inline void find_contributing_error_v1(quantization_context& context)
+		{
+			context.initialize_v1();
+			cache_raw_transforms_v1(context);
+
+			contributing_error_v1_t pose_error(context);
+			find_contributing_error_impl(context, pose_error);
+		}
+
+		// Calls 'find_contributing_error_impl' with the policy that 'dispatch_v2_policy' selects
+		// C++11 has no generic lambda, thus we use a function object
+		struct find_contributing_error_v2_fn_t
+		{
+			quantization_context& context;
+
+			template<class policy_t>
+			void operator()(const policy_t& policy) const
+			{
+				contributing_error_v2_t<policy_t> pose_error(context, policy);
+				find_contributing_error_impl(context, pose_error);
+			}
+		};
+
+		inline void find_contributing_error_v2(quantization_context& context)
+		{
+			context.initialize_v2();
+
+			// We always measure with the policy with scale, to ensure that when we strip keyframes based on the
+			// measured error the resulting clip error remains consistent
+			// Without scale in the clip and in the additive base, the runtime error metric selects the policy without scale
+			find_contributing_error_v2_fn_t find_contributing_error_fn{ context };
+			dispatch_v2_policy(context, true, find_contributing_error_fn);
+		}
+
+		inline void find_contributing_error(quantization_context& context)
+		{
+			ACL_ASSERT(context.num_samples <= 32, "Expected no more than 32 samples per track");
+
+			// Like the bit rate search, a legacy error metric that does not support the bit rate algorithm v2 uses the v1 data
+			if (context.error_metric->supports_bit_rate_algorithm_v2())
+				find_contributing_error_v2(context);
+			else
+				find_contributing_error_v1(context);
 		}
 
 		inline void sort_contributing_error(iallocator& allocator, clip_context& lossy_clip_context)

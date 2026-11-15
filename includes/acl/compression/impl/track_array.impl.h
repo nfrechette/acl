@@ -66,6 +66,7 @@ namespace acl
 		, m_num_tracks(other.m_num_tracks)
 		, m_looping_policy(other.m_looping_policy)
 		, m_transform_space(other.m_transform_space)
+		, m_playback_scale(other.m_playback_scale)
 		, m_name(std::move(other.m_name))
 	{
 		other.m_allocator = nullptr;	// Make sure we don't free our data since we no longer own it
@@ -84,6 +85,7 @@ namespace acl
 		std::swap(m_num_tracks, other.m_num_tracks);
 		std::swap(m_looping_policy, other.m_looping_policy);
 		std::swap(m_transform_space, other.m_transform_space);
+		std::swap(m_playback_scale, other.m_playback_scale);
 		std::swap(m_name, other.m_name);
 		return *this;
 	}
@@ -139,6 +141,10 @@ namespace acl
 	{
 		if (!acl_impl::is_transform_space_valid(m_transform_space))
 			return error_result("Invalid transform space");
+
+		// The comparison is false with NaN
+		if (!(m_playback_scale > 0.0F) || !rtm::scalar_is_finite(m_playback_scale))
+			return error_result("The playback scale must be positive and finite");
 
 		const track_type8 type = get_track_type();
 		const uint32_t num_samples = get_num_samples_per_track();

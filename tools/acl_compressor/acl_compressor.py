@@ -35,6 +35,7 @@ def parse_argv():
 	options['level'] = 'Medium'
 	options['strip_keyframe_proportion'] = None
 	options['strip_keyframe_threshold'] = None
+	options['playback_scale'] = None
 	options['source_vq'] = False
 	options['source_vqs'] = False
 	options['mesh_space'] = False
@@ -92,6 +93,9 @@ def parse_argv():
 
 		if value.startswith('-strip_keyframe_threshold='):
 			options['strip_keyframe_threshold'] = float(value[len('-strip_keyframe_threshold='):].replace('"', ''))
+
+		if value.startswith('-playback_scale='):
+			options['playback_scale'] = float(value[len('-playback_scale='):].replace('"', ''))
 
 		if value == '-source_vq':
 			options['source_vq'] = True
@@ -164,6 +168,7 @@ def print_help():
 	print('  -stat_exhaustive: Enables exhaustive stat logging')
 	print('  -strip_keyframe_proportion: Enables keyframe stripping and sets the desired strip proportion')
 	print('  -strip_keyframe_threshold: Enables keyframe stripping and sets the desired strip threshold')
+	print('  -playback_scale: Sets the uniform scale of each clip at playback, the precision and the error are in playback units')
 	print('  -source_vq: Compresses the transform clips without scale as VQ tracks (vqf)')
 	print('  -source_vqs: Compresses the transform clips without scale or with a uniform scale as VQS tracks (vqsf)')
 	print('  -mesh_space: Converts the local space transform clips into mesh space before compression')
@@ -395,6 +400,9 @@ def compress_clips(options):
 
 			if options['strip_keyframe_threshold']:
 				cmd = '{} -strip_keyframe_threshold={}'.format(cmd, options['strip_keyframe_threshold'])
+
+			if options['playback_scale']:
+				cmd = '{} -playback_scale={}'.format(cmd, options['playback_scale'])
 
 			if options['source_vq']:
 				cmd = '{} -source_vq'.format(cmd)

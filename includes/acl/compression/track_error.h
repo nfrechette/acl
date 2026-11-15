@@ -56,6 +56,7 @@ namespace acl
 		uint32_t index = k_invalid_track_index;
 
 		// The worst error for the track index.
+		// With transform tracks, it is in playback units, see 'track_array::get_playback_scale'.
 		float error = 0.0F;
 
 		// The sample time that has the worst error.

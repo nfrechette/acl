@@ -1,0 +1,14 @@
+version = 2
+
+algorithm_name = "uniformly_sampled"
+
+level = "Medium"
+
+rotation_format = "quatf_drop_w_variable"
+translation_format = "vector3f_variable"
+scale_format = "vector3f_variable"
+scalar_format = "scalarf_variable"
+
+// The error is in playback units: the threshold is the threshold of the other configurations multiplied by the playback scale
+regression_error_threshold = 0.15
+playback_scale = 2.0
