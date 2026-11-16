@@ -5,6 +5,7 @@ build/
 .vscode/
 .idea/
 cmake-build-debug/
+.cache/
 
 # Test data rules
 test_data/*.zip
