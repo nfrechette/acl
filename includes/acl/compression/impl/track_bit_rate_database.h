@@ -255,7 +255,7 @@ namespace acl
 			transform_cache_entry*	m_transforms;
 
 			uint32_t*			m_track_entry_bitsets;
-			size_t				m_track_bitsets_size;
+			size_t				m_num_track_bitset_entries;	// The number of uint32_t entries, not bytes
 
 			uint8_t*			m_data;
 			size_t				m_data_size;
@@ -387,7 +387,7 @@ namespace acl
 
 			const uint32_t track_bitsets_size = is_used ? (m_bitset_desc.get_size() * num_cached_tracks) : 0;
 			m_track_entry_bitsets = is_used ? allocate_type_array<uint32_t>(allocator, track_bitsets_size) : nullptr;
-			m_track_bitsets_size = track_bitsets_size;
+			m_num_track_bitset_entries = track_bitsets_size;
 
 			// We allocate a single float buffer to accommodate 4 bit rates for every rot/trans/scale track of each transform.
 			// Each track is padded and aligned to ensure that it starts on a cache line boundary.
@@ -403,7 +403,7 @@ namespace acl
 		inline track_bit_rate_database::~track_bit_rate_database()
 		{
 			deallocate_type_array(m_allocator, m_transforms, m_num_transforms);
-			deallocate_type_array(m_allocator, m_track_entry_bitsets, m_track_bitsets_size);
+			deallocate_type_array(m_allocator, m_track_entry_bitsets, m_num_track_bitset_entries);
 
 			if (m_data != nullptr)
 				m_allocator.deallocate(m_data, m_data_size);
@@ -970,8 +970,10 @@ namespace acl
 		inline size_t track_bit_rate_database::get_allocated_size() const
 		{
 			size_t cache_size = 0;
-			cache_size += sizeof(transform_cache_entry) * m_num_transforms;
-			cache_size += m_track_bitsets_size;
+			if (m_transforms != nullptr)
+				cache_size += sizeof(transform_cache_entry) * m_num_transforms;
+
+			cache_size += sizeof(uint32_t) * m_num_track_bitset_entries;
 			cache_size += m_data_size;
 			return cache_size;
 		}

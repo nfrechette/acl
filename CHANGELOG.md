@@ -70,6 +70,7 @@
 *  Add `estimate_compression_peak_memory_usage` to estimate the peak memory usage of `compress_track_list` before compression, from a track list or from a `compression_memory_desc_t` with the numbers of tracks and samples, see [compressing raw tracks](docs/compressing_raw_tracks.md#peak-memory-usage)
 *  Compression does not allocate the bit rate database when no format is variable: with full precision formats, the peak memory usage is 37% to 64% lower
 *  Fix the compression, the pre-processing, and `calculate_compression_error` of a clip with one sample and a base with more than one sample: the clip now uses the first base sample, before it asserted with a NaN interpolation alpha
+*  Fix the `track_bit_rate_database_size` value of the detailed stats: it added the number of bitset entries instead of their size in bytes
 
 ## 2.1.0
 
