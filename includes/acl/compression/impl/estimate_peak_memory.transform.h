@@ -395,7 +395,10 @@ namespace acl
 			quantization_size += segment_streams_size;
 			quantization_size += segment_ranges_size;
 			quantization_size += contributing_error_size;
-			quantization_size += track_bit_rate_database::get_required_size(num_transforms, num_first_segment_samples, true);
+
+			// Without a variable format, the database is not used, see 'get_bit_rate_database_num_samples'
+			const uint32_t num_database_samples = is_any_variable ? num_first_segment_samples : 0;
+			quantization_size += track_bit_rate_database::get_required_size(num_transforms, num_database_samples, true);
 
 			// A quantized stream replaces each stream, the old stream lives until the new one is complete
 			quantization_size += 2 * track_stream::get_required_size(num_first_segment_samples, sizeof(rtm::vector4f));

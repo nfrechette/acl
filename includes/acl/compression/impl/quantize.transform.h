@@ -91,6 +91,21 @@ namespace acl
 
 	namespace acl_impl
 	{
+		// The bit rate search and the contributing error sample the lossy tracks with the bit rate database.
+		// Both need a variable format: without one, compression does not use the database.
+		inline bool is_bit_rate_database_used(const compression_settings& settings)
+		{
+			return is_rotation_format_variable(settings.rotation_format) ||
+				is_vector_format_variable(settings.translation_format) ||
+				is_vector_format_variable(settings.scale_format);
+		}
+
+		// Returns the number of samples of the bit rate database, the database has no samples when it is not used
+		inline uint32_t get_bit_rate_database_num_samples(const compression_settings& settings, const clip_context& clip)
+		{
+			return is_bit_rate_database_used(settings) ? clip.segments->num_samples : 0;
+		}
+
 		struct quantization_context
 		{
 			iallocator& allocator;
@@ -198,7 +213,7 @@ namespace acl
 				, topology(clip_.topology)
 				, settings(settings_)
 				, segmenting_settings(segmenting_settings_)
-				, bit_rate_database(allocator_, settings_.rotation_format, settings_.translation_format, settings_.scale_format, clip_.segments->bone_streams, raw_clip_.segments->bone_streams, clip_.num_bones, clip_.segments->num_samples)
+				, bit_rate_database(allocator_, settings_.rotation_format, settings_.translation_format, settings_.scale_format, clip_.segments->bone_streams, raw_clip_.segments->bone_streams, clip_.num_bones, get_bit_rate_database_num_samples(settings_, clip_))
 				, local_query()
 				, all_local_query(allocator_)
 				, object_query(allocator_)
@@ -268,7 +283,9 @@ namespace acl
 				bone_streams = segment_.bone_streams;
 				num_samples = segment_.num_samples;
 				segment_sample_start_index = segment_.clip_sample_offset;
-				bit_rate_database.set_segment(segment_.bone_streams, segment_.num_bones, segment_.num_samples);
+
+				if (is_bit_rate_database_used(settings))
+					bit_rate_database.set_segment(segment_.bone_streams, segment_.num_bones, segment_.num_samples);
 			}
 
 			void initialize_v1()
