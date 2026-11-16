@@ -348,8 +348,7 @@ TEST_CASE("estimate the peak memory usage of transform compression", "[compressi
 		check_estimate(allocator, vqs_tracks, default_settings, nullptr, "vqsf");
 
 		// A base with a different number of samples
-		// A clip with one sample does not support a base with more than one sample
-		const clip_shape_t base_shape = { shape.num_transforms, shape.num_samples == 1 ? 1 : (shape.num_samples + 5), false };
+		const clip_shape_t base_shape = { shape.num_transforms, shape.num_samples + 5, false };
 		const track_array_vqvf base_tracks = make_vqv_clip(allocator, base_shape);
 		transform_base_desc_t transform_base;
 		transform_base.format = additive_clip_format8::additive1;

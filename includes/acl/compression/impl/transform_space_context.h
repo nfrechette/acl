@@ -53,6 +53,19 @@ namespace acl
 	namespace acl_impl
 	{
 		//////////////////////////////////////////////////////////////////////////
+		// Returns the time in the base of a sample time in the clip.
+		// The clip and the base start and end together: the time in the base is proportional to the time in the clip.
+		// A base with one sample and a clip with one sample (its duration is 0) use the first base sample.
+		inline float get_base_sample_time(float clip_sample_time, float clip_duration, uint32_t num_base_samples, float base_duration)
+		{
+			if (num_base_samples <= 1 || clip_duration <= 0.0F)
+				return 0.0F;
+
+			const float normalized_sample_time = clip_sample_time / clip_duration;
+			return normalized_sample_time * base_duration;
+		}
+
+		//////////////////////////////////////////////////////////////////////////
 		// Fills 'out_order' with each transform index, a parent before its children.
 		// 'scratch_is_sorted' must hold one value for each transform.
 		// With a parent cycle (not valid), the transforms of the cycle come last, in index order.
@@ -357,8 +370,7 @@ namespace acl
 				// The sample time is calculated from the full clip duration to be consistent with decompression
 				const float sample_time = rtm::scalar_min(float(clip_sample_index) / clip_sample_rate, clip_duration);
 
-				const float normalized_sample_time = num_base_samples > 1 ? (sample_time / clip_duration) : 0.0F;
-				const float base_sample_time = num_base_samples > 1 ? (normalized_sample_time * base_duration) : 0.0F;
+				const float base_sample_time = get_base_sample_time(sample_time, clip_duration, num_base_samples, base_duration);
 
 				// With uniform sample distributions, we do not interpolate.
 				m_base_sample_indices[clip_sample_index] = get_uniform_sample_key(base_clip, transform_segment_adapter_t(), base_sample_time);

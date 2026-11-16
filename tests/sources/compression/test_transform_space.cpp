@@ -129,6 +129,20 @@ namespace
 		return compressed_tracks_;
 	}
 
+	// Returns a copy of the tracks with only their first sample
+	track_array_vqvf make_first_sample_copy(iallocator& allocator, const track_array_vqvf& tracks)
+	{
+		track_array_vqvf result(allocator, tracks.get_num_tracks());
+
+		for (uint32_t transform_index = 0; transform_index < tracks.get_num_tracks(); ++transform_index)
+		{
+			const track_vqvf& track = tracks[transform_index];
+			result[transform_index] = track_vqvf::make_copy(track.get_description(), allocator, &track[0], 1, track.get_sample_rate());
+		}
+
+		return result;
+	}
+
 	bool are_equal(const compressed_tracks& tracks0, const compressed_tracks& tracks1)
 	{
 		return tracks0.get_size() == tracks1.get_size() && std::memcmp(&tracks0, &tracks1, tracks0.get_size()) == 0;
@@ -605,6 +619,51 @@ TEST_CASE("compression with a transform space", "[compression][transform_space]"
 
 		allocator.deallocate(space_tracks, space_tracks->get_size());
 		allocator.deallocate(deprecated_tracks, deprecated_tracks->get_size());
+	}
+}
+
+TEST_CASE("compression of a clip with one sample and a base with many samples", "[compression][transform_space]")
+{
+	ansi_allocator allocator;
+
+	// A clip with one sample has a duration of 0, it uses the first sample of the base
+	const track_array_vqvf clip = make_first_sample_copy(allocator, make_clip(allocator));
+	const track_array_vqvf base = make_base(allocator);
+	const track_array_vqvf first_sample_base = make_first_sample_copy(allocator, base);
+	REQUIRE(clip.get_num_samples_per_track() == 1);
+	REQUIRE(base.get_num_samples_per_track() > 1);
+
+	const compression_settings settings = get_default_compression_settings();
+
+	const additive_clip_format8 base_formats[] = { additive_clip_format8::relative, additive_clip_format8::additive0, additive_clip_format8::additive1 };
+	for (const additive_clip_format8 base_format : base_formats)
+	{
+		transform_base_desc_t transform_base;
+		transform_base.format = base_format;
+		transform_base.tracks = &base;
+
+		transform_base_desc_t first_sample_transform_base;
+		first_sample_transform_base.format = base_format;
+		first_sample_transform_base.tracks = &first_sample_base;
+
+		compressed_tracks* base_tracks = compress(allocator, clip, transform_base);
+		compressed_tracks* first_sample_base_tracks = compress(allocator, clip, first_sample_transform_base);
+
+		// The full base and its first sample give the same data
+		CHECK(are_equal(*base_tracks, *first_sample_base_tracks));
+
+		// The error is measured with the first sample of the base
+		decompression_context<debug_transform_decompression_settings> context;
+		REQUIRE(context.initialize(*base_tracks));
+
+		const track_error error = calculate_compression_error(allocator, clip, context, settings, transform_base);
+		const track_error first_sample_error = calculate_compression_error(allocator, clip, context, settings, first_sample_transform_base);
+		CHECK(error.error >= 0.0F);
+		CHECK(error.error < 0.01F);
+		CHECK(error.error == first_sample_error.error);
+
+		allocator.deallocate(base_tracks, base_tracks->get_size());
+		allocator.deallocate(first_sample_base_tracks, first_sample_base_tracks->get_size());
 	}
 }
 
