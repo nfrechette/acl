@@ -234,7 +234,7 @@ namespace acl
 			size_t size = 0;
 			size += sizeof(raw_buffer_header) + sizeof(tracks_header) + sizeof(transform_tracks_header);
 			size += sizeof(uint32_t) * (num_segments + 1);							// Segment start indices
-			size += std::max(sizeof(segment_header), sizeof(stripped_segment_header_t)) * num_segments;
+			size += std::max<size_t>(sizeof(segment_header), sizeof(stripped_segment_header_t)) * num_segments;
 			size += sizeof(uint32_t) * ((num_transforms + 15) / 16) * 3;			// Packed sub-track types
 			size += sizeof(rtm::vector4f) * num_sub_tracks;							// Constant samples
 			size += sizeof(float) * 8 * num_sub_tracks;								// Clip range data
@@ -310,9 +310,9 @@ namespace acl
 			if (settings.optimize_loops && desc.looping_policy != sample_looping_policy::wrap && num_samples > 1)
 			{
 				const estimate_segments_t wrap_segments = estimate_segments(num_samples - 1, segmenting_settings);
-				segments.num_segments = std::max(segments.num_segments, wrap_segments.num_segments);
-				segments.num_estimated_segments = std::max(segments.num_estimated_segments, wrap_segments.num_estimated_segments);
-				segments.num_first_segment_samples = std::max(segments.num_first_segment_samples, wrap_segments.num_first_segment_samples);
+				segments.num_segments = std::max<uint32_t>(segments.num_segments, wrap_segments.num_segments);
+				segments.num_estimated_segments = std::max<uint32_t>(segments.num_estimated_segments, wrap_segments.num_estimated_segments);
+				segments.num_first_segment_samples = std::max<uint32_t>(segments.num_first_segment_samples, wrap_segments.num_first_segment_samples);
 			}
 
 			const uint32_t num_segments = segments.num_segments;
@@ -443,7 +443,7 @@ namespace acl
 			output_size += sizeof(uint32_t) * num_transforms;							// Output track mapping
 			output_size += estimate_compressed_transform_tracks_size(desc, settings, segments, num_samples);
 
-			return std::max(std::max(initialization_size, segmenting_size), std::max(quantization_size, output_size));
+			return std::max<size_t>(std::max<size_t>(initialization_size, segmenting_size), std::max<size_t>(quantization_size, output_size));
 		}
 	}
 
