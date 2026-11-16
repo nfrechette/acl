@@ -56,3 +56,41 @@ error_result result = compress_track_list(allocator, raw_track_list, settings, o
 ```
 
 You can also query the current default and recommended settings with this function: `get_default_compression_settings()`.
+
+## Peak memory usage
+
+Compression allocates temporary buffers. The largest clips use many times their raw size. When many clips compress in parallel, the sum of these buffers can cause the system to write memory pages to disk.
+
+Use `estimate_compression_peak_memory_usage(..)` to find the memory that a clip needs before you compress it. It takes the same tracks, settings, and base as `compress_track_list(..)`. It does not allocate memory, and its cost is low compared to compression. For example, a scheduler can start a new compression only when the sum of the estimates is less than a memory budget.
+
+```c++
+#include <acl/compression/compress.h>
+
+using namespace acl;
+
+const size_t peak_memory_usage = estimate_compression_peak_memory_usage(raw_track_list, settings);
+```
+
+The overload with a track list reads the sizes, the hierarchy, and the names of the tracks, not their samples. To decide before you load the tracks, use the overload with a `compression_memory_desc_t`. Fill it from the metadata of the asset: the track type, the number of tracks, and the number of samples are required. The other values are optional. Except for `total_name_length`, each default value gives the largest estimate:
+
+*  `max_hierarchy_depth`: the largest number of ancestors of a transform. Without it, the estimate uses a single chain of transforms, and some buffers grow with the square of the number of transforms.
+*  `total_name_length`: the length of the names. Set it when the metadata settings include the names.
+*  `looping_policy`, `transform_space`, and the values of the base (`base_format`, `num_base_tracks`, `num_base_samples_per_track`, `base_has_non_uniform_scale`).
+
+```c++
+#include <acl/compression/compress.h>
+
+using namespace acl;
+
+compression_memory_desc_t desc;
+desc.track_type = track_type8::vqvf;
+desc.num_tracks = num_bones;
+desc.num_samples_per_track = num_frames;
+desc.max_hierarchy_depth = max_bone_depth;	// Optional
+
+const size_t peak_memory_usage = estimate_compression_peak_memory_usage(desc, settings);
+```
+
+On a large set of production clips, the estimate with only the track type and the numbers of tracks and samples is 2% larger than the estimate with the track list for the median clip, and at most 17% larger. With `max_hierarchy_depth` too, the two estimates are equal.
+
+The value is the largest sum of the live allocations that compression requests from its allocator. It does not include the overhead of the allocator, the raw tracks, or the statistics of `output_stats::logging`. The estimate cannot know which tracks are constant before compression, thus it assumes that each track is animated. The value is usually larger than the real peak. On a large set of production clips with the default settings, the estimate is 9% to 118% larger than the measured peak, and 58% larger for the median clip.

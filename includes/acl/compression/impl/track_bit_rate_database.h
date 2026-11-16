@@ -199,6 +199,9 @@ namespace acl
 
 			size_t get_allocated_size() const;
 
+			// Returns the number of bytes that the constructor allocates for these values
+			static size_t get_required_size(uint32_t num_transforms, uint32_t num_samples_per_track, bool has_scale);
+
 		private:
 			track_bit_rate_database(const track_bit_rate_database&) = delete;
 			track_bit_rate_database& operator=(const track_bit_rate_database&) = delete;
@@ -965,6 +968,22 @@ namespace acl
 			cache_size += m_track_bitsets_size;
 			cache_size += m_data_size;
 			return cache_size;
+		}
+
+		inline size_t track_bit_rate_database::get_required_size(uint32_t num_transforms, uint32_t num_samples_per_track, bool has_scale)
+		{
+			// This function must stay consistent with the constructor
+			const uint32_t num_tracks_per_transform = has_scale ? 3U : 2U;
+			const size_t num_cached_tracks = size_t(num_transforms) * num_tracks_per_transform * k_num_bit_rates_cached_per_track;
+
+			const bitset_description bitset_desc = bitset_description::make_from_num_bits(num_samples_per_track);
+			const size_t track_size = align_to<size_t>(sizeof(rtm::vector4f) * size_t(num_samples_per_track), 64);
+
+			size_t size = 0;
+			size += sizeof(transform_cache_entry) * num_transforms;
+			size += sizeof(uint32_t) * bitset_desc.get_size() * num_cached_tracks;
+			size += track_size * num_cached_tracks;
+			return size;
 		}
 	}
 

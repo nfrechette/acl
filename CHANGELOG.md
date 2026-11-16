@@ -67,6 +67,7 @@
 *  Add the uniform playback scale of a clip with `track_array::set_playback_scale`: the precision, the keyframe stripping threshold, and the measured error are in playback units, see [playback scale](docs/creating_a_raw_track_list.md#playback-scale)
 *  Add the `-playback_scale=` option and the `playback_scale` config option to `acl_compressor` and its python script, and a regression configuration
 *  The clip writer writes the transform space and the playback scale of transform tracks, and the clip reader reads the optional `transform_space` and `playback_scale` values in the raw clip and the track list formats
+*  Add `estimate_compression_peak_memory_usage` to estimate the peak memory usage of `compress_track_list` before compression, from a track list or from a `compression_memory_desc_t` with the numbers of tracks and samples, see [compressing raw tracks](docs/compressing_raw_tracks.md#peak-memory-usage)
 
 ## 2.1.0
 

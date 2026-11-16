@@ -33,11 +33,14 @@
 #include "acl/core/error_result.h"
 #include "acl/core/floating_point_control.h"
 #include "acl/core/iallocator.h"
+#include "acl/compression/compression_memory_desc.h"
 #include "acl/compression/compression_settings.h"
 #include "acl/compression/output_stats.h"
 #include "acl/compression/track_array.h"
 #include "acl/compression/transform_base.h"
+#include "acl/compression/impl/transform_runtime_error_metric.h"
 
+#include <cstddef>
 #include <cstdint>
 
 ACL_IMPL_FILE_PRAGMA_PUSH
@@ -130,6 +133,93 @@ namespace acl
 		scope_disable_fp_exceptions fp_off;
 
 		return compress_transform_track_list(allocator, track_list, settings, transform_base, out_compressed_tracks, out_stats);
+	}
+
+	namespace acl_impl
+	{
+		// Fills the description of the memory estimate with the values of a track list and its base
+		inline compression_memory_desc_t make_compression_memory_desc(const track_array& track_list, const transform_base_desc_t& transform_base)
+		{
+			compression_memory_desc_t desc;
+
+			const bool is_transform = track_list.get_track_category() == track_category8::transformf;
+			if (!track_list.is_empty())
+				desc.track_type = track_list.get_track_type();
+			else
+				desc.track_type = is_transform ? track_type8::vqvf : track_type8::float1f;
+
+			desc.num_tracks = track_list.get_num_tracks();
+			desc.num_samples_per_track = track_list.get_num_samples_per_track();
+			desc.looping_policy = track_list.get_looping_policy();
+
+			uint32_t total_name_length = uint32_t(track_list.get_name().size());
+			for (const track& track_ : track_list)
+				total_name_length += uint32_t(track_.get_name().size());
+			desc.total_name_length = total_name_length;
+
+			if (!is_transform)
+				return desc;
+
+			desc.transform_space = track_list.get_transform_space();
+			desc.max_hierarchy_depth = find_max_hierarchy_depth(track_list);
+
+			const track_array* base_track_list = transform_base.tracks;
+			if (transform_base.format != additive_clip_format8::none && base_track_list != nullptr && !base_track_list->is_empty())
+			{
+				desc.base_format = transform_base.format;
+				desc.num_base_tracks = base_track_list->get_num_tracks();
+				desc.num_base_samples_per_track = base_track_list->get_num_samples_per_track();
+
+				// Only 'vqsf' tracks use the scale of the base to select their runtime transforms
+				if (desc.track_type == track_type8::vqsf)
+				{
+					bool base_has_scale = false;
+					bool base_has_non_uniform_scale = false;
+					transform_runtime_error_metric::find_base_scale(*base_track_list, base_has_scale, base_has_non_uniform_scale);
+					desc.base_has_non_uniform_scale = base_has_non_uniform_scale;
+				}
+			}
+
+			return desc;
+		}
+	}
+
+	inline size_t estimate_compression_peak_memory_usage(const track_array& track_list, const compression_settings& settings)
+	{
+		using namespace acl_impl;
+
+		// Compression fails before it allocates its buffers
+		if (track_list.is_valid().any())
+			return 0;
+
+		return estimate_compression_peak_memory_usage(make_compression_memory_desc(track_list, transform_base_desc_t()), settings);
+	}
+
+	inline size_t estimate_compression_peak_memory_usage(const track_array& track_list, const compression_settings& settings, const transform_base_desc_t& transform_base)
+	{
+		using namespace acl_impl;
+
+		// Compression fails before it allocates its buffers
+		if (track_list.is_valid().any())
+			return 0;
+
+		if (!track_list.is_empty() && !is_transform_track_type(track_list.get_track_type()))
+			return 0;
+
+		if (transform_base.is_valid(track_list.get_transform_space()).any())
+			return 0;
+
+		return estimate_compression_peak_memory_usage(make_compression_memory_desc(track_list, transform_base), settings);
+	}
+
+	inline size_t estimate_compression_peak_memory_usage(const compression_memory_desc_t& desc, const compression_settings& settings)
+	{
+		using namespace acl_impl;
+
+		if (is_transform_track_type(desc.track_type))
+			return estimate_transform_compression_peak_memory_usage(desc, settings);
+		else
+			return estimate_scalar_compression_peak_memory_usage(desc, settings);
 	}
 
 	ACL_IMPL_VERSION_NAMESPACE_END
