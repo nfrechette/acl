@@ -121,6 +121,12 @@ namespace acl
 				if (result.any())
 					return result;
 
+				// A successful selection always has an adapter and a metric, the functions of this class use them
+				// The check also lets the static analyzer know it when it does not analyze 'select'
+				if (m_scale_selection.adapter == nullptr || m_scale_selection.metric == nullptr ||
+					m_no_scale_selection.adapter == nullptr || m_no_scale_selection.metric == nullptr)
+					return error_result("The transform runtime type selection is not valid");
+
 				m_scale_function_selection = &m_scale_selection;
 				return error_result();
 			}
