@@ -125,6 +125,15 @@ namespace
 		{ 8, 100, false },
 	};
 
+	// A smaller set of shapes for the variants of the settings and of the clip: one sample, two samples, and two segments
+	// Each variant is a separate test case, thus the test cases can run in parallel
+	const clip_shape_t k_variant_clip_shapes[] =
+	{
+		{ 1, 1, false },
+		{ 3, 2, false },
+		{ 16, 32, false },
+	};
+
 	template<class track_array_type, class track_type, class sample_fn_type>
 	track_array_type make_clip(iallocator& allocator, const clip_shape_t& shape, sample_fn_type sample_fn)
 	{
@@ -274,78 +283,131 @@ namespace
 		CHECK(estimate_without_hierarchy >= estimate);
 		CHECK(estimate_with_hierarchy == estimate);
 	}
+
+	// The compression level changes how many bit rates the search tries, not the size of its buffers
+	// The lowest level keeps the test fast
+	compression_settings get_transform_settings()
+	{
+		compression_settings settings = get_default_compression_settings();
+		settings.level = compression_level8::lowest;
+		return settings;
+	}
+
+	// Compresses a VQV clip of each shape with the settings
+	template<size_t num_shapes>
+	void check_vqv_estimates(const clip_shape_t (&shapes)[num_shapes], const compression_settings& settings, const char* name)
+	{
+		peak_allocator allocator;
+
+		for (const clip_shape_t& shape : shapes)
+		{
+			const track_array_vqvf vqv_tracks = make_vqv_clip(allocator, shape);
+			check_estimate(allocator, vqv_tracks, settings, nullptr, name);
+		}
+	}
+}
+
+TEST_CASE("estimate the peak memory usage of transform compression", "[compression][transform]")
+{
+	check_vqv_estimates(k_clip_shapes, get_transform_settings(), "default");
+}
+
+TEST_CASE("estimate the peak memory usage of transform compression with full precision formats", "[compression][transform]")
+{
+	// Full precision formats do not split the clip into segments
+	compression_settings settings = get_transform_settings();
+	settings.rotation_format = rotation_format8::quatf_full;
+	settings.translation_format = vector_format8::vector3f_full;
+	settings.scale_format = vector_format8::vector3f_full;
+	settings.keyframe_stripping = compression_keyframe_stripping_settings();
+
+	check_vqv_estimates(k_variant_clip_shapes, settings, "full precision");
+}
+
+TEST_CASE("estimate the peak memory usage of transform compression with database support", "[compression][transform]")
+{
+	compression_settings settings = get_transform_settings();
+	settings.enable_database_support = true;
+	settings.keyframe_stripping = compression_keyframe_stripping_settings();
+
+	check_vqv_estimates(k_variant_clip_shapes, settings, "database");
+}
+
+TEST_CASE("estimate the peak memory usage of transform compression with metadata", "[compression][transform]")
+{
+	compression_settings settings = get_transform_settings();
+	settings.metadata.include_track_list_name = true;
+	settings.metadata.include_track_names = true;
+	settings.metadata.include_parent_track_indices = true;
+	settings.metadata.include_track_descriptions = true;
+	settings.metadata.include_contributing_error = true;
+
+	check_vqv_estimates(k_variant_clip_shapes, settings, "metadata");
+}
+
+TEST_CASE("estimate the peak memory usage of transform compression with the matrix3x4f runtime type", "[compression][transform]")
+{
+	compression_settings settings = get_transform_settings();
+	settings.transform_runtime_type = transform_runtime_type_t::matrix3x4f;
+
+	check_vqv_estimates(k_variant_clip_shapes, settings, "matrix3x4f");
+}
+
+TEST_CASE("estimate the peak memory usage of transform compression with the vqmf runtime type", "[compression][transform]")
+{
+	compression_settings settings = get_transform_settings();
+	settings.transform_runtime_type = transform_runtime_type_t::vqmf;
+
+	check_vqv_estimates(k_variant_clip_shapes, settings, "vqmf");
 }
 
 // This test uses the deprecated legacy error metric of the settings
 ACL_IMPL_DEPRECATION_WARNING_PUSH
 
-TEST_CASE("estimate the peak memory usage of transform compression", "[compression][transform]")
+TEST_CASE("estimate the peak memory usage of transform compression with the legacy error metric", "[compression][transform]")
 {
-	peak_allocator allocator;
-
-	// The compression level changes how many bit rates the search tries, not the size of its buffers
-	// The lowest level keeps the test fast
-	compression_settings default_settings = get_default_compression_settings();
-	default_settings.level = compression_level8::lowest;
-
-	// Full precision formats do not split the clip into segments
-	compression_settings raw_settings = default_settings;
-	raw_settings.rotation_format = rotation_format8::quatf_full;
-	raw_settings.translation_format = vector_format8::vector3f_full;
-	raw_settings.scale_format = vector_format8::vector3f_full;
-	raw_settings.keyframe_stripping = compression_keyframe_stripping_settings();
-
-	compression_settings database_settings = default_settings;
-	database_settings.enable_database_support = true;
-	database_settings.keyframe_stripping = compression_keyframe_stripping_settings();
-
-	compression_settings metadata_settings = default_settings;
-	metadata_settings.metadata.include_track_list_name = true;
-	metadata_settings.metadata.include_track_names = true;
-	metadata_settings.metadata.include_parent_track_indices = true;
-	metadata_settings.metadata.include_track_descriptions = true;
-	metadata_settings.metadata.include_contributing_error = true;
-
-	compression_settings matrix_settings = default_settings;
-	matrix_settings.transform_runtime_type = transform_runtime_type_t::matrix3x4f;
-
-	compression_settings vqm_settings = default_settings;
-	vqm_settings.transform_runtime_type = transform_runtime_type_t::vqmf;
-
 	// The legacy matrix error metric does not support the bit rate algorithm v2
 	vqvf_matrix3x4f_transform_error_metric legacy_metric;
-	compression_settings legacy_settings = default_settings;
-	legacy_settings.error_metric = &legacy_metric;
+	compression_settings settings = get_transform_settings();
+	settings.error_metric = &legacy_metric;
 
-	struct settings_case_t
+	check_vqv_estimates(k_variant_clip_shapes, settings, "legacy metric");
+}
+
+ACL_IMPL_DEPRECATION_WARNING_POP
+
+TEST_CASE("estimate the peak memory usage of vqf compression", "[compression][transform]")
+{
+	peak_allocator allocator;
+	const compression_settings settings = get_transform_settings();
+
+	for (const clip_shape_t& shape : k_variant_clip_shapes)
 	{
-		const compression_settings* settings;
-		const char* name;
-	};
+		const track_array_vqf vq_tracks = make_vq_clip(allocator, shape);
+		check_estimate(allocator, vq_tracks, settings, nullptr, "vqf");
+	}
+}
 
-	const settings_case_t settings_cases[] =
+TEST_CASE("estimate the peak memory usage of vqsf compression", "[compression][transform]")
+{
+	peak_allocator allocator;
+	const compression_settings settings = get_transform_settings();
+
+	for (const clip_shape_t& shape : k_variant_clip_shapes)
 	{
-		{ &default_settings, "default" },
-		{ &raw_settings, "full precision" },
-		{ &database_settings, "database" },
-		{ &metadata_settings, "metadata" },
-		{ &matrix_settings, "matrix3x4f" },
-		{ &vqm_settings, "vqmf" },
-		{ &legacy_settings, "legacy metric" },
-	};
+		const track_array_vqsf vqs_tracks = make_vqs_clip(allocator, shape);
+		check_estimate(allocator, vqs_tracks, settings, nullptr, "vqsf");
+	}
+}
 
-	for (const clip_shape_t& shape : k_clip_shapes)
+TEST_CASE("estimate the peak memory usage of additive transform compression", "[compression][transform]")
+{
+	peak_allocator allocator;
+	const compression_settings settings = get_transform_settings();
+
+	for (const clip_shape_t& shape : k_variant_clip_shapes)
 	{
 		const track_array_vqvf vqv_tracks = make_vqv_clip(allocator, shape);
-
-		for (const settings_case_t& settings_case : settings_cases)
-			check_estimate(allocator, vqv_tracks, *settings_case.settings, nullptr, settings_case.name);
-
-		const track_array_vqf vq_tracks = make_vq_clip(allocator, shape);
-		check_estimate(allocator, vq_tracks, default_settings, nullptr, "vqf");
-
-		const track_array_vqsf vqs_tracks = make_vqs_clip(allocator, shape);
-		check_estimate(allocator, vqs_tracks, default_settings, nullptr, "vqsf");
 
 		// A base with a different number of samples
 		const clip_shape_t base_shape = { shape.num_transforms, shape.num_samples + 5, false };
@@ -353,15 +415,22 @@ TEST_CASE("estimate the peak memory usage of transform compression", "[compressi
 		transform_base_desc_t transform_base;
 		transform_base.format = additive_clip_format8::additive1;
 		transform_base.tracks = &base_tracks;
-		check_estimate(allocator, vqv_tracks, default_settings, &transform_base, "additive1 base");
-
-		track_array_vqvf mesh_tracks = make_vqv_clip(allocator, shape);
-		mesh_tracks.set_transform_space(transform_space_t::mesh);
-		check_estimate(allocator, mesh_tracks, default_settings, nullptr, "mesh space");
+		check_estimate(allocator, vqv_tracks, settings, &transform_base, "additive1 base");
 	}
 }
 
-ACL_IMPL_DEPRECATION_WARNING_POP
+TEST_CASE("estimate the peak memory usage of transform compression in mesh space", "[compression][transform]")
+{
+	peak_allocator allocator;
+	const compression_settings settings = get_transform_settings();
+
+	for (const clip_shape_t& shape : k_variant_clip_shapes)
+	{
+		track_array_vqvf mesh_tracks = make_vqv_clip(allocator, shape);
+		mesh_tracks.set_transform_space(transform_space_t::mesh);
+		check_estimate(allocator, mesh_tracks, settings, nullptr, "mesh space");
+	}
+}
 
 TEST_CASE("estimate the peak memory usage of scalar compression", "[compression][scalar]")
 {
