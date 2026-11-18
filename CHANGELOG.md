@@ -12,6 +12,7 @@
 *  Disable fast math with the `float_control` pragma under Clang where the target supports it
 *  Add the `-fast_math` option to `make.py` to compile the public headers with fast math, and a CI workflow that uses it
 *  Add native Linux `riscv64` builds to `make.py`, they use the scalar code path of RTM
+*  Add Linux `armv7` cross compilation to `make.py` with GCC and Clang, `qemu-arm` runs the unit tests
 *  Fix `split_database_bulk_data` that gave a null pointer to `std::memcpy` when a quality tier is empty
 *  ACL now applies the additive base to the `rtm::vqvf` source transforms before `convert_transforms`, `apply_additive_to_base` always receives `rtm::vqvf` transforms
 *  Loop optimization and the detailed segment stats now support error metrics that convert transforms

@@ -29,6 +29,8 @@ For native *Linux on ARMv7*, the steps are identical to *x86 and x64* and `make.
 
 With SIMD enabled, the build adds `-mfpu=neon` because the Linux `armhf` compilers do not enable NEON by default.
 
+On a Linux host that is not ARMv7, `make.py` cross-compiles with GCC or Clang: `python make.py -compiler gcc15 -cpu armv7 -build -unit_test`. GCC uses the `arm-linux-gnueabihf-g++-15` cross compiler, and Clang uses the headers and the libraries of that cross compiler. `qemu-arm` runs the unit tests. On Ubuntu, install the `g++-15-arm-linux-gnueabihf` and `qemu-user` packages. The regression tests and the benchmarks do not run when `make.py` cross-compiles.
+
 ### Linux riscv64
 
 For native *Linux on riscv64*, the steps are identical to *x86 and x64* and `make.py` selects the `riscv64` architecture automatically. You can generate build files with: `python make.py -cpu riscv64`

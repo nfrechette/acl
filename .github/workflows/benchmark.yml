@@ -25,11 +25,11 @@ jobs:
         with:
           submodules: 'recursive'
       - name: Building (release-x64)
-        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
         with:
           args: 'python3 make.py -ci -compiler clang23 -config Release -cpu x64 -bench -build'
       # Can't run benchmark just yet because clips haven't been packaged in a zip file we can download
       #- name: Running benchmark (release-x64)
-      #  uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+      #  uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
       #  with:
       #    args: 'python3 make.py -ci -compiler clang23 -config Release -cpu x64 -bench -run_bench'

@@ -21,8 +21,8 @@ create_source_groups("${ALL_MAIN_SOURCE_FILES}" ${PROJECT_SOURCE_DIR})
 
 add_executable(${PROJECT_NAME} ${ALL_TEST_SOURCE_FILES} ${ALL_MAIN_SOURCE_FILES})
 
-if(NOT IS_CROSS_COMPILING)
-	# Don't attempt to detect unit tests if we are cross-compiling
+if(NOT IS_CROSS_COMPILING OR CMAKE_CROSSCOMPILING_EMULATOR)
+	# Detect the unit tests only when we can run them: natively, or with the emulator of the toolchain
 	list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/../../external/catch2/contrib")
 	include(CTest)
 	include(Catch)
