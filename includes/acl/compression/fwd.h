@@ -45,6 +45,8 @@ namespace acl
 
 	enum class compression_level8 : uint8_t;
 
+	struct compression_memory_desc_t;
+
 	struct compression_database_settings;
 	struct compression_metadata_settings;
 	struct compression_settings;

@@ -28,104 +28,101 @@ jobs:
         with:
           submodules: 'recursive'
       - name: Building (debug-x86)
-        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
         with:
           args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Debug -cpu x86 -build'
       - name: Running unit tests (debug-x86)
-        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
         with:
           args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Debug -cpu x86 -unit_test'
       - name: Clean
-        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
         with:
           args: 'python3 make.py -ci -clean_only'
       - name: Building (debug-x64)
-        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
         with:
           args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Debug -cpu x64 -build'
       - name: Running unit tests (debug-x64)
-        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
         with:
           args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Debug -cpu x64 -unit_test'
       - name: Clean
-        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
         with:
           args: 'python3 make.py -ci -clean_only'
       - name: Building (release-x86)
-        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
         with:
           args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x86 -build'
       - name: Running unit tests (release-x86)
-        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
         with:
           args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x86 -unit_test'
       - name: Clean
-        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
         with:
           args: 'python3 make.py -ci -clean_only'
       - name: Building (release-x64)
-        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
         with:
           args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -build'
       - name: Running unit tests (release-x64)
-        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
         with:
           args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -unit_test'
       - name: Clean
-        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
         with:
           args: 'python3 make.py -ci -clean_only'
       - name: Building (release-x64 nosimd)
-        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
         with:
           args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -nosimd -build'
       - name: Running unit tests (release-x64 nosimd)
-        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
         with:
           args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -nosimd -unit_test'
       - name: Clean
-        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
         with:
           args: 'python3 make.py -ci -clean_only'
       - name: Building (release-x64 AVX)
-        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
         with:
           args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -avx -build'
       - name: Running unit tests (release-x64 AVX)
-        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
         with:
           args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -avx -unit_test'
 
   linux-resolute-armv7:
     runs-on: ubuntu-latest
-    # QEMU is slow, but stop a job that does not end
+    # The compilers run natively, only the unit tests run under QEMU, but stop a job that does not end
     timeout-minutes: 60
     strategy:
       matrix:
         compiler: [gcc15, clang22]
-        # Run each configuration in a separate job: one job for all of them can take longer than the timeout
+        # Run each configuration in a separate job: the debug unit tests are slow under QEMU
         build_config: [debug, release]
         simd: [-simd, -nosimd]
         exclude:
           # Don't run debug without SIMD
           - build_config: debug
             simd: -nosimd
-    env:
-      # QEMU emulates armv7, a 'uses: docker://' step cannot select the platform
-      DOCKER_RUN: docker run --rm --platform linux/arm/v7 -v ${{ github.workspace }}:/project-src -w /project-src ghcr.io/nfrechette/toolchain-armv7-resolute:v1
     steps:
       - name: Git checkout
         uses: actions/checkout@v7
         with:
           submodules: 'recursive'
-      - name: Setup QEMU
-        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
-        with:
-          platforms: arm
       - name: Building (${{ matrix.build_config }}-armv7 ${{ matrix.simd }})
-        run: $DOCKER_RUN python3 make.py -ci -compiler ${{ matrix.compiler }} -config ${{ matrix.build_config }} -cpu armv7 ${{ matrix.simd }} -build
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config ${{ matrix.build_config }} -cpu armv7 ${{ matrix.simd }} -build'
       - name: Running unit tests (${{ matrix.build_config }}-armv7 ${{ matrix.simd }})
-        run: $DOCKER_RUN python3 make.py -ci -compiler ${{ matrix.compiler }} -config ${{ matrix.build_config }} -cpu armv7 ${{ matrix.simd }} -unit_test
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config ${{ matrix.build_config }} -cpu armv7 ${{ matrix.simd }} -unit_test'
 
   linux-resolute-arm64:
     runs-on: ubuntu-24.04-arm

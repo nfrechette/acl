@@ -121,6 +121,12 @@ namespace acl
 				if (result.any())
 					return result;
 
+				// A successful selection always has an adapter and a metric, the functions of this class use them
+				// The check also lets the static analyzer know it when it does not analyze 'select'
+				if (m_scale_selection.adapter == nullptr || m_scale_selection.metric == nullptr ||
+					m_no_scale_selection.adapter == nullptr || m_no_scale_selection.metric == nullptr)
+					return error_result("The transform runtime type selection is not valid");
+
 				m_scale_function_selection = &m_scale_selection;
 				return error_result();
 			}
@@ -206,6 +212,29 @@ namespace acl
 
 			virtual rtm::scalarf RTM_SIMD_CALL calculate_error_squared(const calculate_error_args& args) const override { return calculate_error_squared_impl(get_selection(true), args); }
 			virtual rtm::scalarf RTM_SIMD_CALL calculate_error_squared_no_scale(const calculate_error_args& args) const override { return calculate_error_squared_impl(get_selection(false), args); }
+
+			// Finds whether or not the additive base has scale, and whether or not its scale is uniform
+			static void find_base_scale(const track_array& additive_base, bool& out_has_scale, bool& out_has_non_uniform_scale)
+			{
+				const rtm::vector4f identity_scale = rtm::vector_set(1.0F);
+
+				rtm::mask4f is_identity = rtm::mask_set(true, true, true, true);
+				bool is_uniform = true;
+
+				const uint32_t num_samples = additive_base.get_num_samples_per_track();
+				for (const track& base_track : additive_base)
+				{
+					for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+					{
+						const rtm::vector4f scale = get_transform_track_sample(base_track, sample_index, identity_scale).scale;
+						is_identity = rtm::mask_and(rtm::vector_equal(scale, identity_scale), is_identity);
+						is_uniform &= rtm::vector_all_equal3(scale, rtm::vector_dup_x(scale));
+					}
+				}
+
+				out_has_scale = !rtm::mask_all_true3(is_identity);
+				out_has_non_uniform_scale = !is_uniform;
+			}
 
 		private:
 			// Combines a transform with its base transform, with the base adapter of the 'custom' format
@@ -309,29 +338,6 @@ namespace acl
 				metric_args.transform1 = args.transform1;
 
 				return selection.metric->calculate_error_squared(metric_args);
-			}
-
-			// Finds whether or not the additive base has scale, and whether or not its scale is uniform
-			static void find_base_scale(const track_array& additive_base, bool& out_has_scale, bool& out_has_non_uniform_scale)
-			{
-				const rtm::vector4f identity_scale = rtm::vector_set(1.0F);
-
-				rtm::mask4f is_identity = rtm::mask_set(true, true, true, true);
-				bool is_uniform = true;
-
-				const uint32_t num_samples = additive_base.get_num_samples_per_track();
-				for (const track& base_track : additive_base)
-				{
-					for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-					{
-						const rtm::vector4f scale = get_transform_track_sample(base_track, sample_index, identity_scale).scale;
-						is_identity = rtm::mask_and(rtm::vector_equal(scale, identity_scale), is_identity);
-						is_uniform &= rtm::vector_all_equal3(scale, rtm::vector_dup_x(scale));
-					}
-				}
-
-				out_has_scale = !rtm::mask_all_true3(is_identity);
-				out_has_non_uniform_scale = !is_uniform;
 			}
 
 			transform_runtime_selector m_selector;

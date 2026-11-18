@@ -30,11 +30,13 @@
 #include "acl/core/error_result.h"
 #include "acl/core/iallocator.h"
 #include "acl/core/impl/compiler_utils.h"
+#include "acl/compression/compression_memory_desc.h"
 #include "acl/compression/compression_settings.h"
 #include "acl/compression/output_stats.h"
 #include "acl/compression/track_array.h"
 #include "acl/compression/transform_base.h"
 
+#include <cstddef>
 #include <cstdint>
 
 ACL_IMPL_FILE_PRAGMA_PUSH
@@ -103,6 +105,35 @@ namespace acl
 		compressed_tracks*& out_compressed_tracks, output_stats& out_stats);
 
 	//////////////////////////////////////////////////////////////////////////
+	// Returns an estimate of the peak memory usage of 'compress_track_list' in bytes.
+	// The value is the largest sum of the sizes of the live allocations that compression requests
+	// from its allocator. It does not include the overhead of the allocator, the input tracks,
+	// or the statistics of 'output_stats::logging'.
+	//
+	// Use it to limit how many compressions run in parallel and reduce the memory pressure.
+	// The function does not allocate memory and its cost is low compared to compression.
+	//
+	// Before compression, the estimate cannot know which tracks are constant or default.
+	// It assumes that each track is animated, thus the value is usually larger than the real peak
+	// memory usage. A clip with many constant tracks uses less memory.
+	//
+	// The overloads with a track list read the sizes, the hierarchy, and the names of the tracks, not their samples.
+	// The overload with a base description estimates the overload of 'compress_track_list' with a base.
+	// The overload with a 'compression_memory_desc_t' does not need the tracks: use it before you load them.
+	//
+	//    track_list:				The track list to compress.
+	//    settings:					The compression settings to use.
+	//    transform_base:			The base of 'track_list' and how its samples combine with it.
+	//    desc:						The size of the track list to compress and of its base.
+	//////////////////////////////////////////////////////////////////////////
+	size_t estimate_compression_peak_memory_usage(const track_array& track_list, const compression_settings& settings);
+
+	size_t estimate_compression_peak_memory_usage(const track_array& track_list, const compression_settings& settings,
+		const transform_base_desc_t& transform_base);
+
+	size_t estimate_compression_peak_memory_usage(const compression_memory_desc_t& desc, const compression_settings& settings);
+
+	//////////////////////////////////////////////////////////////////////////
 	// Takes a list of compressed track instances that contain the contributing error metadata and uses their data to build
 	// a new database instance. Each compressed track instance will be duplicated and split between a new instance and the
 	// database.
@@ -146,6 +177,8 @@ namespace acl
 }
 
 #include "acl/compression/impl/compress.database.impl.h"
+#include "acl/compression/impl/estimate_peak_memory.scalar.h"
+#include "acl/compression/impl/estimate_peak_memory.transform.h"
 #include "acl/compression/impl/compress.scalar.impl.h"
 #include "acl/compression/impl/compress.transform.impl.h"
 #include "acl/compression/impl/compress.impl.h"

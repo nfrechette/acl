@@ -186,6 +186,7 @@ namespace acl
 		class track_bit_rate_database
 		{
 		public:
+			// With 0 samples per track, the database is not used: it allocates nothing and cannot sample
 			track_bit_rate_database(iallocator& allocator, rotation_format8 rotation_format, vector_format8 translation_format, vector_format8 scale_format, const transform_streams* bone_streams, const transform_streams* raw_bone_steams, uint32_t num_transforms, uint32_t num_samples_per_track);
 			~track_bit_rate_database();
 
@@ -198,6 +199,9 @@ namespace acl
 			void sample(const every_track_query& query, float sample_time, rtm::vqvf* out_transforms, uint32_t num_transforms);
 
 			size_t get_allocated_size() const;
+
+			// Returns the number of bytes that the constructor allocates for these values
+			static size_t get_required_size(uint32_t num_transforms, uint32_t num_samples_per_track, bool has_scale);
 
 		private:
 			track_bit_rate_database(const track_bit_rate_database&) = delete;
@@ -251,7 +255,7 @@ namespace acl
 			transform_cache_entry*	m_transforms;
 
 			uint32_t*			m_track_entry_bitsets;
-			size_t				m_track_bitsets_size;
+			size_t				m_num_track_bitset_entries;	// The number of uint32_t entries, not bytes
 
 			uint8_t*			m_data;
 			size_t				m_data_size;
@@ -355,7 +359,10 @@ namespace acl
 			, m_num_transforms(num_transforms)
 			, m_num_samples_per_track(num_samples_per_track)
 		{
-			m_transforms = allocate_type_array<transform_cache_entry>(allocator, num_transforms);
+			// Without samples, the database is not used and allocates nothing
+			const bool is_used = num_samples_per_track != 0;
+
+			m_transforms = is_used ? allocate_type_array<transform_cache_entry>(allocator, num_transforms) : nullptr;
 
 			const bool has_scale = raw_bone_steams->segment->clip->has_scale;
 			m_has_scale = has_scale;
@@ -378,17 +385,17 @@ namespace acl
 
 			m_generation_id = 1;
 
-			const uint32_t track_bitsets_size = m_bitset_desc.get_size() * num_cached_tracks;
-			m_track_entry_bitsets = allocate_type_array<uint32_t>(allocator, track_bitsets_size);
-			m_track_bitsets_size = track_bitsets_size;
+			const uint32_t track_bitsets_size = is_used ? (m_bitset_desc.get_size() * num_cached_tracks) : 0;
+			m_track_entry_bitsets = is_used ? allocate_type_array<uint32_t>(allocator, track_bitsets_size) : nullptr;
+			m_num_track_bitset_entries = track_bitsets_size;
 
 			// We allocate a single float buffer to accommodate 4 bit rates for every rot/trans/scale track of each transform.
 			// Each track is padded and aligned to ensure that it starts on a cache line boundary.
 			const uint32_t track_size = align_to<uint32_t>(sizeof(rtm::vector4f) * num_samples_per_track, 64);
 			m_track_size = track_size;
 
-			const uint32_t data_size = track_size * num_cached_tracks;
-			m_data = bit_cast<uint8_t*>(allocator.allocate(data_size, 64));
+			const uint32_t data_size = is_used ? (track_size * num_cached_tracks) : 0;
+			m_data = is_used ? bit_cast<uint8_t*>(allocator.allocate(data_size, 64)) : nullptr;
 			m_data_size = data_size;
 			m_num_cached_tracks = num_cached_tracks;
 		}
@@ -396,8 +403,10 @@ namespace acl
 		inline track_bit_rate_database::~track_bit_rate_database()
 		{
 			deallocate_type_array(m_allocator, m_transforms, m_num_transforms);
-			deallocate_type_array(m_allocator, m_track_entry_bitsets, m_track_bitsets_size);
-			m_allocator.deallocate(m_data, m_data_size);
+			deallocate_type_array(m_allocator, m_track_entry_bitsets, m_num_track_bitset_entries);
+
+			if (m_data != nullptr)
+				m_allocator.deallocate(m_data, m_data_size);
 		}
 
 		inline void track_bit_rate_database::set_segment(const transform_streams* bone_streams, uint32_t num_transforms, uint32_t num_samples_per_track)
@@ -961,10 +970,31 @@ namespace acl
 		inline size_t track_bit_rate_database::get_allocated_size() const
 		{
 			size_t cache_size = 0;
-			cache_size += sizeof(transform_cache_entry) * m_num_transforms;
-			cache_size += m_track_bitsets_size;
+			if (m_transforms != nullptr)
+				cache_size += sizeof(transform_cache_entry) * m_num_transforms;
+
+			cache_size += sizeof(uint32_t) * m_num_track_bitset_entries;
 			cache_size += m_data_size;
 			return cache_size;
+		}
+
+		inline size_t track_bit_rate_database::get_required_size(uint32_t num_transforms, uint32_t num_samples_per_track, bool has_scale)
+		{
+			// This function must stay consistent with the constructor
+			if (num_samples_per_track == 0)
+				return 0;	// Not used, nothing to allocate
+
+			const uint32_t num_tracks_per_transform = has_scale ? 3U : 2U;
+			const size_t num_cached_tracks = size_t(num_transforms) * num_tracks_per_transform * k_num_bit_rates_cached_per_track;
+
+			const bitset_description bitset_desc = bitset_description::make_from_num_bits(num_samples_per_track);
+			const size_t track_size = align_to<size_t>(sizeof(rtm::vector4f) * size_t(num_samples_per_track), 64);
+
+			size_t size = 0;
+			size += sizeof(transform_cache_entry) * num_transforms;
+			size += sizeof(uint32_t) * bitset_desc.get_size() * num_cached_tracks;
+			size += track_size * num_cached_tracks;
+			return size;
 		}
 	}
 

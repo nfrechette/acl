@@ -30,23 +30,23 @@ jobs:
         with:
           submodules: 'recursive'
       - name: Analyzing (release-x64)
-        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
         with:
           args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -analyze'
       - name: Clean
-        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
         with:
           args: 'python3 make.py -ci -clean_only'
       - name: Analyzing (release-x64 AVX2)
-        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
         with:
           args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -avx2 -analyze'
       - name: Clean
-        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
         with:
           args: 'python3 make.py -ci -clean_only'
       - name: Analyzing (release-x64 nosimd)
-        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
         with:
           args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -nosimd -analyze'
 

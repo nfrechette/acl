@@ -28,31 +28,31 @@ jobs:
         with:
           submodules: 'recursive'
       - name: Building (release-x86)
-        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
         with:
           args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x86 -fast_math -build'
       - name: Clean
-        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
         with:
           args: 'python3 make.py -ci -clean_only'
       - name: Building (release-x64)
-        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
         with:
           args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -fast_math -build'
       - name: Clean
-        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
         with:
           args: 'python3 make.py -ci -clean_only'
       - name: Building (release-x64 nosimd)
-        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
         with:
           args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -nosimd -fast_math -build'
       - name: Clean
-        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
         with:
           args: 'python3 make.py -ci -clean_only'
       - name: Building (release-x64 AVX)
-        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v1
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
         with:
           args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x64 -avx -fast_math -build'
 

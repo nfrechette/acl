@@ -368,8 +368,7 @@ namespace acl
 
 				if (has_additive_base)
 				{
-					const float normalized_sample_time = additive_num_samples > 1 ? (sample_time / clip_duration) : 0.0F;
-					const float additive_sample_time = additive_num_samples > 1 ? (normalized_sample_time * additive_duration) : 0.0F;
+					const float additive_sample_time = get_base_sample_time(sample_time, clip_duration, additive_num_samples, additive_duration);
 					args.adapter.sample_tracks_base(additive_sample_time, rounding_policy, tracks_writer_base);
 
 					// The additive base is a regular pose, its scale is 1.0
