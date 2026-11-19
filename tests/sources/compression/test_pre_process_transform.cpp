@@ -115,6 +115,28 @@ namespace
 		return tracks;
 	}
 
+	// The raw samples of a track list before pre-processing
+	// We compare with the stored values: on x86, x87 math can give a different result
+	// each time we compute a sample with 'get_rotation' or 'get_translation'
+	struct raw_samples_t
+	{
+		rtm::quatf rotations[k_num_transforms][k_num_samples];
+		rtm::vector4f translations[k_num_transforms][k_num_samples];
+	};
+
+	template<class track_array_type>
+	void get_raw_samples(const track_array_type& tracks, raw_samples_t& out_samples)
+	{
+		for (uint32_t transform_index = 0; transform_index < k_num_transforms; ++transform_index)
+		{
+			for (uint32_t sample_index = 0; sample_index < k_num_samples; ++sample_index)
+			{
+				out_samples.rotations[transform_index][sample_index] = tracks[transform_index][sample_index].rotation;
+				out_samples.translations[transform_index][sample_index] = get_sample_translation(tracks[transform_index][sample_index]);
+			}
+		}
+	}
+
 	template<class track_array_type>
 	void test_sanitize_identity_rotations()
 	{
@@ -123,43 +145,49 @@ namespace
 		pre_process_settings_t settings;
 		settings.actions = pre_process_actions::sanitize_identity_rotations;
 
+		raw_samples_t raw_samples;
+
 		// With the lossless policy, the rotations do not change
 		{
 			track_array_type tracks = make_tracks<track_array_type>(allocator);
+			get_raw_samples(tracks, raw_samples);
+
 			settings.precision_policy = pre_process_precision_policy::lossless;
 			REQUIRE(pre_process_track_list(allocator, settings, tracks).empty());
 
 			for (uint32_t transform_index = 0; transform_index < k_num_transforms; ++transform_index)
 			{
 				for (uint32_t sample_index = 0; sample_index < k_num_samples; ++sample_index)
-					CHECK(rtm::quat_near_equal(tracks[transform_index][sample_index].rotation, get_rotation(transform_index, sample_index), 0.0F));
+					CHECK(rtm::quat_near_equal(tracks[transform_index][sample_index].rotation, raw_samples.rotations[transform_index][sample_index], 0.0F));
 			}
 		}
 
 		// With the lossy policy, the [xyz] components of a rotation with W = 1.0 or W = -1.0 become 0.0
 		{
 			track_array_type tracks = make_tracks<track_array_type>(allocator);
+			get_raw_samples(tracks, raw_samples);
+
 			settings.precision_policy = pre_process_precision_policy::lossy;
 			REQUIRE(pre_process_track_list(allocator, settings, tracks).empty());
 
 			for (uint32_t sample_index = 0; sample_index < k_num_samples; ++sample_index)
 			{
 				// Transform 0: only the odd samples change
-				const rtm::quatf expected_rotation0 = (sample_index % 2) != 0 ? rtm::quat_identity() : get_rotation(0, sample_index);
+				const rtm::quatf expected_rotation0 = (sample_index % 2) != 0 ? rtm::quat_identity() : raw_samples.rotations[0][sample_index];
 				CHECK(rtm::quat_near_equal(tracks[0][sample_index].rotation, expected_rotation0, 0.0F));
 
 				// Transform 1: W keeps its sign
 				CHECK(rtm::quat_near_equal(tracks[1][sample_index].rotation, rtm::quat_set(0.0F, 0.0F, 0.0F, -1.0F), 0.0F));
 
 				// Transform 2: the error exceeds the precision, the rotation does not change
-				CHECK(rtm::quat_near_equal(tracks[2][sample_index].rotation, get_rotation(2, sample_index), 0.0F));
+				CHECK(rtm::quat_near_equal(tracks[2][sample_index].rotation, raw_samples.rotations[2][sample_index], 0.0F));
 
 				// Transform 3: no rotation has W = 1.0
-				CHECK(rtm::quat_near_equal(tracks[3][sample_index].rotation, get_rotation(3, sample_index), 0.0F));
+				CHECK(rtm::quat_near_equal(tracks[3][sample_index].rotation, raw_samples.rotations[3][sample_index], 0.0F));
 
 				// The translations do not change
 				for (uint32_t transform_index = 0; transform_index < k_num_transforms; ++transform_index)
-					CHECK(rtm::vector_all_near_equal3(get_sample_translation(tracks[transform_index][sample_index]), get_translation(transform_index, sample_index), 0.0F));
+					CHECK(rtm::vector_all_near_equal3(get_sample_translation(tracks[transform_index][sample_index]), raw_samples.translations[transform_index][sample_index], 0.0F));
 			}
 		}
 	}
