@@ -277,6 +277,11 @@ namespace acl
 			pre_process_normalize_rotations(context);
 		}
 
+		if (are_any_enum_flags_set(settings.actions, pre_process_actions::sanitize_identity_rotations) && is_transform_track_type(track_type))
+		{
+			pre_process_sanitize_identity_rotations(context);
+		}
+
 		if (are_any_enum_flags_set(settings.actions, pre_process_actions::ensure_quat_w_positive) && is_transform_track_type(track_type))
 		{
 			pre_process_ensure_quat_w_positive(context);

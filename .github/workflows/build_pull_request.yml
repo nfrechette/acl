@@ -59,6 +59,10 @@ jobs:
         uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
         with:
           args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x86 -unit_test'
+      - name: Running regression tests (release-x86)
+        uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
+        with:
+          args: 'python3 make.py -ci -compiler ${{ matrix.compiler }} -config Release -cpu x86 -regression_test'
       - name: Clean
         uses: docker://ghcr.io/nfrechette/toolchain-amd64-resolute:v2
         with:
@@ -277,6 +281,10 @@ jobs:
         run: python3 make.py -ci -compiler ${{ matrix.compiler }} -config ${{ matrix.build_config }} -cpu ${{ matrix.cpu }} -build ${{ matrix.simd }}
       - name: Running unit tests (${{ matrix.build_config }}-${{ matrix.cpu }})
         run: python3 make.py -ci -compiler ${{ matrix.compiler }} -config ${{ matrix.build_config }} -cpu ${{ matrix.cpu }} -unit_test ${{ matrix.simd }}
+      - name: Running regression tests (${{ matrix.build_config }}-${{ matrix.cpu }})
+        # The push workflow does not build x86, thus the x86 regression tests run here
+        if: ${{ matrix.build_config == 'release' && matrix.cpu == 'x86' }}
+        run: python3 make.py -ci -compiler ${{ matrix.compiler }} -config ${{ matrix.build_config }} -cpu ${{ matrix.cpu }} -regression_test ${{ matrix.simd }}
 
   vs2026:
     runs-on: windows-2025
@@ -308,3 +316,7 @@ jobs:
         run: python3 make.py -ci -compiler ${{ matrix.compiler }} -config ${{ matrix.build_config }} -cpu ${{ matrix.cpu }} -build ${{ matrix.simd }}
       - name: Running unit tests (${{ matrix.build_config }}-${{ matrix.cpu }})
         run: python3 make.py -ci -compiler ${{ matrix.compiler }} -config ${{ matrix.build_config }} -cpu ${{ matrix.cpu }} -unit_test ${{ matrix.simd }}
+      - name: Running regression tests (${{ matrix.build_config }}-${{ matrix.cpu }})
+        # The push workflow does not build x86, thus the x86 regression tests run here
+        if: ${{ matrix.build_config == 'release' && matrix.cpu == 'x86' }}
+        run: python3 make.py -ci -compiler ${{ matrix.compiler }} -config ${{ matrix.build_config }} -cpu ${{ matrix.cpu }} -regression_test ${{ matrix.simd }}

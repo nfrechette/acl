@@ -124,6 +124,29 @@ namespace acl
 				pre_process_normalize_rotations_impl(track_array_cast<track_array_vqvf>(context.track_list));
 		}
 
+		// Returns the rotation with its [xyz] components set to 0.0 when its W component is exactly 1.0 or -1.0
+		// Otherwise, returns the rotation unchanged
+		// The sign of W does not change
+		inline rtm::quatf RTM_SIMD_CALL pre_process_sanitize_identity_rotation(rtm::quatf_arg0 rotation)
+		{
+			const float w = rtm::quat_get_w(rotation);
+			if (w != 1.0F && w != -1.0F)
+				return rotation;
+
+			return rtm::quat_set(0.0F, 0.0F, 0.0F, w);
+		}
+
+		// Replaces the rotation of a transform with its sanitized value, see 'pre_process_sanitize_identity_rotation'
+		struct pre_process_identity_rotation_fn
+		{
+			rtm::vqvf RTM_SIMD_CALL operator()(const rtm::vqvf& raw_transform) const
+			{
+				rtm::vqvf lossy_transform = raw_transform;	// Copy the raw transform
+				lossy_transform.rotation = pre_process_sanitize_identity_rotation(raw_transform.rotation);
+				return lossy_transform;
+			}
+		};
+
 		template<class track_array_type>
 		inline void pre_process_ensure_quat_w_positive_impl(track_array_type& track_list)
 		{
@@ -323,6 +346,53 @@ namespace acl
 			lossy_transform_fn.sub_track_type = sub_track_type;
 
 			return pre_process_is_lossy_track_within_precision(context, track_list, track_index, lossy_transform_fn);
+		}
+
+		template<class track_array_type>
+		inline void pre_process_sanitize_identity_rotations_impl(pre_process_context_t& context, track_array_type& track_list)
+		{
+			const uint32_t num_tracks = track_list.get_num_tracks();
+			const uint32_t num_samples_per_track = track_list.get_num_samples_per_track();
+
+			for (uint32_t track_index = 0; track_index < num_tracks; ++track_index)
+			{
+				typename track_array_type::track_member_type& track_ = track_list[track_index];
+
+				// Skip the track when no sample changes
+				bool has_changes = false;
+				for (uint32_t sample_index = 0; sample_index < num_samples_per_track; ++sample_index)
+				{
+					const rtm::quatf rotation = track_[sample_index].rotation;
+					if (!rtm::quat_near_equal(pre_process_sanitize_identity_rotation(rotation), rotation, 0.0F))
+					{
+						has_changes = true;
+						break;
+					}
+				}
+
+				if (!has_changes)
+					continue;
+
+				// The error metric tells if the rotation axis is visible
+				if (!pre_process_is_lossy_track_within_precision(context, track_list, track_index, pre_process_identity_rotation_fn()))
+					continue;
+
+				for (uint32_t sample_index = 0; sample_index < num_samples_per_track; ++sample_index)
+					track_[sample_index].rotation = pre_process_sanitize_identity_rotation(track_[sample_index].rotation);
+			}
+		}
+
+		inline void pre_process_sanitize_identity_rotations(pre_process_context_t& context)
+		{
+			if (context.settings.precision_policy == pre_process_precision_policy::lossless)
+				return;	// This pre-process action is lossy, do nothing
+
+			if (context.track_list.get_track_type() == track_type8::vqf)
+				pre_process_sanitize_identity_rotations_impl(context, track_array_cast<track_array_vqf>(context.track_list));
+			else if (context.track_list.get_track_type() == track_type8::vqsf)
+				pre_process_sanitize_identity_rotations_impl(context, track_array_cast<track_array_vqsf>(context.track_list));
+			else
+				pre_process_sanitize_identity_rotations_impl(context, track_array_cast<track_array_vqvf>(context.track_list));
 		}
 
 		template<class track_array_type>
