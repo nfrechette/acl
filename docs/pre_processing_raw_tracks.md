@@ -34,6 +34,12 @@ settings.precision_policy = pre_process_precision_policy::lossy;
 pre_process_track_list(allocator, settings, transform_tracks);
 ```
 
+## Identity rotations
+
+Because of float precision, a rotation quaternion can have a W component of exactly 1.0 (or -1.0) and small non-zero X, Y, and Z components. Such a quaternion has a rotation axis but no rotation around that axis.
+
+The `sanitize_identity_rotations` action sets the X, Y, and Z components of each such rotation to 0.0 and keeps the sign of W. It is part of the recommended actions. It is lossy: with the lossless policy, it does nothing. With the lossy policy, a track changes only when the error stays within its precision. The action runs after `normalize_rotations` and before the other actions. Thus, `sanitize_constant_tracks` and `sanitize_default_tracks` see the new rotations.
+
 ## Transform type conversion
 
 The `convert_transform_type` action converts transform tracks into the type of `settings.transform_type` (`vqvf`, `vqsf`, or `vqf`). It is not part of the recommended actions, because it changes the type of the compressed tracks. Compression never changes the type of the raw tracks.

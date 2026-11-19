@@ -72,6 +72,7 @@
 *  Compression does not allocate the bit rate database when no format is variable: with full precision formats, the peak memory usage is 37% to 64% lower
 *  Fix the compression, the pre-processing, and `calculate_compression_error` of a clip with one sample and a base with more than one sample: the clip now uses the first base sample, before it asserted with a NaN interpolation alpha
 *  Fix the `track_bit_rate_database_size` value of the detailed stats: it added the number of bitset entries instead of their size in bytes
+*  Add the `sanitize_identity_rotations` pre-process action, it is part of the recommended actions: with the lossy policy, it sets the [xyz] components of each rotation with W = 1.0 or W = -1.0 to 0.0 when the error stays within the precision
 
 ## 2.1.0
 

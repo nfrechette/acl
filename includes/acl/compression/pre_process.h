@@ -62,6 +62,15 @@ namespace acl
 		// This is lossy.
 		normalize_rotations = 0x01,
 
+		// Sanitizes every rotation quaternion with a W component of exactly 1.0 or -1.0.
+		// Because of float precision, such a quaternion can have small non-zero [xyz] components:
+		// it has a rotation axis but no rotation around that axis. This action sets [xyz] to 0.0
+		// and keeps the sign of W. A track changes only when the error stays within its precision.
+		// Lossy pre-processing only.
+		// Transform tracks only.
+		// This is lossy.
+		sanitize_identity_rotations = 0x40,
+
 		// Ensures every rotation quaternion has a positive W component.
 		// This forces all quaternions into the same side of the hyper-sphere to
 		// facilitate interpolation by avoiding wrapping around.
@@ -103,7 +112,7 @@ namespace acl
 		convert_transform_type = 0x20,
 
 		// Performs all recommended pre-process actions
-		recommended = normalize_rotations | optimize_looping | sanitize_constant_tracks | sanitize_default_tracks,
+		recommended = normalize_rotations | sanitize_identity_rotations | optimize_looping | sanitize_constant_tracks | sanitize_default_tracks,
 	};
 
 	ACL_IMPL_ENUM_FLAGS_OPERATORS(pre_process_actions)
