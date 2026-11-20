@@ -87,6 +87,8 @@ namespace acl
 		using range_reduction_masks_t = __m128i;
 #elif defined(RTM_NEON_INTRINSICS)
 		using range_reduction_masks_t = int16x8_t;
+#elif defined(RTM_WASM128_INTRINSICS)
+		using range_reduction_masks_t = v128_t;	// As i16x8
 #else
 		using range_reduction_masks_t = uint64_t;
 #endif
@@ -199,6 +201,38 @@ namespace acl
 			segment_range_extent_xxxx = vmulq_n_f32(segment_range_extent_xxxx, normalization_value);
 			segment_range_extent_yyyy = vmulq_n_f32(segment_range_extent_yyyy, normalization_value);
 			segment_range_extent_zzzz = vmulq_n_f32(segment_range_extent_zzzz, normalization_value);
+#elif defined(RTM_WASM128_INTRINSICS)
+			// Load 8 bytes at a time and convert from u8 to u16
+			const v128_t segment_range_min_xxxx_yyyy_u16 = wasm_u16x8_load8x8(segment_range_data);
+			const v128_t segment_range_min_zzzz_extent_xxxx_u16 = wasm_u16x8_load8x8(segment_range_data + 8);
+			const v128_t segment_range_extent_yyyy_zzzz_u16 = wasm_u16x8_load8x8(segment_range_data + 16);
+
+			// Convert from u16 to u32
+			const v128_t segment_range_min_xxxx_u32 = wasm_u32x4_extend_low_u16x8(segment_range_min_xxxx_yyyy_u16);
+			const v128_t segment_range_min_yyyy_u32 = wasm_u32x4_extend_high_u16x8(segment_range_min_xxxx_yyyy_u16);
+			const v128_t segment_range_min_zzzz_u32 = wasm_u32x4_extend_low_u16x8(segment_range_min_zzzz_extent_xxxx_u16);
+
+			const v128_t segment_range_extent_xxxx_u32 = wasm_u32x4_extend_high_u16x8(segment_range_min_zzzz_extent_xxxx_u16);
+			const v128_t segment_range_extent_yyyy_u32 = wasm_u32x4_extend_low_u16x8(segment_range_extent_yyyy_zzzz_u16);
+			const v128_t segment_range_extent_zzzz_u32 = wasm_u32x4_extend_high_u16x8(segment_range_extent_yyyy_zzzz_u16);
+
+			v128_t segment_range_min_xxxx = wasm_f32x4_convert_i32x4(segment_range_min_xxxx_u32);
+			v128_t segment_range_min_yyyy = wasm_f32x4_convert_i32x4(segment_range_min_yyyy_u32);
+			v128_t segment_range_min_zzzz = wasm_f32x4_convert_i32x4(segment_range_min_zzzz_u32);
+
+			v128_t segment_range_extent_xxxx = wasm_f32x4_convert_i32x4(segment_range_extent_xxxx_u32);
+			v128_t segment_range_extent_yyyy = wasm_f32x4_convert_i32x4(segment_range_extent_yyyy_u32);
+			v128_t segment_range_extent_zzzz = wasm_f32x4_convert_i32x4(segment_range_extent_zzzz_u32);
+
+			const v128_t normalization_value = wasm_f32x4_splat(1.0F / 255.0F);
+
+			segment_range_min_xxxx = wasm_f32x4_mul(segment_range_min_xxxx, normalization_value);
+			segment_range_min_yyyy = wasm_f32x4_mul(segment_range_min_yyyy, normalization_value);
+			segment_range_min_zzzz = wasm_f32x4_mul(segment_range_min_zzzz, normalization_value);
+
+			segment_range_extent_xxxx = wasm_f32x4_mul(segment_range_extent_xxxx, normalization_value);
+			segment_range_extent_yyyy = wasm_f32x4_mul(segment_range_extent_yyyy, normalization_value);
+			segment_range_extent_zzzz = wasm_f32x4_mul(segment_range_extent_zzzz, normalization_value);
 #else
 			rtm::vector4f segment_range_min_xxxx = rtm::vector_set(float(segment_range_data[0]), float(segment_range_data[1]), float(segment_range_data[2]), float(segment_range_data[3]));
 			rtm::vector4f segment_range_min_yyyy = rtm::vector_set(float(segment_range_data[4]), float(segment_range_data[5]), float(segment_range_data[6]), float(segment_range_data[7]));
@@ -311,6 +345,15 @@ namespace acl
 			segment_range_min_yyyy = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(segment_range_min_yyyy), segment_range_ignore_mask_v));
 			segment_range_min_zzzz = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(segment_range_min_zzzz), segment_range_ignore_mask_v));
 	#endif
+#elif defined(RTM_WASM128_INTRINSICS)
+			// Mask out the segment min we ignore
+			const rtm::mask4f segment_range_ignore_mask_v = wasm_i32x4_extend_low_i16x8(range_reduction_masks);
+
+	#if !defined(ACL_IMPL_ALTERNATE_MIN_EXTENT_MASKING)
+			segment_range_min_xxxx = wasm_v128_andnot(segment_range_min_xxxx, segment_range_ignore_mask_v);
+			segment_range_min_yyyy = wasm_v128_andnot(segment_range_min_yyyy, segment_range_ignore_mask_v);
+			segment_range_min_zzzz = wasm_v128_andnot(segment_range_min_zzzz, segment_range_ignore_mask_v);
+	#endif
 #else
 	#if !defined(ACL_IMPL_ALTERNATE_MIN_EXTENT_MASKING)
 			const rtm::vector4f zero_v = rtm::vector_zero();
@@ -407,6 +450,9 @@ namespace acl
 #elif defined(RTM_NEON_INTRINSICS)
 			const uint32x4_t clip_range_mask0 = vreinterpretq_u32_s32(vmovl_s16(vget_high_s16(range_reduction_masks0)));
 			const uint32x4_t clip_range_mask1 = vreinterpretq_u32_s32(vmovl_s16(vget_high_s16(range_reduction_masks1)));
+#elif defined(RTM_WASM128_INTRINSICS)
+			const rtm::mask4f clip_range_mask0 = wasm_i32x4_extend_high_i16x8(range_reduction_masks0);
+			const rtm::mask4f clip_range_mask1 = wasm_i32x4_extend_high_i16x8(range_reduction_masks1);
 #else
 			const uint32_t clip_range_mask_u32_0 = uint32_t(range_reduction_masks0 >> 32);
 			const uint32_t clip_range_mask_u32_1 = uint32_t(range_reduction_masks1 >> 32);
@@ -440,6 +486,14 @@ namespace acl
 			const rtm::vector4f clip_range_min_xxxx1 = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(clip_range_min_xxxx), clip_range_mask1));
 			const rtm::vector4f clip_range_min_yyyy1 = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(clip_range_min_yyyy), clip_range_mask1));
 			const rtm::vector4f clip_range_min_zzzz1 = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(clip_range_min_zzzz), clip_range_mask1));
+#elif defined(RTM_WASM128_INTRINSICS)
+			const rtm::vector4f clip_range_min_xxxx0 = wasm_v128_andnot(clip_range_min_xxxx, clip_range_mask0);
+			const rtm::vector4f clip_range_min_yyyy0 = wasm_v128_andnot(clip_range_min_yyyy, clip_range_mask0);
+			const rtm::vector4f clip_range_min_zzzz0 = wasm_v128_andnot(clip_range_min_zzzz, clip_range_mask0);
+
+			const rtm::vector4f clip_range_min_xxxx1 = wasm_v128_andnot(clip_range_min_xxxx, clip_range_mask1);
+			const rtm::vector4f clip_range_min_yyyy1 = wasm_v128_andnot(clip_range_min_yyyy, clip_range_mask1);
+			const rtm::vector4f clip_range_min_zzzz1 = wasm_v128_andnot(clip_range_min_zzzz, clip_range_mask1);
 #else
 			const rtm::vector4f zero_v = rtm::vector_zero();
 
@@ -612,6 +666,10 @@ namespace acl
 						uint32x4_t xyz = vcombine_u32(vcreate_u32((uint64_t(y) << 32) | x), vcreate_u32(z));
 						float32x4_t xyzf = vcvtq_f32_u32(xyz);
 						rotation_as_vec = vmulq_n_f32(xyzf, 1.0F / 65535.0F);
+#elif defined(RTM_WASM128_INTRINSICS)
+						const v128_t xyz = wasm_u32x4_make(x, y, z, 0);
+						const v128_t xyzf = wasm_f32x4_convert_i32x4(xyz);
+						rotation_as_vec = wasm_f32x4_mul(xyzf, wasm_f32x4_splat(1.0F / 65535.0F));
 #else
 						const rtm::vector4f xyz = rtm::vector_set(float(x), float(y), float(z), 0.0F);
 						rotation_as_vec = rtm::vector_mul(xyz, 1.0F / 65535.0F);
@@ -696,6 +754,9 @@ namespace acl
 #elif defined(RTM_NEON_INTRINSICS)
 				const int8x8_t ignore_masks_v8 = vcreate_s8((uint64_t(clip_range_ignore_mask) << 32) | segment_range_ignore_mask);
 				range_reduction_masks = vmovl_s8(ignore_masks_v8);
+#elif defined(RTM_WASM128_INTRINSICS)
+				const v128_t ignore_masks_v8 = wasm_u64x2_make((uint64_t(clip_range_ignore_mask) << 32) | segment_range_ignore_mask, 0);
+				range_reduction_masks = wasm_i16x8_extend_low_i8x16(ignore_masks_v8);
 #else
 				range_reduction_masks = (uint64_t(clip_range_ignore_mask) << 32) | segment_range_ignore_mask;
 #endif
@@ -712,6 +773,8 @@ namespace acl
 				range_reduction_masks = _mm_setzero_si128();
 #elif defined(RTM_NEON_INTRINSICS)
 				range_reduction_masks = vcombine_s16(vcreate_s16(0ULL), vcreate_s16(0ULL));
+#elif defined(RTM_WASM128_INTRINSICS)
+				range_reduction_masks = wasm_i32x4_splat(0);
 #else
 				range_reduction_masks = 0ULL;
 #endif
@@ -806,6 +869,10 @@ namespace acl
 					uint32x4_t xyz = vcombine_u32(vcreate_u32((uint64_t(y) << 32) | x), vcreate_u32(z));
 					float32x4_t xyzf = vcvtq_f32_u32(xyz);
 					rotation_as_vec = vmulq_n_f32(xyzf, 1.0F / 65535.0F);
+#elif defined(RTM_WASM128_INTRINSICS)
+					const v128_t xyz = wasm_u32x4_make(x, y, z, 0);
+					const v128_t xyzf = wasm_f32x4_convert_i32x4(xyz);
+					rotation_as_vec = wasm_f32x4_mul(xyzf, wasm_f32x4_splat(1.0F / 65535.0F));
 #else
 					const rtm::vector4f xyz = rtm::vector_set(float(x), float(y), float(z), 0.0F);
 					rotation_as_vec = rtm::vector_mul(xyz, 1.0F / 65535.0F);
@@ -869,6 +936,12 @@ namespace acl
 
 					rtm::vector4f segment_range_min = vcvtq_f32_u32(min_u32);
 					rtm::vector4f segment_range_extent = vcvtq_f32_u32(extent_u32);
+#elif defined(RTM_WASM128_INTRINSICS)
+					const v128_t min_u32 = wasm_u32x4_make(min_x, min_y, min_z, 0);
+					const v128_t extent_u32 = wasm_u32x4_make(extent_x, extent_y, extent_z, 0);
+
+					rtm::vector4f segment_range_min = wasm_f32x4_convert_i32x4(min_u32);
+					rtm::vector4f segment_range_extent = wasm_f32x4_convert_i32x4(extent_u32);
 #else
 					rtm::vector4f segment_range_min = rtm::vector_set(float(min_x), float(min_y), float(min_z), 0.0F);
 					rtm::vector4f segment_range_extent = rtm::vector_set(float(extent_x), float(extent_y), float(extent_z), 0.0F);
@@ -957,6 +1030,50 @@ namespace acl
 
 			out_group_bit_size_per_component0 = static_cast<uint32_t>(_mm_cvtsi128_si32(group_bit_size_per_component0_v));
 			out_group_bit_size_per_component1 = static_cast<uint32_t>(_mm_cvtsi128_si32(group_bit_size_per_component1_v));
+#elif defined(RTM_WASM128_INTRINSICS)
+			const v128_t num_raw_bit_rate_bits_v = wasm_i32x4_splat(static_cast<int32_t>(num_raw_bit_rate_bits));
+			v128_t group_bit_size_per_component0_v = wasm_i32x4_splat(0);
+			v128_t group_bit_size_per_component1_v = wasm_i32x4_splat(0);
+
+			// We add 4 at a time in SIMD
+			for (uint32_t group_index = 0; group_index < num_groups_to_skip; ++group_index)
+			{
+				const uint32_t group_offset = group_index * 4;
+
+				// Load 4 bytes and convert from u8 to u16, then from u16 to u32
+				const v128_t group_bit_size_per_component0_u8 = wasm_v128_load32_zero(format_per_track_data0 + group_offset);
+				const v128_t group_bit_size_per_component1_u8 = wasm_v128_load32_zero(format_per_track_data1 + group_offset);
+
+				v128_t group_bit_size_per_component0_u32 = wasm_u32x4_extend_low_u16x8(wasm_u16x8_extend_low_u8x16(group_bit_size_per_component0_u8));
+				v128_t group_bit_size_per_component1_u32 = wasm_u32x4_extend_low_u16x8(wasm_u16x8_extend_low_u8x16(group_bit_size_per_component1_u8));
+
+				if (version >= compressed_tracks_version16::v02_01_99_1)
+				{
+					// If the number of bits is 31, we are the raw bit rate and we need to add 1 (we'll add 31 below, and 1 more for a total of 32 bits)
+					// If the number of bits is 31, our mask's value will be 0xFFFFFFFF which is -1, otherwise it is 0x00000000
+					const v128_t is_raw_num_bits0 = wasm_i32x4_eq(group_bit_size_per_component0_u32, num_raw_bit_rate_bits_v);
+					const v128_t is_raw_num_bits1 = wasm_i32x4_eq(group_bit_size_per_component1_u32, num_raw_bit_rate_bits_v);
+
+					// We subtract the mask value directly, it is either -1 or 0
+					group_bit_size_per_component0_u32 = wasm_i32x4_sub(group_bit_size_per_component0_u32, is_raw_num_bits0);
+					group_bit_size_per_component1_u32 = wasm_i32x4_sub(group_bit_size_per_component1_u32, is_raw_num_bits1);
+				}
+				else
+					(void)num_raw_bit_rate_bits_v;
+
+				// Add how many bits per component we have
+				group_bit_size_per_component0_v = wasm_i32x4_add(group_bit_size_per_component0_v, group_bit_size_per_component0_u32);
+				group_bit_size_per_component1_v = wasm_i32x4_add(group_bit_size_per_component1_v, group_bit_size_per_component1_u32);
+			}
+
+			// Now we sum horizontally
+			group_bit_size_per_component0_v = wasm_i32x4_add(group_bit_size_per_component0_v, wasm_i32x4_shuffle(group_bit_size_per_component0_v, group_bit_size_per_component0_v, 2, 3, 0, 1));
+			group_bit_size_per_component1_v = wasm_i32x4_add(group_bit_size_per_component1_v, wasm_i32x4_shuffle(group_bit_size_per_component1_v, group_bit_size_per_component1_v, 2, 3, 0, 1));
+			group_bit_size_per_component0_v = wasm_i32x4_add(group_bit_size_per_component0_v, wasm_i32x4_shuffle(group_bit_size_per_component0_v, group_bit_size_per_component0_v, 1, 0, 3, 2));
+			group_bit_size_per_component1_v = wasm_i32x4_add(group_bit_size_per_component1_v, wasm_i32x4_shuffle(group_bit_size_per_component1_v, group_bit_size_per_component1_v, 1, 0, 3, 2));
+
+			out_group_bit_size_per_component0 = static_cast<uint32_t>(wasm_i32x4_extract_lane(group_bit_size_per_component0_v, 0));
+			out_group_bit_size_per_component1 = static_cast<uint32_t>(wasm_i32x4_extract_lane(group_bit_size_per_component1_v, 0));
 #else
 			uint32_t group_bit_size_per_component0 = 0;
 			uint32_t group_bit_size_per_component1 = 0;

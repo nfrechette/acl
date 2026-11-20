@@ -93,6 +93,19 @@ namespace acl
 
 		const uint32x2_t xy = vcreate_u32(x64);
 		return vget_lane_f32(vreinterpret_f32_u32(xy), 0);
+#elif defined(RTM_WASM128_INTRINSICS)
+		const uint32_t byte_offset = bit_offset / 8;
+		const uint32_t shift_offset = bit_offset % 8;
+
+		// Load 8 bytes and reverse them (WASM has no byte swap instruction)
+		const v128_t raw_bytes = wasm_v128_load64_zero(vector_data + byte_offset);
+		v128_t value_u64 = wasm_i8x16_shuffle(raw_bytes, raw_bytes, 7, 6, 5, 4, 3, 2, 1, 0, 7, 6, 5, 4, 3, 2, 1, 0);
+
+		// Shift out the extra bits
+		value_u64 = wasm_i64x2_shl(value_u64, shift_offset);
+
+		// As u64, we have: {x, x}, but when we cast to u32, we get: {_, x, _, x}
+		return wasm_f32x4_extract_lane(value_u64, 1);
 #else
 		const uint32_t byte_offset = bit_offset / 8;
 		const uint32_t shift_offset = bit_offset % 8;
@@ -160,6 +173,25 @@ namespace acl
 		const int32_t value_u32 = static_cast<int32_t>(x32 & mask);
 		const float value_f32 = static_cast<float>(value_u32);
 		return value_f32 * inv_max_value;
+#elif defined(RTM_WASM128_INTRINSICS)
+		const float inv_max_value = k_packed_constants[num_bits].max_value;
+
+		const uint32_t byte_offset = bit_offset / 8;
+		const uint32_t shift_offset = bit_offset % 8;
+
+		// The value uses at most 7 + 23 = 30 bits, load 4 bytes and reverse them (WASM has no byte swap instruction)
+		const v128_t raw_bytes = wasm_v128_load32_zero(vector_data + byte_offset);
+		v128_t value_u32 = wasm_i8x16_shuffle(raw_bytes, raw_bytes, 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0);
+
+		// Shift left to truncate the extra leading bits
+		value_u32 = wasm_i32x4_shl(value_u32, shift_offset);
+
+		// Shift right to bring the value to the bottom
+		// We shift twice because a shift of 32 bits is a shift of 0 bits with WASM SIMD, and 0 bits must give 0
+		value_u32 = wasm_u32x4_shr(wasm_u32x4_shr(value_u32, 31 - num_bits), 1);
+
+		const v128_t value_f32 = wasm_f32x4_convert_i32x4(value_u32);
+		return wasm_f32x4_extract_lane(value_f32, 0) * inv_max_value;
 #else
 		const uint32_t bit_shift = 32 - num_bits;
 		const uint32_t mask = k_packed_constants[num_bits].mask;

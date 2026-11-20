@@ -113,6 +113,27 @@ namespace acl
 		// Due to the interpolation, the result might not be anywhere near normalized!
 		// Make sure to normalize afterwards before using
 		return interpolated_rotation;
+#elif defined(RTM_WASM128_INTRINSICS)
+		// Calculate the vector4 dot product: dot(start, end)
+		// The result is in every SIMD lane
+		const v128_t x2_y2_z2_w2 = wasm_f32x4_mul(start, end);
+		const v128_t z2_w2_x2_y2 = wasm_i32x4_shuffle(x2_y2_z2_w2, x2_y2_z2_w2, 2, 3, 0, 1);
+		const v128_t x2z2_y2w2_x2z2_y2w2 = wasm_f32x4_add(x2_y2_z2_w2, z2_w2_x2_y2);
+		const v128_t y2w2_x2z2_y2w2_x2z2 = wasm_i32x4_shuffle(x2z2_y2w2_x2z2_y2w2, x2z2_y2w2_x2z2_y2w2, 1, 0, 3, 2);
+		const v128_t dot = wasm_f32x4_add(x2z2_y2w2_x2z2_y2w2, y2w2_x2z2_y2w2_x2z2);
+
+		// Calculate the bias, if the dot product is positive or zero, there is no bias
+		// but if it is negative, we want to flip the 'end' rotation XYZW components
+		const v128_t bias = wasm_v128_and(dot, wasm_f32x4_splat(-0.0F));
+
+		// Lerp the rotation after applying the bias
+		// ((1.0 - alpha) * start) + (alpha * (end ^ bias)) == (start - alpha * start) + (alpha * (end ^ bias))
+		const v128_t alpha_ = wasm_f32x4_splat(alpha);
+		const v128_t interpolated_rotation = wasm_f32x4_add(wasm_f32x4_sub(start, wasm_f32x4_mul(alpha_, start)), wasm_f32x4_mul(alpha_, wasm_v128_xor(end, bias)));
+
+		// Due to the interpolation, the result might not be anywhere near normalized!
+		// Make sure to normalize afterwards before using
+		return interpolated_rotation;
 #else
 		// To ensure we take the shortest path, we apply a bias if the dot product is negative
 		vector4f start_vector = quat_to_vector(start);
