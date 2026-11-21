@@ -10,6 +10,7 @@
 *  Compression ignores the sample interpolators that have no effect when it selects the interpolation mode of a track
 *  Add the `-analyze` action to `make.py` to run the clang static analyzer on the public headers
 *  Disable fast math with the `float_control` pragma under Clang where the target supports it
+*  Disable floating point contraction (FMA) in the ACL headers with the `clang fp contract(off)` pragma under Clang, on the targets that support `float_control`: x86, x64, AArch64 (Clang 16+, Apple Clang 15+), and RISC-V (Clang 18+). With `-ffp-contract=fast`, LLVM Clang ignores the pragma: use `-ffp-contract=fast-honor-pragmas`
 *  Add the `-fast_math` option to `make.py` to compile the public headers with fast math, and a CI workflow that uses it
 *  Add native Linux `riscv64` builds to `make.py`, they use the scalar code path of RTM
 *  Add Linux `armv7` cross compilation to `make.py` with GCC and Clang, `qemu-arm` runs the unit tests
