@@ -123,6 +123,28 @@ namespace acl
 		const uint32x2_t zw = vcreate_u32(z64 | w64);
 		const uint32x4_t value_u32 = vcombine_u32(xy, zw);
 		return vreinterpretq_f32_u32(value_u32);
+#elif defined(RTM_WASM128_INTRINSICS)
+		const uint32_t byte_offset = bit_offset / 8;
+		const uint32_t shift_offset = bit_offset % 8;
+
+		// Load 16 bytes, and 8 more bytes for the W component
+		// [0,1,2,3,4,5,6,7], [8,9,10,11,12,13,14,15] and [12,13,14,15,16,17,18,19]
+		const v128_t raw_bytes0 = wasm_v128_load(vector_data + byte_offset);
+		const v128_t raw_bytes1 = wasm_v128_load64_zero(vector_data + byte_offset + 12);
+
+		// Select the 8 bytes of each component and reverse them (WASM has no byte swap instruction)
+		// [7,6,5,4,3,2,1,0], [11,10,9,8,7,6,5,4]
+		v128_t xy = wasm_i8x16_shuffle(raw_bytes0, raw_bytes0, 7, 6, 5, 4, 3, 2, 1, 0, 11, 10, 9, 8, 7, 6, 5, 4);
+		// [15,14,13,12,11,10,9,8], [19,18,17,16,15,14,13,12]
+		v128_t zw = wasm_i8x16_shuffle(raw_bytes0, raw_bytes1, 15, 14, 13, 12, 11, 10, 9, 8, 23, 22, 21, 20, 19, 18, 17, 16);
+
+		// Shift out the extra bits
+		xy = wasm_i64x2_shl(xy, shift_offset);
+		zw = wasm_i64x2_shl(zw, shift_offset);
+
+		// Combine our result
+		// As u64, we have: {x, y}, {z, w}, but when we cast to u32, we get: {_, x, _, y}, {_, z, _, w}
+		return wasm_i32x4_shuffle(xy, zw, 1, 3, 5, 7);
 #else
 		const uint32_t byte_offset = bit_offset / 8;
 		const uint32_t shift_offset = bit_offset % 8;
@@ -361,6 +383,44 @@ namespace acl
 		value_u32 = vandq_u32(value_u32, mask);
 		float32x4_t value_f32 = vcvtq_f32_u32(value_u32);
 		return vmulq_n_f32(value_f32, inv_max_value);
+#elif defined(RTM_WASM128_INTRINSICS)
+		const uint32_t byte_offset = bit_offset / 8;
+		const uint32_t shift_offset = bit_offset % 8;
+
+		// X and Y live within the first 8 bytes: they use at most 7 + 23 + 23 = 53 bits
+		// Z and W live within the 8 bytes that start with the first byte of Z: they use at most 7 + 7 + 23 + 23 = 60 bits
+		const uint32_t zw_bit_offset = num_bits * 2;
+		const uint32_t zw_byte_offset = zw_bit_offset / 8;
+		const uint32_t zw_shift_offset = shift_offset + (zw_bit_offset % 8);
+
+		// Load 8 bytes for XY and 8 bytes for ZW
+		v128_t raw_bytes = wasm_v128_load64_zero(vector_data + byte_offset);
+		raw_bytes = wasm_v128_load64_lane(vector_data + byte_offset + zw_byte_offset, raw_bytes, 1);
+
+		// Reverse the bytes in each 64-bit lane (WASM has no byte swap instruction)
+		const v128_t rev_raw_bytes = wasm_i8x16_shuffle(raw_bytes, raw_bytes, 7, 6, 5, 4, 3, 2, 1, 0, 15, 14, 13, 12, 11, 10, 9, 8);
+
+		// Shift left to truncate the extra leading bits of each component
+		// WASM SIMD shifts each lane by the same amount, thus we shift once for each component
+		const v128_t x64 = wasm_i64x2_shl(rev_raw_bytes, shift_offset);
+		const v128_t y64 = wasm_i64x2_shl(rev_raw_bytes, shift_offset + num_bits);
+		const v128_t z64 = wasm_i64x2_shl(rev_raw_bytes, zw_shift_offset);
+		const v128_t w64 = wasm_i64x2_shl(rev_raw_bytes, zw_shift_offset + num_bits);
+
+		// Combine our components
+		// Each component is in the high 32 bits of its 64-bit lane: X and Y in lane 0, Z and W in lane 1
+		// As u32, we have: {_, x, _, _}, {_, y, _, _}, {_, _, _, z}, {_, _, _, w}
+		const v128_t xy32 = wasm_i32x4_shuffle(x64, y64, 1, 5, 1, 5);
+		const v128_t zw32 = wasm_i32x4_shuffle(z64, w64, 3, 7, 3, 7);
+		v128_t value_u32 = wasm_i32x4_shuffle(xy32, zw32, 0, 1, 4, 5);
+
+		// Shift right to bring each component to the bottom
+		// We shift twice because a shift of 32 bits is a shift of 0 bits with WASM SIMD, and 0 bits must give 0
+		value_u32 = wasm_u32x4_shr(wasm_u32x4_shr(value_u32, 31 - num_bits), 1);
+
+		// Convert to float and re-scale
+		const v128_t value_f32 = wasm_f32x4_convert_i32x4(value_u32);
+		return wasm_f32x4_mul(value_f32, wasm_f32x4_splat(k_packed_constants[num_bits].max_value));
 #else
 		const uint32_t bit_shift = 32 - num_bits;
 		const uint32_t mask = k_packed_constants[num_bits].mask;
@@ -437,6 +497,24 @@ namespace acl
 		const uint32x2_t xy = vcreate_u32(x64 | y64);
 		const uint32x4_t value_u32 = vcombine_u32(xy, xy);
 		return vreinterpretq_f32_u32(value_u32);
+#elif defined(RTM_WASM128_INTRINSICS)
+		const uint32_t byte_offset = bit_offset / 8;
+		const uint32_t shift_offset = bit_offset % 8;
+
+		// Load 16 bytes
+		// [0,1,2,3,4,5,6,7], [8,9,10,11,12,13,14,15]
+		const v128_t raw_bytes = wasm_v128_load(vector_data + byte_offset);
+
+		// Select the 8 bytes of each component and reverse them (WASM has no byte swap instruction)
+		// [7,6,5,4,3,2,1,0], [11,10,9,8,7,6,5,4]
+		v128_t xy = wasm_i8x16_shuffle(raw_bytes, raw_bytes, 7, 6, 5, 4, 3, 2, 1, 0, 11, 10, 9, 8, 7, 6, 5, 4);
+
+		// Shift out the extra bits
+		xy = wasm_i64x2_shl(xy, shift_offset);
+
+		// Combine our result
+		// As u64, we have: {x, y}, but when we cast to u32, we get: {_, x, _, y}
+		return wasm_i32x4_shuffle(xy, xy, 1, 3, 1, 3);
 #else
 		const uint32_t byte_offset = bit_offset / 8;
 		const uint32_t shift_offset = bit_offset % 8;
@@ -522,6 +600,35 @@ namespace acl
 		// Combine our result and cast
 		// As u64, we have: {x, y}, but when we cast to u32, we get: {_, x, _, y}
 		return _mm_shuffle_ps(_mm_castsi128_ps(xy), _mm_castsi128_ps(zw), _MM_SHUFFLE(3, 1, 3, 1));
+	}
+#elif defined(RTM_WASM128_INTRINSICS)
+	// Assumes the 'vector_data' is in big-endian order and is padded in order to load up to 19 bytes from it
+	ACL_IMPL_DEBUG_FORCE_INLINE
+	rtm::vector4f RTM_SIMD_CALL unpack_vector3_96_unsafe(
+		const uint8_t* vector_data,
+		uint32_t bit_offset)
+	{
+		// Same principle as SSE2
+		const uint32_t byte_offset = bit_offset / 8;
+		const uint32_t shift_offset = bit_offset % 8;
+
+		// Load 16 bytes
+		// [0,1,2,3,4,5,6,7], [8,9,10,11,12,13,14,15]
+		const v128_t raw_bytes = wasm_v128_load(vector_data + byte_offset);
+
+		// Select the 8 bytes of each component and reverse them (WASM has no byte swap instruction)
+		// [7,6,5,4,3,2,1,0], [11,10,9,8,7,6,5,4]
+		v128_t xy = wasm_i8x16_shuffle(raw_bytes, raw_bytes, 7, 6, 5, 4, 3, 2, 1, 0, 11, 10, 9, 8, 7, 6, 5, 4);
+		// [15,14,13,12,11,10,9,8], [15,14,13,12,11,10,9,8]
+		v128_t zw = wasm_i8x16_shuffle(raw_bytes, raw_bytes, 15, 14, 13, 12, 11, 10, 9, 8, 15, 14, 13, 12, 11, 10, 9, 8);
+
+		// Shift out the extra bits
+		xy = wasm_i64x2_shl(xy, shift_offset);
+		zw = wasm_i64x2_shl(zw, shift_offset);
+
+		// Combine our result
+		// As u64, we have: {x, y}, but when we cast to u32, we get: {_, x, _, y}
+		return wasm_i32x4_shuffle(xy, zw, 1, 3, 5, 7);
 	}
 #elif defined(RTM_NEON_INTRINSICS)
 	// Assumes the 'vector_data' is in big-endian order and is padded in order to load up to 19 bytes from it
@@ -647,6 +754,12 @@ namespace acl
 
 		float32x4_t value = vcvtq_f32_u32(x32y32z32);
 		return vmulq_n_f32(value, 1.0F / 65535.0F);
+#elif defined(RTM_WASM128_INTRINSICS)
+		// Load 8 bytes and convert from u16 to u32
+		const v128_t x32y32z32 = wasm_u32x4_load16x4(vector_data);
+
+		const v128_t value = wasm_f32x4_convert_i32x4(x32y32z32);
+		return wasm_f32x4_mul(value, wasm_f32x4_splat(1.0F / 65535.0F));
 #else
 		const uint16_t* data_ptr_u16 = safe_ptr_cast<const uint16_t>(vector_data);
 		uint16_t x16 = data_ptr_u16[0];
@@ -819,6 +932,13 @@ namespace acl
 
 		float32x4_t value = vcvtq_f32_u32(x32y32z32);
 		return vmulq_n_f32(value, 1.0F / 255.0F);
+#elif defined(RTM_WASM128_INTRINSICS)
+		// Load 8 bytes and convert from u8 to u16, then from u16 to u32
+		const v128_t x16y16z16 = wasm_u16x8_load8x8(vector_data);
+		const v128_t x32y32z32 = wasm_u32x4_extend_low_u16x8(x16y16z16);
+
+		const v128_t value = wasm_f32x4_convert_i32x4(x32y32z32);
+		return wasm_f32x4_mul(value, wasm_f32x4_splat(1.0F / 255.0F));
 #else
 		uint8_t x8 = vector_data[0];
 		uint8_t y8 = vector_data[1];
@@ -1082,6 +1202,63 @@ namespace acl
 		int_value = _mm_and_si128(int_value, mask);
 		const __m128 value = _mm_cvtepi32_ps(int_value);
 		return _mm_mul_ps(value, inv_max_value);
+	}
+#elif defined(RTM_WASM128_INTRINSICS)
+	// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 16 bytes from it
+	ACL_IMPL_DEBUG_FORCE_INLINE
+	rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_unsafe(
+		uint32_t num_bits,
+		const uint8_t* vector_data,
+		uint32_t bit_offset)
+	{
+		ACL_ASSERT(num_bits != 0 && num_bits <= 23, "This function does not support reading more than 23 bits per component");
+
+		alignas(64) static constexpr float k_inv_max_values[24] =
+		{
+			1.0F, 1.0F / float((1 << 1) - 1), 1.0F / float((1 << 2) - 1), 1.0F / float((1 << 3) - 1),
+			1.0F / float((1 << 4) - 1), 1.0F / float((1 << 5) - 1), 1.0F / float((1 << 6) - 1), 1.0F / float((1 << 7) - 1),
+			1.0F / float((1 << 8) - 1), 1.0F / float((1 << 9) - 1), 1.0F / float((1 << 10) - 1), 1.0F / float((1 << 11) - 1),
+			1.0F / float((1 << 12) - 1), 1.0F / float((1 << 13) - 1), 1.0F / float((1 << 14) - 1), 1.0F / float((1 << 15) - 1),
+			1.0F / float((1 << 16) - 1), 1.0F / float((1 << 17) - 1), 1.0F / float((1 << 18) - 1), 1.0F / float((1 << 19) - 1),
+			1.0F / float((1 << 20) - 1), 1.0F / float((1 << 21) - 1), 1.0F / float((1 << 22) - 1), 1.0F / float((1 << 23) - 1),
+		};
+
+		const uint32_t byte_offset = bit_offset / 8;
+		const uint32_t shift_offset = bit_offset % 8;
+
+		// We use at most 23 bits per component and we might need to shift up to 7 bits past our byte offset.
+		// X and Y live within the first 8 bytes: they use at most 7 + 23 + 23 = 53 bits.
+		// Z lives within the 8 bytes that start with its first byte: it uses at most 7 + 7 + 23 = 37 bits.
+		// This needs only two 8-byte loads, a byte swap shuffle, and one shift for each component.
+		// WASM SIMD shifts each lane by the same amount, thus we cannot shift each component with a single shift.
+		const uint32_t z_bit_offset = num_bits * 2;
+		const uint32_t z_byte_offset = z_bit_offset / 8;
+		const uint32_t z_shift_offset = shift_offset + (z_bit_offset % 8);
+
+		// Load 8 bytes for XY and 8 bytes for Z
+		v128_t raw_bytes = wasm_v128_load64_zero(vector_data + byte_offset);
+		raw_bytes = wasm_v128_load64_lane(vector_data + byte_offset + z_byte_offset, raw_bytes, 1);
+
+		// Reverse the bytes in each 64-bit lane (WASM has no byte swap instruction)
+		const v128_t rev_raw_bytes = wasm_i8x16_shuffle(raw_bytes, raw_bytes, 7, 6, 5, 4, 3, 2, 1, 0, 15, 14, 13, 12, 11, 10, 9, 8);
+
+		// Shift left to truncate the extra leading bits of each component
+		const v128_t x64 = wasm_i64x2_shl(rev_raw_bytes, shift_offset);
+		const v128_t y64 = wasm_i64x2_shl(rev_raw_bytes, shift_offset + num_bits);
+		const v128_t z64 = wasm_i64x2_shl(rev_raw_bytes, z_shift_offset);
+
+		// Combine our components
+		// Each component is in the high 32 bits of its 64-bit lane: X and Y in lane 0, Z in lane 1
+		// As u32, we have: {_, x, _, _}, {_, y, _, _}, {_, _, _, z}
+		const v128_t xy32 = wasm_i32x4_shuffle(x64, y64, 1, 5, 1, 5);
+		v128_t xyz32 = wasm_i32x4_shuffle(xy32, z64, 0, 1, 7, 7);
+
+		// Shift right to bring each component to the bottom
+		xyz32 = wasm_u32x4_shr(xyz32, 32 - num_bits);
+
+		// Convert to float and re-scale
+		const v128_t xyz_f32 = wasm_f32x4_convert_i32x4(xyz32);
+		return wasm_f32x4_mul(xyz_f32, wasm_f32x4_splat(k_inv_max_values[num_bits]));
 	}
 #elif defined(RTM_NEON_INTRINSICS)
 	// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 16 bytes from it
@@ -1426,6 +1603,32 @@ namespace acl
 		float32x2_t value_f32 = vcvt_f32_u32(xy);
 		float32x2_t result = vmul_n_f32(value_f32, inv_max_value);
 		return vcombine_f32(result, result);
+#elif defined(RTM_WASM128_INTRINSICS)
+		const uint32_t byte_offset = bit_offset / 8;
+		const uint32_t shift_offset = bit_offset % 8;
+
+		// X and Y live within the first 8 bytes: they use at most 7 + 23 + 23 = 53 bits
+		const v128_t raw_bytes = wasm_v128_load64_zero(vector_data + byte_offset);
+
+		// Reverse the bytes (WASM has no byte swap instruction)
+		const v128_t rev_raw_bytes = wasm_i8x16_shuffle(raw_bytes, raw_bytes, 7, 6, 5, 4, 3, 2, 1, 0, 7, 6, 5, 4, 3, 2, 1, 0);
+
+		// Shift left to truncate the extra leading bits of each component
+		// WASM SIMD shifts each lane by the same amount, thus we shift once for each component
+		const v128_t x64 = wasm_i64x2_shl(rev_raw_bytes, shift_offset);
+		const v128_t y64 = wasm_i64x2_shl(rev_raw_bytes, shift_offset + num_bits);
+
+		// Combine our components
+		// Each component is in the high 32 bits of its 64-bit lane
+		// As u32, we have: {_, x, _, x}, {_, y, _, y}
+		v128_t xy32 = wasm_i32x4_shuffle(x64, y64, 1, 5, 1, 5);
+
+		// Shift right to bring each component to the bottom
+		xy32 = wasm_u32x4_shr(xy32, 32 - num_bits);
+
+		// Convert to float and re-scale
+		const v128_t xy_f32 = wasm_f32x4_convert_i32x4(xy32);
+		return wasm_f32x4_mul(xy_f32, wasm_f32x4_splat(k_packed_constants[num_bits].max_value));
 #else
 		const uint32_t bit_shift = 32 - num_bits;
 		const uint32_t mask = k_packed_constants[num_bits].mask;
@@ -1564,6 +1767,70 @@ namespace acl
 			constexpr uintptr_t k_leading_bit_offset = sizeof(uintptr_t) == 8 ? 63 : 31;
 			const __m128 is_raw_value = _mm_castsi128_ps(k_sse_selection_masks[uintptr_t(30 - (intptr_t)num_bits) >> k_leading_bit_offset]);
 			return _mm_blendv_ps(lossy_value, raw_value, is_raw_value);
+		}
+#elif defined(RTM_WASM128_INTRINSICS)
+		// Merges from unpack_vector3_uXX_unsafe with unpack_vector3_96_unsafe to handle both variants together
+		// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 16 bytes from it
+		ACL_IMPL_DEBUG_FORCE_INLINE
+		rtm::vector4f RTM_SIMD_CALL unpack_vector3_mixed_unsafe(
+			uint32_t num_bits,
+			const uint8_t* vector_data,
+			uint32_t bit_offset)
+		{
+			ACL_ASSERT((num_bits != 0 && num_bits <= 23) || num_bits == 32, "This function does not support reading more than 23 (or 32) bits per component");
+
+			// A raw value (32 bits) uses the entry 0 (32 & 31 == 0), its value is not used
+			alignas(64) static constexpr float k_inv_max_values[24] =
+			{
+				1.0F, 1.0F / float((1 << 1) - 1), 1.0F / float((1 << 2) - 1), 1.0F / float((1 << 3) - 1),
+				1.0F / float((1 << 4) - 1), 1.0F / float((1 << 5) - 1), 1.0F / float((1 << 6) - 1), 1.0F / float((1 << 7) - 1),
+				1.0F / float((1 << 8) - 1), 1.0F / float((1 << 9) - 1), 1.0F / float((1 << 10) - 1), 1.0F / float((1 << 11) - 1),
+				1.0F / float((1 << 12) - 1), 1.0F / float((1 << 13) - 1), 1.0F / float((1 << 14) - 1), 1.0F / float((1 << 15) - 1),
+				1.0F / float((1 << 16) - 1), 1.0F / float((1 << 17) - 1), 1.0F / float((1 << 18) - 1), 1.0F / float((1 << 19) - 1),
+				1.0F / float((1 << 20) - 1), 1.0F / float((1 << 21) - 1), 1.0F / float((1 << 22) - 1), 1.0F / float((1 << 23) - 1),
+			};
+
+			const uint32_t byte_offset = bit_offset / 8;
+			const uint32_t shift_offset = bit_offset % 8;
+
+			// Each component lives within the 8 bytes that start with its first byte.
+			// A variable component uses at most 7 + 7 + 23 = 37 bits of these 8 bytes, and a raw component uses at most 7 + 32 = 39 bits.
+			// For a raw value (32 bits), Y starts at byte 4 and Z starts at byte 8.
+			// For a variable value (up to 23 bits), Y starts at byte 0-2 and Z starts at byte 0-5.
+			const uint32_t y_bit_offset = num_bits;
+			const uint32_t z_bit_offset = num_bits * 2;
+
+			// Load 8 bytes for X, Y, and Z
+			v128_t xy_raw_bytes = wasm_v128_load64_zero(vector_data + byte_offset);
+			xy_raw_bytes = wasm_v128_load64_lane(vector_data + byte_offset + (y_bit_offset / 8), xy_raw_bytes, 1);
+			const v128_t z_raw_bytes = wasm_v128_load64_zero(vector_data + byte_offset + (z_bit_offset / 8));
+
+			// Reverse the bytes in each 64-bit lane (WASM has no byte swap instruction)
+			const v128_t xy_rev_raw_bytes = wasm_i8x16_shuffle(xy_raw_bytes, xy_raw_bytes, 7, 6, 5, 4, 3, 2, 1, 0, 15, 14, 13, 12, 11, 10, 9, 8);
+			const v128_t z_rev_raw_bytes = wasm_i8x16_shuffle(z_raw_bytes, z_raw_bytes, 7, 6, 5, 4, 3, 2, 1, 0, 7, 6, 5, 4, 3, 2, 1, 0);
+
+			// Shift left to truncate the extra leading bits of each component
+			// WASM SIMD shifts each lane by the same amount, thus we shift once for each component
+			const v128_t x64 = wasm_i64x2_shl(xy_rev_raw_bytes, shift_offset);
+			const v128_t y64 = wasm_i64x2_shl(xy_rev_raw_bytes, shift_offset + (y_bit_offset % 8));
+			const v128_t z64 = wasm_i64x2_shl(z_rev_raw_bytes, shift_offset + (z_bit_offset % 8));
+
+			// Combine our components
+			// Each component is in the high 32 bits of its 64-bit lane: X in lane 0, Y in lane 1, Z in lane 0
+			// As u32, we have: {_, x, _, _}, {_, _, _, y}, {_, z, _, _}
+			const v128_t xy32 = wasm_i32x4_shuffle(x64, y64, 1, 7, 1, 7);
+			const v128_t raw_value = wasm_i32x4_shuffle(xy32, z64, 0, 1, 5, 5);
+
+			// Shift right to bring each component to the bottom
+			// A raw value is not shifted (32 & 31 == 0) and its lossy value is not used
+			const v128_t lossy_u32 = wasm_u32x4_shr(raw_value, (32 - num_bits) & 31);
+
+			// Convert to float and re-scale
+			const v128_t lossy_value = wasm_f32x4_mul(wasm_f32x4_convert_i32x4(lossy_u32), wasm_f32x4_splat(k_inv_max_values[num_bits & 31]));
+
+			// If we are stored with 32 bits, we are raw and we use the bits as is
+			const v128_t is_raw_mask = wasm_i32x4_splat(-static_cast<int32_t>(num_bits >> 5));
+			return wasm_v128_bitselect(raw_value, lossy_value, is_raw_mask);
 		}
 #elif defined(RTM_NEON_INTRINSICS)
 		// Merges from unpack_vector3_uXX_unsafe with unpack_vector3_96_unsafe to handle both variants together
