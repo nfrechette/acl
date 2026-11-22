@@ -38,7 +38,7 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-	// Note: It is safe for both pose buffers to alias since the data if sorted parent first
+	/// Note: It is safe for both pose buffers to alias since the data if sorted parent first
 	inline void local_to_object_space(const uint32_t* parent_indices, const rtm::vqvf* local_pose, uint32_t num_transforms, rtm::vqvf* out_object_pose)
 	{
 		if (num_transforms == 0)
@@ -55,7 +55,7 @@ namespace acl
 		}
 	}
 
-	// Note: It is safe for both pose buffers to alias since the data if sorted parent first
+	/// Note: It is safe for both pose buffers to alias since the data if sorted parent first
 	inline void object_to_local_space(const uint32_t* parent_indices, const rtm::vqvf* object_pose, uint32_t num_transforms, rtm::vqvf* out_local_pose)
 	{
 		if (num_transforms == 0)

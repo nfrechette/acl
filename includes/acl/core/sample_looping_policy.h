@@ -35,50 +35,45 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-	//////////////////////////////////////////////////////////////////////////
-	// This enum dictates how looping is handled.
+	/// This enum dictates how looping is handled.
 	enum class sample_looping_policy
 	{
-		//////////////////////////////////////////////////////////////////////////
-		// The sample time is clamped between [0, clip duration], inclusive.
-		// This means that clips that need to loop seamlessly require their last
-		// sample to match the first sample because we never interpolate between
-		// the last and first samples as we loop around.
-		// This is necessary because not all tracks can interpolate the last and
-		// first samples safely.
-		// For example, root motion is often stored as a translation delta from
-		// the start of the clip meaning we would interpolate values that can be
-		// very different. e.g. a walking character would have its root start
-		// at 0,0,0 and end at 100,0,0 (walking 100cm in the X axis)
-		// This makes it possible to extract the total root motion by sampling at
-		// the full duration of the clip and at 0 seconds while subtracting the two.
-		// This is the behavior of ACL v2.0 and earlier.
+		/// The sample time is clamped between [0, clip duration], inclusive.
+		/// This means that clips that need to loop seamlessly require their last
+		/// sample to match the first sample because we never interpolate between
+		/// the last and first samples as we loop around.
+		/// This is necessary because not all tracks can interpolate the last and
+		/// first samples safely.
+		/// For example, root motion is often stored as a translation delta from
+		/// the start of the clip meaning we would interpolate values that can be
+		/// very different. e.g. a walking character would have its root start
+		/// at 0,0,0 and end at 100,0,0 (walking 100cm in the X axis)
+		/// This makes it possible to extract the total root motion by sampling at
+		/// the full duration of the clip and at 0 seconds while subtracting the two.
+		/// This is the behavior of ACL v2.0 and earlier.
 		clamp = 0,
 
-		//////////////////////////////////////////////////////////////////////////
-		// The sample time wraps around the end of the clip meaning that the
-		// last and first samples can interpolate. This saves a tiny bit of memory
-		// by not requiring the last sample to match the first but it adds some
-		// complexity.
-		// This means that the duration of a clip depends on whether or not its
-		// playback is looping because looping clips have a missing sample: the first
-		// sample repeats. This means that sampling a clip at 0 seconds and at
-		// its full duration is equivalent and both will return the exact same
-		// sample values.
+		/// The sample time wraps around the end of the clip meaning that the
+		/// last and first samples can interpolate. This saves a tiny bit of memory
+		/// by not requiring the last sample to match the first but it adds some
+		/// complexity.
+		/// This means that the duration of a clip depends on whether or not its
+		/// playback is looping because looping clips have a missing sample: the first
+		/// sample repeats. This means that sampling a clip at 0 seconds and at
+		/// its full duration is equivalent and both will return the exact same
+		/// sample values.
 		wrap = 1,
 
-		//////////////////////////////////////////////////////////////////////////
-		// The sample time is clamped between [0, clip duration], inclusive.
-		// This is equivalent to the clamp policy and is provided for readability.
-		// Both values are interchangeable.
+		/// The sample time is clamped between [0, clip duration], inclusive.
+		/// This is equivalent to the clamp policy and is provided for readability.
+		/// Both values are interchangeable.
 		non_looping = clamp,
 
-		//////////////////////////////////////////////////////////////////////////
-		// The loop policy used will depend on what was determined at the time
-		// the clip was compressed. The resulting loop policy will be either clamp
-		// or wrap depending on whether the last sample matched the first or not
-		// for every sub-track.
-		// Can only be used with compressed data is involved.
+		/// The loop policy used will depend on what was determined at the time
+		/// the clip was compressed. The resulting loop policy will be either clamp
+		/// or wrap depending on whether the last sample matched the first or not
+		/// for every sub-track.
+		/// Can only be used with compressed data is involved.
 		as_compressed = 2,
 	};
 

@@ -35,24 +35,21 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-	//////////////////////////////////////////////////////////////////////////
-	// Enum for versions used by 'compressed_tracks'.
-	// These values are used by serialization, do not change them once assigned.
-	// To add a new version, create a new entry and follow the naming and numbering scheme
-	// described below.
+	/// Enum for versions used by 'compressed_tracks'.
+	/// These values are used by serialization, do not change them once assigned.
+	/// To add a new version, create a new entry and follow the naming and numbering scheme
+	/// described below.
 	enum class compressed_tracks_version16 : uint16_t
 	{
-		//////////////////////////////////////////////////////////////////////////
-		// Special version identifier used when decompressing.
-		// This indicates that any version is supported by decompression and
-		// the code isn't optimized for any one version in particular.
-		// It is not a valid value for compressed tracks.
+		/// Special version identifier used when decompressing.
+		/// This indicates that any version is supported by decompression and
+		/// the code isn't optimized for any one version in particular.
+		/// It is not a valid value for compressed tracks.
 		any			= 0,
 
-		//////////////////////////////////////////////////////////////////////////
-		// Special version identifier used when decompressing.
-		// This indicates that no version is supported by decompression.
-		// It is not a valid value for compressed tracks.
+		/// Special version identifier used when decompressing.
+		/// This indicates that no version is supported by decompression.
+		/// It is not a valid value for compressed tracks.
 		none		= 0xFFFF,
 
 		//////////////////////////////////////////////////////////////////////////
@@ -69,24 +66,22 @@ namespace acl
 		//v01_03_00 = 5,			// ACL v1.3.0
 
 		//v01_99_99	= 6,			// ACL v2.0.0-wip
-		v02_00_00	= 7,			// ACL v2.0.0
+		v02_00_00	= 7,			///< ACL v2.0.0
 
-		v02_01_99	= 8,			// ACL v2.1.0-wip
-		v02_01_99_1	= 9,			// ACL v2.1.0-wip (removed constant thresholds in track desc, increased bit rates, remapped raw num bits to 31 in compressed tracks)
-		v02_01_99_2 = 10,			// ACL v2.1.0-wip (converted error contribution metadata)
-		v02_01_00	= 10,			// ACL v2.1.0
+		v02_01_99	= 8,			///< ACL v2.1.0-wip
+		v02_01_99_1	= 9,			///< ACL v2.1.0-wip (removed constant thresholds in track desc, increased bit rates, remapped raw num bits to 31 in compressed tracks)
+		v02_01_99_2 = 10,			///< ACL v2.1.0-wip (converted error contribution metadata)
+		v02_01_00	= 10,			///< ACL v2.1.0
 
-		v02_02_99_0	= 11,			// ACL v2.2.0-wip (extended scalar sample support)
-		v02_02_99_1	= 12,			// ACL v2.2.0-wip (vqf and vqsf transform track types)
+		v02_02_99_0	= 11,			///< ACL v2.2.0-wip (extended scalar sample support)
+		v02_02_99_1	= 12,			///< ACL v2.2.0-wip (vqf and vqsf transform track types)
 
-		//////////////////////////////////////////////////////////////////////////
-		// First version marker, this is equal to the first version supported: ACL 2.0.0
-		// Versions prior to ACL 2.0 are not backwards compatible.
-		// It is used for range checks.
+		/// First version marker, this is equal to the first version supported: ACL 2.0.0
+		/// Versions prior to ACL 2.0 are not backwards compatible.
+		/// It is used for range checks.
 		first		= v02_00_00,
 
-		//////////////////////////////////////////////////////////////////////////
-		// Always assigned to the latest version supported.
+		/// Always assigned to the latest version supported.
 		latest		= v02_02_99_1,
 	};
 

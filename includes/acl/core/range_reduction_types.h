@@ -36,39 +36,42 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-	////////////////////////////////////////////////////////////////////////////////
-	// Various constants for range reduction.
+	/// The number of bits that segment range reduction uses for each component of a range value.
 	constexpr uint8_t k_segment_range_reduction_num_bits_per_component = 8;
+
+	/// The number of bytes that segment range reduction uses for each component of a range value.
 	constexpr uint8_t k_segment_range_reduction_num_bytes_per_component = 1;
+
+	/// The size in bytes of the clip range of a vector3 sub-track: the minimum and the extent, with float32 values.
 	constexpr uint32_t k_clip_range_reduction_vector3_range_size = sizeof(float) * 6;
+
+	/// The size in bytes of the clip range of one scalar component: the minimum and the extent, with float32 values.
 	constexpr uint32_t k_clip_range_reduction_scalar_range_size = sizeof(float) * 2;
 
-	////////////////////////////////////////////////////////////////////////////////
-	// range_reduction_flags8 represents the types of range reduction we support as a bit field.
-	//
-	// BE CAREFUL WHEN CHANGING VALUES IN THIS ENUM
-	// The range reduction strategy is serialized in the compressed data, if you change a value
-	// the compressed clips will be invalid. If you do, bump the appropriate algorithm versions.
+	/// range_reduction_flags8 represents the types of range reduction we support as a bit field.
+	///
+	/// BE CAREFUL WHEN CHANGING VALUES IN THIS ENUM
+	/// The range reduction strategy is serialized in the compressed data, if you change a value
+	/// the compressed clips will be invalid. If you do, bump the appropriate algorithm versions.
 	enum class range_reduction_flags8 : uint8_t
 	{
 		none				= 0x00,
 
-		// Flags to determine which tracks have range reduction applied
+		/// Flags to determine which tracks have range reduction applied
 		rotations			= 0x01,
 		translations		= 0x02,
 		scales				= 0x04,
 		//Properties		= 0x08,		// TODO: Implement this
 
-		all_tracks			= 0x07,		// rotations | translations | scales
+		all_tracks			= 0x07,		///< rotations | translations | scales
 	};
 
 	ACL_IMPL_ENUM_FLAGS_OPERATORS(range_reduction_flags8)
 
 	//////////////////////////////////////////////////////////////////////////
 
-	////////////////////////////////////////////////////////////////////////////////
-	// Returns a string of the algorithm name suitable for display.
 	// TODO: constexpr
+	/// Returns a string of the algorithm name suitable for display.
 	inline const char* get_range_reduction_name(range_reduction_flags8 flags)
 	{
 		// Some compilers have trouble with constexpr operator| with enums in a case switch statement

@@ -42,10 +42,8 @@ namespace acl
 	// Temporary put here until they are included in RTM
 	namespace acl_impl
 	{
-		//////////////////////////////////////////////////////////////////////////
 		// Multiplies a VQM transform and four 3D points stored transposed.
 		// Multiplication order is as follow: world_position = vqm_mul_point3_x4(local_position, local_to_world)
-		//////////////////////////////////////////////////////////////////////////
 		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE void RTM_SIMD_CALL vqm_mul_point3_x4(
 			rtm::vector4f_arg0 point_xxxx, rtm::vector4f_arg1 point_yyyy, rtm::vector4f_arg2 point_zzzz,
 			rtm::vqmf_argn vqm,

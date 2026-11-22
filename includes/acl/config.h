@@ -124,6 +124,5 @@
 // the generated assembly for each piece
 //#define ACL_IMPL_ENABLE_DEBUG_FORCE_INLINE
 
-////////////////////////////////////////////////////////////////////////////////
-// Macro feature validation and auto-detection is implemented in its own header
+/// Macro feature validation and auto-detection is implemented in its own header
 #include "acl/core/impl/config.impl.h"

@@ -35,8 +35,11 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
+	/// This header is deprecated: include vqvf.h instead.
 	ACL_DEPRECATED("Use vqvf.h instead, this header is deprecated; to be removed in v2.3")
 	constexpr static bool k_use_vqvf_h_instead = 0;
+
+	/// This header is deprecated: include vqvf.h instead.
 	constexpr static bool k_qvvf_h_is_deprecated = k_use_vqvf_h_instead;
 
 	ACL_IMPL_VERSION_NAMESPACE_END

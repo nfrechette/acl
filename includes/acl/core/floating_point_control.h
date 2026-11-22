@@ -49,7 +49,7 @@ namespace acl
 #endif
 	};
 
-	// Enables floating point exceptions for invalid operations, division by zero, and overflow.
+	/// Enables floating point exceptions for invalid operations, division by zero, and overflow.
 	inline void enable_fp_exceptions(fp_environment& out_old_env)
 	{
 #if defined(RTM_SSE2_INTRINSICS)
@@ -68,7 +68,7 @@ namespace acl
 #endif
 	}
 
-	// Disables all floating point exceptions.
+	/// Disables all floating point exceptions.
 	inline void disable_fp_exceptions(fp_environment& out_old_env)
 	{
 #if defined(RTM_SSE2_INTRINSICS)
@@ -83,7 +83,7 @@ namespace acl
 #endif
 	}
 
-	// Restores a previously set floating point exception state.
+	/// Restores a previously set floating point exception state.
 	inline void restore_fp_exceptions(const fp_environment& env)
 	{
 #if defined(RTM_SSE2_INTRINSICS)
@@ -98,7 +98,7 @@ namespace acl
 #endif
 	}
 
-	// Enables flushing floating point denormals to zero.
+	/// Enables flushing floating point denormals to zero.
 	inline void enable_flush_to_zero_fp_denormals(fp_environment& out_old_env)
 	{
 #if defined(RTM_SSE3_INTRINSICS)
@@ -115,7 +115,7 @@ namespace acl
 #endif
 	}
 
-	// Disables flushing floating point denormals to zero.
+	/// Disables flushing floating point denormals to zero.
 	inline void disable_flush_to_zero_fp_denormals(fp_environment& out_old_env)
 	{
 #if defined(RTM_SSE3_INTRINSICS)
@@ -132,7 +132,7 @@ namespace acl
 #endif
 	}
 
-	// Restores a previously set floating point flush-to-zero state.
+	/// Restores a previously set floating point flush-to-zero state.
 	inline void restore_flush_to_zero_fp_denormals(const fp_environment& env)
 	{
 #if defined(RTM_SSE3_INTRINSICS)
@@ -145,7 +145,7 @@ namespace acl
 #endif
 	}
 
-	// Enables floating point exceptions in the parent scope for invalid operations, division by zero, and overflow.
+	/// Enables floating point exceptions in the parent scope for invalid operations, division by zero, and overflow.
 	class scope_enable_fp_exceptions
 	{
 	public:
@@ -167,7 +167,7 @@ namespace acl
 		fp_environment env;
 	};
 
-	// Disables all floating point exceptions in the parent scope.
+	/// Disables all floating point exceptions in the parent scope.
 	class scope_disable_fp_exceptions
 	{
 	public:
@@ -189,7 +189,7 @@ namespace acl
 		fp_environment env;
 	};
 
-	// Enables flushing floating point denormals to zero.
+	/// Enables flushing floating point denormals to zero.
 	class scope_enable_flush_to_zero_fp_denormals
 	{
 	public:
@@ -211,7 +211,7 @@ namespace acl
 		fp_environment env;
 	};
 
-	// Disables flushing floating point denormals to zero.
+	/// Disables flushing floating point denormals to zero.
 	class scope_disable_flush_to_zero_fp_denormals
 	{
 	public:

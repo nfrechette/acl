@@ -41,12 +41,10 @@ namespace acl
 	// Temporary put here until they are included in RTM
 	namespace acl_impl
 	{
-		//////////////////////////////////////////////////////////////////////////
 		// Multiplies a 3x4 affine matrix and four 3D points stored transposed.
 		// Multiplication order is as follow: world_position = matrix_mul_point3_x4(local_position, local_to_world)
 		// Each lane uses the same operations in the same order as rtm::matrix_mul_point3.
 		// Thus each lane gives the same result, unless the compiler merges a multiply and an add (FMA) in only one of the two.
-		//////////////////////////////////////////////////////////////////////////
 		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE void RTM_SIMD_CALL matrix_mul_point3_x4(
 			rtm::vector4f_arg0 point_xxxx, rtm::vector4f_arg1 point_yyyy, rtm::vector4f_arg2 point_zzzz,
 			rtm::matrix3x4f_argn mtx,

@@ -97,23 +97,31 @@ namespace acl
 		class array_reverse_iterator_impl;
 	}
 
+	/// An iterator over the items of an array.
+	/// \deprecated Renamed to array_iterator, to be removed in v3.0
 	//ACL_DEPRECATED("Renamed to array_iterator, to be removed in v3.0")
 	template <class item_type>
 	using iterator = acl_impl::array_iterator_impl<item_type, false>;
 
+	/// An iterator over the items of an array.
 	template <class item_type>
 	using array_iterator = acl_impl::array_iterator_impl<item_type, false>;
 
+	/// An iterator over the items of an array, from the last item to the first item.
 	template <class item_type>
 	using array_reverse_iterator = acl_impl::array_reverse_iterator_impl<item_type, false>;
 
+	/// An iterator over the const items of an array.
+	/// \deprecated Renamed to const_array_iterator, to be removed in v3.0
 	//ACL_DEPRECATED("Renamed to const_array_iterator, to be removed in v3.0")
 	template <class item_type>
 	using const_iterator = acl_impl::array_iterator_impl<item_type, true>;
 
+	/// An iterator over the const items of an array.
 	template <class item_type>
 	using const_array_iterator = acl_impl::array_iterator_impl<item_type, true>;
 
+	/// An iterator over the const items of an array, from the last item to the first item.
 	template <class item_type>
 	using const_array_reverse_iterator = acl_impl::array_reverse_iterator_impl<item_type, true>;
 

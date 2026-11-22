@@ -39,16 +39,15 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-	//////////////////////////////////////////////////////////////////////////
-	// Calculates the sample indices and the interpolation required to linearly
-	// interpolate when the samples are uniform.
-	// The returned sample indices are clamped and do not loop.
-	// If the sample rate is available, prefer using find_linear_interpolation_samples_with_sample_rate
-	// instead. It is faster and more accurate.
-	// If the wrap looping policy is used:
-	//     - the `num_samples` value must be the actual number of samples
-	//       stored in memory, it must not include the artificially repeating first sample.
-	//     - the duration value must include the repeating first sample
+	/// Calculates the sample indices and the interpolation required to linearly
+	/// interpolate when the samples are uniform.
+	/// The returned sample indices are clamped and do not loop.
+	/// If the sample rate is available, prefer using find_linear_interpolation_samples_with_sample_rate
+	/// instead. It is faster and more accurate.
+	/// If the wrap looping policy is used:
+	///     - the `num_samples` value must be the actual number of samples
+	///       stored in memory, it must not include the artificially repeating first sample.
+	///     - the duration value must include the repeating first sample
 	void find_linear_interpolation_samples_with_duration(
 		uint32_t num_samples,
 		float duration,
@@ -59,12 +58,11 @@ namespace acl
 		uint32_t& out_sample_index1,
 		float& out_interpolation_alpha);
 
-	//////////////////////////////////////////////////////////////////////////
-	// Calculates the sample indices and the interpolation required to linearly
-	// interpolate when the samples are uniform.
-	// The returned sample indices are clamped and do not loop.
-	// If the sample rate is available, prefer using find_linear_interpolation_samples_with_sample_rate
-	// instead. It is faster and more accurate.
+	/// Calculates the sample indices and the interpolation required to linearly
+	/// interpolate when the samples are uniform.
+	/// The returned sample indices are clamped and do not loop.
+	/// If the sample rate is available, prefer using find_linear_interpolation_samples_with_sample_rate
+	/// instead. It is faster and more accurate.
 	ACL_DEPRECATED("Specify explicitly the sample_looping_policy, to be removed in v3.0")
 	void find_linear_interpolation_samples_with_duration(
 		uint32_t num_samples,
@@ -75,10 +73,9 @@ namespace acl
 		uint32_t& out_sample_index1,
 		float& out_interpolation_alpha);
 
-	//////////////////////////////////////////////////////////////////////////
-	// Calculates the sample indices and the interpolation required to linearly
-	// interpolate when the samples are uniform.
-	// The returned sample indices are clamped and do not loop.
+	/// Calculates the sample indices and the interpolation required to linearly
+	/// interpolate when the samples are uniform.
+	/// The returned sample indices are clamped and do not loop.
 	void find_linear_interpolation_samples_with_sample_rate(
 		uint32_t num_samples,
 		float sample_rate,
@@ -89,10 +86,9 @@ namespace acl
 		uint32_t& out_sample_index1,
 		float& out_interpolation_alpha);
 
-	//////////////////////////////////////////////////////////////////////////
-	// Calculates the sample indices and the interpolation required to linearly
-	// interpolate when the samples are uniform.
-	// The returned sample indices are clamped and do not loop.
+	/// Calculates the sample indices and the interpolation required to linearly
+	/// interpolate when the samples are uniform.
+	/// The returned sample indices are clamped and do not loop.
 	ACL_DEPRECATED("Specify explicitly the sample_looping_policy, to be removed in v3.0")
 	void find_linear_interpolation_samples_with_sample_rate(
 		uint32_t num_samples,
@@ -103,21 +99,18 @@ namespace acl
 		uint32_t& out_sample_index1,
 		float& out_interpolation_alpha);
 
-	//////////////////////////////////////////////////////////////////////////
-	// Calculates the sample indices and the interpolation required to linearly
-	// interpolate when the samples are uniform.
-	// This function does not support looping.
+	/// Calculates the sample indices and the interpolation required to linearly
+	/// interpolate when the samples are uniform.
+	/// This function does not support looping.
 	float find_linear_interpolation_alpha(float sample_index, uint32_t sample_index0, uint32_t sample_index1, sample_rounding_policy rounding_policy, sample_looping_policy looping_policy);
 
-	//////////////////////////////////////////////////////////////////////////
-	// Calculates the sample indices and the interpolation required to linearly
-	// interpolate when the samples are uniform.
-	// This function does not support looping.
+	/// Calculates the sample indices and the interpolation required to linearly
+	/// interpolate when the samples are uniform.
+	/// This function does not support looping.
 	ACL_DEPRECATED("Specify explicitly the sample_looping_policy, to be removed in v3.0")
 	float find_linear_interpolation_alpha(float sample_index, uint32_t sample_index0, uint32_t sample_index1, sample_rounding_policy rounding_policy);
 
-	//////////////////////////////////////////////////////////////////////////
-	// Modify an interpolation alpha value given a sample rounding policy
+	/// Modify an interpolation alpha value given a sample rounding policy
 	float apply_rounding_policy(float interpolation_alpha, sample_rounding_policy policy);
 
 	ACL_IMPL_VERSION_NAMESPACE_END

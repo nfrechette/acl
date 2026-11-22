@@ -35,17 +35,14 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-	//////////////////////////////////////////////////////////////////////////
-	// This enum dictates what interpolation function is used when sampling.
+	/// This enum dictates what interpolation function is used when sampling.
 	enum class sample_interpolator_t : uint8_t
 	{
-		//////////////////////////////////////////////////////////////////////////
-		// Constant interpolation means that if we sample between value X and X+1,
-		// X is returned within that interval.
+		/// Constant interpolation means that if we sample between value X and X+1,
+		/// X is returned within that interval.
 		constant = 0,
 
-		//////////////////////////////////////////////////////////////////////////
-		// Linear interpolation, classic lerp(a, b, alpha) = a + ((b - a) * alpha)
+		/// Linear interpolation, classic lerp(a, b, alpha) = a + ((b - a) * alpha)
 		linear = 1,
 
 		//////////////////////////////////////////////////////////////////////////
@@ -66,12 +63,12 @@ namespace acl
 		//catmull_rom = 4,
 	};
 
-	// Returns the string representation for the provided sample interpolator.
 	// TODO: constexpr
+	/// Returns the string representation for the provided sample interpolator.
 	const char* get_sample_interpolator_name(sample_interpolator_t interpolator);
 
-	// Returns the sample interpolator from its string representation.
-	// Returns true on success, false otherwise.
+	/// Returns the sample interpolator from its string representation.
+	/// Returns true on success, false otherwise.
 	bool get_sample_interpolator(const char* interpolator, sample_interpolator_t& out_interpolator);
 
 	ACL_IMPL_VERSION_NAMESPACE_END

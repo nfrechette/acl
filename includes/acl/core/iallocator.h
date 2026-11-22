@@ -40,40 +40,36 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-	////////////////////////////////////////////////////////////////////////////////
-	// A simple memory allocator interface.
-	//
-	// In order to integrate this library into your own code base, you will
-	// need to provide some functions with an allocator instance that derives
-	// from this interface.
-	//
-	// See ansi_allocator.h for an implementation that uses the system malloc/free.
-	////////////////////////////////////////////////////////////////////////////////
+	/// A simple memory allocator interface.
+	///
+	/// In order to integrate this library into your own code base, you will
+	/// need to provide some functions with an allocator instance that derives
+	/// from this interface.
+	///
+	/// See ansi_allocator.h for an implementation that uses the system malloc/free.
 	class iallocator
 	{
 	public:
-		static constexpr size_t k_default_alignment = 16;
+		static constexpr size_t k_default_alignment = 16;	///< The alignment in bytes of an allocation when the caller does not give one
 
 		iallocator() noexcept = default;
 		virtual ~iallocator() = default;
 
-		////////////////////////////////////////////////////////////////////////////////
-		// Allocates memory with the specified size and alignment.
-		//
-		// size: Size in bytes to allocate.
-		// alignment: Alignment to allocate the memory with.
+		/// Allocates memory with the specified size and alignment.
+		///
+		/// size: Size in bytes to allocate.
+		/// alignment: Alignment to allocate the memory with.
 		virtual void* allocate(size_t size, size_t alignment = k_default_alignment) = 0;
 
-		////////////////////////////////////////////////////////////////////////////////
-		// Deallocates previously allocated memory and releases it.
-		//
-		// ptr: A pointer to memory previously allocated or nullptr.
-		// size: Size in bytes of the allocation. This will match the original size requested through 'allocate'.
+		/// Deallocates previously allocated memory and releases it.
+		///
+		/// ptr: A pointer to memory previously allocated or nullptr.
+		/// size: Size in bytes of the allocation. This will match the original size requested through 'allocate'.
 		virtual void deallocate(void* ptr, size_t size) = 0;
 	};
 
-	//////////////////////////////////////////////////////////////////////////
-
+	/// Allocates an instance of a type with the allocator, and constructs it with the given arguments.
+	/// A type that is trivially default constructible is not constructed.
 	template<typename allocated_type, typename... args>
 	allocated_type* allocate_type(iallocator& allocator, args&&... arguments)
 	{
@@ -83,6 +79,8 @@ namespace acl
 		return new(ptr) allocated_type(std::forward<args>(arguments)...);
 	}
 
+	/// Allocates an instance of a type with the given alignment, and constructs it with the given arguments.
+	/// The alignment must be a power of two and at least the alignment of the type.
 	template<typename allocated_type, typename... args>
 	allocated_type* allocate_type_aligned(iallocator& allocator, size_t alignment, args&&... arguments)
 	{
@@ -93,6 +91,7 @@ namespace acl
 		return new(ptr) allocated_type(std::forward<args>(arguments)...);
 	}
 
+	/// Destroys an instance that allocate_type allocated, and releases its memory. A null pointer does nothing.
 	template<typename allocated_type>
 	void deallocate_type(iallocator& allocator, allocated_type* ptr)
 	{
@@ -105,6 +104,8 @@ namespace acl
 		allocator.deallocate(ptr, sizeof(allocated_type));
 	}
 
+	/// Allocates an array of instances of a type, and constructs each instance with the given arguments.
+	/// A type that is trivially default constructible is not constructed.
 	template<typename allocated_type, typename... args>
 	allocated_type* allocate_type_array(iallocator& allocator, size_t num_elements, args&&... arguments)
 	{
@@ -116,6 +117,8 @@ namespace acl
 		return ptr;
 	}
 
+	/// Allocates an array of instances of a type with the given alignment, and constructs each instance with the given arguments.
+	/// The alignment must be a power of two and at least the alignment of the type.
 	template<typename allocated_type, typename... args>
 	allocated_type* allocate_type_array_aligned(iallocator& allocator, size_t num_elements, size_t alignment, args&&... arguments)
 	{
@@ -128,6 +131,8 @@ namespace acl
 		return ptr;
 	}
 
+	/// Destroys the instances of an array that allocate_type_array allocated, and releases its memory.
+	/// The number of elements must be the same as the allocation. A null pointer does nothing.
 	template<typename allocated_type>
 	void deallocate_type_array(iallocator& allocator, allocated_type* elements, size_t num_elements)
 	{

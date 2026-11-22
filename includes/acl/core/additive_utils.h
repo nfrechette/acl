@@ -38,44 +38,37 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-	//////////////////////////////////////////////////////////////////////////
-	// Describes the format used by the additive clip.
+	/// Describes the format used by the additive clip.
 	enum class additive_clip_format8 : uint8_t
 	{
-		//////////////////////////////////////////////////////////////////////////
-		// Clip is not additive
-		// Default scale value is 1.0
+		/// Clip is not additive
+		/// Default scale value is 1.0
 		none				= 0,
 
-		//////////////////////////////////////////////////////////////////////////
-		// Clip is in relative space, transform_mul or equivalent is used to combine them.
-		// Default scale value is 1.0
-		// transform = transform_mul(additive_transform, base_transform)
+		/// Clip is in relative space, transform_mul or equivalent is used to combine them.
+		/// Default scale value is 1.0
+		/// transform = transform_mul(additive_transform, base_transform)
 		relative			= 1,
 
-		//////////////////////////////////////////////////////////////////////////
-		// Clip is in additive space where scale is combined with: base_scale * additive_scale
-		// Default scale value is 1.0
-		// transform = transform_add0(additive_transform, base_transform)
+		/// Clip is in additive space where scale is combined with: base_scale * additive_scale
+		/// Default scale value is 1.0
+		/// transform = transform_add0(additive_transform, base_transform)
 		additive0			= 2,
 
-		//////////////////////////////////////////////////////////////////////////
-		// Clip is in additive space where scale is combined with: base_scale * (1.0 + additive_scale)
-		// Default scale value is 0.0
-		// transform = transform_add1(additive_transform, base_transform)
+		/// Clip is in additive space where scale is combined with: base_scale * (1.0 + additive_scale)
+		/// Default scale value is 0.0
+		/// transform = transform_add1(additive_transform, base_transform)
 		additive1			= 3,
 
-		//////////////////////////////////////////////////////////////////////////
-		// Clip is combined with its base by a custom base adapter, see 'itransform_base_adapter_t'.
-		// Only compression supports this format: it requires a base adapter in 'transform_base_desc_t'.
-		// The functions in this file do not support it.
-		// Default scale value is the default scale of the base adapter.
+		/// Clip is combined with its base by a custom base adapter, see 'itransform_base_adapter_t'.
+		/// Only compression supports this format: it requires a base adapter in 'transform_base_desc_t'.
+		/// The functions in this file do not support it.
+		/// Default scale value is the default scale of the base adapter.
 		custom				= 4,
 	};
 
-	//////////////////////////////////////////////////////////////////////////
-
 	// TODO: constexpr
+	/// Returns the name of an additive clip format.
 	inline const char* get_additive_clip_format_name(additive_clip_format8 format)
 	{
 		switch (format)
@@ -89,6 +82,8 @@ namespace acl
 		}
 	}
 
+	/// Finds the additive clip format that has the given name.
+	/// Returns true and writes the format to 'out_format' when the name is valid, otherwise returns false.
 	inline bool get_additive_clip_format(const char* format, additive_clip_format8& out_format)
 	{
 		ACL_ASSERT(format != nullptr, "Format name cannot be null");
@@ -143,7 +138,6 @@ namespace acl
 
 	namespace acl_impl
 	{
-		//////////////////////////////////////////////////////////////////////////
 		// Returns the default scale of a transform with the specified additive format.
 		// The scale of an additive1 transform is an offset from 1.0, thus its default is 0.0.
 		// The other formats use 1.0. With the 'custom' format, the base adapter gives the default scale.
@@ -153,6 +147,8 @@ namespace acl
 		}
 	}
 
+	/// Combines an additive transform with its base transform with the 'additive0' format.
+	/// The scale is: base_scale * additive_scale.
 	inline rtm::vqvf RTM_SIMD_CALL transform_add0(rtm::vqvf_arg0 base, rtm::vqvf_arg1 additive)
 	{
 		const rtm::quatf rotation = rtm::quat_mul(additive.rotation, base.rotation);
@@ -161,6 +157,8 @@ namespace acl
 		return rtm::vqv_set(rotation, translation, scale);
 	}
 
+	/// Combines an additive transform with its base transform with the 'additive1' format.
+	/// The scale is: base_scale * (1.0 + additive_scale).
 	inline rtm::vqvf RTM_SIMD_CALL transform_add1(rtm::vqvf_arg0 base, rtm::vqvf_arg1 additive)
 	{
 		const rtm::quatf rotation = rtm::quat_mul(additive.rotation, base.rotation);
@@ -169,6 +167,8 @@ namespace acl
 		return rtm::vqv_set(rotation, translation, scale);
 	}
 
+	/// Combines an additive transform with its base transform with the 'additive0' or 'additive1' format.
+	/// The function ignores the scale and the scale of the result is 1.0.
 	inline rtm::vqvf RTM_SIMD_CALL transform_add_no_scale(rtm::vqvf_arg0 base, rtm::vqvf_arg1 additive)
 	{
 		const rtm::quatf rotation = rtm::quat_mul(additive.rotation, base.rotation);
@@ -176,6 +176,9 @@ namespace acl
 		return rtm::vqv_set(rotation, translation, rtm::vector_set(1.0F));
 	}
 
+	/// Combines an additive transform with its base transform with the given additive format.
+	/// With the 'none' format, the function returns the additive transform.
+	/// The function does not support the 'custom' format.
 	inline rtm::vqvf RTM_SIMD_CALL apply_additive_to_base(additive_clip_format8 additive_format, rtm::vqvf_arg0 base, rtm::vqvf_arg1 additive)
 	{
 		switch (additive_format)
@@ -188,6 +191,9 @@ namespace acl
 		}
 	}
 
+	/// Combines an additive transform with its base transform with the given additive format, without the scale.
+	/// The scale of the result is 1.0, except with the 'none' format where the function returns the additive transform.
+	/// The function does not support the 'custom' format.
 	inline rtm::vqvf RTM_SIMD_CALL apply_additive_to_base_no_scale(additive_clip_format8 additive_format, rtm::vqvf_arg0 base, rtm::vqvf_arg1 additive)
 	{
 		switch (additive_format)
@@ -200,11 +206,13 @@ namespace acl
 		}
 	}
 
+	/// Converts a transform into a transform relative to its base transform (the 'relative' format).
 	inline rtm::vqvf RTM_SIMD_CALL convert_to_relative(rtm::vqvf_arg0 base, rtm::vqvf_arg1 transform)
 	{
 		return rtm::vqv_mul(transform, rtm::vqv_inverse(base));
 	}
 
+	/// Converts a transform into an additive transform with the 'additive0' format.
 	inline rtm::vqvf RTM_SIMD_CALL convert_to_additive0(rtm::vqvf_arg0 base, rtm::vqvf_arg1 transform)
 	{
 		const rtm::quatf rotation = rtm::quat_mul(transform.rotation, rtm::quat_conjugate(base.rotation));
@@ -213,6 +221,7 @@ namespace acl
 		return rtm::vqv_set(rotation, translation, scale);
 	}
 
+	/// Converts a transform into an additive transform with the 'additive1' format.
 	inline rtm::vqvf RTM_SIMD_CALL convert_to_additive1(rtm::vqvf_arg0 base, rtm::vqvf_arg1 transform)
 	{
 		const rtm::quatf rotation = rtm::quat_mul(transform.rotation, rtm::quat_conjugate(base.rotation));

@@ -45,132 +45,158 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-	//////////////////////////////////////////////////////////////////////////
-	// Compresses a track array with uniform sampling.
-	//
-	// This compression algorithm is the simplest by far and as such it offers
-	// the fastest compression and decompression. Every sample is retained and
-	// every track has the same number of samples playing back at the same
-	// sample rate. This means that when we sample at a particular time within
-	// the clip, we can trivially calculate the offsets required to read the
-	// desired data. All the data is sorted in order to ensure all reads are
-	// as contiguous as possible for optimal cache locality during decompression.
-	//
-	// Compression measures the error of transform tracks in their transform space, see 'track_array::get_transform_space'.
-	//
-	//    allocator:				The allocator instance to use to allocate and free memory.
-	//    track_list:				The track list to compress.
-	//    settings:					The compression settings to use.
-	//    out_compressed_tracks:	The resulting compressed tracks. The caller owns the returned memory and must free it.
-	//    out_stats:				Stat output structure.
-	//////////////////////////////////////////////////////////////////////////
+	/// Compresses a track array with uniform sampling.
+	///
+	/// This compression algorithm is the simplest by far and as such it offers
+	/// the fastest compression and decompression. Every sample is retained and
+	/// every track has the same number of samples playing back at the same
+	/// sample rate. This means that when we sample at a particular time within
+	/// the clip, we can trivially calculate the offsets required to read the
+	/// desired data. All the data is sorted in order to ensure all reads are
+	/// as contiguous as possible for optimal cache locality during decompression.
+	///
+	/// Compression measures the error of transform tracks in their transform space, see 'track_array::get_transform_space'.
+	///
+	///    allocator:				The allocator instance to use to allocate and free memory.
+	///    track_list:				The track list to compress.
+	///    settings:					The compression settings to use.
+	///    out_compressed_tracks:	The resulting compressed tracks. The caller owns the returned memory and must free it.
+	///    out_stats:				Stat output structure.
 	error_result compress_track_list(iallocator& allocator, const track_array& track_list, const compression_settings& settings,
 		compressed_tracks*& out_compressed_tracks, output_stats& out_stats);
 
-	//////////////////////////////////////////////////////////////////////////
-	// Compresses a transform track array and its base with uniform sampling.
-	// Compression combines each sample with the base, in the transform space of the track array
-	// (see 'track_array::get_transform_space'), then it measures the error in object space.
-	// See 'transform_base_desc_t'.
-	// The overload without a base description compresses transform tracks without a base.
-	//
-	//    allocator:				The allocator instance to use to allocate and free memory.
-	//    track_list:				The transform track list to compress (vqvf, vqf, or vqsf).
-	//    settings:					The compression settings to use.
-	//    transform_base:			The base of 'track_list' and how its samples combine with it.
-	//    out_compressed_tracks:	The resulting compressed tracks. The caller owns the returned memory and must free it.
-	//    out_stats:				Stat output structure.
-	//////////////////////////////////////////////////////////////////////////
+	/// Compresses a transform track array and its base with uniform sampling.
+	/// Compression combines each sample with the base, in the transform space of the track array
+	/// (see 'track_array::get_transform_space'), then it measures the error in object space.
+	/// See 'transform_base_desc_t'.
+	/// The overload without a base description compresses transform tracks without a base.
+	///
+	///    allocator:				The allocator instance to use to allocate and free memory.
+	///    track_list:				The transform track list to compress (vqvf, vqf, or vqsf).
+	///    settings:					The compression settings to use.
+	///    transform_base:			The base of 'track_list' and how its samples combine with it.
+	///    out_compressed_tracks:	The resulting compressed tracks. The caller owns the returned memory and must free it.
+	///    out_stats:				Stat output structure.
 	error_result compress_track_list(iallocator& allocator, const track_array& track_list, const compression_settings& settings,
 		const transform_base_desc_t& transform_base,
 		compressed_tracks*& out_compressed_tracks, output_stats& out_stats);
 
-	//////////////////////////////////////////////////////////////////////////
-	// DEPRECATED: use the overload with a 'transform_base_desc_t' instead.
-	// This overload will be removed in v2.3.
-	// Compresses a transform track array using its additive base with uniform sampling.
-	// It uses the transform space of 'track_list'. When the base is empty, the clip has no base.
-	//
-	//    allocator:				The allocator instance to use to allocate and free memory.
-	//    track_list:				The transform track list to compress (vqvf, vqf, or vqsf).
-	//    settings:					The compression settings to use.
-	//    additive_base_track_list:	The transform track list of the additive base (vqvf, vqf, or vqsf). It can have a different type than 'track_list'.
-	//    additive_format:			The additive format of 'track_list'.
-	//    out_compressed_tracks:	The resulting compressed tracks. The caller owns the returned memory and must free it.
-	//    out_stats:				Stat output structure.
-	//////////////////////////////////////////////////////////////////////////
+	/// DEPRECATED: use the overload with a 'transform_base_desc_t' instead.
+	/// This overload will be removed in v2.3.
+	/// Compresses a transform track array using its additive base with uniform sampling.
+	/// It uses the transform space of 'track_list'. When the base is empty, the clip has no base.
+	///
+	///    allocator:				The allocator instance to use to allocate and free memory.
+	///    track_list:				The transform track list to compress (vqvf, vqf, or vqsf).
+	///    settings:					The compression settings to use.
+	///    additive_base_track_list:	The transform track list of the additive base (vqvf, vqf, or vqsf). It can have a different type than 'track_list'.
+	///    additive_format:			The additive format of 'track_list'.
+	///    out_compressed_tracks:	The resulting compressed tracks. The caller owns the returned memory and must free it.
+	///    out_stats:				Stat output structure.
 	ACL_DEPRECATED("Use the overload with a transform_base_desc_t instead, to be removed in v2.3")
 	error_result compress_track_list(iallocator& allocator, const track_array& track_list, const compression_settings& settings,
 		const track_array& additive_base_track_list, additive_clip_format8 additive_format,
 		compressed_tracks*& out_compressed_tracks, output_stats& out_stats);
 
-	//////////////////////////////////////////////////////////////////////////
-	// Returns an estimate of the peak memory usage of 'compress_track_list' in bytes.
-	// The value is the largest sum of the sizes of the live allocations that compression requests
-	// from its allocator. It does not include the overhead of the allocator, the input tracks,
-	// or the statistics of 'output_stats::logging'.
-	//
-	// Use it to limit how many compressions run in parallel and reduce the memory pressure.
-	// The function does not allocate memory and its cost is low compared to compression.
-	//
-	// Before compression, the estimate cannot know which tracks are constant or default.
-	// It assumes that each track is animated, thus the value is usually larger than the real peak
-	// memory usage. A clip with many constant tracks uses less memory.
-	//
-	// The overloads with a track list read the sizes, the hierarchy, and the names of the tracks, not their samples.
-	// The overload with a base description estimates the overload of 'compress_track_list' with a base.
-	// The overload with a 'compression_memory_desc_t' does not need the tracks: use it before you load them.
-	//
-	//    track_list:				The track list to compress.
-	//    settings:					The compression settings to use.
-	//    transform_base:			The base of 'track_list' and how its samples combine with it.
-	//    desc:						The size of the track list to compress and of its base.
-	//////////////////////////////////////////////////////////////////////////
+	/// Returns an estimate of the peak memory usage of 'compress_track_list' in bytes.
+	/// The value is the largest sum of the sizes of the live allocations that compression requests
+	/// from its allocator. It does not include the overhead of the allocator, the input tracks,
+	/// or the statistics of 'output_stats::logging'.
+	///
+	/// Use it to limit how many compressions run in parallel and reduce the memory pressure.
+	/// The function does not allocate memory and its cost is low compared to compression.
+	///
+	/// Before compression, the estimate cannot know which tracks are constant or default.
+	/// It assumes that each track is animated, thus the value is usually larger than the real peak
+	/// memory usage. A clip with many constant tracks uses less memory.
+	///
+	/// The overloads with a track list read the sizes, the hierarchy, and the names of the tracks, not their samples.
+	/// The overload with a base description estimates the overload of 'compress_track_list' with a base.
+	/// The overload with a 'compression_memory_desc_t' does not need the tracks: use it before you load them.
+	///
+	///    track_list:				The track list to compress.
+	///    settings:					The compression settings to use.
+	///    transform_base:			The base of 'track_list' and how its samples combine with it.
+	///    desc:						The size of the track list to compress and of its base.
 	size_t estimate_compression_peak_memory_usage(const track_array& track_list, const compression_settings& settings);
 
+	/// Returns an estimate of the peak memory usage of 'compress_track_list' in bytes.
+	/// The value is the largest sum of the sizes of the live allocations that compression requests
+	/// from its allocator. It does not include the overhead of the allocator, the input tracks,
+	/// or the statistics of 'output_stats::logging'.
+	///
+	/// Use it to limit how many compressions run in parallel and reduce the memory pressure.
+	/// The function does not allocate memory and its cost is low compared to compression.
+	///
+	/// Before compression, the estimate cannot know which tracks are constant or default.
+	/// It assumes that each track is animated, thus the value is usually larger than the real peak
+	/// memory usage. A clip with many constant tracks uses less memory.
+	///
+	/// The overloads with a track list read the sizes, the hierarchy, and the names of the tracks, not their samples.
+	/// The overload with a base description estimates the overload of 'compress_track_list' with a base.
+	/// The overload with a 'compression_memory_desc_t' does not need the tracks: use it before you load them.
+	///
+	///    track_list:				The track list to compress.
+	///    settings:					The compression settings to use.
+	///    transform_base:			The base of 'track_list' and how its samples combine with it.
+	///    desc:						The size of the track list to compress and of its base.
 	size_t estimate_compression_peak_memory_usage(const track_array& track_list, const compression_settings& settings,
 		const transform_base_desc_t& transform_base);
 
+	/// Returns an estimate of the peak memory usage of 'compress_track_list' in bytes.
+	/// The value is the largest sum of the sizes of the live allocations that compression requests
+	/// from its allocator. It does not include the overhead of the allocator, the input tracks,
+	/// or the statistics of 'output_stats::logging'.
+	///
+	/// Use it to limit how many compressions run in parallel and reduce the memory pressure.
+	/// The function does not allocate memory and its cost is low compared to compression.
+	///
+	/// Before compression, the estimate cannot know which tracks are constant or default.
+	/// It assumes that each track is animated, thus the value is usually larger than the real peak
+	/// memory usage. A clip with many constant tracks uses less memory.
+	///
+	/// The overloads with a track list read the sizes, the hierarchy, and the names of the tracks, not their samples.
+	/// The overload with a base description estimates the overload of 'compress_track_list' with a base.
+	/// The overload with a 'compression_memory_desc_t' does not need the tracks: use it before you load them.
+	///
+	///    track_list:				The track list to compress.
+	///    settings:					The compression settings to use.
+	///    transform_base:			The base of 'track_list' and how its samples combine with it.
+	///    desc:						The size of the track list to compress and of its base.
 	size_t estimate_compression_peak_memory_usage(const compression_memory_desc_t& desc, const compression_settings& settings);
 
-	//////////////////////////////////////////////////////////////////////////
-	// Takes a list of compressed track instances that contain the contributing error metadata and uses their data to build
-	// a new database instance. Each compressed track instance will be duplicated and split between a new instance and the
-	// database.
-	//
-	//    allocator:						The allocator instance to use
-	//    settings:							The settings to use when creating the database
-	//    compressed_tracks_list:			The list of compressed tracks to build the database with (must have contributing error metadata)
-	//    num_compressed_tracks:			The number of compressed track instances in the above list
-	//    out_compressed_tracks:			The output list of compressed tracks bound to the output database (array allocated by the caller (must be large enough); compressed_tracks instances allocated by the function)
-	//    out_database:						The output database (allocated by the function)
-	//////////////////////////////////////////////////////////////////////////
+	/// Takes a list of compressed track instances that contain the contributing error metadata and uses their data to build
+	/// a new database instance. Each compressed track instance will be duplicated and split between a new instance and the
+	/// database.
+	///
+	///    allocator:						The allocator instance to use
+	///    settings:							The settings to use when creating the database
+	///    compressed_tracks_list:			The list of compressed tracks to build the database with (must have contributing error metadata)
+	///    num_compressed_tracks:			The number of compressed track instances in the above list
+	///    out_compressed_tracks:			The output list of compressed tracks bound to the output database (array allocated by the caller (must be large enough); compressed_tracks instances allocated by the function)
+	///    out_database:						The output database (allocated by the function)
 	error_result build_database(iallocator& allocator, const compression_database_settings& settings,
 		const compressed_tracks* const* compressed_tracks_list, uint32_t num_compressed_tracks,
 		compressed_tracks** out_compressed_tracks, compressed_database*& out_database);
 
-	//////////////////////////////////////////////////////////////////////////
-	// Takes a compressed database with inline bulk data and duplicates it into
-	// a new database instance where the bulk data lives in separate buffers.
-	//
-	//    allocator:						The allocator instance to use to allocate the new database and its bulk data.
-	//    database:							The source database to split with inline bulk data.
-	//    out_split_database:				The new database without inline bulk data.
-	//    out_bulk_data_medium:				The new database's bulk data for the medium importance tier.
-	//    out_bulk_data_low:				The new database's bulk data for the low importance tier.
-	//////////////////////////////////////////////////////////////////////////
+	/// Takes a compressed database with inline bulk data and duplicates it into
+	/// a new database instance where the bulk data lives in separate buffers.
+	///
+	///    allocator:						The allocator instance to use to allocate the new database and its bulk data.
+	///    database:							The source database to split with inline bulk data.
+	///    out_split_database:				The new database without inline bulk data.
+	///    out_bulk_data_medium:				The new database's bulk data for the medium importance tier.
+	///    out_bulk_data_low:				The new database's bulk data for the low importance tier.
 	error_result split_database_bulk_data(iallocator& allocator, const compressed_database& database, compressed_database*& out_split_database, uint8_t*& out_bulk_data_medium, uint8_t*& out_bulk_data_low);
 
-	//////////////////////////////////////////////////////////////////////////
-	// Takes a compressed database and strips the specified quality tier from it.
-	// The database is duplicated including its remaining bulk data (if inline).
-	// Only the medium/lowest tiers can be stripped.
-	//
-	//    allocator:						The allocator instance to use to allocate the new database.
-	//    database:							The source database to strip.
-	//    tier:								The quality tier to strip.
-	//    out_stripped_database:			The new database without the specified quality tier.
-	//////////////////////////////////////////////////////////////////////////
+	/// Takes a compressed database and strips the specified quality tier from it.
+	/// The database is duplicated including its remaining bulk data (if inline).
+	/// Only the medium/lowest tiers can be stripped.
+	///
+	///    allocator:						The allocator instance to use to allocate the new database.
+	///    database:							The source database to strip.
+	///    tier:								The quality tier to strip.
+	///    out_stripped_database:			The new database without the specified quality tier.
 	error_result strip_database_quality_tier(iallocator& allocator, const compressed_database& database, quality_tier tier, compressed_database*& out_stripped_database);
 
 	ACL_IMPL_VERSION_NAMESPACE_END

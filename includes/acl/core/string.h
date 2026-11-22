@@ -37,17 +37,17 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-	//////////////////////////////////////////////////////////////////////////
-	// A basic string class that uses our custom allocator.
-	// It is used exclusively for debug purposes.
-	//
-	// Strings are immutable.
-	//////////////////////////////////////////////////////////////////////////
+	/// A basic string class that uses our custom allocator.
+	/// It is used exclusively for debug purposes.
+	///
+	/// Strings are immutable.
 	class string
 	{
 	public:
 		string() noexcept : m_allocator(nullptr), m_c_str(nullptr) {}
 
+		/// Constructs a copy of the first 'length' characters of a string.
+		/// The characters must not contain a null terminator.
 		string(iallocator& allocator, const char* str, size_t length)
 			: m_allocator(&allocator)
 		{
@@ -68,10 +68,12 @@ namespace acl
 			}
 		}
 
+		/// Constructs a copy of a null terminated string. A null pointer gives an empty string.
 		string(iallocator& allocator, const char* str)
 			: string(allocator, str, str != nullptr ? std::strlen(str) : 0)
 		{}
 
+		/// Constructs a copy of a string with the given allocator.
 		string(iallocator& allocator, const string& str)
 			: string(allocator, str.c_str(), str.size())
 		{}
@@ -86,6 +88,7 @@ namespace acl
 		string(const string&) = delete;
 		string& operator=(const string&) = delete;
 
+		/// Moves the contents of another string. The other string becomes empty.
 		string(string&& other) noexcept
 			: m_allocator(other.m_allocator)
 			, m_c_str(other.m_c_str)
@@ -93,6 +96,7 @@ namespace acl
 			new(&other) string();
 		}
 
+		/// Swaps the contents of the two strings.
 		string& operator=(string&& other) noexcept
 		{
 			std::swap(m_allocator, other.m_allocator);
@@ -100,6 +104,7 @@ namespace acl
 			return *this;
 		}
 
+		/// Returns true if the two strings contain the same characters. A null pointer is equal to an empty string.
 		bool operator==(const char* other) const noexcept
 		{
 			const size_t this_length = m_c_str == nullptr ? 0 : std::strlen(m_c_str);
@@ -113,18 +118,20 @@ namespace acl
 			return std::memcmp(m_c_str, other, other_length) == 0;
 		}
 
+		/// Returns true if the two strings do not contain the same characters.
 		bool operator!=(const char* other) const noexcept { return !(*this == other); }
 
+		/// Returns true if the two strings contain the same characters.
 		bool operator==(const string& other) const noexcept { return (*this == other.c_str()); }
+
+		/// Returns true if the two strings do not contain the same characters.
 		bool operator!=(const string& other) const noexcept { return !(*this == other.c_str()); }
 
-		//////////////////////////////////////////////////////////////////////////
-		// Returns a pointer to the allocator instance or nullptr if there is none present.
+		/// Returns a pointer to the allocator instance or nullptr if there is none present.
 		iallocator* get_allocator() const noexcept { return m_allocator; }
 
-		//////////////////////////////////////////////////////////////////////////
-		// Returns a copy of the current string.
-		// Explicit instead of using the assignment operator or copy constructor
+		/// Returns a copy of the current string.
+		/// Explicit instead of using the assignment operator or copy constructor
 		string get_copy() const
 		{
 			if (m_c_str == nullptr)
@@ -133,9 +140,8 @@ namespace acl
 			return string(*m_allocator, m_c_str, std::strlen(m_c_str));
 		}
 
-		//////////////////////////////////////////////////////////////////////////
-		// Returns a copy of the current string.
-		// Explicit instead of using the assignment operator or copy constructor
+		/// Returns a copy of the current string.
+		/// Explicit instead of using the assignment operator or copy constructor
 		string get_copy(iallocator& allocator) const
 		{
 			if (m_c_str == nullptr)
@@ -144,8 +150,13 @@ namespace acl
 			return string(allocator, m_c_str, std::strlen(m_c_str));
 		}
 
+		/// Returns a pointer to the null terminated characters. An empty string returns "".
 		const char* c_str() const noexcept { return m_c_str != nullptr ? m_c_str : ""; }
+
+		/// Returns the number of characters, without the null terminator.
 		size_t size() const noexcept { return m_c_str != nullptr ? std::strlen(m_c_str) : 0; }
+
+		/// Returns true if the string has no characters.
 		bool empty() const noexcept { return m_c_str != nullptr ? (m_c_str[0] == '\0') : true; }
 
 	private:

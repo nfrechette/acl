@@ -39,17 +39,13 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-	//////////////////////////////////////////////////////////////////////////
-	// Convert a track array instance into a raw compressed tracks instance.
-	// This is a lossless process.
-	//////////////////////////////////////////////////////////////////////////
+	/// Convert a track array instance into a raw compressed tracks instance.
+	/// This is a lossless process.
 	error_result convert_track_list(iallocator& allocator, const track_array& track_list, compressed_tracks*& out_compressed_tracks);
 
-	//////////////////////////////////////////////////////////////////////////
-	// Convert a compressed tracks instance into a track array instance.
-	// This is a lossless process if all the metadata is present.
-	// The compressed tracks do not hold the transform space: the track array is in local space.
-	//////////////////////////////////////////////////////////////////////////
+	/// Convert a compressed tracks instance into a track array instance.
+	/// This is a lossless process if all the metadata is present.
+	/// The compressed tracks do not hold the transform space: the track array is in local space.
 	error_result convert_track_list(iallocator& allocator, const compressed_tracks& tracks, track_array& out_track_list);
 
 	ACL_IMPL_VERSION_NAMESPACE_END
