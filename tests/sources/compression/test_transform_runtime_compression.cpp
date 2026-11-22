@@ -38,6 +38,8 @@
 #include <rtm/vector4f.h>
 #include <rtm/vqmf.h>
 #include <rtm/vqsf.h>
+
+#include <cfloat>
 #include <rtm/vqvf.h>
 
 #include <algorithm>
@@ -542,7 +544,13 @@ TEST_CASE("transform runtime compression gives the same result with virtual func
 			compressed_tracks* custom_tracks = compress(allocator, track_list, custom_settings, base_track_list_ptr, additive_format);
 
 			CHECK(builtin_virtual_metric_tracks->get_hash() == builtin_tracks->get_hash());
+
+			// With x87 (for example GCC on 32-bit x86), a register keeps more precision than float32.
+			// The compiler inlines the adapter functions in each code path, and each path can round
+			// at other points. Thus the compressed data is equal only when floats use their own precision.
+#if defined(FLT_EVAL_METHOD) && FLT_EVAL_METHOD == 0
 			CHECK(custom_tracks->get_hash() == builtin_tracks->get_hash());
+#endif
 
 			allocator.deallocate(builtin_tracks, builtin_tracks->get_size());
 			allocator.deallocate(builtin_virtual_metric_tracks, builtin_virtual_metric_tracks->get_size());

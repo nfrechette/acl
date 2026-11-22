@@ -223,8 +223,12 @@ namespace acl
 		{
 			// We use float64 for the added precision otherwise floating point noise in the rotation
 			// can cause instability
-			const rtm::vqvd raw_transform_d = rtm::vqv_normalize(rtm::vqv_cast(raw_transform));
-			const rtm::vqvd lossy_transform_d = rtm::vqv_normalize(rtm::vqv_cast(lossy_transform));
+			// We read only the rotation and the translation. The metric selects this function or the VQS function
+			// with the runtime type of the adapter. When GCC inlines the metric, it can see that the VQS transforms
+			// are smaller than rtm::vqvf, and a read of the scale gives an -Warray-bounds error in this branch.
+			const rtm::vector4f no_scale = rtm::vector_set(1.0F);
+			const rtm::vqvd raw_transform_d = rtm::vqv_normalize(rtm::vqv_cast(rtm::vqv_set(raw_transform.rotation, raw_transform.translation, no_scale)));
+			const rtm::vqvd lossy_transform_d = rtm::vqv_normalize(rtm::vqv_cast(rtm::vqv_set(lossy_transform.rotation, lossy_transform.translation, no_scale)));
 			return calculate_rigid_error_squared_precise(raw_transform_d, lossy_transform_d, sphere_radius);
 		}
 
