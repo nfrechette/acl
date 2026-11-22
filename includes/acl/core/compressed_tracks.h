@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The compressed tracks type.
+
 #include "acl/version.h"
 #include "acl/core/algorithm_types.h"
 #include "acl/core/buffer_tag.h"
@@ -55,7 +58,7 @@ namespace acl
 		algorithm_type8 get_algorithm_type() const;
 
 		/// Returns the size in bytes of the compressed tracks.
-		/// Includes the 'compressed_tracks' instance size.
+		/// Includes the `compressed_tracks` instance size.
 		uint32_t get_size() const { return m_buffer_header.size; }
 
 		/// Returns the hash for the compressed tracks.
@@ -63,7 +66,7 @@ namespace acl
 		uint32_t get_hash() const { return m_buffer_header.hash; }
 
 		/// Returns the binary tag for the compressed tracks.
-		/// This uniquely identifies the buffer as a proper 'compressed_tracks' object.
+		/// This uniquely identifies the buffer as a proper `compressed_tracks` object.
 		buffer_tag32 get_tag() const;
 
 		/// Returns the binary format version.
@@ -145,7 +148,7 @@ namespace acl
 		/// This mainly validates some invariants as well as ensuring that the
 		/// memory has not been corrupted.
 		///
-		/// check_hash: If true, the compressed tracks hash will also be compared.
+		/// \param check_hash If true, the compressed tracks hash will also be compared.
 		error_result is_valid(bool check_hash) const;
 
 	private:

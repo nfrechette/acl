@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The interface that streams the bulk data of a compressed database in and out.
+
 #include "acl/version.h"
 #include "acl/core/quality_tiers.h"
 #include "acl/core/impl/compiler_utils.h"

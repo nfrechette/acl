@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The decompression context that seeks in compressed tracks and decompresses them.
+
 #include "acl/version.h"
 #include "acl/core/compressed_database.h"
 #include "acl/core/compressed_tracks.h"

@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The raw track types: a list of samples with one type and one sample rate.
+
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/error.h"

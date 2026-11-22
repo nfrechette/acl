@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The errors of the clip reader.
+
 #if defined(ACL_USE_SJSON)
 
 #include "acl/version.h"

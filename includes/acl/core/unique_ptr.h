@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The std::unique_ptr helpers for memory that an iallocator allocates.
+
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 #include <acl/core/iallocator.h>

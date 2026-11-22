@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The transform space of transform tracks.
+
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 
@@ -38,7 +41,7 @@ namespace acl
 	/// The space of the samples of transform tracks: how a sample uses the transform hierarchy.
 	/// Compression uses the space to put the samples in object space, where it measures the error.
 	/// The space does not change the compressed data: decompression returns the samples in the same space.
-	/// Each transform track array holds its space, see 'track_array::set_transform_space'.
+	/// Each transform track array holds its space, see `track_array::set_transform_space`.
 	enum class transform_space_t : uint8_t
 	{
 		/// Each transform is relative to its parent transform (local space, forward kinematics).
@@ -58,8 +61,8 @@ namespace acl
 		/// object_transform = mul(local_transform, parent_object_transform)
 		/// with local_transform.rotation = mul(transform.rotation, conjugate(parent_object_transform.rotation))
 		/// It supports the runtime transform types that compose rotations with a quaternion product:
-		/// 'vqf', 'vqsf', 'vqvf', and 'vqmf'. It does not support the 'relative' base format.
-		/// With the 'custom' base format, the base adapter receives the base in this space.
+		/// `vqf`, `vqsf`, `vqvf`, and `vqmf`. It does not support the `relative` base format.
+		/// With the `custom` base format, the base adapter receives the base in this space.
 		mesh_rotation		= 2,
 	};
 
@@ -67,7 +70,7 @@ namespace acl
 	constexpr const char* get_transform_space_name(transform_space_t space);
 
 	/// Finds the transform space that has the provided name.
-	/// A name matches only when no other name character follows it: 'mesh' does not match 'mesh_space'.
+	/// A name matches only when no other name character follows it: `mesh` does not match `mesh_space`.
 	/// Returns true on success, false otherwise.
 	bool get_transform_space(const char* name, transform_space_t& out_space);
 

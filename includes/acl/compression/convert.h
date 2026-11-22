@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The functions that convert a raw track list to raw compressed tracks and back, without data loss.
+
 #include "acl/version.h"
 #include "acl/compression/track_array.h"
 #include "acl/core/compressed_tracks.h"

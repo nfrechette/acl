@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The versions of the compressed data format.
+
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 
@@ -35,7 +38,7 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-	/// Enum for versions used by 'compressed_tracks'.
+	/// Enum for versions used by `compressed_tracks`.
 	/// These values are used by serialization, do not change them once assigned.
 	/// To add a new version, create a new entry and follow the naming and numbering scheme
 	/// described below.

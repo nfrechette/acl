@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The forward declarations of the core types, and the iterator aliases.
+
 #include "acl/version.h"
 
 #include <cstdint>

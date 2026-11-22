@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The reader of the ACL clip file format (SJSON).
+
 #if defined(ACL_USE_SJSON)
 
 #include "acl/version.h"
@@ -86,7 +89,7 @@ namespace acl
 
 		/// The additive base, always in local space
 		track_array_vqvf additive_base_track_list;
-		additive_clip_format8 additive_format = additive_clip_format8::none;	///< The additive format of the clip, 'none' when the clip has no additive base
+		additive_clip_format8 additive_format = additive_clip_format8::none;	///< The additive format of the clip, `none` when the clip has no additive base
 
 		ACL_DEPRECATED("No longer used, see track description, to be removed in v3.0")
 		track_vqvf bind_pose;

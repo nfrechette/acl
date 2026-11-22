@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The compressed database type.
+
 #include "acl/version.h"
 #include "acl/core/buffer_tag.h"
 #include "acl/core/compressed_tracks_version.h"
@@ -51,7 +54,7 @@ namespace acl
 	{
 	public:
 		/// Returns the size in bytes of the compressed database.
-		/// Includes the 'compressed_database' instance size and the size of the inline bulk data (if present).
+		/// Includes the `compressed_database` instance size and the size of the inline bulk data (if present).
 		uint32_t get_size() const { return m_buffer_header.size; }
 
 		/// Returns the total size in bytes of the compressed database.
@@ -73,7 +76,7 @@ namespace acl
 		uint32_t get_bulk_data_hash(quality_tier tier) const;
 
 		/// Returns the binary tag for the compressed database.
-		/// This uniquely identifies the buffer as a proper 'compressed_database' object.
+		/// This uniquely identifies the buffer as a proper `compressed_database` object.
 		buffer_tag32 get_tag() const;
 
 		/// Returns the binary format version.
@@ -104,7 +107,7 @@ namespace acl
 		/// This mainly validates some invariants as well as ensuring that the
 		/// memory has not been corrupted.
 		///
-		/// check_hash: If true, the compressed tracks hash will also be compared.
+		/// \param check_hash If true, the compressed tracks hash will also be compared.
 		error_result is_valid(bool check_hash) const;
 
 	private:

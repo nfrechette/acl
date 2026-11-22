@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The result of a function that can fail.
+
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 
@@ -34,7 +37,7 @@ namespace acl
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
 	/// This class is meant to encapsulate a simple error message and easily
-	/// coerce with 'bool' in order to simplify and clean up error handling.
+	/// coerce with `bool` in order to simplify and clean up error handling.
 	/// In an ideal world, I would love for a C++11 equivalent of std::result in Rust.
 	class error_result
 	{

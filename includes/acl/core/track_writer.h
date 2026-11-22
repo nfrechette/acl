@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The interface that decompression uses to write the sample values.
+
 #include "acl/version.h"
 #include "acl/core/sample_rounding_policy.h"
 #include "acl/core/impl/compiler_utils.h"
@@ -65,7 +68,7 @@ namespace acl
 		/// ensure the track_writer returns the correct value
 		/// You can query what scale value to use from `compressed_tracks::get_default_scale()`
 		/// USED FOR SCALE SUB-TRACKS ONLY
-		/// \deprecated Use 'constant' instead and make sure the track_writer returns the correct value
+		/// \deprecated Use `constant` instead and make sure the track_writer returns the correct value
 		//ACL_DEPRECATED("Use 'constant' instead and make sure the track_writer returns the correct value")
 		legacy,
 	};
@@ -80,14 +83,14 @@ namespace acl
 		// Common track writing
 
 		/// This allows the host runtime to control which rounding policy to use per track.
-		/// To enable this, make sure that the 'decompression_settings' supports this feature
-		/// and provide 'sample_rounding_policy::per_track' to the seek function.
+		/// To enable this, make sure that the `decompression_settings` supports this feature
+		/// and provide `sample_rounding_policy::per_track` to the seek function.
 		/// This function is called when the decompression settings enable the feature.
 		/// If per track rounding isn't used, this function must return the seek policy
 		/// provided as an argument (the one passed to the seek(..) function).
 		/// If per track rounding is specified when seeking, this function must return a
 		/// valid per track value.
-		/// This function cannot return the 'per_track' value. Doing so will assert at runtime.
+		/// This function cannot return the `per_track` value. Doing so will assert at runtime.
 		constexpr sample_rounding_policy get_rounding_policy(sample_rounding_policy seek_policy, uint32_t /*track_index*/) const { return seek_policy; }
 
 		//////////////////////////////////////////////////////////////////////////

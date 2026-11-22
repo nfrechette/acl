@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The quaternion functions that RTM does not have.
+
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 
@@ -38,7 +41,7 @@ namespace acl
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
 	/// Interpolates linearly between two quaternions and does not normalize the result.
-	/// The function negates 'end' if necessary to interpolate along the shortest path.
+	/// The function negates `end` if necessary to interpolate along the shortest path.
 	RTM_DISABLE_SECURITY_COOKIE_CHECK inline rtm::quatf RTM_SIMD_CALL quat_lerp_no_normalization(rtm::quatf_arg0 start, rtm::quatf_arg1 end, float alpha) RTM_NO_EXCEPT
 	{
 		using namespace rtm;

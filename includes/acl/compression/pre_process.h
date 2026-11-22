@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The actions and the settings that pre-process a raw track list before compression.
+
 #include "acl/version.h"
 #include "acl/core/additive_utils.h"
 #include "acl/core/enum_utils.h"
@@ -93,7 +96,7 @@ namespace acl
 		/// This is lossy.
 		sanitize_default_tracks = 0x10,
 
-		/// Converts the transform tracks into the transform type of 'pre_process_settings_t::transform_type'.
+		/// Converts the transform tracks into the transform type of `pre_process_settings_t::transform_type`.
 		/// The types hold more and more scale information: vqf (no scale), vqsf (uniform scale), vqvf (3D scale).
 		/// A promotion (for example vqf -> vqsf, or vqsf -> vqvf) always succeeds and is lossless. When the source
 		/// has no scale, each new scale is the identity of the additive format (1.0, or 0.0 with additive1).
@@ -104,7 +107,7 @@ namespace acl
 		//    - With the lossless policy, the [xyz] components of each scale sample must be exactly equal.
 		//    - With the lossy policy, the error must stay within the precision when each scale becomes the mean of [xyz].
 		/// When a track needs its scale, the tracks keep their type.
-		/// The track list must be a 'track_array' instance: a typed track array (for example 'track_array_vqvf')
+		/// The track list must be a `track_array` instance: a typed track array (for example `track_array_vqvf`)
 		/// cannot change its type, thus pre-processing returns an error.
 		/// Transform tracks only.
 		/// This is lossy with the lossy policy.
@@ -137,7 +140,7 @@ namespace acl
 
 		/// The runtime transform type, the custom transform adapter, and the transform metric
 		/// to use with transform tracks when lossy
-		/// They have the same meaning and the same defaults as in the compression settings, see 'compression_settings'
+		/// They have the same meaning and the same defaults as in the compression settings, see `compression_settings`
 		/// Use the same values as for compression
 		/// Lossy pre-processing only
 		/// Transform tracks only
@@ -145,7 +148,7 @@ namespace acl
 
 		/// The runtime transform type, the custom transform adapter, and the transform metric
 		/// to use with transform tracks when lossy
-		/// They have the same meaning and the same defaults as in the compression settings, see 'compression_settings'
+		/// They have the same meaning and the same defaults as in the compression settings, see `compression_settings`
 		/// Use the same values as for compression
 		/// Lossy pre-processing only
 		/// Transform tracks only
@@ -153,7 +156,7 @@ namespace acl
 
 		/// The runtime transform type, the custom transform adapter, and the transform metric
 		/// to use with transform tracks when lossy
-		/// They have the same meaning and the same defaults as in the compression settings, see 'compression_settings'
+		/// They have the same meaning and the same defaults as in the compression settings, see `compression_settings`
 		/// Use the same values as for compression
 		/// Lossy pre-processing only
 		/// Transform tracks only
@@ -170,12 +173,12 @@ namespace acl
 		const itransform_error_metric* error_metric = nullptr;
 
 		/// The transform type to convert the transform tracks into (vqvf, vqf, or vqsf)
-		/// 'convert_transform_type' action only
+		/// `convert_transform_type` action only
 		/// Transform tracks only
 		track_type8 transform_type = track_type8::vqvf;
 
-		/// The base of the track list, if any. See 'transform_base_desc_t'.
-		/// Pre-processing uses the transform space of the track list, see 'track_array::get_transform_space'.
+		/// The base of the track list, if any. See `transform_base_desc_t`.
+		/// Pre-processing uses the transform space of the track list, see `track_array::get_transform_space`.
 		/// Use the same value as for compression.
 		/// Defaults to no base.
 		/// Lossy pre-processing only
@@ -208,24 +211,24 @@ namespace acl
 	/// This allows the caller to control everything. Raw data can be pre-processed
 	/// once following import (e.g. from FBX).
 	///
-	///    allocator:				The allocator instance to use for intermediary allocations
-	///    settings:					The settings to use during pre-processing.
-	///    track_list:				The track list to pre-process.
+	/// \param allocator The allocator instance to use for intermediary allocations
+	/// \param settings The settings to use during pre-processing.
+	/// \param track_list The track list to pre-process.
 	///
 	/// This function returns an error result. If an error occurred, the raw data
 	/// may have mutated partially.
 	error_result pre_process_track_list(iallocator& allocator, const pre_process_settings_t& settings, track_array& track_list);
 
 	/// Pre-processes a typed transform track array, see above.
-	/// A typed track array cannot change its type: the 'convert_transform_type' action returns an error.
+	/// A typed track array cannot change its type: the `convert_transform_type` action returns an error.
 	error_result pre_process_track_list(iallocator& allocator, const pre_process_settings_t& settings, track_array_vqvf& track_list);
 
 	/// Pre-processes a typed transform track array, see above.
-	/// A typed track array cannot change its type: the 'convert_transform_type' action returns an error.
+	/// A typed track array cannot change its type: the `convert_transform_type` action returns an error.
 	error_result pre_process_track_list(iallocator& allocator, const pre_process_settings_t& settings, track_array_vqf& track_list);
 
 	/// Pre-processes a typed transform track array, see above.
-	/// A typed track array cannot change its type: the 'convert_transform_type' action returns an error.
+	/// A typed track array cannot change its type: the `convert_transform_type` action returns an error.
 	error_result pre_process_track_list(iallocator& allocator, const pre_process_settings_t& settings, track_array_vqsf& track_list);
 
 	ACL_IMPL_VERSION_NAMESPACE_END

@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The settings that control which code decompression keeps.
+
 #include "acl/version.h"
 #include "acl/core/compressed_tracks_version.h"
 #include "acl/core/track_formats.h"
@@ -90,7 +93,7 @@ namespace acl
 		static constexpr bool disable_fp_exeptions() { return false; }
 
 		/// Which version we should optimize for.
-		/// If 'any' is specified, the decompression context will support every single version
+		/// If `any` is specified, the decompression context will support every single version
 		/// with full backwards compatibility.
 		/// Using a specific version allows the compiler to statically strip code for all other
 		/// versions. This allows the creation of context objects specialized for specific
@@ -110,15 +113,15 @@ namespace acl
 		/// Whether or not to enable support for the wrap looping policy.
 		/// When wrapping isn't supported, we will use the clamp policy.
 		/// Required when loops are optimized during compression.
-		/// See 'sample_looping_policy' for details.
+		/// See `sample_looping_policy` for details.
 		/// Enabled by default.
 		/// Must be static constexpr!
 		static constexpr bool is_wrapping_supported() { return true; }
 
-		/// Whether or not to enable 'sample_rounding_policy::per_track' support.
+		/// Whether or not to enable `sample_rounding_policy::per_track` support.
 		/// If support is disabled and that value is provided to the seek(..) function,
 		/// the runtime will assert.
-		/// See 'sample_rounding_policy' for details.
+		/// See `sample_rounding_policy` for details.
 		/// Enabled by default.
 		/// Must be static constexpr!
 		static constexpr bool is_per_track_rounding_supported() { return true; }
@@ -164,7 +167,7 @@ namespace acl
 		/// Whether or not to enable support for extended samples.
 		/// Extended samples can be used to select per sample how to interpolate
 		/// (e.g. constant, linear, etc).
-		/// See 'track_extended_sample_t' for details.
+		/// See `track_extended_sample_t` for details.
 		/// Enabled by default.
 		/// Must be static constexpr!
 		static constexpr bool are_extended_samples_supported() { return true; }

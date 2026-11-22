@@ -36,6 +36,8 @@
 #define ACL_VERSION_PATCH 99
 
 /// \file
+/// The version of ACL, and the versioned namespace.
+///
 /// In order to allow multiple versions of this library to coexist side by side
 /// within the same executable/library, the symbols have to be unique per version.
 /// We achieve this by using a versioned namespace that we optionally inline.

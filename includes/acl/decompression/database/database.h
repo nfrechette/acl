@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The database context that decompression uses with a compressed database.
+
 #include "acl/version.h"
 #include "acl/core/compressed_database.h"
 #include "acl/core/compressed_tracks_version.h"

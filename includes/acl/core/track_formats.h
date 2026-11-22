@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The formats of the rotation, translation, scale, and scalar samples.
+
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 
@@ -117,21 +120,21 @@ namespace acl
 	const char* get_rotation_format_name(rotation_format8 format);
 
 	/// Finds the rotation format that has the given name.
-	/// Returns true and writes the format to 'out_format' when the name is valid, otherwise returns false.
+	/// Returns true and writes the format to `out_format` when the name is valid, otherwise returns false.
 	bool get_rotation_format(const char* format, rotation_format8& out_format);
 
 	/// Returns the name of a vector format.
 	constexpr const char* get_vector_format_name(vector_format8 format);
 
 	/// Finds the vector format that has the given name.
-	/// Returns true and writes the format to 'out_format' when the name is valid, otherwise returns false.
+	/// Returns true and writes the format to `out_format` when the name is valid, otherwise returns false.
 	bool get_vector_format(const char* format, vector_format8& out_format);
 
 	/// Returns the name of a scalar format.
 	constexpr const char* get_scalar_format_name(scalar_format8 format);
 
 	/// Finds the scalar format that has the given name.
-	/// Returns true and writes the format to 'out_format' when the name is valid, otherwise returns false.
+	/// Returns true and writes the format to `out_format` when the name is valid, otherwise returns false.
 	bool get_scalar_format(const char* format, scalar_format8& out_format);
 
 	/// Returns the rotation variant of a rotation format.

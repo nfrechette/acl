@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The iterators over the items of an array.
+
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 
@@ -100,14 +103,14 @@ namespace acl
 		return const_array_iterator<item_type>(items, num_items);
 	}
 
-	/// Returns an iterator over 'num_items' items that start at the given pointer.
+	/// Returns an iterator over `num_items` items that start at the given pointer.
 	template <class item_type>
 	array_iterator<item_type> make_iterator(item_type* items, size_t num_items)
 	{
 		return array_iterator<item_type>(items, num_items);
 	}
 
-	/// Returns an iterator over 'num_items' const items that start at the given pointer.
+	/// Returns an iterator over `num_items` const items that start at the given pointer.
 	template <class item_type>
 	const_array_iterator<item_type> make_iterator(const item_type* items, size_t num_items)
 	{
@@ -134,14 +137,14 @@ namespace acl
 		return const_array_reverse_iterator<item_type>(items, num_items);
 	}
 
-	/// Returns an iterator over 'num_items' items that start at the given pointer, from the last item to the first item.
+	/// Returns an iterator over `num_items` items that start at the given pointer, from the last item to the first item.
 	template <class item_type>
 	array_reverse_iterator<item_type> make_reverse_iterator(item_type* items, size_t num_items)
 	{
 		return array_reverse_iterator<item_type>(items, num_items);
 	}
 
-	/// Returns an iterator over 'num_items' const items that start at the given pointer, from the last item to the first item.
+	/// Returns an iterator over `num_items` const items that start at the given pointer, from the last item to the first item.
 	template <class item_type>
 	const_array_reverse_iterator<item_type> make_reverse_iterator(const item_type* items, size_t num_items)
 	{

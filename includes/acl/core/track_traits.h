@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The traits of each track type.
+
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/track_desc.h"
@@ -180,7 +183,7 @@ namespace acl
 	};
 
 	/// The traits of a vqsf transform track.
-	/// A VQS transform track has a uniform scale: one value in the W component of 'translation_scale'.
+	/// A VQS transform track has a uniform scale: one value in the W component of `translation_scale`.
 	/// Its description is the same as with VQV: ACL uses the X component of the default value scale.
 	template<track_interpolator_t track_interpolator>
 	struct track_traits<track_type8::vqsf, track_interpolator>

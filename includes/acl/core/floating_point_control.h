@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The functions that change and restore the floating point exceptions and the flush to zero mode.
+
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 

@@ -414,9 +414,9 @@ def write_index(output_dir, pages):
 		folder_pages = [page for page in pages if os.path.dirname(page[1])[len('acl/'):] == folder or (not folder and os.path.dirname(page[1]) == 'acl')]
 		if not folder_pages:
 			continue
-		lines += ['## {}'.format(title), '', '| Header | Entries |', '| --- | --- |']
-		for page, include_path, count in sorted(folder_pages, key=lambda page: page[1]):
-			lines.append('| [`{}`]({}.md) | {} |'.format(include_path, page, count))
+		lines += ['## {}'.format(title), '', '| Header | Description |', '| --- | --- |']
+		for page, include_path, brief in sorted(folder_pages, key=lambda page: page[1]):
+			lines.append('| [`{}`]({}.md) | {} |'.format(include_path, page, brief.replace('|', '\\|')))
 		lines.append('')
 
 	with open(os.path.join(output_dir, 'index.md'), 'w') as f:
@@ -461,7 +461,17 @@ def main():
 	pages = []
 	for page, page_entry_list in sorted(page_entries.items()):
 		write_page(output_dir, page, include_paths[page], page_entry_list, file_descriptions.get(page_files.get(page)), writer, signature_writer)
-		pages.append((page, include_paths[page], len(page_entry_list)))
+		# The index shows the brief description of each header: a '/// \\file' comment in the header
+		file_description = file_descriptions.get(page_files.get(page))
+		brief = ''
+		if file_description is not None:
+			# Without a brief description, the first paragraph of the detailed description
+			brief = writer.write(file_description.find('briefdescription')) or writer.write(file_description.find('detaileddescription')).split('\n\n')[0]
+			brief = re.sub(r'\s+', ' ', brief)
+		if not brief:
+			print('No brief description for {}: add a /// \\file comment to the header'.format(include_paths[page]))
+			sys.exit(1)
+		pages.append((page, include_paths[page], brief))
 
 	write_index(output_dir, pages)
 	print('Wrote {} pages in {}'.format(len(pages) + 1, API_OUTPUT_DIR))

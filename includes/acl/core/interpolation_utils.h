@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The functions that find the samples and the interpolation alpha at a sample time.
+
 #include "acl/version.h"
 #include "acl/core/error.h"
 #include "acl/core/sample_interpolator.h"

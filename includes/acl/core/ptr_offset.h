@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// An offset from a base pointer to a value of a given type.
+
 #include "acl/version.h"
 #include "acl/core/impl/bit_cast.impl.h"
 #include "acl/core/impl/compiler_utils.h"
@@ -37,13 +40,13 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-	/// Represents an invalid pointer offset, used by 'ptr_offset'.
+	/// Represents an invalid pointer offset, used by `ptr_offset`.
 	struct invalid_ptr_offset final {};
 
 	/// A type safe pointer offset.
 	///
-	/// This class only wraps an integer of the 'offset_type' type and adds type safety
-	/// by only casting to 'data_type'.
+	/// This class only wraps an integer of the `offset_type` type and adds type safety
+	/// by only casting to `data_type`.
 	template<typename data_type, typename offset_type>
 	class ptr_offset
 	{
@@ -119,7 +122,7 @@ namespace acl
 			return is_valid() ? add_offset_to_ptr<data_type>(ptr, m_value) : nullptr;
 		}
 
-		/// Coercion operator to the underlying 'offset_type'.
+		/// Coercion operator to the underlying `offset_type`.
 		constexpr operator offset_type() const { return m_value; }
 
 		/// Returns true if the offset is valid.

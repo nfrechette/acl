@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The functions that test the flags of an enum.
+
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 

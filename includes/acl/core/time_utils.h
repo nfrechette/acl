@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The functions that calculate the number of samples and the duration of a track.
+
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 

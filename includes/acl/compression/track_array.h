@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The raw track list types: an array of tracks with the same type.
+
 #include "acl/version.h"
 #include "acl/core/error.h"
 #include "acl/core/error_result.h"
@@ -110,13 +113,13 @@ namespace acl
 		/// Sets the track name.
 		void set_name(const string& name) { m_name = name.get_copy(); }
 
-		/// Returns the space of the transform tracks, see 'transform_space_t'.
+		/// Returns the space of the transform tracks, see `transform_space_t`.
 		/// Compression uses it to measure the error in object space.
 		/// Scalar tracks do not use it.
-		/// Defaults to 'local'.
+		/// Defaults to `local`.
 		transform_space_t get_transform_space() const { return m_transform_space; }
 
-		/// Sets the space of the transform tracks, see 'transform_space_t'.
+		/// Sets the space of the transform tracks, see `transform_space_t`.
 		/// Scalar tracks do not use it.
 		void set_transform_space(transform_space_t space) { m_transform_space = space; }
 
@@ -132,7 +135,7 @@ namespace acl
 		float get_playback_scale() const { return m_playback_scale; }
 
 		/// Sets the uniform scale that the runtime applies to the whole clip at playback.
-		/// It must be positive and finite. See 'get_playback_scale'.
+		/// It must be positive and finite. See `get_playback_scale`.
 		/// Scalar tracks do not use it.
 		void set_playback_scale(float scale) { m_playback_scale = scale; }
 

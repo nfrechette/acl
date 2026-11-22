@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The forward declarations of the compression types, and the aliases of the typed tracks and track arrays.
+
 #include "acl/version.h"
 #include "acl/core/error.h"
 

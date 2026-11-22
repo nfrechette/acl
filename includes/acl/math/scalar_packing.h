@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The functions that quantize and pack scalar values.
+
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/error.h"
@@ -73,7 +76,7 @@ namespace acl
 		return (unpack_scalar_unsigned(input, num_bits) * 2.0F) - 1.0F;
 	}
 
-	/// Assumes the 'vector_data' is in big-endian order and is padded in order to load up to 8 bytes from it
+	/// Assumes the `vector_data` is in big-endian order and is padded in order to load up to 8 bytes from it
 	inline rtm::scalarf RTM_SIMD_CALL unpack_scalarf_32_unsafe(const uint8_t* vector_data, uint32_t bit_offset)
 	{
 #if defined(RTM_SSE2_INTRINSICS)
@@ -128,7 +131,7 @@ namespace acl
 #endif
 	}
 
-	/// Assumes the 'vector_data' is in big-endian order and padded in order to load up to 8 bytes from it
+	/// Assumes the `vector_data` is in big-endian order and padded in order to load up to 8 bytes from it
 	inline rtm::scalarf RTM_SIMD_CALL unpack_scalarf_uXX_unsafe(uint32_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
 	{
 		ACL_ASSERT(num_bits <= 23, "This function does not support reading more than 23 bits per component");

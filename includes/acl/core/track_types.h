@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The track types, the track categories, and the track interpolators.
+
 #include "acl/version.h"
 #include "acl/core/error.h"
 #include "acl/core/error_result.h"

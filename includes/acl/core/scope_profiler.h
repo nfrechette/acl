@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// A timer that measures the time of a scope.
+
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 

@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The range reduction types and constants.
+
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/enum_utils.h"

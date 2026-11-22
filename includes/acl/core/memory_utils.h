@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The functions for alignment, safe casts, byte order, unaligned memory access, and memory prefetch.
+
 #include "acl/version.h"
 #include "acl/core/impl/bit_cast.impl.h"
 #include "acl/core/impl/compiler_utils.h"
@@ -317,7 +320,7 @@ namespace acl
 #endif
 	}
 
-	/// We copy bits assuming big-endian ordering for 'dest' and 'src'
+	/// We copy bits assuming big-endian ordering for `dest` and `src`
 	inline void memcpy_bits(void* dest, uint64_t dest_bit_offset, const void* src, uint64_t src_bit_offset, uint64_t num_bits_to_copy)
 	{
 		if (num_bits_to_copy == 0)

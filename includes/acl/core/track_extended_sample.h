@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The extended sample type: a sample value and its interpolator.
+
 #include "acl/version.h"
 #include "acl/core/error.h"
 #include "acl/core/sample_interpolator.h"

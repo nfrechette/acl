@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The settings of the statistics that compression writes.
+
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/enum_utils.h"
@@ -55,7 +58,7 @@ namespace acl
 		stat_logging			logging = stat_logging::none;	///< The amount of statistics to write
 
 #if defined(ACL_USE_SJSON)
-		sjson::ObjectWriter*	writer = nullptr;	///< The SJSON writer that receives the statistics, required when 'logging' is not 'none'
+		sjson::ObjectWriter*	writer = nullptr;	///< The SJSON writer that receives the statistics, required when `logging` is not `none`
 #endif
 	};
 

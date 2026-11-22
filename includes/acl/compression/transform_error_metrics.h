@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The legacy transform error metrics, which are deprecated.
+
 #include "acl/version.h"
 #include "acl/core/additive_utils.h"
 #include "acl/core/impl/compiler_utils.h"
@@ -99,7 +102,7 @@ namespace acl
 		/// See: [Bit Rate Optimization Algorithm]
 		virtual bool supports_bit_rate_algorithm_v2() const { return false; }
 
-		/// Input arguments for the 'convert_transforms*' functions.
+		/// Input arguments for the `convert_transforms*` functions.
 		struct convert_transforms_args
 		{
 			/// A list of transform indices that are dirty and need conversion.
@@ -127,7 +130,7 @@ namespace acl
 		};
 
 		/// Converts from rtm::vqvf into the transform type used by the error metric.
-		/// Called when 'needs_conversion' returns true.
+		/// Called when `needs_conversion` returns true.
 		virtual void convert_transforms(const convert_transforms_args& args, void* out_transforms) const
 		{
 			(void)args;
@@ -136,7 +139,7 @@ namespace acl
 		}
 
 		/// Converts from rtm::vqvf into the transform type used by the error metric.
-		/// Called when 'needs_conversion' returns true.
+		/// Called when `needs_conversion` returns true.
 		virtual void convert_transforms_no_scale(const convert_transforms_args& args, void* out_transforms) const
 		{
 			(void)args;
@@ -144,7 +147,7 @@ namespace acl
 			ACL_ASSERT(false, "Not implemented");
 		}
 
-		/// Input arguments for the 'local_to_object_space*' functions.
+		/// Input arguments for the `local_to_object_space*` functions.
 		struct local_to_object_space_args
 		{
 			/// A list of transform indices that are dirty and need transformation.
@@ -180,7 +183,7 @@ namespace acl
 			ACL_ASSERT(false, "Not implemented");
 		}
 
-		/// Input arguments for the 'apply_additive_to_base*' functions.
+		/// Input arguments for the `apply_additive_to_base*` functions.
 		struct apply_additive_to_base_args
 		{
 			/// A list of transform indices that are dirty and need the base applied.
@@ -202,7 +205,7 @@ namespace acl
 		/// Applies local space transforms on top of base transforms.
 		/// This is called when a clip has an additive base.
 		/// The input and output transforms are in rtm::vqvf format. ACL calls this function
-		/// before 'convert_transforms', thus the additive applies to the source transforms.
+		/// before `convert_transforms`, thus the additive applies to the source transforms.
 		virtual void apply_additive_to_base(const apply_additive_to_base_args& args, void* out_transforms) const
 		{
 			(void)args;
@@ -213,7 +216,7 @@ namespace acl
 		/// Applies local space transforms on top of base transforms.
 		/// This is called when a clip has an additive base.
 		/// The input and output transforms are in rtm::vqvf format. ACL calls this function
-		/// before 'convert_transforms_no_scale', thus the additive applies to the source transforms.
+		/// before `convert_transforms_no_scale`, thus the additive applies to the source transforms.
 		virtual void apply_additive_to_base_no_scale(const apply_additive_to_base_args& args, void* out_transforms) const
 		{
 			(void)args;
@@ -221,7 +224,7 @@ namespace acl
 			ACL_ASSERT(false, "Not implemented");
 		}
 
-		/// Input arguments for the 'calculate_error*' functions.
+		/// Input arguments for the `calculate_error*` functions.
 		struct calculate_error_args
 		{
 			/// A point on our rigid shell along the X axis.

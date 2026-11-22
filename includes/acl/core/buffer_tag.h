@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The tags that identify a compressed tracks buffer or a compressed database buffer.
+
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 
@@ -38,14 +41,14 @@ namespace acl
 	/// This enum represents raw buffer identification tags
 	enum class buffer_tag32 : uint32_t
 	{
-		/// Identifies a 'CompressedClip' buffer.
+		/// Identifies a `CompressedClip` buffer.
 		/// Deprecated, no longer used. Belonged to pre-2.0 file format.
 		compressed_clip = 0xac10ac10,
 
-		/// Identifies a 'compressed_tracks' buffer.
+		/// Identifies a `compressed_tracks` buffer.
 		compressed_tracks = 0xac11ac11,
 
-		/// Identifies a 'compressed_database' buffer.
+		/// Identifies a `compressed_database` buffer.
 		compressed_database = 0xac11db01,
 	};
 

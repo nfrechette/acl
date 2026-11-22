@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The interface of a transform metric, and the built-in metrics that measure the error between a raw and a lossy transform.
+
 #include "acl/version.h"
 #include "acl/core/error.h"
 #include "acl/core/hash.h"
@@ -77,7 +80,7 @@ namespace acl
 		/// that use the provided transform adapter.
 		virtual bool is_supported(const itransform_adapter& adapter) const = 0;
 
-		/// Input arguments for the 'calculate_error*' functions.
+		/// Input arguments for the `calculate_error*` functions.
 		struct calculate_error_args
 		{
 			/// The points on the rigid shell, stored transposed.
@@ -259,7 +262,7 @@ namespace acl
 	/// It transforms the points with the raw and lossy transforms and returns the largest distance.
 	/// It supports every transform adapter. With a scale, it measures three points; without a scale (VQ), two points.
 	/// The points give an approximation of the error. Use it with transforms that have a 3D scale or a shear
-	/// (VQV, VQM, or a matrix). For VQ and VQS transforms, 'precise_transform_metric' gives the exact error.
+	/// (VQV, VQM, or a matrix). For VQ and VQS transforms, `precise_transform_metric` gives the exact error.
 	class shell_transform_metric : public itransform_metric
 	{
 	public:
@@ -298,8 +301,8 @@ namespace acl
 	/// It uses the rotation, the translation, and the uniform scale to find the point on
 	/// the sphere with the largest error. It computes with float64.
 	/// With a VQS transform, when the raw and lossy scales are not equal, the result can be
-	/// above the exact error by no more than |s1 - s0| * shell_distance. See 'calculate_vqs_error_squared_precise'.
-	/// It supports only the 'vqf' and 'vqsf' transform adapters.
+	/// above the exact error by no more than |s1 - s0| * shell_distance. See `calculate_vqs_error_squared_precise`.
+	/// It supports only the `vqf` and `vqsf` transform adapters.
 	class precise_transform_metric : public itransform_metric
 	{
 	public:

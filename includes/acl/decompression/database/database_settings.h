@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The settings that control which database code decompression keeps.
+
 #include "acl/version.h"
 #include "acl/core/compressed_tracks_version.h"
 #include "acl/core/impl/compiler_utils.h"
@@ -43,7 +46,7 @@ namespace acl
 	struct database_settings
 	{
 		/// Which version we should optimize for.
-		/// If 'any' is specified, the database context will support every single version
+		/// If `any` is specified, the database context will support every single version
 		/// with full backwards compatibility.
 		/// Using a specific version allows the compiler to statically strip code for all other
 		/// versions. This allows the creation of context objects specialized for specific

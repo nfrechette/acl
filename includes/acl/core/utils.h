@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// This header is deprecated: include time_utils.h instead.
+
 #include "acl/version.h"
 #include "acl/core/error.h"
 #include "acl/core/time_utils.h"

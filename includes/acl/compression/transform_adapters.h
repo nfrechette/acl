@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The interface of a transform adapter, and the built-in adapters of the runtime transform types.
+
 #include "acl/version.h"
 #include "acl/core/error.h"
 #include "acl/core/hash.h"
@@ -82,7 +85,7 @@ namespace acl
 		matrix3x4f	= 5,
 
 		/// For the compression settings only: compression selects the runtime transform type
-		/// from the raw tracks. See 'compression_settings::transform_runtime_type'.
+		/// from the raw tracks. See `compression_settings::transform_runtime_type`.
 		/// A transform adapter never returns this value.
 		automatic	= 6,
 	};
@@ -95,7 +98,7 @@ namespace acl
 	///    - taking local space transforms into object space
 	///    - transforming points
 	///
-	/// The functions use the runtime transform type through 'void' pointers.
+	/// The functions use the runtime transform type through `void` pointers.
 	/// The runtime transform type must have an alignment of 16 bytes or less.
 	///
 	/// ACL calls these functions in the inner loops of compression. Thus most functions
@@ -112,7 +115,7 @@ namespace acl
 		virtual uint32_t get_hash() const { return hash32(get_name()); }
 
 		/// Returns the runtime transform type of the adapter.
-		/// A custom transform adapter returns 'custom'.
+		/// A custom transform adapter returns `custom`.
 		virtual transform_runtime_type_t get_type() const { return transform_runtime_type_t::custom; }
 
 		/// Returns the size in bytes of the runtime transform type.
@@ -125,10 +128,10 @@ namespace acl
 
 		/// Returns whether or not the runtime transform type is different from rtm::vqvf.
 		/// When it is not, compression uses the rtm::vqvf transforms directly and does not
-		/// call 'convert_transforms'.
+		/// call `convert_transforms`.
 		virtual bool needs_conversion() const { return true; }
 
-		/// Input arguments for the 'convert_transforms' function.
+		/// Input arguments for the `convert_transforms` function.
 		struct convert_transforms_args
 		{
 			/// A list of transform indices that are dirty and need conversion.
@@ -155,7 +158,7 @@ namespace acl
 		};
 
 		/// Converts from rtm::vqvf into the runtime transform type.
-		/// Called when 'needs_conversion' returns true.
+		/// Called when `needs_conversion` returns true.
 		virtual void convert_transforms(const convert_transforms_args& args, void* out_transforms) const
 		{
 			(void)args;
@@ -171,7 +174,7 @@ namespace acl
 		/// The output can be one of the inputs.
 		virtual void mul(const void* lhs, const void* rhs, void* out_transform) const = 0;
 
-		/// Input arguments for the 'local_to_object_space' function.
+		/// Input arguments for the `local_to_object_space` function.
 		struct local_to_object_space_args
 		{
 			/// A list of transform indices that are dirty and need transformation.
@@ -182,7 +185,7 @@ namespace acl
 			uint32_t num_dirty_transforms;
 
 			/// A list of parent transform indices for every transform.
-			/// An index of 'k_invalid_track_index' represents a root transform with no parent.
+			/// An index of `k_invalid_track_index` represents a root transform with no parent.
 			const uint32_t* parent_transform_indices;
 
 			/// The input local space transforms in the runtime transform type.
@@ -194,7 +197,7 @@ namespace acl
 
 		/// Takes local space transforms into object space.
 		/// The object space transform of a root is its local space transform.
-		/// The default implementation uses 'mul'. A transform adapter can replace it with a faster version.
+		/// The default implementation uses `mul`. A transform adapter can replace it with a faster version.
 		virtual void local_to_object_space(const local_to_object_space_args& args, void* out_object_transforms) const
 		{
 			const uint32_t* dirty_transform_indices = args.dirty_transform_indices;

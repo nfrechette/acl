@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The looping policies of a track list.
+
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 

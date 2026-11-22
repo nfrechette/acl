@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The FNV-1a hash functions.
+
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 

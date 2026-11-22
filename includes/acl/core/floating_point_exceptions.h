@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// This header is deprecated: include floating_point_control.h instead.
+
 #include "acl/version.h"
 #include "acl/core/error.h"
 #include "acl/core/floating_point_control.h"

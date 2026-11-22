@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The sample interpolators of the extended samples.
+
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 

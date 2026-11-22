@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The functions that write tracks to the ACL clip file format (SJSON).
+
 #if defined(ACL_USE_SJSON)
 
 #include "acl/version.h"

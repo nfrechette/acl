@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// An immutable string that uses an ACL allocator.
+
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/iallocator.h"
@@ -46,7 +49,7 @@ namespace acl
 	public:
 		string() noexcept : m_allocator(nullptr), m_c_str(nullptr) {}
 
-		/// Constructs a copy of the first 'length' characters of a string.
+		/// Constructs a copy of the first `length` characters of a string.
 		/// The characters must not contain a null terminator.
 		string(iallocator& allocator, const char* str, size_t length)
 			: m_allocator(&allocator)

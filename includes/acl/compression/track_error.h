@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The functions that measure the error between raw tracks and compressed tracks.
+
 #include "acl/version.h"
 #include "acl/core/compressed_tracks.h"
 #include "acl/core/error_result.h"
@@ -54,7 +57,7 @@ namespace acl
 		uint32_t index = k_invalid_track_index;
 
 		/// The worst error for the track index.
-		/// With transform tracks, it is in playback units, see 'track_array::get_playback_scale'.
+		/// With transform tracks, it is in playback units, see `track_array::get_playback_scale`.
 		float error = 0.0F;
 
 		/// The sample time that has the worst error.
@@ -97,7 +100,7 @@ namespace acl
 	/// compressed tracks.
 	/// Supports scalar and transform tracks.
 	/// With transform tracks, it measures the error as compression does with these settings and without a base,
-	/// in the transform space of the raw tracks (see 'track_array::get_transform_space'):
+	/// in the transform space of the raw tracks (see `track_array::get_transform_space`):
 	/// with the legacy error metric when it is set, otherwise with the runtime transform type and the transform metric.
 	///
 	/// Note: This function uses SFINAE to prevent it from matching when it shouldn't.
@@ -106,9 +109,9 @@ namespace acl
 
 	/// Calculates the worst compression error between a raw track array and its
 	/// compressed tracks.
-	/// Supports transform tracks (vqvf, vqf, or vqsf) with a base, see 'transform_base_desc_t'.
+	/// Supports transform tracks (vqvf, vqf, or vqsf) with a base, see `transform_base_desc_t`.
 	/// The base, if any, can have a different transform type than the raw tracks.
-	/// It uses the transform space of the raw tracks, see 'track_array::get_transform_space'.
+	/// It uses the transform space of the raw tracks, see `track_array::get_transform_space`.
 	/// In mesh space, it measures the error of each transform without its parent transform, as compression does.
 	/// It measures the error as compression does with these settings and this base:
 	/// with the legacy error metric when it is set, otherwise with the runtime transform type and the transform metric.

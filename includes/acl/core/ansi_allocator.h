@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// An allocator that uses the system malloc and free.
+
 #include "acl/config.h"
 #include "acl/version.h"
 #include "acl/core/impl/bit_cast.impl.h"

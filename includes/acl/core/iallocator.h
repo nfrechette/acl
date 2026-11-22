@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The allocator interface, and the functions that allocate and free typed memory with it.
+
 #include "acl/version.h"
 #include "acl/core/error.h"
 #include "acl/core/memory_utils.h"
@@ -57,14 +60,14 @@ namespace acl
 
 		/// Allocates memory with the specified size and alignment.
 		///
-		/// size: Size in bytes to allocate.
-		/// alignment: Alignment to allocate the memory with.
+		/// \param size Size in bytes to allocate.
+		/// \param alignment Alignment to allocate the memory with.
 		virtual void* allocate(size_t size, size_t alignment = k_default_alignment) = 0;
 
 		/// Deallocates previously allocated memory and releases it.
 		///
-		/// ptr: A pointer to memory previously allocated or nullptr.
-		/// size: Size in bytes of the allocation. This will match the original size requested through 'allocate'.
+		/// \param ptr A pointer to memory previously allocated or nullptr.
+		/// \param size Size in bytes of the allocation. This will match the original size requested through `allocate`.
 		virtual void deallocate(void* ptr, size_t size) = 0;
 	};
 

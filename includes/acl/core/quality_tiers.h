@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The quality tiers of a compressed database.
+
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 

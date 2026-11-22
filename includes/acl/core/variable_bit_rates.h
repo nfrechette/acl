@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The variable bit rate types, which are deprecated.
+
 #include "acl/version.h"
 #include "acl/core/error.h"
 #include "acl/core/memory_utils.h"
