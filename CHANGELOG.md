@@ -47,7 +47,7 @@
 *  The bit rate algorithm v2 supports each runtime transform type, VQS, matrix, and custom transform types no longer use the bit rate algorithm v1
 *  The built-in transform adapters and metrics use code without virtual function calls, compression is faster
 *  Fix the bit rate algorithm v1 that converted transforms that it did not sample, an assert could fail with an additive base
-*  Disable floating point contraction (FMA) in the ACL headers with the `optimize` pragma under GCC
+*  The documentation explains floating point contraction ([other considerations](docs/misc_integration_details.md)). With GCC, the headers do not disable contraction: GCC uses `-ffp-contract=fast` by default in C++ and merges the operations of the inlined functions, and a pragma with other optimization options stops GCC from inlining the functions. To get the same results on all the targets with GCC, compile with `-ffp-contract=off`
 *  Add `transform_space_t`: the space of the transform tracks, `track_array::set_transform_space` sets it, compression, pre-processing, and `calculate_compression_error` use it, see [additive clips](docs/additive_clips.md)
 *  Add `transform_base_desc_t`: the base of the transform tracks and its base format
 *  Add the `compress_track_list` overload that takes a `transform_base_desc_t`, and deprecate the overload that takes an additive base and an additive format, ACL 2.3 will remove it

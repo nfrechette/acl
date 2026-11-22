@@ -310,7 +310,7 @@ namespace
 	};
 
 	// A custom adapter that forwards each function to a built-in adapter
-	// ACL compiles the built-in adapter code with its floating point settings (no FMA contraction)
+	// Both adapters run the same functions of the built-in adapter
 	// Thus compression gives the exact same result with this adapter and with the built-in adapter
 	template<class builtin_adapter_t>
 	struct forwarding_adapter final : public itransform_adapter

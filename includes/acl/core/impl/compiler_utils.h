@@ -41,7 +41,8 @@
 //
 // Options we use:
 //    - Disable fast math, it can hurt precision for little to no performance gain due to the high level of hand tuned optimizations.
-//    - Disable floating point contraction (GCC and Clang), the compiler must not merge a multiply and an add into one FMA instruction.
+//    - Disable floating point contraction (Clang only), the compiler must not merge a multiply and an add into one FMA instruction.
+//      See docs/misc_integration_details.md for the flags that give the same results on all the targets.
 //////////////////////////////////////////////////////////////////////////
 #if defined(RTM_COMPILER_MSVC)
 	#define ACL_IMPL_FILE_PRAGMA_PUSH \
@@ -91,13 +92,17 @@
 		_Pragma("float_control(pop)") \
 		_Pragma("clang diagnostic pop")
 #elif defined(RTM_COMPILER_GCC)
-	// GCC defaults to -ffp-contract=fast in the GNU dialects (for example -std=gnu++11).
-	// With that option, GCC can merge a multiply and an add into one FMA instruction.
-	// The FMA does not round the product, thus the result can change with the compiler flags and the target.
-	// We set -ffp-contract=off to stop this.
+	// GCC defaults to -ffp-contract=fast in C++. With that option, GCC can merge a multiply and an add into one
+	// FMA instruction. The FMA does not round the product, thus the result can change with the flags and the target.
+	//
+	// We do not set fp-contract=off here. With -ffp-contract=fast, GCC merges the operations of our functions
+	// after it inlines them in the code of the caller: the pragma does not apply there. Also, GCC does not inline
+	// a function when its optimize options are not the same as those of the caller ("optimization level attribute
+	// mismatch"). Thus the pragma makes the code slower and does not stop the contraction.
+	// To get the same results on all the targets, compile with -ffp-contract=off.
 	#define ACL_IMPL_FILE_PRAGMA_PUSH \
 		_Pragma("GCC push_options") \
-		_Pragma("GCC optimize (\"no-fast-math\", \"fp-contract=off\")")
+		_Pragma("GCC optimize (\"no-fast-math\")")
 
 	#define ACL_IMPL_FILE_PRAGMA_POP \
 		_Pragma("GCC pop_options")
