@@ -23,16 +23,12 @@ ACL_NAMESPACE_PREFIX = 'acl::'
 # The nested namespaces that hold implementation details. Doxyfile excludes them too.
 IMPL_NAMESPACE_PATTERN = re.compile(r'(^|::)\w*_impl(::|$)')
 
-# The folders of the public headers, in the order of the index page
-FOLDER_TITLES = [
-	('', 'Configuration and version'),
-	('core', 'Core'),
-	('compression', 'Compression'),
-	('decompression', 'Decompression'),
-	('decompression/database', 'Database'),
-	('io', 'Clip files'),
-	('math', 'Math'),
-]
+# The index page groups the headers as the 'API reference' section of the nav in mkdocs.yml
+MKDOCS_CONFIG = 'mkdocs.yml'
+API_NAV_TITLE = 'API reference'
+
+# A longer signature has one argument on each line
+MAX_SIGNATURE_LENGTH = 90
 
 def run_doxygen():
 	os.makedirs(os.path.join(ROOT_DIR, DOXYGEN_OUTPUT_DIR), exist_ok=True)
@@ -260,8 +256,32 @@ class SignatureWriter:
 			text += return_type + ' '
 		# Doxygen writes 'int value=0', ACL writes 'int value = 0'
 		args = re.sub(r'(?<=[\w\])])=(?!=)', ' = ', self.clean(node.findtext('argsstring')))
-		text += name + args
-		return text
+		signature = name + args
+		if len(text.split('\n')[-1]) + len(signature) > MAX_SIGNATURE_LENGTH:
+			signature = self.split_arguments(signature)
+		return text + signature
+
+	def split_arguments(self, signature):
+		# A long signature has one argument on each line, as a code block does not wrap
+		start = signature.find('(')
+		depth = 0
+		parts = []
+		current = ''
+		for index in range(start + 1, len(signature)):
+			char = signature[index]
+			if char in '(<[':
+				depth += 1
+			elif char in ')>]':
+				if depth == 0:
+					parts.append(current.strip())
+					return signature[:start + 1] + '\n' + ',\n'.join('\t' + part for part in parts) + ')' + signature[index + 1:]
+				depth -= 1
+			elif char == ',' and depth == 0:
+				parts.append(current.strip())
+				current = ''
+				continue
+			current += char
+		return signature
 
 	def typedef(self, node, name):
 		return self.template_line(node) + 'using {} = {};'.format(name, self.clean(text_of(node.find('type'))))
@@ -274,9 +294,7 @@ class SignatureWriter:
 		lines = [header, '{']
 		for value in node.findall('enumvalue'):
 			initializer = text_of(value.find('initializer')).strip()
-			comment = re.sub(r'\s+', ' ', description_node_text(value.find('briefdescription')) + ' ' + description_node_text(value.find('detaileddescription'))).strip()
-			comment = ' // ' + comment if comment else ''
-			lines.append('\t' + value.findtext('name') + (' ' + initializer if initializer else '') + ',' + comment)
+			lines.append('\t' + value.findtext('name') + (' ' + initializer if initializer else '') + ',')
 		lines.append('};')
 		return '\n'.join(lines)
 
@@ -324,7 +342,17 @@ class SignatureWriter:
 
 def describe(writer, node):
 	description = writer.write(node.find('briefdescription')) + '\n\n' + writer.write(node.find('detaileddescription'))
-	return re.sub(r'\n{3,}', '\n\n', description).strip()
+	description = re.sub(r'\n{3,}', '\n\n', description).strip()
+
+	# The values of an enum are in a table below the description: a code block does not wrap long comments
+	if node.get('kind') == 'enum':
+		rows = []
+		for value in node.findall('enumvalue'):
+			text = (writer.write(value.find('briefdescription')) + ' ' + writer.write(value.find('detaileddescription'))).strip()
+			rows.append('| `{}` | {} |'.format(value.findtext('name'), re.sub(r'\s+', ' ', text).replace('|', '\\|')))
+		if any(not row.endswith('|  |') for row in rows):
+			description += '\n\n| Value | Description |\n| --- | --- |\n' + '\n'.join(rows)
+	return description.strip()
 
 def write_code_groups(lines, items):
 	# items: a list of (code, description). Consecutive overloads with the same description share one code block.
@@ -342,8 +370,12 @@ def write_code_groups(lines, items):
 		if description:
 			lines += [description, '']
 
-def heading_of(name):
-	return '`{}`'.format(name) if re.search(r'[^\w]', name) else name
+def heading_of(name, toc_label=None):
+	heading = '`{}`'.format(name) if re.search(r'[^\w]', name) else name
+	# The table of contents of the page shows the short label, for example the member name without its class
+	if toc_label and toc_label != name:
+		heading += ' {{ data-toc-label="{}" }}'.format(toc_label.replace('"', '&quot;'))
+	return heading
 
 def write_compound(lines, entry, writer, signature_writer):
 	lines += ['```cpp', signature_writer.compound(entry), '```', '']
@@ -368,7 +400,7 @@ def write_compound(lines, entry, writer, signature_writer):
 			lines += ['#### {}'.format(section), '']
 		current_section = section
 		level = '#####' if section else '####'
-		lines += ['{} {}'.format(level, heading_of(entry.name + '::' + name)), '']
+		lines += ['{} {}'.format(level, heading_of(entry.name + '::' + name, name)), '']
 		items = []
 		for _, member in entry.members:
 			if member.findtext('name') == name:
@@ -417,14 +449,46 @@ def write_page(output_dir, page, include_path, entries, file_description, writer
 	with open(os.path.join(output_dir, page + '.md'), 'w') as f:
 		f.write('\n'.join(lines))
 
+def read_api_nav_groups():
+	# Returns a list of (group title, [page names]) from the 'API reference' section of the nav
+	# MkDocs depends on PyYAML, thus it is available where MkDocs is installed
+	import yaml
+
+	with open(os.path.join(ROOT_DIR, MKDOCS_CONFIG)) as f:
+		config = yaml.safe_load(f)
+
+	for section in config['nav']:
+		if isinstance(section, dict) and API_NAV_TITLE in section:
+			groups = []
+			for item in section[API_NAV_TITLE]:
+				if isinstance(item, dict):
+					for title, paths in item.items():
+						# A page is a path, or a {title: path} entry
+						paths = [list(path.values())[0] if isinstance(path, dict) else path for path in paths]
+						groups.append((title, [os.path.splitext(os.path.basename(path))[0] for path in paths]))
+			return groups
+
+	print('No \'{}\' section in the nav of {}'.format(API_NAV_TITLE, MKDOCS_CONFIG))
+	sys.exit(1)
+
 def write_index(output_dir, pages):
+	pages_by_name = {page[0]: page for page in pages}
+	groups = read_api_nav_groups()
+
+	# Each page must be in the nav, otherwise the site has no link to it
+	nav_pages = [name for _, names in groups for name in names]
+	missing = sorted(set(pages_by_name) - set(nav_pages))
+	if missing:
+		print('Add these pages to the \'{}\' section of the nav in {}: {}'.format(API_NAV_TITLE, MKDOCS_CONFIG, ', '.join(name + '.md' for name in missing)))
+		sys.exit(1)
+
 	lines = ['# API reference', '', 'Each page lists the API of one public header.', '']
-	for folder, title in FOLDER_TITLES:
-		folder_pages = [page for page in pages if os.path.dirname(page[1])[len('acl/'):] == folder or (not folder and os.path.dirname(page[1]) == 'acl')]
-		if not folder_pages:
+	for title, names in groups:
+		group_pages = [pages_by_name[name] for name in names if name in pages_by_name]
+		if not group_pages:
 			continue
 		lines += ['## {}'.format(title), '', '| Header | Description |', '| --- | --- |']
-		for page, include_path, brief in sorted(folder_pages, key=lambda page: page[1]):
+		for page, include_path, brief in group_pages:
 			lines.append('| [`{}`]({}.md) | {} |'.format(include_path, page, brief.replace('|', '\\|')))
 		lines.append('')
 

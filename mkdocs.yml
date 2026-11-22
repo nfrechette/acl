@@ -38,8 +38,12 @@ extra:
 plugins:
   - search
 
+extra_css:
+  - stylesheets/extra.css
+
 markdown_extensions:
   - admonition
+  - attr_list
   - tables
   - toc:
       permalink: true
@@ -90,81 +94,81 @@ nav:
   - API reference:
       - api/index.md
       - Configuration and version:
-          - api/version.md
+          - version.h: api/version.md
       - Core:
-          - api/core_additive_utils.md
-          - api/core_algorithm_types.md
-          - api/core_ansi_allocator.md
-          - api/core_buffer_tag.md
-          - api/core_compressed_database.md
-          - api/core_compressed_tracks.md
-          - api/core_compressed_tracks_version.md
-          - api/core_error_result.md
-          - api/core_floating_point_control.md
-          - api/core_fwd.md
-          - api/core_iallocator.md
-          - api/core_interpolation_utils.md
-          - api/core_quality_tiers.md
-          - api/core_range_reduction_types.md
-          - api/core_sample_interpolator.md
-          - api/core_sample_looping_policy.md
-          - api/core_sample_rounding_policy.md
-          - api/core_time_utils.md
-          - api/core_track_desc.md
-          - api/core_track_extended_sample.md
-          - api/core_track_formats.md
-          - api/core_track_traits.md
-          - api/core_track_types.md
-          - api/core_track_writer.md
-          - api/core_variable_bit_rates.md
+          - additive_utils.h: api/core_additive_utils.md
+          - algorithm_types.h: api/core_algorithm_types.md
+          - ansi_allocator.h: api/core_ansi_allocator.md
+          - buffer_tag.h: api/core_buffer_tag.md
+          - compressed_database.h: api/core_compressed_database.md
+          - compressed_tracks.h: api/core_compressed_tracks.md
+          - compressed_tracks_version.h: api/core_compressed_tracks_version.md
+          - error_result.h: api/core_error_result.md
+          - floating_point_control.h: api/core_floating_point_control.md
+          - fwd.h: api/core_fwd.md
+          - iallocator.h: api/core_iallocator.md
+          - interpolation_utils.h: api/core_interpolation_utils.md
+          - quality_tiers.h: api/core_quality_tiers.md
+          - range_reduction_types.h: api/core_range_reduction_types.md
+          - sample_interpolator.h: api/core_sample_interpolator.md
+          - sample_looping_policy.h: api/core_sample_looping_policy.md
+          - sample_rounding_policy.h: api/core_sample_rounding_policy.md
+          - time_utils.h: api/core_time_utils.md
+          - track_desc.h: api/core_track_desc.md
+          - track_extended_sample.h: api/core_track_extended_sample.md
+          - track_formats.h: api/core_track_formats.md
+          - track_traits.h: api/core_track_traits.md
+          - track_types.h: api/core_track_types.md
+          - track_writer.h: api/core_track_writer.md
+          - variable_bit_rates.h: api/core_variable_bit_rates.md
       - Compression:
-          - api/compression_compress.md
-          - api/compression_compression_level.md
-          - api/compression_compression_memory_desc.md
-          - api/compression_compression_settings.md
-          - api/compression_convert.md
-          - api/compression_fwd.md
-          - api/compression_output_stats.md
-          - api/compression_pre_process.md
-          - api/compression_track.md
-          - api/compression_track_array.md
-          - api/compression_track_error.md
-          - api/compression_transform_adapters.md
-          - api/compression_transform_base.md
-          - api/compression_transform_base_adapter.md
-          - api/compression_transform_error_metrics.md
-          - api/compression_transform_metrics.md
-          - api/compression_transform_pose_utils.md
-          - api/compression_transform_space.md
+          - compress.h: api/compression_compress.md
+          - compression_level.h: api/compression_compression_level.md
+          - compression_memory_desc.h: api/compression_compression_memory_desc.md
+          - compression_settings.h: api/compression_compression_settings.md
+          - convert.h: api/compression_convert.md
+          - fwd.h: api/compression_fwd.md
+          - output_stats.h: api/compression_output_stats.md
+          - pre_process.h: api/compression_pre_process.md
+          - track.h: api/compression_track.md
+          - track_array.h: api/compression_track_array.md
+          - track_error.h: api/compression_track_error.md
+          - transform_adapters.h: api/compression_transform_adapters.md
+          - transform_base.h: api/compression_transform_base.md
+          - transform_base_adapter.h: api/compression_transform_base_adapter.md
+          - transform_error_metrics.h: api/compression_transform_error_metrics.md
+          - transform_metrics.h: api/compression_transform_metrics.md
+          - transform_pose_utils.h: api/compression_transform_pose_utils.md
+          - transform_space.h: api/compression_transform_space.md
       - Decompression:
-          - api/decompression_decompress.md
-          - api/decompression_decompression_settings.md
+          - decompress.h: api/decompression_decompress.md
+          - decompression_settings.h: api/decompression_decompression_settings.md
       - Database:
-          - api/decompression_database_database.md
-          - api/decompression_database_database_settings.md
-          - api/decompression_database_database_streamer.md
-          - api/decompression_database_null_database_streamer.md
+          - database.h: api/decompression_database_database.md
+          - database_settings.h: api/decompression_database_database_settings.md
+          - database_streamer.h: api/decompression_database_database_streamer.md
+          - null_database_streamer.h: api/decompression_database_null_database_streamer.md
       - Clip files:
-          - api/io_clip_reader.md
-          - api/io_clip_reader_error.md
-          - api/io_clip_writer.md
+          - clip_reader.h: api/io_clip_reader.md
+          - clip_reader_error.h: api/io_clip_reader_error.md
+          - clip_writer.h: api/io_clip_writer.md
       - Math:
-          - api/math_quat_packing.md
-          - api/math_quatf.md
-          - api/math_scalar_packing.md
-          - api/math_vector4_packing.md
+          - quat_packing.h: api/math_quat_packing.md
+          - quatf.h: api/math_quatf.md
+          - scalar_packing.h: api/math_scalar_packing.md
+          - vector4_packing.h: api/math_vector4_packing.md
       - Utilities:
-          - api/core_bit_manip_utils.md
-          - api/core_bitset.md
-          - api/core_enum_utils.md
-          - api/core_hash.md
-          - api/core_iterator.md
-          - api/core_memory_utils.md
-          - api/core_ptr_offset.md
-          - api/core_scope_profiler.md
-          - api/core_string.md
-          - api/core_unique_ptr.md
+          - bit_manip_utils.h: api/core_bit_manip_utils.md
+          - bitset.h: api/core_bitset.md
+          - enum_utils.h: api/core_enum_utils.md
+          - hash.h: api/core_hash.md
+          - iterator.h: api/core_iterator.md
+          - memory_utils.h: api/core_memory_utils.md
+          - ptr_offset.h: api/core_ptr_offset.md
+          - scope_profiler.h: api/core_scope_profiler.md
+          - string.h: api/core_string.md
+          - unique_ptr.h: api/core_unique_ptr.md
       - Deprecated headers:
-          - api/core_floating_point_exceptions.md
-          - api/core_utils.md
-          - api/math_qvvf.md
+          - floating_point_exceptions.h: api/core_floating_point_exceptions.md
+          - utils.h: api/core_utils.md
+          - qvvf.h: api/math_qvvf.md
