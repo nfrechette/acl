@@ -20,3 +20,4 @@ test_data/decomp_data*
 
 # Deprecated rules, remove for ACL 2.2 or later
 test_data/test_data*
+.claude
