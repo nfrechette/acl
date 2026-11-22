@@ -18,6 +18,9 @@ test_data/decomp_data*
 *.sh
 *.bat
 
+# The lock file of the documentation site
+!tools/docs/requirements.txt
+
 # Deprecated rules, remove for ACL 2.2 or later
 test_data/test_data*
 .claude
