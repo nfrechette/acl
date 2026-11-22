@@ -45,3 +45,5 @@ You can also define your own assert implementation by defining the `ACL_ASSERT` 
 ## No checks
 
 By default if no macro mentioned above is defined, all asserts will be stripped at compile time.
+
+See [configuration macros](configuration_macros.md) for the other macros that configure ACL.

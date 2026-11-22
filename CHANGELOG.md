@@ -76,6 +76,7 @@
 *  Add the `sanitize_identity_rotations` pre-process action, it is part of the recommended actions: with the lossy policy, it sets the [xyz] components of each rotation with W = 1.0 or W = -1.0 to 0.0 when the error stays within the precision
 *  Add WASM SIMD code paths where ACL uses SSE2 or NEON intrinsics directly. With V8 on arm64, the time to decompress a full pose is 15% lower
 *  Add a documentation site: Doxygen reads the `///` comments of the public headers, and MkDocs makes the site with the guides and the API reference for develop and for each release
+*  Add the [configuration macros](docs/configuration_macros.md) page: it lists each macro that configures ACL
 
 ## 2.1.0
 

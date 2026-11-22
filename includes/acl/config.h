@@ -26,6 +26,7 @@
 
 // This file gathers all defines that can be used to control ACL's behavior
 // along with context.
+// See docs/configuration_macros.md for a summary of each macro.
 
 //////////////////////////////////////////////////////////////////////////
 // This library uses a simple system to handle asserts. Asserts are fatal and must terminate

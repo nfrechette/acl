@@ -7,6 +7,7 @@ ACL aims to support a few core algorithms that are well suited for production us
 # How to integrate the library
 
 *  [Handling asserts](handling_asserts.md)
+*  [Configuration macros](configuration_macros.md)
 *  [Implementing an allocator](implementing_an_allocator.md)
 *  [Creating a raw track list](creating_a_raw_track_list.md)
 *  [Pre-processing a raw track list](pre_processing_raw_tracks.md)
