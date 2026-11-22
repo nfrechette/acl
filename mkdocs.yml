@@ -1,0 +1,168 @@
+site_name: Animation Compression Library
+site_description: A C++11 library to compress and decompress animation data for games and realtime applications
+site_url: https://nfrechette.github.io/acl/
+repo_url: https://github.com/nfrechette/acl
+repo_name: nfrechette/acl
+edit_uri: ''
+copyright: Copyright (c) 2017 Nicholas Frechette and Animation Compression Library contributors
+
+# The pages in docs/api/ are generated: run tools/docs/generate_api_docs.py before mkdocs.
+docs_dir: docs
+site_dir: build/docs/site
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - search.highlight
+    - content.code.copy
+  palette:
+    - media: '(prefers-color-scheme: light)'
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Use the dark theme
+    - media: '(prefers-color-scheme: dark)'
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Use the light theme
+
+extra:
+  # mike writes one copy of the site for each version, and Material shows a version selector.
+  version:
+    provider: mike
+    default: latest
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences
+
+# With --strict, a page that is not in the nav or a link to a page that does not exist stops the build.
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
+  anchors: warn
+
+# A page without a title in the nav uses the title of its first heading.
+nav:
+  - Home: README.md
+  - Getting started: getting_started.md
+  - Algorithms:
+      - algorithm_uniformly_sampled.md
+  - Integration:
+      - Handling asserts: handling_asserts.md
+      - Implementing an allocator: implementing_an_allocator.md
+      - Creating a raw track list: creating_a_raw_track_list.md
+      - Pre-processing a raw track list: pre_processing_raw_tracks.md
+      - Compressing tracks: compressing_raw_tracks.md
+      - Decompressing tracks: decompressing_a_track_list.md
+      - Handling looping playback: handling_looping_playback.md
+      - Handling per track rounding: handling_per_track_rounding.md
+      - Extended samples: extended_samples.md
+      - Additive clips: additive_clips.md
+      - Error metrics: error_metrics.md
+      - Default sub-track handling: default_sub_track_handling.md
+      - Database and streaming support: database_support.md
+      - Other considerations: misc_integration_details.md
+      - Migrating from an earlier ACL version: migrating.md
+  - Performance:
+      - cmu_performance.md
+      - paragon_performance.md
+      - fight_scene_performance.md
+      - decompression_performance.md
+  - Research:
+      - research_arithmetic_accuracy.md
+  - Miscellaneous:
+      - The ACL file format: the_acl_file_format.md
+      - Rotation and vector formats: rotation_and_vector_formats.md
+      - Range reduction: range_reduction.md
+      - Performance graph generation: graph_generation.md
+  - API reference:
+      - api/index.md
+      - Configuration and version:
+          - api/version.md
+      - Core:
+          - api/core_additive_utils.md
+          - api/core_algorithm_types.md
+          - api/core_ansi_allocator.md
+          - api/core_bit_manip_utils.md
+          - api/core_bitset.md
+          - api/core_buffer_tag.md
+          - api/core_compressed_database.md
+          - api/core_compressed_tracks.md
+          - api/core_compressed_tracks_version.md
+          - api/core_enum_utils.md
+          - api/core_error_result.md
+          - api/core_floating_point_control.md
+          - api/core_floating_point_exceptions.md
+          - api/core_fwd.md
+          - api/core_hash.md
+          - api/core_iallocator.md
+          - api/core_interpolation_utils.md
+          - api/core_iterator.md
+          - api/core_memory_utils.md
+          - api/core_ptr_offset.md
+          - api/core_quality_tiers.md
+          - api/core_range_reduction_types.md
+          - api/core_sample_interpolator.md
+          - api/core_sample_looping_policy.md
+          - api/core_sample_rounding_policy.md
+          - api/core_scope_profiler.md
+          - api/core_string.md
+          - api/core_time_utils.md
+          - api/core_track_desc.md
+          - api/core_track_extended_sample.md
+          - api/core_track_formats.md
+          - api/core_track_traits.md
+          - api/core_track_types.md
+          - api/core_track_writer.md
+          - api/core_unique_ptr.md
+          - api/core_utils.md
+          - api/core_variable_bit_rates.md
+      - Compression:
+          - api/compression_compress.md
+          - api/compression_compression_level.md
+          - api/compression_compression_memory_desc.md
+          - api/compression_compression_settings.md
+          - api/compression_convert.md
+          - api/compression_fwd.md
+          - api/compression_output_stats.md
+          - api/compression_pre_process.md
+          - api/compression_track.md
+          - api/compression_track_array.md
+          - api/compression_track_error.md
+          - api/compression_transform_adapters.md
+          - api/compression_transform_base.md
+          - api/compression_transform_base_adapter.md
+          - api/compression_transform_error_metrics.md
+          - api/compression_transform_metrics.md
+          - api/compression_transform_pose_utils.md
+          - api/compression_transform_space.md
+      - Decompression:
+          - api/decompression_decompress.md
+          - api/decompression_decompression_settings.md
+      - Database:
+          - api/decompression_database_database.md
+          - api/decompression_database_database_settings.md
+          - api/decompression_database_database_streamer.md
+          - api/decompression_database_null_database_streamer.md
+      - Clip files:
+          - api/io_clip_reader.md
+          - api/io_clip_reader_error.md
+          - api/io_clip_writer.md
+      - Math:
+          - api/math_quat_packing.md
+          - api/math_quatf.md
+          - api/math_qvvf.md
+          - api/math_scalar_packing.md
+          - api/math_vector4_packing.md

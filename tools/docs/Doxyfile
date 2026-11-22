@@ -1,0 +1,61 @@
+# Doxygen configuration for the ACL API reference.
+# Doxygen writes XML only. tools/docs/generate_api_docs.py runs Doxygen from the repository root,
+# then it converts the XML to Markdown for MkDocs.
+
+PROJECT_NAME           = "Animation Compression Library"
+OUTPUT_DIRECTORY       = build/docs/doxygen
+QUIET                  = YES
+
+# The public headers only. The headers under impl/ hold the implementation details and the function bodies.
+INPUT                  = includes/acl \
+                         includes/acl/compression \
+                         includes/acl/core \
+                         includes/acl/decompression \
+                         includes/acl/decompression/database \
+                         includes/acl/io \
+                         includes/acl/math \
+                         tools/docs/acl.dox
+FILE_PATTERNS          = *.h *.dox
+RECURSIVE              = NO
+
+GENERATE_HTML          = NO
+GENERATE_LATEX         = NO
+GENERATE_XML           = YES
+XML_PROGRAMLISTING     = NO
+
+# Only the comments that start with /// are documentation.
+# The //////////// lines of a banner have more than three slashes and Doxygen ignores them.
+MARKDOWN_SUPPORT       = YES
+AUTOLINK_SUPPORT       = YES
+EXTRACT_ALL            = NO
+EXTRACT_STATIC         = YES
+EXTRACT_PRIVATE        = NO
+HIDE_UNDOC_CLASSES     = NO
+EXCLUDE_SYMBOLS        = acl_impl hash_impl memory_impl ACL_IMPL_*
+
+# Doxygen does not read the RTM headers and sees the scalar code path only.
+# The declaration macros expand to nothing. The IO headers need ACL_USE_SJSON.
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = YES
+SEARCH_INCLUDES        = NO
+PREDEFINED             = ACL_USE_SJSON \
+                         RTM_DISABLE_SECURITY_COOKIE_CHECK= \
+                         RTM_FORCE_INLINE=inline \
+                         RTM_SIMD_CALL= \
+                         RTM_NO_EXCEPT= \
+                         ACL_NO_EXCEPT= \
+                         "ACL_DEPRECATED(msg)=[[deprecated(msg)]]" \
+                         ACL_IMPL_VERSION_NAMESPACE_BEGIN= \
+                         ACL_IMPL_VERSION_NAMESPACE_END= \
+                         ACL_IMPL_FILE_PRAGMA_PUSH= \
+                         ACL_IMPL_FILE_PRAGMA_POP= \
+                         ACL_IMPL_DEPRECATION_WARNING_PUSH= \
+                         ACL_IMPL_DEPRECATION_WARNING_POP= \
+                         ACL_IMPL_DEBUG_FORCE_INLINE=inline
+
+# A public symbol without a /// comment stops the build.
+WARN_IF_UNDOCUMENTED   = YES
+WARN_IF_DOC_ERROR      = YES
+WARN_NO_PARAMDOC       = NO
+WARN_AS_ERROR          = FAIL_ON_WARNINGS

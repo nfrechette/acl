@@ -6,7 +6,7 @@ Once you have an [allocator instance](implementing_an_allocator.md), the next st
 *  The number of tracks (a track array cannot be resized)
 *  The number of samples per track (each track has the same number of samples)
 *  The rate at which samples are recorded (e.g. 30 == 30 FPS)
-*  Access to the [Realtime Math](../external/README.md) headers since its types are used by the API
+*  Access to the [Realtime Math](https://github.com/nfrechette/acl/blob/develop/external/README.md) headers since its types are used by the API
 
 ```c++
 #include <acl/compression/track_array.h>

@@ -18,6 +18,7 @@ ACL aims to support a few core algorithms that are well suited for production us
 *  [Database and streaming support](database_support.md)
 *  [Other considerations](misc_integration_details.md)
 *  [Migrating from an earlier ACL version](migrating.md)
+*  [API reference](https://nfrechette.github.io/acl/) on the documentation site
 
 See how it's integrated into Unreal Engine 4 [here](https://github.com/nfrechette/acl-ue4-plugin)!
 

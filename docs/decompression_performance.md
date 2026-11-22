@@ -1,10 +1,10 @@
 # Decompression performance
 
-In order to measure the decompression performance, the [acl_decompressor](../tools/acl_decompressor) tool is used to extract the relevant metrics and a [python script](../tools/graph_generation) is used to parse them.
+In order to measure the decompression performance, the [acl_decompressor](https://github.com/nfrechette/acl/tree/develop/tools/acl_decompressor) tool is used to extract the relevant metrics and a [python script](https://github.com/nfrechette/acl/tree/develop/tools/graph_generation) is used to parse them.
 
 Here are the clips we measure on:
 
-*  The 42 [regression clips](../test_data) from [CMU](cmu_performance.md) database
+*  The 42 [regression clips](https://github.com/nfrechette/acl/tree/develop/test_data) from [CMU](cmu_performance.md) database
 *  The 5 clips from the [Matinee fight](fight_scene_performance.md) scene
 
 Note that the data is not yet conveniently packaged.

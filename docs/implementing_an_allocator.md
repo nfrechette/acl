@@ -1,6 +1,6 @@
 # Implementing an allocator
 
-The interface is very simple and provided in [**acl/core/iallocator.h**](../includes/acl/core/iallocator.h). ACL also provides an implementation that uses the system `malloc` and `free` through [**acl/core/ansi_allocator.h**](../includes/acl/core/ansi_allocator.h). You can use it as is or for inspiration to implement your own.
+The interface is very simple and provided in [**acl/core/iallocator.h**](https://github.com/nfrechette/acl/blob/develop/includes/acl/core/iallocator.h). ACL also provides an implementation that uses the system `malloc` and `free` through [**acl/core/ansi_allocator.h**](https://github.com/nfrechette/acl/blob/develop/includes/acl/core/ansi_allocator.h). You can use it as is or for inspiration to implement your own.
 
 Only two functions are exposed and required by the interface:
 
