@@ -95,30 +95,20 @@ nav:
           - api/core_additive_utils.md
           - api/core_algorithm_types.md
           - api/core_ansi_allocator.md
-          - api/core_bit_manip_utils.md
-          - api/core_bitset.md
           - api/core_buffer_tag.md
           - api/core_compressed_database.md
           - api/core_compressed_tracks.md
           - api/core_compressed_tracks_version.md
-          - api/core_enum_utils.md
           - api/core_error_result.md
           - api/core_floating_point_control.md
-          - api/core_floating_point_exceptions.md
           - api/core_fwd.md
-          - api/core_hash.md
           - api/core_iallocator.md
           - api/core_interpolation_utils.md
-          - api/core_iterator.md
-          - api/core_memory_utils.md
-          - api/core_ptr_offset.md
           - api/core_quality_tiers.md
           - api/core_range_reduction_types.md
           - api/core_sample_interpolator.md
           - api/core_sample_looping_policy.md
           - api/core_sample_rounding_policy.md
-          - api/core_scope_profiler.md
-          - api/core_string.md
           - api/core_time_utils.md
           - api/core_track_desc.md
           - api/core_track_extended_sample.md
@@ -126,8 +116,6 @@ nav:
           - api/core_track_traits.md
           - api/core_track_types.md
           - api/core_track_writer.md
-          - api/core_unique_ptr.md
-          - api/core_utils.md
           - api/core_variable_bit_rates.md
       - Compression:
           - api/compression_compress.md
@@ -163,6 +151,20 @@ nav:
       - Math:
           - api/math_quat_packing.md
           - api/math_quatf.md
-          - api/math_qvvf.md
           - api/math_scalar_packing.md
           - api/math_vector4_packing.md
+      - Utilities:
+          - api/core_bit_manip_utils.md
+          - api/core_bitset.md
+          - api/core_enum_utils.md
+          - api/core_hash.md
+          - api/core_iterator.md
+          - api/core_memory_utils.md
+          - api/core_ptr_offset.md
+          - api/core_scope_profiler.md
+          - api/core_string.md
+          - api/core_unique_ptr.md
+      - Deprecated headers:
+          - api/core_floating_point_exceptions.md
+          - api/core_utils.md
+          - api/math_qvvf.md

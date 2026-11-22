@@ -119,7 +119,7 @@ namespace acl
 		static constexpr bool is_wrapping_supported() { return true; }
 
 		/// Whether or not to enable `sample_rounding_policy::per_track` support.
-		/// If support is disabled and that value is provided to the seek(..) function,
+		/// If support is disabled and that value is provided to the `seek(..)` function,
 		/// the runtime will assert.
 		/// See `sample_rounding_policy` for details.
 		/// Enabled by default.

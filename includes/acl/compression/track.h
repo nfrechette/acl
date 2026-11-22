@@ -66,6 +66,9 @@ namespace acl
 	class track
 	{
 	public:
+		/// \name Construction
+		/// \{
+
 		/// Creates an empty, untyped track.
 		track() noexcept;
 
@@ -77,17 +80,25 @@ namespace acl
 
 		/// Move assignment for a track.
 		track& operator=(track&& other) noexcept;
+		/// \}
+
+		/// \name Samples
+		/// \{
 
 		/// Returns a pointer to an untyped sample at the specified index.
 		void* operator[](uint32_t index);
 
 		/// Returns a pointer to an untyped sample at the specified index.
 		const void* operator[](uint32_t index) const;
+		/// \}
+
+		/// \name Properties
+		/// \{
 
 		/// Returns true if the track owns its memory, false otherwise.
 		bool is_owner() const { return m_allocator != nullptr; }
 
-		/// Returns true if the track owns its memory, false otherwise.
+		/// Returns true if the track references memory that it does not own, false otherwise.
 		bool is_ref() const { return m_allocator == nullptr; }
 
 		/// Returns true if the track doesn't contain any data, false otherwise.
@@ -141,6 +152,10 @@ namespace acl
 		/// Returns the track description.
 		template<typename desc_type>
 		const desc_type& get_description() const;
+		/// \}
+
+		/// \name Copies and validation
+		/// \{
 
 		/// Returns a copy of the track where the memory will be owned by the copy.
 		track get_copy(iallocator& allocator) const;
@@ -154,6 +169,7 @@ namespace acl
 		///    - It has a positive and finite sample rate
 		///    - A valid description
 		error_result is_valid() const;
+		/// \}
 
 	protected:
 		/// We prohibit copying, use get_copy() and get_ref() instead.
@@ -215,6 +231,9 @@ namespace acl
 	class track_typed final : public track
 	{
 	public:
+		/// \name Types and constants
+		/// \{
+
 		/// The track type.
 		static constexpr track_type8 type = track_type_;
 
@@ -229,6 +248,10 @@ namespace acl
 
 		/// The type of the track description.
 		using desc_type = typename track_traits<track_type_, track_interpolator_>::desc_type;
+		/// \}
+
+		/// \name Construction
+		/// \{
 
 		/// Constructs an empty typed track.
 		track_typed() noexcept : track(type, category, interpolator) { static_assert(sizeof(track_typed) == sizeof(track), "You cannot add member variables to this class"); }
@@ -241,6 +264,10 @@ namespace acl
 
 		/// Move assignment for a track.
 		track_typed& operator=(track_typed&& other) noexcept { return static_cast<track_typed&>(track::operator=(static_cast<track&&>(other))); }
+		/// \}
+
+		/// \name Samples
+		/// \{
 
 		/// Returns the sample at the specified index.
 		/// If this track does not own the memory, mutable references aren't allowed and an
@@ -258,6 +285,10 @@ namespace acl
 		/// Note that if the sample stride is not sizeof(sample_type) then samples
 		/// are not contiguous in memory!
 		const sample_type* get_data() const;
+		/// \}
+
+		/// \name Properties
+		/// \{
 
 		/// Returns the track description.
 		desc_type& get_description();
@@ -270,12 +301,20 @@ namespace acl
 
 		/// Returns the track category.
 		track_category8 get_category() const { return category; }
+		/// \}
+
+		/// \name Copies
+		/// \{
 
 		/// Returns a copy of the track where the memory will be owned by the copy.
 		track_typed get_copy(iallocator& allocator) const;
 
 		/// Returns a reference to the track where the memory isn't owned.
 		track_typed get_ref() const;
+		/// \}
+
+		/// \name Factory functions
+		/// \{
 
 		/// Creates a track that copies the data and owns the memory.
 		static track_typed<track_type_, track_interpolator_> make_copy(const desc_type& desc, iallocator& allocator, const sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride = sizeof(sample_type));
@@ -288,6 +327,7 @@ namespace acl
 
 		/// Creates a track that just references the data without owning it.
 		static track_typed<track_type_, track_interpolator_> make_ref(const desc_type& desc, sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride = sizeof(sample_type));
+		/// \}
 
 	private:
 		/// We prohibit copying, use get_copy() and get_ref() instead.

@@ -351,15 +351,24 @@ def write_compound(lines, entry, writer, signature_writer):
 	if description:
 		lines += [description, '']
 
-	# The overloads of a member function have one heading, at the position of the first overload
+	# The overloads of a member function have one heading, at the position of the first overload.
+	# A member group of the class ('/// \\name') is a heading, and its members go one level below it.
 	names = []
-	for _, member in entry.members:
+	sections = {}
+	for section, member in entry.members:
 		name = member.findtext('name')
 		if name not in names:
 			names.append(name)
+			sections[name] = section
 
+	current_section = None
 	for name in names:
-		lines += ['#### {}'.format(heading_of(entry.name + '::' + name)), '']
+		section = sections[name]
+		if section and section != current_section:
+			lines += ['#### {}'.format(section), '']
+		current_section = section
+		level = '#####' if section else '####'
+		lines += ['{} {}'.format(level, heading_of(entry.name + '::' + name)), '']
 		items = []
 		for _, member in entry.members:
 			if member.findtext('name') == name:

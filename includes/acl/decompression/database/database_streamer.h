@@ -113,7 +113,7 @@ namespace acl
 		/// The offset into the bulk data and the size in bytes to stream in are provided as arguments.
 		/// On the first stream in request, the bulk data can be allocated but its pointer cannot change with subsequent
 		/// stream in requests until everything has been streamed out.
-		/// Once the streaming request has been fulfilled (sync or async), call complete(..) or cancel(..) with the provided
+		/// Once the streaming request has been fulfilled (sync or async), call `complete(..)` or `cancel(..)` with the provided
 		/// request ID.
 		virtual void stream_in(uint32_t offset, uint32_t size, bool can_allocate_bulk_data, quality_tier tier, streaming_request_id request_id) = 0;
 
@@ -125,7 +125,7 @@ namespace acl
 		/// The offset into the bulk data and the size in bytes to stream out are provided as arguments.
 		/// On the last stream out request, the bulk data can be deallocated. It will be allocated again
 		/// if the data streams back in.
-		/// Once the streaming request has been fulfilled (sync or async), call complete(..) or cancel(..) with the provided
+		/// Once the streaming request has been fulfilled (sync or async), call `complete(..)` or `cancel(..)` with the provided
 		/// request ID.
 		///
 		/// A stream out request CANNOT be canceled!

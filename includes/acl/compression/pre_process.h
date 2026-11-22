@@ -180,6 +180,7 @@ namespace acl
 		/// The base of the track list, if any. See `transform_base_desc_t`.
 		/// Pre-processing uses the transform space of the track list, see `track_array::get_transform_space`.
 		/// Use the same value as for compression.
+		///
 		/// Defaults to no base.
 		/// Lossy pre-processing only
 		/// Transform tracks only

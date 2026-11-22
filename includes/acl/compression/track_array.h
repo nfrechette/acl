@@ -57,6 +57,9 @@ namespace acl
 	class track_array
 	{
 	public:
+		/// \name Construction
+		/// \{
+
 		/// Constructs an empty track array.
 		track_array() noexcept;
 
@@ -72,6 +75,10 @@ namespace acl
 
 		/// Move assignment for a track array.
 		track_array& operator=(track_array&& other) noexcept;
+		/// \}
+
+		/// \name Properties
+		/// \{
 
 		/// Returns a pointer to the allocator instance or nullptr if there is none present.
 		iallocator* get_allocator() const { return m_allocator; }
@@ -116,6 +123,7 @@ namespace acl
 		/// Returns the space of the transform tracks, see `transform_space_t`.
 		/// Compression uses it to measure the error in object space.
 		/// Scalar tracks do not use it.
+		///
 		/// Defaults to `local`.
 		transform_space_t get_transform_space() const { return m_transform_space; }
 
@@ -131,6 +139,7 @@ namespace acl
 		/// The precision, the error, and the keyframe stripping threshold are in playback units.
 		/// The shell distance stays in the units of the clip.
 		/// Scalar tracks do not use it.
+		///
 		/// Defaults to 1.0.
 		float get_playback_scale() const { return m_playback_scale; }
 
@@ -151,6 +160,10 @@ namespace acl
 
 		/// Returns the looping policy.
 		sample_looping_policy get_looping_policy() const { return m_looping_policy; }
+		/// \}
+
+		/// \name Tracks
+		/// \{
 
 		/// Returns the track at the specified index.
 		track& operator[](uint32_t index);
@@ -172,6 +185,10 @@ namespace acl
 
 		/// Returns true if the track array doesn't contain any data, false otherwise.
 		bool is_empty() const { return m_num_tracks == 0; }
+		/// \}
+
+		/// \name Validation and sampling
+		/// \{
 
 		/// Returns whether a track array is valid or not.
 		/// An array is valid if:
@@ -199,6 +216,7 @@ namespace acl
 		/// memory used by an instance of this class. It is meant for comparison against
 		/// the compressed size.
 		uint32_t get_raw_size() const;
+		/// \}
 
 	protected:
 		/// We prohibit copying
@@ -223,6 +241,9 @@ namespace acl
 	class track_array_typed final : public track_array
 	{
 	public:
+		/// \name Types and constants
+		/// \{
+
 		/// The track type.
 		static constexpr track_type8 type = track_type_;
 
@@ -234,6 +255,10 @@ namespace acl
 
 		/// The track member type.
 		using track_member_type = track_typed<track_type_, track_interpolator_>;
+		/// \}
+
+		/// \name Construction
+		/// \{
 
 		/// Constructs an empty track array.
 		track_array_typed() noexcept : track_array() { static_assert(sizeof(track_array_typed) == sizeof(track_array), "You cannot add member variables to this class"); }
@@ -256,12 +281,20 @@ namespace acl
 
 		/// Move assignment for a track array.
 		track_array_typed& operator=(track_array_typed&& other) noexcept { return static_cast<track_array_typed&>(track_array::operator=(static_cast<track_array&&>(other))); }
+		/// \}
+
+		/// \name Properties
+		/// \{
 
 		/// Returns the track type for tracks in this array.
 		track_type8 get_track_type() const { return type; }
 
 		/// Returns the track category for tracks in this array.
 		track_category8 get_track_category() const { return category; }
+		/// \}
+
+		/// \name Tracks
+		/// \{
 
 		/// Returns the track at the specified index.
 		track_member_type& operator[](uint32_t index);
@@ -280,6 +313,7 @@ namespace acl
 
 		/// Returns a pointer past the last track.
 		const track_member_type* end() const { return track_cast<track_member_type>(m_tracks) + m_num_tracks; }
+		/// \}
 	};
 
 	/// Casts an untyped track array into the desired track array type while asserting for safety.

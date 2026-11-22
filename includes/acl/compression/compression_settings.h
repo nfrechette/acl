@@ -66,10 +66,12 @@ namespace acl
 		/// Note that only movable frames can end up in the database as some frames must remain
 		/// within the compressed track instance. A frame is movable if it isn't the first or last
 		/// frame of its segment.
+		///
 		/// Defaults to `0.0` (the medium importance tier is empty)
 		float medium_importance_tier_proportion = 0.0F;
 
-		/// See above for details.
+		/// See `medium_importance_tier_proportion` for details.
+		///
 		/// Defaults to `0.5` (the least important 50% of frames are moved to the database)
 		float low_importance_tier_proportion = 0.5F;
 
@@ -77,7 +79,8 @@ namespace acl
 		/// This value must be at least 4 KB and ideally it should be a multiple of
 		/// the virtual memory page size used on the platform that will decompress
 		/// from the database.
-		/// Defaults to '1 MB'
+		///
+		/// Defaults to 1 MB.
 		uint32_t max_chunk_size = 1 * 1024 * 1024;
 
 		/// Calculates a hash from the internal state to uniquely identify a configuration.
@@ -92,20 +95,24 @@ namespace acl
 	struct compression_metadata_settings
 	{
 		/// Whether to include the optional metadata for the track list name
+		///
 		/// Defaults to `false`
 		bool include_track_list_name = false;
 
 		/// Whether to include the optional metadata for track names
+		///
 		/// Defaults to `false`
 		bool include_track_names = false;
 
 		/// Whether to include the optional metadata for parent track indices
 		/// Transform tracks only
+		///
 		/// Defaults to `false`
 		bool include_parent_track_indices = false;
 
 		/// Whether to include the optional metadata for track descriptions
 		/// For transforms, also enables the parent track indices metadata
+		///
 		/// Defaults to `false`
 		bool include_track_descriptions = false;
 
@@ -114,6 +121,7 @@ namespace acl
 		/// This is required when the compressed tracks will later be merged into
 		/// a database.
 		/// Transform tracks only
+		///
 		/// Defaults to `false`
 		bool include_contributing_error = false;
 
@@ -153,11 +161,13 @@ namespace acl
 		/// Keyframe stripping is enabled when either `proportion` or `threshold`
 		/// or both are enabled.
 		/// See [compression_keyframe_stripping_settings] for details.
+		///
 		/// Defaults to `false`
 		bool is_enabled() const;
 
 		/// The minimum proportion of keyframes that should be stripped.
 		/// Proportion value must be between 0.0 and 1.0.
+		///
 		/// Defaults to `0.0` (no stripping)
 		float proportion = 0.0F;
 
@@ -166,6 +176,7 @@ namespace acl
 		/// be removed. Keyframes that contribute more error than the threshold
 		/// are retained.
 		/// The threshold is in playback units, as the precision: see `track_array::get_playback_scale`.
+		///
 		/// Defaults to `0.0` centimeters (no stripping)
 		float threshold = 0.0F;
 
@@ -192,33 +203,44 @@ namespace acl
 	/// Encapsulates all the compression settings.
 	struct compression_settings
 	{
+		/// \name Level and formats
+		/// \{
+
 		/// The compression level determines how aggressively we attempt to reduce the memory
 		/// footprint. Higher levels will try more permutations and bit rates. The higher
 		/// the level, the slower the compression but the smaller the memory footprint.
 		/// Transform tracks only.
 		compression_level8 level = compression_level8::low;
 
-		/// The rotation, translation, and scale formats to use. See functions get_rotation_format(..) and get_vector_format(..)
+		/// The rotation, translation, and scale formats to use. See functions `get_rotation_format(..)` and `get_vector_format(..)`
+		///
 		/// Defaults to raw: `quatf_full` and `vector3f_full`
 		/// Transform tracks only.
 		rotation_format8 rotation_format = rotation_format8::quatf_full;
 
-		/// The rotation, translation, and scale formats to use. See functions get_rotation_format(..) and get_vector_format(..)
+		/// The rotation, translation, and scale formats to use. See functions `get_rotation_format(..)` and `get_vector_format(..)`
+		///
 		/// Defaults to raw: `quatf_full` and `vector3f_full`
 		/// Transform tracks only.
 		vector_format8 translation_format = vector_format8::vector3f_full;
 
-		/// The rotation, translation, and scale formats to use. See functions get_rotation_format(..) and get_vector_format(..)
+		/// The rotation, translation, and scale formats to use. See functions `get_rotation_format(..)` and `get_vector_format(..)`
+		///
 		/// Defaults to raw: `quatf_full` and `vector3f_full`
 		/// Transform tracks only.
 		vector_format8 scale_format = vector_format8::vector3f_full;
 
-		/// The format of the scalar track samples. See functions get_scalar_format(..)
+		/// The format of the scalar track samples. See functions `get_scalar_format(..)`
 		/// With `scalarf_full`, each animated track keeps its samples with full precision.
 		/// With `scalarf_variable`, each animated track uses the lowest bit rate that keeps its precision.
+		///
 		/// Defaults to raw: `scalarf_full`
 		/// Scalar tracks only.
 		scalar_format8 scalar_format = scalar_format8::scalarf_full;
+		/// \}
+
+		/// \name Error measurement
+		/// \{
 
 		/// The runtime transform type: the type that compression uses to compose
 		/// transforms into object space and to measure the error. Select the type that
@@ -233,12 +255,14 @@ namespace acl
 		///    - `vqmf` otherwise: it keeps the shear and gives exact object space transforms
 		/// With `custom`, compression uses `custom_transform_adapter`.
 		/// You can select `vqsf` only with `vqsf` raw tracks.
+		///
 		/// Defaults to `automatic`.
 		/// Transform tracks only.
 		transform_runtime_type_t transform_runtime_type = transform_runtime_type_t::automatic;
 
 		/// The transform adapter of your own runtime transform type.
 		/// Set it only with the `custom` runtime transform type.
+		///
 		/// Defaults to `null`.
 		/// Transform tracks only.
 		itransform_adapter* custom_transform_adapter = nullptr;
@@ -248,6 +272,7 @@ namespace acl
 		///    - `precise_transform_metric` with `vqf` and `vqsf`: it gives the exact error
 		///    - `shell_transform_metric` with the other types: it measures points on the rigid shell
 		/// The metric must support the runtime transform type of the clip, see `itransform_metric::is_supported`.
+		///
 		/// Defaults to `null`.
 		/// Transform tracks only.
 		itransform_metric* transform_metric = nullptr;
@@ -258,10 +283,15 @@ namespace acl
 		/// The legacy error metric to use. It combines the runtime transform type and the error measurement.
 		/// When it is not `null`, compression uses it and you cannot set `transform_runtime_type`,
 		/// `custom_transform_adapter`, or `transform_metric`.
+		///
 		/// Defaults to `null`.
 		/// Transform tracks only.
 		ACL_DEPRECATED("Use transform_runtime_type, custom_transform_adapter, and transform_metric instead, to be removed in v2.3")
 		itransform_error_metric* error_metric = nullptr;
+		/// \}
+
+		/// \name Optional features
+		/// \{
 
 		/// Whether or not to enable database support on the output compressed clip.
 		/// This enables the required metadata which will later be stripped once
@@ -281,12 +311,17 @@ namespace acl
 
 		/// These are optional metadata that can be added to compressed clips.
 		compression_metadata_settings metadata;
+		/// \}
+
+		/// \name Hash and validation
+		/// \{
 
 		/// Calculates a hash from the internal state to uniquely identify a configuration.
 		uint32_t get_hash() const;
 
 		/// Checks if everything is valid and if it isn't, returns an error string.
 		error_result is_valid() const;
+		/// \}
 	};
 
 	/// Returns raw compression settings. No compression is performed and

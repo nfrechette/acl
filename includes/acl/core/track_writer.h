@@ -87,7 +87,7 @@ namespace acl
 		/// and provide `sample_rounding_policy::per_track` to the seek function.
 		/// This function is called when the decompression settings enable the feature.
 		/// If per track rounding isn't used, this function must return the seek policy
-		/// provided as an argument (the one passed to the seek(..) function).
+		/// provided as an argument (the one passed to the `seek(..)` function).
 		/// If per track rounding is specified when seeking, this function must return a
 		/// valid per track value.
 		/// This function cannot return the `per_track` value. Doing so will assert at runtime.

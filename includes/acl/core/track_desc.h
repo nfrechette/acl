@@ -60,6 +60,7 @@ namespace acl
 		/// If the error is below the precision threshold, we will remove bits until we reach it without
 		/// exceeding it. If the error is above the precision threshold, we will add more bits until
 		/// we lower it underneath.
+		///
 		/// Defaults to `0.00001`
 		float precision = 0.00001F;
 
@@ -111,10 +112,12 @@ namespace acl
 		/// exceeding it. If the error is above the precision threshold, we will add more bits until
 		/// we lower it underneath.
 		/// Note that you will need to change this value if your units are not in centimeters.
+		///
 		/// Defaults to `0.01` centimeters
 		float precision = 0.01F;
 
 		/// The error is measured on a rigidly deformed shell around every transform at the specified distance.
+		///
 		/// Defaults to `3.0` centimeters
 		float shell_distance = 3.0F;
 
@@ -125,12 +128,14 @@ namespace acl
 		/// See the rtm::quatf quat_near_identity for details about how the default threshold
 		/// was chosen. You will typically NEVER need to change this, the value has been
 		/// selected to be as safe as possible and is independent of game engine units.
+		///
 		/// Defaults to `0.00284714461` radians
 		ACL_DEPRECATED("Replaced by error metric, to be removed in v3.0")
 		float constant_rotation_threshold_angle = 0.00284714461F;
 
 		/// Threshold value to use when detecting if translation tracks are constant or default.
 		/// Note that you will need to change this value if your units are not in centimeters.
+		///
 		/// Defaults to `0.001` centimeters.
 		ACL_DEPRECATED("Replaced by error metric, to be removed in v3.0")
 		float constant_translation_threshold = 0.001F;
@@ -138,6 +143,7 @@ namespace acl
 		/// Threshold value to use when detecting if scale tracks are constant or default.
 		/// There are no units for scale as such a value that was deemed safe was selected
 		/// as a default.
+		///
 		/// Defaults to `0.00001`
 		ACL_DEPRECATED("Replaced by error metric, to be removed in v3.0")
 		float constant_scale_threshold = 0.00001F;

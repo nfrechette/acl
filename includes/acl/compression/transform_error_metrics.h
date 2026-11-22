@@ -84,6 +84,9 @@ namespace acl
 	public:
 		virtual ~itransform_error_metric() = default;
 
+		/// \name Properties
+		/// \{
+
 		/// Returns the unique name of the error metric.
 		virtual const char* get_name() const = 0;
 
@@ -101,6 +104,7 @@ namespace acl
 		/// Whether or not this error metric supports the new bit rate algorithm v2
 		/// See: [Bit Rate Optimization Algorithm]
 		virtual bool supports_bit_rate_algorithm_v2() const { return false; }
+		/// \}
 
 		/// Input arguments for the `convert_transforms*` functions.
 		struct convert_transforms_args
@@ -129,6 +133,9 @@ namespace acl
 			bool is_additive_base;
 		};
 
+		/// \name Conversion
+		/// \{
+
 		/// Converts from rtm::vqvf into the transform type used by the error metric.
 		/// Called when `needs_conversion` returns true.
 		virtual void convert_transforms(const convert_transforms_args& args, void* out_transforms) const
@@ -146,6 +153,7 @@ namespace acl
 			(void)out_transforms;
 			ACL_ASSERT(false, "Not implemented");
 		}
+		/// \}
 
 		/// Input arguments for the `local_to_object_space*` functions.
 		struct local_to_object_space_args
@@ -167,6 +175,9 @@ namespace acl
 			uint32_t num_transforms;
 		};
 
+		/// \name Object space
+		/// \{
+
 		/// Takes local space transforms into object space.
 		virtual void local_to_object_space(const local_to_object_space_args& args, void* out_object_transforms) const
 		{
@@ -182,6 +193,7 @@ namespace acl
 			(void)out_object_transforms;
 			ACL_ASSERT(false, "Not implemented");
 		}
+		/// \}
 
 		/// Input arguments for the `apply_additive_to_base*` functions.
 		struct apply_additive_to_base_args
@@ -201,6 +213,9 @@ namespace acl
 			/// The number of transforms in the input and output buffers.
 			uint32_t num_transforms;
 		};
+
+		/// \name Additive base
+		/// \{
 
 		/// Applies local space transforms on top of base transforms.
 		/// This is called when a clip has an additive base.
@@ -223,6 +238,7 @@ namespace acl
 			(void)out_transforms;
 			ACL_ASSERT(false, "Not implemented");
 		}
+		/// \}
 
 		/// Input arguments for the `calculate_error*` functions.
 		struct calculate_error_args
@@ -300,6 +316,9 @@ namespace acl
 			}
 		};
 
+		/// \name Error
+		/// \{
+
 		/// Measures the error between a raw and lossy transform.
 		rtm::scalarf RTM_SIMD_CALL calculate_error(const calculate_error_args& args) const
 		{
@@ -317,6 +336,7 @@ namespace acl
 
 		/// Measures the squared error between a raw and lossy transform.
 		virtual rtm::scalarf RTM_SIMD_CALL calculate_error_squared_no_scale(const calculate_error_args& args) const = 0;
+		/// \}
 	};
 
 	/// Uses rtm::vqvf arithmetic for local and object space error.

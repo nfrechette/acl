@@ -52,6 +52,7 @@ namespace acl
 	{
 		/// How a sample combines with the base, see `additive_clip_format8`.
 		/// With `none`, the clip has no base and `tracks` must be null.
+		///
 		/// Defaults to `none`.
 		additive_clip_format8 format = additive_clip_format8::none;
 
@@ -64,6 +65,7 @@ namespace acl
 		/// The base can have a different transform type and a different number of samples than the clip.
 		/// A clip sample uses the base sample at the same normalized time, rounded to the nearest sample.
 		/// Required when `format` is not `none`. The caller owns the base.
+		///
 		/// Defaults to null.
 		const track_array* tracks = nullptr;
 
@@ -72,6 +74,7 @@ namespace acl
 		/// The base adapter receives the base in the transform space of the clip.
 		/// The legacy error metric (`compression_settings::error_metric`) does not support it.
 		/// The caller owns the base adapter.
+		///
 		/// Defaults to null.
 		const itransform_base_adapter_t* adapter = nullptr;
 

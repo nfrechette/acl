@@ -67,6 +67,7 @@ namespace acl
 		/// A track without scale (for example, a `vqf` track) gives this scale to each of its samples.
 		/// Decompression returns this scale when the compressed tracks have no scale.
 		/// The compressed data keeps one bit for the default scale, thus other values are not valid.
+		///
 		/// Defaults to 1.0.
 		virtual float get_default_scale() const { return 1.0F; }
 

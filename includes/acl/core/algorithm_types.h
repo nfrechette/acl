@@ -85,7 +85,7 @@ namespace acl
 
 	/// Returns true if the algorithm type was properly parsed from an input string.
 	///
-	/// \param type A string representing the algorithm name to parse. It must match the get_algorithm_name(..) output.
+	/// \param type A string representing the algorithm name to parse. It must match the `get_algorithm_name(..)` output.
 	/// \param out_type On success, it will contain the the parsed algorithm type otherwise it is left untouched.
 	inline bool get_algorithm_type(const char* type, algorithm_type8& out_type)
 	{
