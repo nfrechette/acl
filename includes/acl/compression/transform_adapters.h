@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The interface of a transform adapter, and the built-in adapters of the runtime transform types.
+
 #include "acl/version.h"
 #include "acl/core/error.h"
 #include "acl/core/hash.h"
@@ -51,136 +54,111 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-	//////////////////////////////////////////////////////////////////////////
-	// The transform types that compression uses at runtime to compose transforms
-	// and to measure the error.
-	// The runtime type is not the type of the raw tracks: compression converts
-	// each rtm::vqvf source transform into the runtime type.
+	/// The transform types that compression uses at runtime to compose transforms
+	/// and to measure the error.
+	/// The runtime type is not the type of the raw tracks: compression converts
+	/// each rtm::vqvf source transform into the runtime type.
 	enum class transform_runtime_type_t : uint8_t
 	{
-		//////////////////////////////////////////////////////////////////////////
-		// A transform type that ACL does not know.
-		// ACL uses this transform type only through the functions of its transform adapter.
+		/// A transform type that ACL does not know.
+		/// ACL uses this transform type only through the functions of its transform adapter.
 		custom		= 0,
 
-		//////////////////////////////////////////////////////////////////////////
-		// A rotation and a translation, stored as rtm::vqvf. The scale is not used.
-		// The product of two VQ transforms is exact and associative.
+		/// A rotation and a translation, stored as rtm::vqvf. The scale is not used.
+		/// The product of two VQ transforms is exact and associative.
 		vqf			= 1,
 
-		//////////////////////////////////////////////////////////////////////////
-		// A rotation, a translation, and a uniform scale, stored as rtm::vqsf.
-		// The product of two VQS transforms is exact and associative: a uniform scale creates no shear.
+		/// A rotation, a translation, and a uniform scale, stored as rtm::vqsf.
+		/// The product of two VQS transforms is exact and associative: a uniform scale creates no shear.
 		vqsf		= 2,
 
-		//////////////////////////////////////////////////////////////////////////
-		// A rotation, a translation, and a 3D scale, stored as rtm::vqvf.
-		// The product of two VQV transforms discards the shear. Thus the product is not associative.
+		/// A rotation, a translation, and a 3D scale, stored as rtm::vqvf.
+		/// The product of two VQV transforms discards the shear. Thus the product is not associative.
 		vqvf		= 3,
 
-		//////////////////////////////////////////////////////////////////////////
-		// A rotation, a translation, and a 3x3 scale/shear matrix, stored as rtm::vqmf.
-		// The product of two VQM transforms keeps the shear. Thus the product is exact and associative.
+		/// A rotation, a translation, and a 3x3 scale/shear matrix, stored as rtm::vqmf.
+		/// The product of two VQM transforms keeps the shear. Thus the product is exact and associative.
 		vqmf		= 4,
 
-		//////////////////////////////////////////////////////////////////////////
-		// A 3x4 affine matrix, stored as rtm::matrix3x4f.
-		// The product of two matrices keeps the shear. Thus the product is exact and associative.
+		/// A 3x4 affine matrix, stored as rtm::matrix3x4f.
+		/// The product of two matrices keeps the shear. Thus the product is exact and associative.
 		matrix3x4f	= 5,
 
-		//////////////////////////////////////////////////////////////////////////
-		// For the compression settings only: compression selects the runtime transform type
-		// from the raw tracks. See 'compression_settings::transform_runtime_type'.
-		// A transform adapter never returns this value.
+		/// For the compression settings only: compression selects the runtime transform type
+		/// from the raw tracks. See `compression_settings::transform_runtime_type`.
+		/// A transform adapter never returns this value.
 		automatic	= 6,
 	};
 
-	//////////////////////////////////////////////////////////////////////////
-	// Interface for all transform adapters.
-	// A transform adapter gives the operations of a runtime transform type to compression.
-	// Compression uses them to put the transforms in object space and to measure the error:
-	//    - converting from rtm::vqvf into the runtime transform type
-	//    - the identity transform and the product of two transforms
-	//    - taking local space transforms into object space
-	//    - transforming points
-	//
-	// The functions use the runtime transform type through 'void' pointers.
-	// The runtime transform type must have an alignment of 16 bytes or less.
-	//
-	// ACL calls these functions in the inner loops of compression. Thus most functions
-	// take a list of transforms, to keep the number of virtual function calls low.
-	//////////////////////////////////////////////////////////////////////////
+	/// Interface for all transform adapters.
+	/// A transform adapter gives the operations of a runtime transform type to compression.
+	/// Compression uses them to put the transforms in object space and to measure the error:
+	///    - converting from rtm::vqvf into the runtime transform type
+	///    - the identity transform and the product of two transforms
+	///    - taking local space transforms into object space
+	///    - transforming points
+	///
+	/// The functions use the runtime transform type through `void` pointers.
+	/// The runtime transform type must have an alignment of 16 bytes or less.
+	///
+	/// ACL calls these functions in the inner loops of compression. Thus most functions
+	/// take a list of transforms, to keep the number of virtual function calls low.
 	class itransform_adapter
 	{
 	public:
 		virtual ~itransform_adapter() = default;
 
-		//////////////////////////////////////////////////////////////////////////
-		// Returns the unique name of the transform adapter.
+		/// Returns the unique name of the transform adapter.
 		virtual const char* get_name() const = 0;
 
-		//////////////////////////////////////////////////////////////////////////
-		// Returns a unique hash to represent the transform adapter.
+		/// Returns a unique hash to represent the transform adapter.
 		virtual uint32_t get_hash() const { return hash32(get_name()); }
 
-		//////////////////////////////////////////////////////////////////////////
-		// Returns the runtime transform type of the adapter.
-		// A custom transform adapter returns 'custom'.
+		/// Returns the runtime transform type of the adapter.
+		/// A custom transform adapter returns `custom`.
 		virtual transform_runtime_type_t get_type() const { return transform_runtime_type_t::custom; }
 
-		//////////////////////////////////////////////////////////////////////////
-		// Returns the size in bytes of the runtime transform type.
+		/// Returns the size in bytes of the runtime transform type.
 		virtual size_t get_transform_size() const = 0;
 
-		//////////////////////////////////////////////////////////////////////////
-		// Returns whether or not the product of two transforms is associative.
-		// When it is, compression can keep object space transforms and update only what changes.
-		// When it is not, compression must multiply the full chain of transforms from the root.
+		/// Returns whether or not the product of two transforms is associative.
+		/// When it is, compression can keep object space transforms and update only what changes.
+		/// When it is not, compression must multiply the full chain of transforms from the root.
 		virtual bool is_associative() const = 0;
 
-		//////////////////////////////////////////////////////////////////////////
-		// Returns whether or not the runtime transform type is different from rtm::vqvf.
-		// When it is not, compression uses the rtm::vqvf transforms directly and does not
-		// call 'convert_transforms'.
+		/// Returns whether or not the runtime transform type is different from rtm::vqvf.
+		/// When it is not, compression uses the rtm::vqvf transforms directly and does not
+		/// call `convert_transforms`.
 		virtual bool needs_conversion() const { return true; }
 
-		//////////////////////////////////////////////////////////////////////////
-		// Input arguments for the 'convert_transforms' function.
-		//////////////////////////////////////////////////////////////////////////
+		/// Input arguments for the `convert_transforms` function.
 		struct convert_transforms_args
 		{
-			//////////////////////////////////////////////////////////////////////////
-			// A list of transform indices that are dirty and need conversion.
+			/// A list of transform indices that are dirty and need conversion.
 			const uint32_t* dirty_transform_indices;
 
-			//////////////////////////////////////////////////////////////////////////
-			// The number of dirty transforms that need conversion.
+			/// The number of dirty transforms that need conversion.
 			uint32_t num_dirty_transforms;
 
-			//////////////////////////////////////////////////////////////////////////
-			// The input transforms in rtm::vqvf format to be converted.
+			/// The input transforms in rtm::vqvf format to be converted.
 			const rtm::vqvf* transforms;
 
-			//////////////////////////////////////////////////////////////////////////
-			// The number of transforms in the input and output buffers.
+			/// The number of transforms in the input and output buffers.
 			uint32_t num_transforms;
 
-			//////////////////////////////////////////////////////////////////////////
-			// The index in the clip of the sample these transforms come from.
-			// The sample time is 'sample_index / sample_rate', clamped to the clip duration.
+			/// The index in the clip of the sample these transforms come from.
+			/// The sample time is 'sample_index / sample_rate', clamped to the clip duration.
 			uint32_t sample_index;
 
-			//////////////////////////////////////////////////////////////////////////
-			// True if these transforms come from the lossy data that compression tests.
-			// False if these transforms come from the raw data.
-			// A transform adapter can use it with data that compression does not see: for example,
-			// a value that you compress in another track and that you add to the lossy transforms only.
+			/// True if these transforms come from the lossy data that compression tests.
+			/// False if these transforms come from the raw data.
+			/// A transform adapter can use it with data that compression does not see: for example,
+			/// a value that you compress in another track and that you add to the lossy transforms only.
 			bool is_lossy;
 		};
 
-		//////////////////////////////////////////////////////////////////////////
-		// Converts from rtm::vqvf into the runtime transform type.
-		// Called when 'needs_conversion' returns true.
+		/// Converts from rtm::vqvf into the runtime transform type.
+		/// Called when `needs_conversion` returns true.
 		virtual void convert_transforms(const convert_transforms_args& args, void* out_transforms) const
 		{
 			(void)args;
@@ -188,48 +166,38 @@ namespace acl
 			ACL_ASSERT(false, "Not implemented");
 		}
 
-		//////////////////////////////////////////////////////////////////////////
-		// Writes the identity transform.
+		/// Writes the identity transform.
 		virtual void identity(void* out_transform) const = 0;
 
-		//////////////////////////////////////////////////////////////////////////
-		// Multiplies two transforms and writes the result.
-		// Multiplication order is as follow: local_to_world = mul(local_to_object, object_to_world)
-		// The output can be one of the inputs.
+		/// Multiplies two transforms and writes the result.
+		/// Multiplication order is as follow: local_to_world = mul(local_to_object, object_to_world)
+		/// The output can be one of the inputs.
 		virtual void mul(const void* lhs, const void* rhs, void* out_transform) const = 0;
 
-		//////////////////////////////////////////////////////////////////////////
-		// Input arguments for the 'local_to_object_space' function.
-		//////////////////////////////////////////////////////////////////////////
+		/// Input arguments for the `local_to_object_space` function.
 		struct local_to_object_space_args
 		{
-			//////////////////////////////////////////////////////////////////////////
-			// A list of transform indices that are dirty and need transformation.
-			// A parent transform comes before its children in the list.
+			/// A list of transform indices that are dirty and need transformation.
+			/// A parent transform comes before its children in the list.
 			const uint32_t* dirty_transform_indices;
 
-			//////////////////////////////////////////////////////////////////////////
-			// The number of dirty transforms that need transformation.
+			/// The number of dirty transforms that need transformation.
 			uint32_t num_dirty_transforms;
 
-			//////////////////////////////////////////////////////////////////////////
-			// A list of parent transform indices for every transform.
-			// An index of 'k_invalid_track_index' represents a root transform with no parent.
+			/// A list of parent transform indices for every transform.
+			/// An index of `k_invalid_track_index` represents a root transform with no parent.
 			const uint32_t* parent_transform_indices;
 
-			//////////////////////////////////////////////////////////////////////////
-			// The input local space transforms in the runtime transform type.
+			/// The input local space transforms in the runtime transform type.
 			const void* local_transforms;
 
-			//////////////////////////////////////////////////////////////////////////
-			// The number of transforms in the input and output buffers.
+			/// The number of transforms in the input and output buffers.
 			uint32_t num_transforms;
 		};
 
-		//////////////////////////////////////////////////////////////////////////
-		// Takes local space transforms into object space.
-		// The object space transform of a root is its local space transform.
-		// The default implementation uses 'mul'. A transform adapter can replace it with a faster version.
+		/// Takes local space transforms into object space.
+		/// The object space transform of a root is its local space transform.
+		/// The default implementation uses `mul`. A transform adapter can replace it with a faster version.
 		virtual void local_to_object_space(const local_to_object_space_args& args, void* out_object_transforms) const
 		{
 			const uint32_t* dirty_transform_indices = args.dirty_transform_indices;
@@ -254,9 +222,8 @@ namespace acl
 			}
 		}
 
-		//////////////////////////////////////////////////////////////////////////
-		// Multiplies a transform and four 3D points stored transposed.
-		// Multiplication order is as follow: world_position = mul_point3_x4(local_position, local_to_world)
+		/// Multiplies a transform and four 3D points stored transposed.
+		/// Multiplication order is as follow: world_position = mul_point3_x4(local_position, local_to_world)
 		virtual void RTM_SIMD_CALL mul_point3_x4(
 			rtm::vector4f_arg0 point_xxxx, rtm::vector4f_arg1 point_yyyy, rtm::vector4f_arg2 point_zzzz,
 			const void* transform,
@@ -265,7 +232,7 @@ namespace acl
 
 	namespace acl_impl
 	{
-		//////////////////////////////////////////////////////////////////////////
+		// ///////////////////////////////////////////////////////////////////////
 		// The math of each built-in runtime transform type.
 		// Compression uses these types directly when it knows the transform type,
 		// and through the built-in transform adapters otherwise.
@@ -274,9 +241,8 @@ namespace acl
 		//    - 'get_type()' and 'is_associative()'
 		//    - 'identity()', 'from_vqv(..)', 'mul(..)', and 'mul_point3_x4(..)'
 		//    - 'supports_mesh_rotation()' and 'mul_mesh_rotation(..)', see 'transform_space_t::mesh_rotation'
-		//////////////////////////////////////////////////////////////////////////
+		// ///////////////////////////////////////////////////////////////////////
 
-		//////////////////////////////////////////////////////////////////////////
 		// Returns the object transform of a transform in the mesh rotation space.
 		// The rotation of 'transform' is in object space, its translation and scale are relative to its parent.
 		// We remove the parent object rotation from the rotation, then we multiply as in local space.
@@ -294,7 +260,6 @@ namespace acl
 			return result;
 		}
 
-		//////////////////////////////////////////////////////////////////////////
 		// VQ math: we use rtm::vqvf and we do not use the scale.
 		struct vq_transform_math
 		{
@@ -319,7 +284,6 @@ namespace acl
 			}
 		};
 
-		//////////////////////////////////////////////////////////////////////////
 		// VQS math: we use rtm::vqsf, the uniform scale comes from the X component of the rtm::vqvf scale.
 		struct vqs_transform_math
 		{
@@ -348,7 +312,6 @@ namespace acl
 			}
 		};
 
-		//////////////////////////////////////////////////////////////////////////
 		// VQV math: we use rtm::vqvf, the product discards the shear.
 		struct vqv_transform_math
 		{
@@ -373,7 +336,6 @@ namespace acl
 			}
 		};
 
-		//////////////////////////////////////////////////////////////////////////
 		// VQM math: we use rtm::vqmf, the product keeps the shear.
 		struct vqm_transform_math
 		{
@@ -399,7 +361,6 @@ namespace acl
 			}
 		};
 
-		//////////////////////////////////////////////////////////////////////////
 		// Matrix math: we use rtm::matrix3x4f, the product keeps the shear.
 		struct matrix3x4_transform_math
 		{
@@ -427,7 +388,6 @@ namespace acl
 			}
 		};
 
-		//////////////////////////////////////////////////////////////////////////
 		// Implements the transform adapter interface with the math of a built-in runtime transform type.
 		template<class transform_math_type>
 		class builtin_transform_adapter : public itransform_adapter
@@ -495,50 +455,40 @@ namespace acl
 		};
 	}
 
-	//////////////////////////////////////////////////////////////////////////
-	// The transform adapter for VQ transforms: a rotation and a translation.
-	// It uses rtm::vqvf and it does not use the scale. Compression uses it when a clip has no scale.
-	//////////////////////////////////////////////////////////////////////////
+	/// The transform adapter for VQ transforms: a rotation and a translation.
+	/// It uses rtm::vqvf and it does not use the scale. Compression uses it when a clip has no scale.
 	class vqf_transform_adapter final : public acl_impl::builtin_transform_adapter<acl_impl::vq_transform_math>
 	{
 	public:
 		virtual const char* get_name() const override { return "vqf_transform_adapter"; }
 	};
 
-	//////////////////////////////////////////////////////////////////////////
-	// The transform adapter for VQS transforms: a rotation, a translation, and a uniform scale.
-	// It uses rtm::vqsf. The source transforms must have a uniform scale.
-	//////////////////////////////////////////////////////////////////////////
+	/// The transform adapter for VQS transforms: a rotation, a translation, and a uniform scale.
+	/// It uses rtm::vqsf. The source transforms must have a uniform scale.
 	class vqsf_transform_adapter final : public acl_impl::builtin_transform_adapter<acl_impl::vqs_transform_math>
 	{
 	public:
 		virtual const char* get_name() const override { return "vqsf_transform_adapter"; }
 	};
 
-	//////////////////////////////////////////////////////////////////////////
-	// The transform adapter for VQV transforms: a rotation, a translation, and a 3D scale.
-	// It uses rtm::vqvf. The product discards the shear, as in many game engines.
-	//////////////////////////////////////////////////////////////////////////
+	/// The transform adapter for VQV transforms: a rotation, a translation, and a 3D scale.
+	/// It uses rtm::vqvf. The product discards the shear, as in many game engines.
 	class vqvf_transform_adapter final : public acl_impl::builtin_transform_adapter<acl_impl::vqv_transform_math>
 	{
 	public:
 		virtual const char* get_name() const override { return "vqvf_transform_adapter"; }
 	};
 
-	//////////////////////////////////////////////////////////////////////////
-	// The transform adapter for VQM transforms: a rotation, a translation, and a 3x3 scale/shear matrix.
-	// It uses rtm::vqmf. The product keeps the shear and gives exact object space transforms.
-	//////////////////////////////////////////////////////////////////////////
+	/// The transform adapter for VQM transforms: a rotation, a translation, and a 3x3 scale/shear matrix.
+	/// It uses rtm::vqmf. The product keeps the shear and gives exact object space transforms.
 	class vqmf_transform_adapter final : public acl_impl::builtin_transform_adapter<acl_impl::vqm_transform_math>
 	{
 	public:
 		virtual const char* get_name() const override { return "vqmf_transform_adapter"; }
 	};
 
-	//////////////////////////////////////////////////////////////////////////
-	// The transform adapter for 3x4 affine matrices.
-	// It uses rtm::matrix3x4f. The product keeps the shear and gives exact object space transforms.
-	//////////////////////////////////////////////////////////////////////////
+	/// The transform adapter for 3x4 affine matrices.
+	/// It uses rtm::matrix3x4f. The product keeps the shear and gives exact object space transforms.
 	class matrix3x4f_transform_adapter final : public acl_impl::builtin_transform_adapter<acl_impl::matrix3x4_transform_math>
 	{
 	public:

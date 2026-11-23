@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The compression algorithm types.
+
 #include "acl/version.h"
 #include "acl/core/error.h"
 #include "acl/core/impl/compiler_utils.h"
@@ -37,12 +40,11 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-	////////////////////////////////////////////////////////////////////////////////
-	// algorithm_type8 is an enum that represents every supported algorithm.
-	//
-	// BE CAREFUL WHEN CHANGING VALUES IN THIS ENUM
-	// The algorithm type is serialized in the compressed data, if you change a value
-	// the compressed clips will be invalid. If you do, bump the appropriate algorithm versions.
+	/// algorithm_type8 is an enum that represents every supported algorithm.
+	///
+	/// BE CAREFUL WHEN CHANGING VALUES IN THIS ENUM
+	/// The algorithm type is serialized in the compressed data, if you change a value
+	/// the compressed clips will be invalid. If you do, bump the appropriate algorithm versions.
 	enum class algorithm_type8 : uint8_t
 	{
 		uniformly_sampled				= 0,
@@ -52,10 +54,9 @@ namespace acl
 
 	//////////////////////////////////////////////////////////////////////////
 
-	////////////////////////////////////////////////////////////////////////////////
-	// Returns true if the algorithm type is a valid value. Used to validate if
-	// memory has been corrupted.
 	// TODO: constexpr
+	/// Returns true if the algorithm type is a valid value. Used to validate if
+	/// memory has been corrupted.
 	inline bool is_valid_algorithm_type(algorithm_type8 type)
 	{
 		switch (type)
@@ -69,9 +70,8 @@ namespace acl
 		}
 	}
 
-	////////////////////////////////////////////////////////////////////////////////
-	// Returns a string of the algorithm name suitable for display.
 	// TODO: constexpr
+	/// Returns a string of the algorithm name suitable for display.
 	inline const char* get_algorithm_name(algorithm_type8 type)
 	{
 		switch (type)
@@ -83,11 +83,10 @@ namespace acl
 		}
 	}
 
-	////////////////////////////////////////////////////////////////////////////////
-	// Returns true if the algorithm type was properly parsed from an input string.
-	//
-	// type: A string representing the algorithm name to parse. It must match the get_algorithm_name(..) output.
-	// out_type: On success, it will contain the the parsed algorithm type otherwise it is left untouched.
+	/// Returns true if the algorithm type was properly parsed from an input string.
+	///
+	/// \param type A string representing the algorithm name to parse. It must match the `get_algorithm_name(..)` output.
+	/// \param out_type On success, it will contain the the parsed algorithm type otherwise it is left untouched.
 	inline bool get_algorithm_type(const char* type, algorithm_type8& out_type)
 	{
 		ACL_ASSERT(type != nullptr, "Algorithm type name cannot be null");

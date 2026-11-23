@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The compression levels: a higher level tries more bit rates, it is slower and gives smaller data.
+
 #include "acl/version.h"
 #include "acl/core/error.h"
 #include "acl/core/impl/compiler_utils.h"
@@ -37,21 +40,20 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-	////////////////////////////////////////////////////////////////////////////////
-	// compression_level8 represents how aggressively we attempt to reduce the memory
-	// footprint. Higher levels will try more permutations and bit rates. The higher
-	// the level, the slower the compression but the smaller the memory footprint.
+	/// compression_level8 represents how aggressively we attempt to reduce the memory
+	/// footprint. Higher levels will try more permutations and bit rates. The higher
+	/// the level, the slower the compression but the smaller the memory footprint.
 	enum class compression_level8 : uint8_t
 	{
-		lowest		= 0,	// Same as medium for now
-		low			= 1,	// Same as medium for now
+		lowest		= 0,	///< Same as medium for now
+		low			= 1,	///< Same as medium for now
 		medium		= 2,
 		high		= 3,
 		highest		= 4,
 
-		// Automatic attempts to pick the best compression level based on various
-		// properties of the input clip: clip length, longest transform chain, etc.
-		// This offers a nice balance between size and speed for the majority of clips.
+		/// Automatic attempts to pick the best compression level based on various
+		/// properties of the input clip: clip length, longest transform chain, etc.
+		/// This offers a nice balance between size and speed for the majority of clips.
 		automatic	= 100,
 
 		//lossless	= 255,	// Not implemented, reserved
@@ -59,13 +61,11 @@ namespace acl
 
 	//////////////////////////////////////////////////////////////////////////
 
-	////////////////////////////////////////////////////////////////////////////////
-	// Returns a string representing the compression level.
 	// TODO: constexpr
+	/// Returns a string representing the compression level.
 	inline const char* get_compression_level_name(compression_level8 level);
 
-	//////////////////////////////////////////////////////////////////////////
-	// Returns the compression level from its string representation.
+	/// Returns the compression level from its string representation.
 	inline bool get_compression_level(const char* level_name, compression_level8& out_level);
 
 	ACL_IMPL_VERSION_NAMESPACE_END

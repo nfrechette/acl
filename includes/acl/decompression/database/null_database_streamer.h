@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// A database streamer for bulk data that is already in memory.
+
 #include "acl/version.h"
 #include "acl/core/error.h"
 #include "acl/core/impl/compiler_utils.h"
@@ -37,15 +40,15 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-	////////////////////////////////////////////////////////////////////////////////
-	// Implements a null streamer where we simply use the provided bulk data buffer and
-	// perform no operations on it as everything is already streamed in.
-	// This streamer is the default in-memory streaming implementation.
-	// It cannot be shared between multiple tiers.
-	////////////////////////////////////////////////////////////////////////////////
+	/// Implements a null streamer where we simply use the provided bulk data buffer and
+	/// perform no operations on it as everything is already streamed in.
+	/// This streamer is the default in-memory streaming implementation.
+	/// It cannot be shared between multiple tiers.
 	class null_database_streamer final : public database_streamer
 	{
 	public:
+		/// Constructs a streamer for the given bulk data, already in memory.
+		/// The buffer must stay valid as long as the streamer uses it.
 		null_database_streamer(const uint8_t* bulk_data, uint32_t bulk_data_size)
 			: database_streamer(&m_request, 1)
 			, m_bulk_data(bulk_data)

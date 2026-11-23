@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The database context that decompression uses with a compressed database.
+
 #include "acl/version.h"
 #include "acl/core/compressed_database.h"
 #include "acl/core/compressed_tracks_version.h"
@@ -42,129 +45,103 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-	//////////////////////////////////////////////////////////////////////////
-	// Encapsulates the possible streaming request results.
-	//////////////////////////////////////////////////////////////////////////
+	/// Encapsulates the possible streaming request results.
 	enum class database_stream_request_result
 	{
-		//////////////////////////////////////////////////////////////////////////
-		// Streaming is done for the requested tier
+		/// Streaming is done for the requested tier
 		done,
 
-		//////////////////////////////////////////////////////////////////////////
-		// The streaming request has been dispatched
+		/// The streaming request has been dispatched
 		dispatched,
 
-		//////////////////////////////////////////////////////////////////////////
-		// The streaming request has been ignored because streaming is already in progress
+		/// The streaming request has been ignored because streaming is already in progress
 		streaming_in_progress,
 
-		//////////////////////////////////////////////////////////////////////////
-		// The database context isn't initialized
+		/// The database context isn't initialized
 		context_not_initialized,
 
-		//////////////////////////////////////////////////////////////////////////
-		// Invalid database tier specified
+		/// Invalid database tier specified
 		invalid_database_tier,
 
-		//////////////////////////////////////////////////////////////////////////
-		// Ran out of streaming requests
+		/// Ran out of streaming requests
 		no_free_streaming_requests,
 	};
 
-	//////////////////////////////////////////////////////////////////////////
-	// Database decompression context for the uniformly sampled algorithm. The context
-	// allows various streaming actions to be performed on the database.
-	//
-	// Both the constructor and destructor are public because it is safe to place
-	// instances of this context on the stack or as member variables.
-	//
-	// Note that the context only manages the streaming bookkeeping, the actual IO is
-	// handled by the database_streamer implementation provided.
-	//////////////////////////////////////////////////////////////////////////
+	/// Database decompression context for the uniformly sampled algorithm. The context
+	/// allows various streaming actions to be performed on the database.
+	///
+	/// Both the constructor and destructor are public because it is safe to place
+	/// instances of this context on the stack or as member variables.
+	///
+	/// Note that the context only manages the streaming bookkeeping, the actual IO is
+	/// handled by the database_streamer implementation provided.
 	template<class database_settings_type>
 	class database_context
 	{
 	public:
-		//////////////////////////////////////////////////////////////////////////
-		// An alias to the database settings type.
+		/// An alias to the database settings type.
 		using settings_type = database_settings_type;
 
-		//////////////////////////////////////////////////////////////////////////
-		// Constructs a context instance.
+		/// Constructs a context instance.
 		database_context();
 
-		//////////////////////////////////////////////////////////////////////////
-		// Destructs a context instance.
+		/// Destructs a context instance.
 		~database_context();
 
-		//////////////////////////////////////////////////////////////////////////
-		// Returns the compressed database bound to this context instance.
+		/// Returns the compressed database bound to this context instance.
 		const compressed_database* get_compressed_database() const;
 
-		//////////////////////////////////////////////////////////////////////////
-		// Initializes the context instance to a particular compressed database instance.
-		// No streaming can be performed and it is assumed that all the data is present in memory.
-		// Returns whether initialization was successful or not.
+		/// Initializes the context instance to a particular compressed database instance.
+		/// No streaming can be performed and it is assumed that all the data is present in memory.
+		/// Returns whether initialization was successful or not.
 		bool initialize(iallocator& allocator, const compressed_database& database);
 
-		//////////////////////////////////////////////////////////////////////////
-		// Initializes the context instance to a particular compressed database instance.
-		// The streamer instances will be used to issue IO stream in/out requests.
-		// If a tier is stripped, the null_database_streamer can be used.
-		// Returns whether initialization was successful or not.
+		/// Initializes the context instance to a particular compressed database instance.
+		/// The streamer instances will be used to issue IO stream in/out requests.
+		/// If a tier is stripped, the null_database_streamer can be used.
+		/// Returns whether initialization was successful or not.
 		bool initialize(iallocator& allocator, const compressed_database& database, database_streamer& medium_tier_streamer, database_streamer& low_tier_streamer);
 
-		//////////////////////////////////////////////////////////////////////////
-		// Returns true if this context instance is bound to a compressed database instance, false otherwise.
+		/// Returns true if this context instance is bound to a compressed database instance, false otherwise.
 		bool is_initialized() const;
 
-		//////////////////////////////////////////////////////////////////////////
-		// Resets the context instance to its default constructed state. If the context was
-		// currently bound to a database instance, it will no longer be bound to it.
+		/// Resets the context instance to its default constructed state. If the context was
+		/// currently bound to a database instance, it will no longer be bound to it.
 		void reset();
 
-		//////////////////////////////////////////////////////////////////////////
-		// If the bound compressed database instance has relocated elsewhere in memory, this function
-		// rebinds the context to it, avoiding the need to re-initialize it entirely.
-		// Returns whether rebinding was successful or not.
+		/// If the bound compressed database instance has relocated elsewhere in memory, this function
+		/// rebinds the context to it, avoiding the need to re-initialize it entirely.
+		/// Returns whether rebinding was successful or not.
 		bool relocated(const compressed_database& database);
 
-		//////////////////////////////////////////////////////////////////////////
-		// If the bound compressed database instance has relocated elsewhere in memory, this function
-		// rebinds the context to it, avoiding the need to re-initialize it entirely.
-		// This can also be called if the streamers relocated, it will cause them to be rebound as well.
-		// Assumes that the streamers have retained the same bulk data state as well. If it is
-		// not the case, reset and re-initialize the context.
-		// Returns whether rebinding was successful or not.
+		/// If the bound compressed database instance has relocated elsewhere in memory, this function
+		/// rebinds the context to it, avoiding the need to re-initialize it entirely.
+		/// This can also be called if the streamers relocated, it will cause them to be rebound as well.
+		/// Assumes that the streamers have retained the same bulk data state as well. If it is
+		/// not the case, reset and re-initialize the context.
+		/// Returns whether rebinding was successful or not.
 		bool relocated(const compressed_database& database, database_streamer& medium_tier_streamer, database_streamer& low_tier_streamer);
 
-		//////////////////////////////////////////////////////////////////////////
-		// Returns true if this context instance is bound to the specified database instance, false otherwise.
+		/// Returns true if this context instance is bound to the specified database instance, false otherwise.
 		bool is_bound_to(const compressed_database& database) const;
 
-		//////////////////////////////////////////////////////////////////////////
-		// Returns whether the database bound contains the provided compressed tracks instance data.
+		/// Returns whether the database bound contains the provided compressed tracks instance data.
 		bool contains(const compressed_tracks& tracks) const;
 
-		//////////////////////////////////////////////////////////////////////////
-		// Returns whether or not we have streamed in any of the database bulk data for the specified tier (medium or low).
+		/// Returns whether or not we have streamed in any of the database bulk data for the specified tier (medium or low).
 		bool is_streamed_in(quality_tier tier) const;
 
-		//////////////////////////////////////////////////////////////////////////
-		// Returns whether or not a streaming request is in flight for the specified tier (medium or low).
+		/// Returns whether or not a streaming request is in flight for the specified tier (medium or low).
 		bool is_streaming(quality_tier tier) const;
 
-		//////////////////////////////////////////////////////////////////////////
-		// Issues a stream in request and returns the current status for the specified tier (medium or low).
-		// By default, every chunk will be streamed in but they can be streamed progressively
-		// by providing a number of chunks.
+		/// Issues a stream in request and returns the current status for the specified tier (medium or low).
+		/// By default, every chunk will be streamed in but they can be streamed progressively
+		/// by providing a number of chunks.
 		database_stream_request_result stream_in(quality_tier tier, uint32_t num_chunks_to_stream = ~0U);
 
-		//////////////////////////////////////////////////////////////////////////
-		// Issues a stream out request and returns the current status for the specified tier (medium or low).
-		// By default, every chunk will be streamed out but they can be streamed progressively
-		// by providing a number of chunks.
+		/// Issues a stream out request and returns the current status for the specified tier (medium or low).
+		/// By default, every chunk will be streamed out but they can be streamed progressively
+		/// by providing a number of chunks.
 		database_stream_request_result stream_out(quality_tier tier, uint32_t num_chunks_to_stream = ~0U);
 
 	private:

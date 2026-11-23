@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// An allocator that uses the system malloc and free.
+
 #include "acl/config.h"
 #include "acl/version.h"
 #include "acl/core/impl/bit_cast.impl.h"
@@ -74,10 +77,8 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-	////////////////////////////////////////////////////////////////////////////////
-	// An ANSI allocator implementation. It uses the system malloc/free to manage
-	// memory as well as provides some debugging functionality to track memory leaks.
-	////////////////////////////////////////////////////////////////////////////////
+	/// An ANSI allocator implementation. It uses the system malloc/free to manage
+	/// memory as well as provides some debugging functionality to track memory leaks.
 	class ansi_allocator : public iallocator
 	{
 	public:

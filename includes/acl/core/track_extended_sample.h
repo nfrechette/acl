@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The extended sample type: a sample value and its interpolator.
+
 #include "acl/version.h"
 #include "acl/core/error.h"
 #include "acl/core/sample_interpolator.h"
@@ -37,20 +40,20 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-	// A type to encapsulate an extended track sample.
-	// Basic tracks always linearly interpolate while extended tracks can specify
-	// the behavior per sample. Each track sample is uniformly distributed according
-	// to its track sample rate.
+	/// A type to encapsulate an extended track sample.
+	/// Basic tracks always linearly interpolate while extended tracks can specify
+	/// the behavior per sample. Each track sample is uniformly distributed according
+	/// to its track sample rate.
 	template<typename sample_type_t>
 	struct track_extended_sample_t
 	{
-		// The size in bytes of a sample value
+		/// The size in bytes of a sample value
 		static constexpr size_t sample_size = sizeof(sample_type_t);
 
-		// The sample interpolator function
+		/// The sample interpolator function
 		sample_interpolator_t interpolator = sample_interpolator_t::linear;
 
-		// The sample value
+		/// The sample value
 		sample_type_t value = {};
 
 		// The sample tangents, TODO bezier/hermite/etc
@@ -59,7 +62,10 @@ namespace acl
 
 		// Utility helpers to get/set data safely
 
+		/// Sets the value and the constant interpolator.
 		void set_constant(const sample_type_t& new_value);
+
+		/// Sets the value and the linear interpolator.
 		void set_linear(const sample_type_t& new_value);
 	};
 

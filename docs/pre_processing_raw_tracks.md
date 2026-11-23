@@ -69,4 +69,4 @@ pre_process_track_list(allocator, settings, transform_tracks);
 // transform_tracks.get_track_type() is now vqf if no track needs its scale
 ```
 
-See [pre_process.h](../includes/acl/compression/pre_process.h) for API and other usage details.
+See [pre_process.h](https://github.com/nfrechette/acl/blob/develop/includes/acl/compression/pre_process.h) for API and other usage details.

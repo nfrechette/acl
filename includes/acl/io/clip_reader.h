@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The reader of the ACL clip file format (SJSON).
+
 #if defined(ACL_USE_SJSON)
 
 #include "acl/version.h"
@@ -60,8 +63,7 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-	//////////////////////////////////////////////////////////////////////////
-	// Enum to describe each type of raw content that an SJSON ACL file might contain.
+	/// Enum to describe each type of raw content that an SJSON ACL file might contain.
 	enum class sjson_file_type
 	{
 		unknown,
@@ -79,22 +81,21 @@ namespace acl
 	#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
-	//////////////////////////////////////////////////////////////////////////
-	// Raw transform tracks
+	/// Raw transform tracks
 	struct sjson_raw_clip
 	{
-		// The transform tracks of the clip, they hold the transform space of the clip
+		/// The transform tracks of the clip, they hold the transform space of the clip
 		track_array_vqvf track_list;
 
-		// The additive base, always in local space
+		/// The additive base, always in local space
 		track_array_vqvf additive_base_track_list;
-		additive_clip_format8 additive_format = additive_clip_format8::none;
+		additive_clip_format8 additive_format = additive_clip_format8::none;	///< The additive format of the clip, `none` when the clip has no additive base
 
 		ACL_DEPRECATED("No longer used, see track description, to be removed in v3.0")
 		track_vqvf bind_pose;
 
-		bool has_settings = false;
-		compression_settings settings;
+		bool has_settings = false;	///< True if the file contains compression settings
+		compression_settings settings;	///< The compression settings of the file, valid when has_settings is true
 
 		sjson_raw_clip() = default;
 
@@ -102,22 +103,23 @@ namespace acl
 		sjson_raw_clip(const sjson_raw_clip&) = delete;
 		sjson_raw_clip& operator=(const sjson_raw_clip&) = delete;
 
-		// Can move
+		/// Moves the tracks and the settings of another instance.
 		sjson_raw_clip(sjson_raw_clip&&) = default;
+
+		/// Moves the tracks and the settings of another instance.
 		sjson_raw_clip& operator=(sjson_raw_clip&&) = default;
 	};
 
-	//////////////////////////////////////////////////////////////////////////
-	// Raw scalar tracks
+	/// Raw scalar tracks
 	struct sjson_raw_track_list
 	{
-		track_array track_list;
+		track_array track_list;	///< The tracks of the track list
 
 		ACL_DEPRECATED("No longer used, see track description, to be removed in v3.0")
 		track_vqvf bind_pose;
 
-		bool has_settings = false;
-		compression_settings settings;
+		bool has_settings = false;	///< True if the file contains compression settings
+		compression_settings settings;	///< The compression settings of the file, valid when has_settings is true
 
 		sjson_raw_track_list() = default;
 
@@ -125,8 +127,10 @@ namespace acl
 		sjson_raw_track_list(const sjson_raw_track_list&) = delete;
 		sjson_raw_track_list& operator=(const sjson_raw_track_list&) = delete;
 
-		// Can move
+		/// Moves the tracks and the settings of another instance.
 		sjson_raw_track_list(sjson_raw_track_list&&) = default;
+
+		/// Moves the tracks and the settings of another instance.
 		sjson_raw_track_list& operator=(sjson_raw_track_list&&) = default;
 	};
 
@@ -136,11 +140,12 @@ namespace acl
 	#pragma GCC diagnostic pop
 #endif
 
-	//////////////////////////////////////////////////////////////////////////
-	// An SJSON ACL file reader.
+	/// An SJSON ACL file reader.
 	class clip_reader
 	{
 	public:
+		/// Constructs a reader for the SJSON text in the given buffer.
+		/// The reader does not copy the buffer: it must stay valid as long as the reader uses it.
 		clip_reader(iallocator& allocator, const char* sjson_input, size_t input_length)
 			: m_allocator(allocator)
 			, m_parser(sjson_input, input_length)
@@ -152,6 +157,7 @@ namespace acl
 			deallocate_type_array(m_allocator, m_bone_names, m_num_bones);
 		}
 
+		/// Returns the type of the file: a raw clip, a raw track list, or unknown.
 		sjson_file_type get_file_type()
 		{
 			reset_state();
@@ -168,6 +174,8 @@ namespace acl
 			return sjson_file_type::unknown;
 		}
 
+		/// Reads a raw clip file with transform tracks.
+		/// Returns true on success. On failure, get_error() returns the error.
 		bool read_raw_clip(sjson_raw_clip& out_data)
 		{
 			reset_state();
@@ -194,6 +202,8 @@ namespace acl
 			return nothing_follows();
 		}
 
+		/// Reads a raw track list file.
+		/// Returns true on success. On failure, get_error() returns the error.
 		bool read_raw_track_list(sjson_raw_track_list& out_data)
 		{
 			reset_state();
@@ -216,6 +226,7 @@ namespace acl
 			return nothing_follows();
 		}
 
+		/// Returns the last error.
 		clip_reader_error get_error() const { return m_error; }
 
 	private:

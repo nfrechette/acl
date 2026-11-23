@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The functions that count, find, and rotate bits.
+
 #include "acl/config.h"
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
@@ -64,8 +67,7 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-	//////////////////////////////////////////////////////////////////////////
-	// Counts the number of '1' bits (aka: pop-count)
+	/// Counts the number of `1` bits (aka: pop-count)
 	inline uint64_t count_set_bits(uint64_t value)
 	{
 #if defined(ACL_USE_POPCOUNT)
@@ -84,8 +86,7 @@ namespace acl
 #endif
 	}
 
-	//////////////////////////////////////////////////////////////////////////
-	// Counts the number of '1' bits (aka: pop-count)
+	/// Counts the number of `1` bits (aka: pop-count)
 	inline uint32_t count_set_bits(uint32_t value)
 	{
 #if defined(ACL_USE_POPCOUNT)
@@ -99,8 +100,7 @@ namespace acl
 #endif
 	}
 
-	//////////////////////////////////////////////////////////////////////////
-	// Counts the number of '1' bits (aka: pop-count)
+	/// Counts the number of `1` bits (aka: pop-count)
 	inline uint16_t count_set_bits(uint16_t value)
 	{
 #if defined(ACL_USE_POPCOUNT)
@@ -112,8 +112,7 @@ namespace acl
 #endif
 	}
 
-	//////////////////////////////////////////////////////////////////////////
-	// Counts the number of '1' bits (aka: pop-count)
+	/// Counts the number of `1` bits (aka: pop-count)
 	inline uint8_t count_set_bits(uint8_t value)
 	{
 #if defined(ACL_USE_POPCOUNT)
@@ -125,8 +124,7 @@ namespace acl
 #endif
 	}
 
-	//////////////////////////////////////////////////////////////////////////
-	// Starting at the MSB, counts the number of leading zeros
+	/// Starting at the MSB, counts the number of leading zeros
 	inline uint32_t count_leading_zeros(uint32_t value)
 	{
 #if defined(ACL_USE_POPCOUNT)
@@ -146,8 +144,7 @@ namespace acl
 #endif
 	}
 
-	//////////////////////////////////////////////////////////////////////////
-	// Starting at the MSB, counts the number of leading zeros
+	/// Starting at the MSB, counts the number of leading zeros
 	inline uint64_t count_leading_zeros(uint64_t value)
 	{
 #if defined(ACL_USE_POPCOUNT)
@@ -187,8 +184,7 @@ namespace acl
 #endif
 	}
 
-	//////////////////////////////////////////////////////////////////////////
-	// Starting at the LSB, counts the number of trailing zeros
+	/// Starting at the LSB, counts the number of trailing zeros
 	inline uint32_t count_trailing_zeros(uint32_t value)
 	{
 #if defined(ACL_BMI_INTRINSICS)
@@ -203,8 +199,7 @@ namespace acl
 #endif
 	}
 
-	//////////////////////////////////////////////////////////////////////////
-	// Starting at the LSB, counts the number of trailing zeros
+	/// Starting at the LSB, counts the number of trailing zeros
 	inline uint64_t count_trailing_zeros(uint64_t value)
 	{
 #if defined(ACL_BMI_INTRINSICS)
@@ -238,8 +233,7 @@ namespace acl
 #endif
 	}
 
-	//////////////////////////////////////////////////////////////////////////
-	// Rotate the bits left by some amount
+	/// Rotate the bits left by some amount
 	inline uint32_t rotate_bits_left(uint32_t value, int32_t num_bits)
 	{
 		ACL_ASSERT(num_bits >= 0, "Attempting to rotate by negative bits");
@@ -249,8 +243,7 @@ namespace acl
 		return (value << num_bits) | (value >> ((-num_bits) & mask));
 	}
 
-	//////////////////////////////////////////////////////////////////////////
-	// Rotate the bits right by some amount
+	/// Rotate the bits right by some amount
 	inline uint32_t rotate_bits_right(uint32_t value, int32_t num_bits)
 	{
 		ACL_ASSERT(num_bits >= 0, "Attempting to rotate by negative bits");
@@ -260,8 +253,7 @@ namespace acl
 		return (value >> num_bits) | (value << ((-num_bits) & mask));
 	}
 
-	//////////////////////////////////////////////////////////////////////////
-	// Perform: ~not_value & and_value
+	/// Perform: ~not_value & and_value
 	inline uint32_t and_not(uint32_t not_value, uint32_t and_value)
 	{
 #if defined(ACL_BMI_INTRINSICS)

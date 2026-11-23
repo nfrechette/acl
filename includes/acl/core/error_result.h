@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The result of a function that can fail.
+
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 
@@ -33,22 +36,28 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-	//////////////////////////////////////////////////////////////////////////
-	// This class is meant to encapsulate a simple error message and easily
-	// coerce with 'bool' in order to simplify and clean up error handling.
-	// In an ideal world, I would love for a C++11 equivalent of std::result in Rust.
-	//////////////////////////////////////////////////////////////////////////
+	/// This class is meant to encapsulate a simple error message and easily
+	/// coerce with `bool` in order to simplify and clean up error handling.
+	/// In an ideal world, I would love for a C++11 equivalent of std::result in Rust.
 	class error_result
 	{
 	public:
+		/// Constructs a result without an error.
 		error_result() : m_error(nullptr) {}
+
+		/// Constructs a result with the given error message. The string must stay valid as long as the result uses it.
 		explicit error_result(const char* error) : m_error(error) {}
 
+		/// Returns true if there is no error.
 		bool empty() const { return m_error == nullptr; }
+
+		/// Returns true if there is an error.
 		bool any() const { return m_error != nullptr; }
 
+		/// Returns the error message, or "" if there is no error.
 		const char* c_str() const { return m_error != nullptr ? m_error : ""; }
 
+		/// Removes the error.
 		void reset() { m_error = nullptr; }
 
 	private:

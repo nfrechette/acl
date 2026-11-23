@@ -1,0 +1,5 @@
+/// \namespace acl
+/// The public API of the Animation Compression Library.
+///
+/// Doxygen warns about an undocumented function only when its namespace has a comment.
+/// This comment lets Doxygen find public API that has no comment.

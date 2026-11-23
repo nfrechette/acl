@@ -2,17 +2,17 @@
 
 Additive animation clips are a core tool within an animation runtime but sadly, how additive animations are blended and applied is not standard. As such, this library aims to support the most common additive modes. Contributions welcome!
 
-The core logic for additive clips lives [here](../includes/acl/core/additive_utils.h).
+The core logic for additive clips lives [here](https://github.com/nfrechette/acl/blob/develop/includes/acl/core/additive_utils.h).
 
 ## The transform space
 
 Two independent properties tell compression how to measure the error of a clip:
 
-*  The transform space of the clip: how a sample uses the transform hierarchy, see `transform_space_t` (see [here](../includes/acl/compression/transform_space.h)). The track array holds it: set it with `track_array::set_transform_space`.
+*  The transform space of the clip: how a sample uses the transform hierarchy, see `transform_space_t` (see [here](https://github.com/nfrechette/acl/blob/develop/includes/acl/compression/transform_space.h)). The track array holds it: set it with `track_array::set_transform_space`.
     *  `local` (the default): each transform is relative to its parent transform.
     *  `mesh`: each transform is in object space (mesh space). It does not use its parent transform. Compression measures the error of each transform alone: the error of a parent does not move its children.
     *  `mesh_rotation`: the rotation of each transform is in object space, its translation and scale are relative to its parent transform. The rotation of a parent does not change the object rotation of its children, but the parent still moves them. Compression measures the error in object space with this rule: `object = mul(local, parent_object)`, with `local.rotation = mul(rotation, conjugate(parent_object.rotation))`.
-*  The base of the clip: how a sample combines with its base clip. A `transform_base_desc_t` (see [here](../includes/acl/compression/transform_base.h)) holds the base format (`format`, see `additive_clip_format8` and the formats below) and the base tracks (`tracks`). With `none`, the clip has no base. With `custom`, the `adapter` combines them, see [below](#custom-base-format).
+*  The base of the clip: how a sample combines with its base clip. A `transform_base_desc_t` (see [here](https://github.com/nfrechette/acl/blob/develop/includes/acl/compression/transform_base.h)) holds the base format (`format`, see `additive_clip_format8` and the formats below) and the base tracks (`tracks`). With `none`, the clip has no base. With `custom`, the `adapter` combines them, see [below](#custom-base-format).
 
 Compression first combines each sample with the base. Then it puts the result in object space to measure the error. The transform space does not change the compressed data: decompression returns the samples of the clip, and your runtime applies them to the base.
 
@@ -39,7 +39,7 @@ A clip without a base needs only its transform space: the `compress_track_list` 
 
 [Pre-processing](pre_processing_raw_tracks.md) and the [error measurement](error_metrics.md) (`calculate_compression_error`) also use the transform space of the track array. Give them the same base as compression (`pre_process_settings_t::transform_base`).
 
-With a built-in format, compression and the error measurement combine each transform with its base with `apply_additive_to_base` (see [here](../includes/acl/core/additive_utils.h)). They do not normalize the result. Thus the measured error is the error of your runtime when it uses the same function and does not normalize the result.
+With a built-in format, compression and the error measurement combine each transform with its base with `apply_additive_to_base` (see [here](https://github.com/nfrechette/acl/blob/develop/includes/acl/core/additive_utils.h)). They do not normalize the result. Thus the measured error is the error of your runtime when it uses the same function and does not normalize the result.
 
 ## Relative additive clips
 
@@ -71,7 +71,7 @@ This is the additive mode used by Unreal 4.
 
 ## Custom base format
 
-When your runtime combines a clip with its base in another way, implement an `itransform_base_adapter_t` (see [here](../includes/acl/compression/transform_base_adapter.h)). Set the base format to `custom`, and set `adapter` in the base description:
+When your runtime combines a clip with its base in another way, implement an `itransform_base_adapter_t` (see [here](https://github.com/nfrechette/acl/blob/develop/includes/acl/compression/transform_base_adapter.h)). Set the base format to `custom`, and set `adapter` in the base description:
 
 ```c++
 class my_base_adapter final : public itransform_base_adapter_t

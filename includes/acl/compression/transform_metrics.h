@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The interface of a transform metric, and the built-in metrics that measure the error between a raw and a lossy transform.
+
 #include "acl/version.h"
 #include "acl/core/error.h"
 #include "acl/core/hash.h"
@@ -55,66 +58,61 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-	//////////////////////////////////////////////////////////////////////////
-	// Interface for all transform metrics.
-	// A transform metric measures the error between a raw and a lossy transform.
-	// It uses the transforms only through a transform adapter. Thus one metric
-	// can measure the error of each runtime transform type that it supports.
-	//
-	// We measure the error on a rigid shell around each transform: a sphere at a
-	// certain distance from the transform. See ./docs/error_metrics.md for details.
-	//////////////////////////////////////////////////////////////////////////
+	/// Interface for all transform metrics.
+	/// A transform metric measures the error between a raw and a lossy transform.
+	/// It uses the transforms only through a transform adapter. Thus one metric
+	/// can measure the error of each runtime transform type that it supports.
+	///
+	/// We measure the error on a rigid shell around each transform: a sphere at a
+	/// certain distance from the transform. See ./docs/error_metrics.md for details.
 	class itransform_metric
 	{
 	public:
 		virtual ~itransform_metric() = default;
 
-		//////////////////////////////////////////////////////////////////////////
-		// Returns the unique name of the transform metric.
+		/// Returns the unique name of the transform metric.
 		virtual const char* get_name() const = 0;
 
-		//////////////////////////////////////////////////////////////////////////
-		// Returns a unique hash to represent the transform metric.
+		/// Returns a unique hash to represent the transform metric.
 		virtual uint32_t get_hash() const { return hash32(get_name()); }
 
-		//////////////////////////////////////////////////////////////////////////
-		// Returns whether or not the metric can measure the error of transforms
-		// that use the provided transform adapter.
+		/// Returns whether or not the metric can measure the error of transforms
+		/// that use the provided transform adapter.
 		virtual bool is_supported(const itransform_adapter& adapter) const = 0;
 
-		//////////////////////////////////////////////////////////////////////////
-		// Input arguments for the 'calculate_error*' functions.
-		//////////////////////////////////////////////////////////////////////////
+		/// Input arguments for the `calculate_error*` functions.
 		struct calculate_error_args
 		{
-			//////////////////////////////////////////////////////////////////////////
-			// The points on the rigid shell, stored transposed.
-			// The X, Y, and Z lanes hold the points along the X, Y, and Z axes.
-			// The W lane holds a point between the three axes.
+			/// The points on the rigid shell, stored transposed.
+			/// The X, Y, and Z lanes hold the points along the X, Y, and Z axes.
+			/// The W lane holds a point between the three axes.
 			rtm::vector4f shell_points_xxxx;
+
+			/// The points on the rigid shell, stored transposed.
+			/// The X, Y, and Z lanes hold the points along the X, Y, and Z axes.
+			/// The W lane holds a point between the three axes.
 			rtm::vector4f shell_points_yyyy;
+
+			/// The points on the rigid shell, stored transposed.
+			/// The X, Y, and Z lanes hold the points along the X, Y, and Z axes.
+			/// The W lane holds a point between the three axes.
 			rtm::vector4f shell_points_zzzz;
 
-			//////////////////////////////////////////////////////////////////////////
-			// The distance from the transform to the rigid shell: the radius of the sphere.
+			/// The distance from the transform to the rigid shell: the radius of the sphere.
 			float shell_distance;
 
-			//////////////////////////////////////////////////////////////////////////
-			// The transform adapter of the two transforms.
+			/// The transform adapter of the two transforms.
 			const itransform_adapter* adapter;
 
-			//////////////////////////////////////////////////////////////////////////
-			// The raw transform, in the runtime type of the adapter.
-			// Could be in local or object space (same space as the lossy transform).
+			/// The raw transform, in the runtime type of the adapter.
+			/// Could be in local or object space (same space as the lossy transform).
 			const void* transform0;
 
-			//////////////////////////////////////////////////////////////////////////
-			// The lossy transform, in the runtime type of the adapter.
-			// Could be in local or object space (same space as the raw transform).
+			/// The lossy transform, in the runtime type of the adapter.
+			/// Could be in local or object space (same space as the raw transform).
 			const void* transform1;
 
-			//////////////////////////////////////////////////////////////////////////
-			// Sets the shell points for a sphere with the provided radius.
+			/// Sets the shell points for a sphere with the provided radius.
 			void construct_sphere_shell(float shell_distance_)
 			{
 				shell_distance = shell_distance_;
@@ -130,21 +128,18 @@ namespace acl
 			}
 		};
 
-		//////////////////////////////////////////////////////////////////////////
-		// Measures the error between a raw and lossy transform.
+		/// Measures the error between a raw and lossy transform.
 		rtm::scalarf RTM_SIMD_CALL calculate_error(const calculate_error_args& args) const
 		{
 			return rtm::scalar_sqrt(calculate_error_squared(args));
 		}
 
-		//////////////////////////////////////////////////////////////////////////
-		// Measures the squared error between a raw and lossy transform.
+		/// Measures the squared error between a raw and lossy transform.
 		virtual rtm::scalarf RTM_SIMD_CALL calculate_error_squared(const calculate_error_args& args) const = 0;
 	};
 
 	namespace acl_impl
 	{
-		//////////////////////////////////////////////////////////////////////////
 		// Returns the largest squared distance between two rigid transforms on a sphere.
 		// The transforms have no scale. Their rotations must be normalized.
 		// The result is exact: we find the point on the sphere with the largest error.
@@ -190,7 +185,6 @@ namespace acl
 			return delta_translation_along_rotation_plane_sq + inner_full_side_sq;
 		}
 
-		//////////////////////////////////////////////////////////////////////////
 		// Returns the largest squared distance between two VQS transforms on a sphere, or a value above it.
 		// With 'p' a point on the sphere and 's0', 's1' the raw and lossy scales:
 		//    error(p) = |s1 * R1 * p - s0 * R0 * p + (t1 - t0)|
@@ -223,19 +217,21 @@ namespace acl
 			return error * error;
 		}
 
-		//////////////////////////////////////////////////////////////////////////
 		// Returns the largest squared distance between two VQ transforms on a sphere.
 		// The scale of the rtm::vqvf transforms is not used. The result is exact.
 		inline double calculate_vq_error_squared_precise(const rtm::vqvf& raw_transform, const rtm::vqvf& lossy_transform, double sphere_radius)
 		{
 			// We use float64 for the added precision otherwise floating point noise in the rotation
 			// can cause instability
-			const rtm::vqvd raw_transform_d = rtm::vqv_normalize(rtm::vqv_cast(raw_transform));
-			const rtm::vqvd lossy_transform_d = rtm::vqv_normalize(rtm::vqv_cast(lossy_transform));
+			// We read only the rotation and the translation. The metric selects this function or the VQS function
+			// with the runtime type of the adapter. When GCC inlines the metric, it can see that the VQS transforms
+			// are smaller than rtm::vqvf, and a read of the scale gives an -Warray-bounds error in this branch.
+			const rtm::vector4f no_scale = rtm::vector_set(1.0F);
+			const rtm::vqvd raw_transform_d = rtm::vqv_normalize(rtm::vqv_cast(rtm::vqv_set(raw_transform.rotation, raw_transform.translation, no_scale)));
+			const rtm::vqvd lossy_transform_d = rtm::vqv_normalize(rtm::vqv_cast(rtm::vqv_set(lossy_transform.rotation, lossy_transform.translation, no_scale)));
 			return calculate_rigid_error_squared_precise(raw_transform_d, lossy_transform_d, sphere_radius);
 		}
 
-		//////////////////////////////////////////////////////////////////////////
 		// Returns the largest squared distance between the raw and lossy points of the rigid shell.
 		// The points are stored transposed, see 'itransform_metric::calculate_error_args'.
 		// Without a scale ('is_vq' is true), we use the first two points only.
@@ -266,13 +262,11 @@ namespace acl
 		}
 	}
 
-	//////////////////////////////////////////////////////////////////////////
-	// Measures the error on points of the rigid shell.
-	// It transforms the points with the raw and lossy transforms and returns the largest distance.
-	// It supports every transform adapter. With a scale, it measures three points; without a scale (VQ), two points.
-	// The points give an approximation of the error. Use it with transforms that have a 3D scale or a shear
-	// (VQV, VQM, or a matrix). For VQ and VQS transforms, 'precise_transform_metric' gives the exact error.
-	//////////////////////////////////////////////////////////////////////////
+	/// Measures the error on points of the rigid shell.
+	/// It transforms the points with the raw and lossy transforms and returns the largest distance.
+	/// It supports every transform adapter. With a scale, it measures three points; without a scale (VQ), two points.
+	/// The points give an approximation of the error. Use it with transforms that have a 3D scale or a shear
+	/// (VQV, VQM, or a matrix). For VQ and VQS transforms, `precise_transform_metric` gives the exact error.
 	class shell_transform_metric : public itransform_metric
 	{
 	public:
@@ -307,14 +301,12 @@ namespace acl
 		}
 	};
 
-	//////////////////////////////////////////////////////////////////////////
-	// Measures the exact largest error on the rigid shell, for VQ and VQS transforms.
-	// It uses the rotation, the translation, and the uniform scale to find the point on
-	// the sphere with the largest error. It computes with float64.
-	// With a VQS transform, when the raw and lossy scales are not equal, the result can be
-	// above the exact error by no more than |s1 - s0| * shell_distance. See 'calculate_vqs_error_squared_precise'.
-	// It supports only the 'vqf' and 'vqsf' transform adapters.
-	//////////////////////////////////////////////////////////////////////////
+	/// Measures the exact largest error on the rigid shell, for VQ and VQS transforms.
+	/// It uses the rotation, the translation, and the uniform scale to find the point on
+	/// the sphere with the largest error. It computes with float64.
+	/// With a VQS transform, when the raw and lossy scales are not equal, the result can be
+	/// above the exact error by no more than |s1 - s0| * shell_distance. See `calculate_vqs_error_squared_precise`.
+	/// It supports only the `vqf` and `vqsf` transform adapters.
 	class precise_transform_metric : public itransform_metric
 	{
 	public:

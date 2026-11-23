@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// This header is deprecated: include time_utils.h instead.
+
 #include "acl/version.h"
 #include "acl/core/error.h"
 #include "acl/core/time_utils.h"
@@ -35,8 +38,11 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
+	/// This header is deprecated: include time_utils.h instead.
 	ACL_DEPRECATED("Use time_utils.h instead, this header is deprecated; to be removed in v3.0")
 	constexpr static bool k_use_time_utils_h_instead = 0;
+
+	/// This header is deprecated: include time_utils.h instead.
 	constexpr static bool k_utils_h_is_deprecated = k_use_time_utils_h_instead;
 
 	ACL_IMPL_VERSION_NAMESPACE_END

@@ -8,7 +8,7 @@ See also [issue #526](https://github.com/nfrechette/acl/issues/526) for the desi
 
 ## Sample interpolators
 
-The `sample_interpolator_t` enum in [sample_interpolator.h](../includes/acl/core/sample_interpolator.h) lists the interpolators:
+The `sample_interpolator_t` enum in [sample_interpolator.h](https://github.com/nfrechette/acl/blob/develop/includes/acl/core/sample_interpolator.h) lists the interpolators:
 
 *  `constant`: between a sample and the next sample, the output is the value of the first sample. Use it for a step, for example a visibility flag or a material index.
 *  `linear`: the output is `lerp(value0, value1, alpha)`. This is the behavior of a track that does not have extended samples.
@@ -17,7 +17,7 @@ ACL does not support curves (Bezier, Hermite, Catmull-Rom) at this time.
 
 ## Create an extended track
 
-An extended track type has the `_ex` suffix: `track_float1f_ex` to `track_vector4f_ex`. An extended track list has the same suffix: `track_array_float1f_ex` to `track_array_vector4f_ex`. Each sample is a `track_extended_sample_t<T>` (see [track_extended_sample.h](../includes/acl/core/track_extended_sample.h)) that holds an `interpolator` and a `value`. The default interpolator is `linear`.
+An extended track type has the `_ex` suffix: `track_float1f_ex` to `track_vector4f_ex`. An extended track list has the same suffix: `track_array_float1f_ex` to `track_array_vector4f_ex`. Each sample is a `track_extended_sample_t<T>` (see [track_extended_sample.h](https://github.com/nfrechette/acl/blob/develop/includes/acl/core/track_extended_sample.h)) that holds an `interpolator` and a `value`. The default interpolator is `linear`.
 
 Each track in a track list must use the same track interpolator: all the tracks are linear, or all the tracks are extended. In an extended track list, each track can use a different interpolator for each sample.
 
@@ -86,11 +86,11 @@ To select the mode, compression ignores each interpolator that has no effect on 
 
 For example, a track where each sample is constant except the last sample uses the `constant` mode, and it stores no interpolator. In a track with the `linear` mode, a constant sample with the same value as the next sample interpolates linearly. Then the output can be 1 ulp from the sample value. This occurs on x86 without FMA, because RTM uses the stable form of the linear interpolation. A linear track with two equal samples has the same behavior.
 
-The compressed tracks use the version `v02_02_99_0` (see [compressed_tracks_version.h](../includes/acl/core/compressed_tracks_version.h)). ACL 2.1 and earlier cannot decompress this data.
+The compressed tracks use the version `v02_02_99_0` (see [compressed_tracks_version.h](https://github.com/nfrechette/acl/blob/develop/includes/acl/core/compressed_tracks_version.h)). ACL 2.1 and earlier cannot decompress this data.
 
 ## Decompression
 
-The decompression setting `are_extended_samples_supported()` controls the code that reads the interpolators (see [decompression_settings.h](../includes/acl/decompression/decompression_settings.h)). It is `true` in all the default decompression settings. If your data has no extended samples, set it to `false` in your decompression settings. Then the optimizer removes that code.
+The decompression setting `are_extended_samples_supported()` controls the code that reads the interpolators (see [decompression_settings.h](https://github.com/nfrechette/acl/blob/develop/includes/acl/decompression/decompression_settings.h)). It is `true` in all the default decompression settings. If your data has no extended samples, set it to `false` in your decompression settings. Then the optimizer removes that code.
 
 When the setting is `false`, `decompression_context::initialize(..)` returns `false` for compressed tracks that have extended samples. If `skip_initialize_safety_checks()` is `true`, the context does not do this check. Do not decompress extended samples with such a context, because the output is not correct.
 

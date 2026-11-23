@@ -1,0 +1,14 @@
+/* The API reference puts the members of a class section one heading level below the members of a class
+   without sections. Show the level 5 headings like the level 4 headings. */
+.md-typeset h5 {
+  color: var(--md-default-fg-color);
+  font-size: 1em;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
+
+/* Do not wrap the header paths in the first column of the API index tables */
+.md-typeset table:not([class]) td:first-child code {
+  white-space: nowrap;
+}

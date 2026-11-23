@@ -3,6 +3,7 @@
 [![Build status](https://github.com/nfrechette/acl/actions/workflows/build_push.yml/badge.svg)](https://github.com/nfrechette/acl/actions)
 [![Sonar Status](https://sonarcloud.io/api/project_badges/measure?project=nfrechette_acl&metric=alert_status)](https://sonarcloud.io/dashboard?id=nfrechette_acl)
 [![GitHub release](https://img.shields.io/github/release/nfrechette/acl.svg)](https://github.com/nfrechette/acl/releases)
+[![Documentation](https://img.shields.io/badge/docs-API%20reference-blue)](https://nfrechette.github.io/acl/)
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/nfrechette/acl/master/LICENSE)
 [![Conan](https://img.shields.io/badge/on-conan-blue.svg)](https://conan.io/center/recipes/nfrechette-acl)
 [![Discord](https://img.shields.io/discord/691048241864769647?label=discord)](https://discord.gg/UERt4bS)
@@ -14,6 +15,10 @@ Animation compression is a fundamental aspect of modern video game engines. Not 
 The more memory an animation clip consumes, the slower it will be to sample it and extract a character pose at runtime. For these reasons, any game that attempts to push the boundaries of what the hardware can achieve will at some point need to implement some form of animation compression.
 
 While some degree of compression can easily be achieved with simple tricks, achieving high compression ratios, fast decompression, while simultaneously not compromising the accuracy of the resulting compressed animation requires a great deal of care.
+
+## Documentation
+
+The [documentation site](https://nfrechette.github.io/acl/) has the guides and the API reference of each public header. The site has one version for the `develop` branch and one version for each new release.
 
 ## Goals
 

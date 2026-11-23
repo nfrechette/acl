@@ -4,8 +4,8 @@ A good error metric is necessary for each animation compression algorithm, and A
 
 To measure the error of a clip, compression must know two things:
 
-*  How your runtime composes the local space transforms into object space: the **runtime transform type**. A [transform adapter](../includes/acl/compression/transform_adapters.h) gives the operations of this type.
-*  How to measure the error between a raw and a lossy transform: the **transform metric**. See [transform_metrics.h](../includes/acl/compression/transform_metrics.h).
+*  How your runtime composes the local space transforms into object space: the **runtime transform type**. A [transform adapter](https://github.com/nfrechette/acl/blob/develop/includes/acl/compression/transform_adapters.h) gives the operations of this type.
+*  How to measure the error between a raw and a lossy transform: the **transform metric**. See [transform_metrics.h](https://github.com/nfrechette/acl/blob/develop/includes/acl/compression/transform_metrics.h).
 
 Select the runtime transform type that your runtime uses. When the error that ACL measures is not the error of your runtime, the visual quality can be lower.
 
@@ -55,7 +55,7 @@ const track_error additive_error = calculate_compression_error(allocator, raw_tr
 
 ## Implementing your own runtime transform type
 
-Find how your game engine combines the local space transforms into object space. Then implement a class that derives from `itransform_adapter`. The built-in transform adapters in [transform_adapters.h](../includes/acl/compression/transform_adapters.h) are examples. Then select `transform_runtime_type_t::custom` and set `compression_settings::custom_transform_adapter`.
+Find how your game engine combines the local space transforms into object space. Then implement a class that derives from `itransform_adapter`. The built-in transform adapters in [transform_adapters.h](https://github.com/nfrechette/acl/blob/develop/includes/acl/compression/transform_adapters.h) are examples. Then select `transform_runtime_type_t::custom` and set `compression_settings::custom_transform_adapter`.
 
 The adapter gives these operations:
 
@@ -72,7 +72,7 @@ With a custom transform adapter, compression calls the adapter through its virtu
 
 ## Implementing your own transform metric
 
-Implement a class that derives from `itransform_metric`, and set `compression_settings::transform_metric`. The built-in transform metrics in [transform_metrics.h](../includes/acl/compression/transform_metrics.h) are examples.
+Implement a class that derives from `itransform_metric`, and set `compression_settings::transform_metric`. The built-in transform metrics in [transform_metrics.h](https://github.com/nfrechette/acl/blob/develop/includes/acl/compression/transform_metrics.h) are examples.
 
 *  `is_supported`: returns whether or not the metric can measure transforms of a transform adapter.
 *  `calculate_error_squared`: returns the squared error between the raw and the lossy transform. Use the transform adapter in the arguments to read the transforms.

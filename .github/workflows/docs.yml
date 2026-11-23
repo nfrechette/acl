@@ -1,0 +1,72 @@
+name: docs
+
+# A pull request builds the documentation site and does not deploy it.
+# A push to develop or a release tag vX.Y.Z deploys the site to the gh-pages branch (see tools/docs/deploy_docs.py).
+on:
+  push:
+    branches:
+      - develop
+    tags:
+      - 'v*.*.*'
+  pull_request:
+    branches:
+      - '**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Each deploy commits to the gh-pages branch, thus only one deploy runs at a time
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('{0}-{1}', github.workflow, github.ref) || 'docs-deploy' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  DOXYGEN_VERSION: 1.18.0
+  # The digest that GitHub shows for doxygen-1.18.0.linux.bin.tar.gz on the Doxygen release page
+  DOXYGEN_SHA256: 14fa81bdc34171edb5f1f02b1d60e74802f0439b77fa44e592565d517d72df90
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Cache Doxygen
+        id: cache-doxygen
+        uses: actions/cache@v6
+        with:
+          path: ~/doxygen
+          key: doxygen-${{ env.DOXYGEN_VERSION }}-${{ env.DOXYGEN_SHA256 }}
+      - name: Install Doxygen
+        if: steps.cache-doxygen.outputs.cache-hit != 'true'
+        run: |
+          curl --proto '=https' --tlsv1.2 -fsSL -o "$RUNNER_TEMP/doxygen.tar.gz" "https://github.com/doxygen/doxygen/releases/download/Release_${DOXYGEN_VERSION//./_}/doxygen-${DOXYGEN_VERSION}.linux.bin.tar.gz"
+          echo "$DOXYGEN_SHA256  $RUNNER_TEMP/doxygen.tar.gz" | sha256sum --check --strict
+          mkdir -p ~/doxygen
+          tar -xzf "$RUNNER_TEMP/doxygen.tar.gz" -C ~/doxygen --strip-components=1
+      - name: Add Doxygen to the PATH
+        run: echo "$HOME/doxygen/bin" >> "$GITHUB_PATH"
+      - name: Install MkDocs
+        # Wheels only: no setup script runs. Each file must have the hash in the lock file.
+        run: 'pip install --only-binary :all: --require-hashes -r tools/docs/requirements.txt'
+      - name: Generate the API reference
+        run: python3 tools/docs/generate_api_docs.py
+      - name: Build the site
+        run: mkdocs build --strict
+      - name: Deploy the site
+        if: github.event_name != 'pull_request'
+        # The ref goes through an environment variable: an expression in the script could inject shell code
+        env:
+          DEPLOY_REF: ${{ github.ref }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin gh-pages --depth=1 || true
+          python3 tools/docs/deploy_docs.py --ref "$DEPLOY_REF" --push

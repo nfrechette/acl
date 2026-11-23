@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The quality tiers of a compressed database.
+
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 
@@ -35,28 +38,27 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-	//////////////////////////////////////////////////////////////////////////
-	// What quality tier a key frame/sample belongs to
+	/// What quality tier a key frame/sample belongs to
 	enum class quality_tier
 	{
-		// Highest importance frames remain in the compressed clip and can be used to interpolate even without the database present
+		/// Highest importance frames remain in the compressed clip and can be used to interpolate even without the database present
 		highest_importance	= 0,
 
 		//high_importance,	// RESERVED
 
-		// Medium importance frames live in the compressed database and contribute more the quality than those of the lower importance tiers
+		/// Medium importance frames live in the compressed database and contribute more the quality than those of the lower importance tiers
 		medium_importance	= 1,
 
 		//low_importance,	// RESERVED
 
-		// Lowest importance frames live in the compressed database and contribute the least to the quality
+		/// Lowest importance frames live in the compressed database and contribute the least to the quality
 		lowest_importance	= 2,
 	};
 
-	// We only support 3 tiers
+	/// We only support 3 tiers
 	constexpr uint32_t k_num_quality_tiers = 3;
 
-	// Database contains 2 tiers
+	/// Database contains 2 tiers
 	constexpr uint32_t k_num_database_tiers = 2;
 
 	ACL_IMPL_VERSION_NAMESPACE_END

@@ -41,7 +41,8 @@
 //
 // Options we use:
 //    - Disable fast math, it can hurt precision for little to no performance gain due to the high level of hand tuned optimizations.
-//    - Disable floating point contraction (GCC only), the compiler must not merge a multiply and an add into one FMA instruction.
+//    - Disable floating point contraction (Clang only), the compiler must not merge a multiply and an add into one FMA instruction.
+//      See docs/misc_integration_details.md for the flags that give the same results on all the targets.
 //////////////////////////////////////////////////////////////////////////
 #if defined(RTM_COMPILER_MSVC)
 	#define ACL_IMPL_FILE_PRAGMA_PUSH \
@@ -58,10 +59,31 @@
 	//    - Clang defines most SSE and NEON intrinsics with operators in system headers.
 	//      These headers are outside of our pragma region and fast math stays on for them.
 	//    - The pragma does not disable -ffinite-math-only. Clang can still assume that values are not NaN or infinity.
+	//    - The pragma does not disable floating point contraction. By default (-ffp-contract=on), Clang merges a multiply
+	//      and an add in one expression into one FMA instruction when the target has FMA (for example ARM64).
+	//      The FMA does not round the product, thus the result can change with the compiler flags and the target.
+	//
+	// We also set "clang fp contract(off)" to stop the contraction. float_control(pop) restores the previous mode.
+	// On the targets where clang ignores float_control, the pop does nothing and the mode stays off in the code
+	// that includes our headers. Thus we set the mode only on the targets that support float_control.
+	// Apple clang 15 uses LLVM 16.
+	//
+	// With -ffp-contract=fast, LLVM clang ignores the pragma and merges the operations of our functions after
+	// they are inlined. Use -ffp-contract=fast-honor-pragmas instead. Apple clang honors the pragma in both modes.
+	#if defined(__x86_64__) || defined(__i386__) \
+		|| (defined(__aarch64__) && defined(__apple_build_version__) && __clang_major__ >= 15) \
+		|| (defined(__aarch64__) && !defined(__apple_build_version__) && __clang_major__ >= 16) \
+		|| (defined(__riscv) && !defined(__apple_build_version__) && __clang_major__ >= 18)
+		#define ACL_IMPL_CLANG_FP_CONTRACT_OFF _Pragma("clang fp contract(off)")
+	#else
+		#define ACL_IMPL_CLANG_FP_CONTRACT_OFF
+	#endif
+
 	#define ACL_IMPL_FILE_PRAGMA_PUSH \
 		_Pragma("clang diagnostic push") \
 		_Pragma("clang diagnostic ignored \"-Wignored-pragmas\"") \
 		_Pragma("float_control(precise, on, push)") \
+		ACL_IMPL_CLANG_FP_CONTRACT_OFF \
 		_Pragma("clang diagnostic pop")
 
 	#define ACL_IMPL_FILE_PRAGMA_POP \
@@ -70,13 +92,17 @@
 		_Pragma("float_control(pop)") \
 		_Pragma("clang diagnostic pop")
 #elif defined(RTM_COMPILER_GCC)
-	// GCC defaults to -ffp-contract=fast in the GNU dialects (for example -std=gnu++11).
-	// With that option, GCC can merge a multiply and an add into one FMA instruction.
-	// The FMA does not round the product, thus the result can change with the compiler flags and the target.
-	// We set -ffp-contract=off to stop this.
+	// GCC defaults to -ffp-contract=fast in C++. With that option, GCC can merge a multiply and an add into one
+	// FMA instruction. The FMA does not round the product, thus the result can change with the flags and the target.
+	//
+	// We do not set fp-contract=off here. With -ffp-contract=fast, GCC merges the operations of our functions
+	// after it inlines them in the code of the caller: the pragma does not apply there. Also, GCC does not inline
+	// a function when its optimize options are not the same as those of the caller ("optimization level attribute
+	// mismatch"). Thus the pragma makes the code slower and does not stop the contraction.
+	// To get the same results on all the targets, compile with -ffp-contract=off.
 	#define ACL_IMPL_FILE_PRAGMA_PUSH \
 		_Pragma("GCC push_options") \
-		_Pragma("GCC optimize (\"no-fast-math\", \"fp-contract=off\")")
+		_Pragma("GCC optimize (\"no-fast-math\")")
 
 	#define ACL_IMPL_FILE_PRAGMA_POP \
 		_Pragma("GCC pop_options")

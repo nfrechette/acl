@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// This header is deprecated: include floating_point_control.h instead.
+
 #include "acl/version.h"
 #include "acl/core/error.h"
 #include "acl/core/floating_point_control.h"
@@ -35,8 +38,11 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
+	/// This header is deprecated: include floating_point_control.h instead.
 	ACL_DEPRECATED("Use floating_point_control.h instead, this header is deprecated; to be removed in v3.0")
 	constexpr static bool k_use_floating_point_control_h_instead = 0;
+
+	/// This header is deprecated: include floating_point_control.h instead.
 	constexpr static bool k_floating_point_exceptions_h_is_deprecated = k_use_floating_point_control_h_instead;
 
 	ACL_IMPL_VERSION_NAMESPACE_END

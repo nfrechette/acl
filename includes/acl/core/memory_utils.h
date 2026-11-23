@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The functions for alignment, safe casts, byte order, unaligned memory access, and memory prefetch.
+
 #include "acl/version.h"
 #include "acl/core/impl/bit_cast.impl.h"
 #include "acl/core/impl/compiler_utils.h"
@@ -59,26 +62,39 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// Allows static branching without any warnings
 
+	/// A compile time condition that the code can test without a warning about a constant expression.
 	template<bool expression_result>
-	struct static_condition { static constexpr bool test() { return true; } };
+	struct static_condition
+	{
+		/// Returns the value of the expression.
+		static constexpr bool test() { return true; }
+	};
 
+	/// The specialization of static_condition for a false expression.
 	template<>
-	struct static_condition<false> { static constexpr bool test() { return false; } };
+	struct static_condition<false>
+	{
+		/// Returns the value of the expression.
+		static constexpr bool test() { return false; }
+	};
 
 	//////////////////////////////////////////////////////////////////////////
 	// Various miscellaneous utilities related to alignment
 
+	/// Returns true if the input is a power of two. Zero is not a power of two.
 	RTM_FORCE_INLINE constexpr bool is_power_of_two(size_t input)
 	{
 		return input != 0 && (input & (input - 1)) == 0;
 	}
 
+	/// Returns true if the alignment is a power of two and is at least the alignment of the given type.
 	template<typename Type>
 	RTM_FORCE_INLINE constexpr bool is_alignment_valid(size_t alignment)
 	{
 		return is_power_of_two(alignment) && alignment >= alignof(Type);
 	}
 
+	/// Returns true if the pointer is a multiple of the alignment. The alignment must be a power of two.
 	template<typename PtrType>
 	RTM_FORCE_INLINE bool is_aligned_to(PtrType* value, size_t alignment)
 	{
@@ -86,6 +102,7 @@ namespace acl
 		return (acl_impl::bit_cast<intptr_t>(value) & (alignment - 1)) == 0;
 	}
 
+	/// Returns true if the value is a multiple of the alignment. The alignment must be a power of two.
 	template<typename IntegralType>
 	RTM_FORCE_INLINE bool is_aligned_to(IntegralType value, size_t alignment)
 	{
@@ -93,12 +110,14 @@ namespace acl
 		return (static_cast<size_t>(value) & (alignment - 1)) == 0;
 	}
 
+	/// Returns true if the pointer has the alignment of the type that it points to.
 	template<typename PtrType>
 	RTM_FORCE_INLINE constexpr bool is_aligned(PtrType* value)
 	{
 		return is_aligned_to(value, alignof(PtrType));
 	}
 
+	/// Returns the pointer, rounded up to the next multiple of the alignment. The alignment must be a power of two.
 	template<typename PtrType>
 	RTM_FORCE_INLINE PtrType* align_to(PtrType* value, size_t alignment)
 	{
@@ -106,6 +125,7 @@ namespace acl
 		return acl_impl::bit_cast<PtrType*>((acl_impl::bit_cast<intptr_t>(value) + (alignment - 1)) & ~(alignment - 1));
 	}
 
+	/// Returns the value, rounded up to the next multiple of the alignment. The alignment must be a power of two.
 	template<typename IntegralType>
 	RTM_FORCE_INLINE IntegralType align_to(IntegralType value, size_t alignment)
 	{
@@ -113,6 +133,7 @@ namespace acl
 		return static_cast<IntegralType>((static_cast<size_t>(value) + (alignment - 1)) & ~(alignment - 1));
 	}
 
+	/// Returns the number of padding bytes between a member of the first type and a member of the second type that follows it.
 	template<typename PreviousMemberType, typename NextMemberType>
 	RTM_FORCE_INLINE constexpr size_t get_required_padding()
 	{
@@ -120,6 +141,7 @@ namespace acl
 		return ((sizeof(PreviousMemberType) + (alignof(NextMemberType) - 1)) & ~(alignof(NextMemberType)- 1)) - sizeof(PreviousMemberType);
 	}
 
+	/// Returns the number of elements in a C array.
 	template<typename ElementType, size_t num_elements>
 	RTM_FORCE_INLINE constexpr size_t get_array_size(ElementType const (&)[num_elements]) { return num_elements; }
 
@@ -161,14 +183,14 @@ namespace acl
 		};
 	}
 
-	// Casts a pointer type into a pointer of a different type with an alignment runtime check
+	/// Casts a pointer type into a pointer of a different type with an alignment runtime check
 	template<typename dest_ptr_t, typename src_ptr_t>
 	RTM_FORCE_INLINE dest_ptr_t* safe_ptr_cast(src_ptr_t* input)
 	{
 		return memory_impl::safe_ptr_to_ptr_cast_impl<dest_ptr_t, src_ptr_t>::cast(input);
 	}
 
-	// Casts an integral type into a pointer type with an alignment runtime check
+	/// Casts an integral type into a pointer type with an alignment runtime check
 	template<typename dest_ptr_t, typename src_int_t>
 	RTM_FORCE_INLINE dest_ptr_t* safe_ptr_cast(src_int_t input)
 	{
@@ -223,6 +245,8 @@ namespace acl
 		}
 	}
 
+	/// Converts a value with static_cast.
+	/// When asserts are enabled, the function asserts if the conversion loses data.
 	template<typename DstType, typename SrcType>
 	RTM_FORCE_INLINE DstType safe_static_cast(SrcType input)
 	{
@@ -241,12 +265,15 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	// Endian and raw memory support
 
+	/// Adds an offset in bytes to a pointer and returns it as a pointer to the output type.
+	/// When asserts are enabled, the function asserts if the result does not have the alignment of the output type.
 	template<typename OutputPtrType, typename InputPtrType, typename offset_type>
 	RTM_FORCE_INLINE OutputPtrType* add_offset_to_ptr(InputPtrType* ptr, offset_type offset)
 	{
 		return safe_ptr_cast<OutputPtrType>(acl_impl::bit_cast<uintptr_t>(ptr) + offset);
 	}
 
+	/// Returns the value with the order of its bytes reversed.
 	RTM_FORCE_INLINE uint16_t byte_swap(uint16_t value)
 	{
 #if defined(RTM_COMPILER_MSVC)
@@ -260,6 +287,7 @@ namespace acl
 #endif
 	}
 
+	/// Returns the value with the order of its bytes reversed.
 	RTM_FORCE_INLINE uint32_t byte_swap(uint32_t value)
 	{
 #if defined(RTM_COMPILER_MSVC)
@@ -275,6 +303,7 @@ namespace acl
 #endif
 	}
 
+	/// Returns the value with the order of its bytes reversed.
 	RTM_FORCE_INLINE uint64_t byte_swap(uint64_t value)
 	{
 #if defined(RTM_COMPILER_MSVC)
@@ -291,7 +320,7 @@ namespace acl
 #endif
 	}
 
-	// We copy bits assuming big-endian ordering for 'dest' and 'src'
+	/// We copy bits assuming big-endian ordering for `dest` and `src`
 	inline void memcpy_bits(void* dest, uint64_t dest_bit_offset, const void* src, uint64_t src_bit_offset, uint64_t num_bits_to_copy)
 	{
 		if (num_bits_to_copy == 0)
@@ -334,6 +363,7 @@ namespace acl
 		}
 	}
 
+	/// Reads a value from memory that can be unaligned.
 	template<typename data_type>
 	RTM_FORCE_INLINE data_type unaligned_load(const void* input)
 	{
@@ -342,12 +372,14 @@ namespace acl
 		return result;
 	}
 
+	/// Reads a value from memory that has the alignment of the type.
 	template<typename data_type>
 	RTM_FORCE_INLINE data_type aligned_load(const void* input)
 	{
 		return *safe_ptr_cast<const data_type>(input);
 	}
 
+	/// Writes a value to memory that can be unaligned.
 	template<typename data_type>
 	RTM_FORCE_INLINE void unaligned_write(data_type input, void* output)
 	{
@@ -355,6 +387,8 @@ namespace acl
 	}
 
 	// TODO: Add support for streaming prefetch (ptr, 0, 0) for arm
+	/// Tells the processor to load the cache line at the given address into the L1 cache.
+	/// The function does not wait for the data and does nothing on platforms without a prefetch instruction.
 	RTM_FORCE_INLINE void memory_prefetch(const void* ptr)
 	{
 #if defined(RTM_SSE2_INTRINSICS)
@@ -368,6 +402,8 @@ namespace acl
 #endif
 	}
 
+	/// Tells the processor to load the cache line at the given address into the L1 cache.
+	/// The function does not wait for the data and does nothing on platforms without a prefetch instruction.
 	RTM_FORCE_INLINE void memory_prefetch_into_L1(const void* ptr)
 	{
 #if defined(RTM_SSE2_INTRINSICS)
@@ -381,6 +417,8 @@ namespace acl
 #endif
 	}
 
+	/// Tells the processor to load the cache line at the given address into the L2 cache.
+	/// The function does not wait for the data and does nothing on platforms without a prefetch instruction.
 	RTM_FORCE_INLINE void memory_prefetch_into_L2(const void* ptr)
 	{
 #if defined(RTM_SSE2_INTRINSICS)
@@ -394,6 +432,8 @@ namespace acl
 #endif
 	}
 
+	/// Reads one byte at the given address to load its cache line into the L1 cache.
+	/// Unlike a prefetch, the read must complete.
 	RTM_FORCE_INLINE void memory_fetch_into_L1(const void* ptr)
 	{
 		(void)*acl_impl::bit_cast<const volatile uint8_t*>(ptr);

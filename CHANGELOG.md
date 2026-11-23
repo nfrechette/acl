@@ -10,6 +10,7 @@
 *  Compression ignores the sample interpolators that have no effect when it selects the interpolation mode of a track
 *  Add the `-analyze` action to `make.py` to run the clang static analyzer on the public headers
 *  Disable fast math with the `float_control` pragma under Clang where the target supports it
+*  Disable floating point contraction (FMA) in the ACL headers with the `clang fp contract(off)` pragma under Clang, on the targets that support `float_control`: x86, x64, AArch64 (Clang 16+, Apple Clang 15+), and RISC-V (Clang 18+). With `-ffp-contract=fast`, LLVM Clang ignores the pragma: use `-ffp-contract=fast-honor-pragmas`
 *  Add the `-fast_math` option to `make.py` to compile the public headers with fast math, and a CI workflow that uses it
 *  Add native Linux `riscv64` builds to `make.py`, they use the scalar code path of RTM
 *  Add Linux `armv7` cross compilation to `make.py` with GCC and Clang, `qemu-arm` runs the unit tests
@@ -46,7 +47,7 @@
 *  The bit rate algorithm v2 supports each runtime transform type, VQS, matrix, and custom transform types no longer use the bit rate algorithm v1
 *  The built-in transform adapters and metrics use code without virtual function calls, compression is faster
 *  Fix the bit rate algorithm v1 that converted transforms that it did not sample, an assert could fail with an additive base
-*  Disable floating point contraction (FMA) in the ACL headers with the `optimize` pragma under GCC
+*  The documentation explains floating point contraction ([other considerations](docs/misc_integration_details.md)). With GCC, the headers do not disable contraction: GCC uses `-ffp-contract=fast` by default in C++ and merges the operations of the inlined functions, and a pragma with other optimization options stops GCC from inlining the functions. To get the same results on all the targets with GCC, compile with `-ffp-contract=off`
 *  Add `transform_space_t`: the space of the transform tracks, `track_array::set_transform_space` sets it, compression, pre-processing, and `calculate_compression_error` use it, see [additive clips](docs/additive_clips.md)
 *  Add `transform_base_desc_t`: the base of the transform tracks and its base format
 *  Add the `compress_track_list` overload that takes a `transform_base_desc_t`, and deprecate the overload that takes an additive base and an additive format, ACL 2.3 will remove it
@@ -74,6 +75,8 @@
 *  Fix the `track_bit_rate_database_size` value of the detailed stats: it added the number of bitset entries instead of their size in bytes
 *  Add the `sanitize_identity_rotations` pre-process action, it is part of the recommended actions: with the lossy policy, it sets the [xyz] components of each rotation with W = 1.0 or W = -1.0 to 0.0 when the error stays within the precision
 *  Add WASM SIMD code paths where ACL uses SSE2 or NEON intrinsics directly. With V8 on arm64, the time to decompress a full pose is 15% lower
+*  Add a documentation site: Doxygen reads the `///` comments of the public headers, and MkDocs makes the site with the guides and the API reference for develop and for each release
+*  Add the [configuration macros](docs/configuration_macros.md) page: it lists each macro that configures ACL
 
 ## 2.1.0
 

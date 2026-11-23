@@ -26,22 +26,24 @@
 
 #include <rtm/impl/detect_compiler.h>
 
-////////////////////////////////////////////////////////////////////////////////
 // Macros to detect the ACL version
-////////////////////////////////////////////////////////////////////////////////
 
+/// The major version of ACL.
 #define ACL_VERSION_MAJOR 2
+/// The minor version of ACL.
 #define ACL_VERSION_MINOR 1
+/// The patch version of ACL.
 #define ACL_VERSION_PATCH 99
 
-////////////////////////////////////////////////////////////////////////////////
-// In order to allow multiple versions of this library to coexist side by side
-// within the same executable/library, the symbols have to be unique per version.
-// We achieve this by using a versioned namespace that we optionally inline.
-// To disable namespace inlining, define ACL_NO_INLINE_NAMESPACE before including
-// any ACL header. To disable the versioned namespace altogether,
-// define ACL_NO_VERSION_NAMESPACE before including any ACL header.
-////////////////////////////////////////////////////////////////////////////////
+/// \file
+/// The version of ACL, and the versioned namespace.
+///
+/// In order to allow multiple versions of this library to coexist side by side
+/// within the same executable/library, the symbols have to be unique per version.
+/// We achieve this by using a versioned namespace that we optionally inline.
+/// To disable namespace inlining, define ACL_NO_INLINE_NAMESPACE before including
+/// any ACL header. To disable the versioned namespace altogether,
+/// define ACL_NO_VERSION_NAMESPACE before including any ACL header.
 
 #if !defined(ACL_NO_VERSION_NAMESPACE)
 	#if defined(RTM_COMPILER_MSVC) && RTM_COMPILER_MSVC == RTM_COMPILER_MSVC_2015

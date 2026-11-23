@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The std::unique_ptr helpers for memory that an iallocator allocates.
+
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 #include <acl/core/iallocator.h>
@@ -34,18 +37,32 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
+	/// The deleter of a std::unique_ptr that an iallocator allocated.
+	/// It destroys the instance and releases its memory with the allocator.
 	template<typename allocated_type>
 	class deleter
 	{
 	public:
 		deleter() noexcept : m_allocator(nullptr) {}
+
+		/// Constructs a deleter that releases the memory with the given allocator.
 		explicit deleter(iallocator& allocator) noexcept : m_allocator(&allocator) {}
+
+		/// Copies the allocator of another deleter.
 		deleter(const deleter&) noexcept = default;
+
+		/// Copies the allocator of another deleter.
 		deleter(deleter&&) noexcept = default;
+
 		~deleter() noexcept = default;
+
+		/// Copies the allocator of another deleter.
 		deleter& operator=(const deleter&) noexcept = default;
+
+		/// Copies the allocator of another deleter.
 		deleter& operator=(deleter&&) noexcept = default;
 
+		/// Destroys the instance and releases its memory. A null pointer does nothing.
 		void operator()(allocated_type* ptr)
 		{
 			if (ptr == nullptr)
@@ -61,6 +78,8 @@ namespace acl
 		iallocator* m_allocator;
 	};
 
+	/// Allocates an instance of a type with the allocator and returns it in a std::unique_ptr.
+	/// The deleter of the std::unique_ptr releases the memory with the same allocator.
 	template<typename allocated_type, typename... args>
 	std::unique_ptr<allocated_type, deleter<allocated_type>> make_unique(iallocator& allocator, args&&... arguments)
 	{
@@ -69,6 +88,8 @@ namespace acl
 			deleter<allocated_type>(allocator));
 	}
 
+	/// Allocates an instance of a type with the given alignment and returns it in a std::unique_ptr.
+	/// The deleter of the std::unique_ptr releases the memory with the same allocator.
 	template<typename allocated_type, typename... args>
 	std::unique_ptr<allocated_type, deleter<allocated_type>> make_unique_aligned(iallocator& allocator, size_t alignment, args&&... arguments)
 	{

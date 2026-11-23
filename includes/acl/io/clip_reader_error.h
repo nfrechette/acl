@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The errors of the clip reader.
+
 #if defined(ACL_USE_SJSON)
 
 #include "acl/version.h"
@@ -39,8 +42,10 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
+	/// An error of the clip reader. It extends the errors of the SJSON parser.
 	struct clip_reader_error : sjson::ParserError
 	{
+		/// The error codes that the clip reader adds to the codes of the SJSON parser.
 		enum : uint32_t
 		{
 			UnsupportedVersion = sjson::ParserError::Last,
@@ -57,6 +62,7 @@ namespace acl
 
 		clip_reader_error() noexcept = default;
 
+		/// Constructs an error from an SJSON parser error.
 		clip_reader_error(const sjson::ParserError& e)
 		{
 			error = e.error;
@@ -64,6 +70,7 @@ namespace acl
 			column = e.column;
 		}
 
+		/// Returns a description of the error.
 		virtual const char* get_description() const override
 		{
 			switch (error)

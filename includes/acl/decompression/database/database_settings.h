@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The settings that control which database code decompression keeps.
+
 #include "acl/version.h"
 #include "acl/core/compressed_tracks_version.h"
 #include "acl/core/impl/compiler_utils.h"
@@ -36,46 +39,38 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-	//////////////////////////////////////////////////////////////////////////
-	// Deriving from this struct and overriding these constexpr functions
-	// allow you to control which code is stripped for maximum performance.
-	//
-	// By default, everything is supported.
-	//////////////////////////////////////////////////////////////////////////
+	/// Deriving from this struct and overriding these constexpr functions
+	/// allow you to control which code is stripped for maximum performance.
+	///
+	/// By default, everything is supported.
 	struct database_settings
 	{
-		//////////////////////////////////////////////////////////////////////////
-		// Which version we should optimize for.
-		// If 'any' is specified, the database context will support every single version
-		// with full backwards compatibility.
-		// Using a specific version allows the compiler to statically strip code for all other
-		// versions. This allows the creation of context objects specialized for specific
-		// versions which yields optimal performance.
-		// Must be static constexpr!
+		/// Which version we should optimize for.
+		/// If `any` is specified, the database context will support every single version
+		/// with full backwards compatibility.
+		/// Using a specific version allows the compiler to statically strip code for all other
+		/// versions. This allows the creation of context objects specialized for specific
+		/// versions which yields optimal performance.
+		/// Must be static constexpr!
 		static constexpr compressed_tracks_version16 version_supported() { return compressed_tracks_version16::any; }
 	};
 
-	//////////////////////////////////////////////////////////////////////////
-	// These settings disable database usage.
-	//////////////////////////////////////////////////////////////////////////
+	/// These settings disable database usage.
 	struct null_database_settings final : public database_settings
 	{
+		/// No compressed data version is supported: the decompression code for databases is removed.
 		static constexpr compressed_tracks_version16 version_supported() { return compressed_tracks_version16::none; }
 	};
 
-	//////////////////////////////////////////////////////////////////////////
-	// These are debug settings, everything is enabled and nothing is stripped.
-	// It will have the worst performance but allows every feature.
-	//////////////////////////////////////////////////////////////////////////
+	/// These are debug settings, everything is enabled and nothing is stripped.
+	/// It will have the worst performance but allows every feature.
 	struct debug_database_settings : public database_settings
 	{
 	};
 
-	//////////////////////////////////////////////////////////////////////////
-	// These are the default settings. Only the generally optimal settings
-	// are enabled and will offer the overall best performance.
-	// Supports every version.
-	//////////////////////////////////////////////////////////////////////////
+	/// These are the default settings. Only the generally optimal settings
+	/// are enabled and will offer the overall best performance.
+	/// Supports every version.
 	struct default_database_settings : public database_settings
 	{
 	};

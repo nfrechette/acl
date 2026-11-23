@@ -74,14 +74,14 @@ ACL 1.3 introduced a new compression/decompression APIs for scalar tracks that u
 
 The same feature set is still supported but some parameters moved out of the `acl::CompressionSettings` (now called `acl::compression_settings`) and have been made tunable per individual track.
 
-A single header now contains all compression related entry points under [acl/compression/compress.h](../includes/acl/compression/compress.h).
+A single header now contains all compression related entry points under [acl/compression/compress.h](https://github.com/nfrechette/acl/blob/develop/includes/acl/compression/compress.h).
 
 The decompression API is very similar to the old one and migrating should be fairly straight forward. It relies on as much statically known information as possible via `acl::decompression_settings` to strip out as much unused code as possible. Backwards compatibility with older file formats is also controlled that way. A few other features are controlled that way as well. See [here](decompressing_a_track_list.md) for example decompression usage.
 
-A single header now contains all decompression related entry points under [acl/decompression/decompress.h](../includes/acl/decompression/decompress.h).
+A single header now contains all decompression related entry points under [acl/decompression/decompress.h](https://github.com/nfrechette/acl/blob/develop/includes/acl/decompression/decompress.h).
 
 ### Error metrics
 
-While the logic of the error metric hasn't itself changed, the API has been rewritten in order to allow better code generation and faster execution. The old `ISkeletalErrorMetric` interface has been renamed to `itransform_error_metric` and it can be found under [acl/compression/transform_error_metrics.h](../includes/acl/compression/transform_error_metrics.h).
+While the logic of the error metric hasn't itself changed, the API has been rewritten in order to allow better code generation and faster execution. The old `ISkeletalErrorMetric` interface has been renamed to `itransform_error_metric` and it can be found under [acl/compression/transform_error_metrics.h](https://github.com/nfrechette/acl/blob/develop/includes/acl/compression/transform_error_metrics.h).
 
 Error metrics now allow operating and caching other transform types (e.g. `rtm::matrix3x4f`). See the above header for example usage.

@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The functions that test the flags of an enum.
+
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 
@@ -81,8 +84,7 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-	////////////////////////////////////////////////////////////////////////////////
-	// Returns true if any of the requested flags are set.
+	/// Returns true if any of the requested flags are set.
 	template<typename enum_type>
 	constexpr bool are_any_enum_flags_set(enum_type flags, enum_type flags_to_test)
 	{
@@ -90,8 +92,7 @@ namespace acl
 		return static_cast<IntegralType>(flags & flags_to_test) != 0;
 	}
 
-	////////////////////////////////////////////////////////////////////////////////
-	// Returns true if all of the requested flags are set.
+	/// Returns true if all of the requested flags are set.
 	template<typename enum_type>
 	constexpr bool are_all_enum_flags_set(enum_type flags, enum_type flags_to_test)
 	{

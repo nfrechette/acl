@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The settings of the statistics that compression writes.
+
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/enum_utils.h"
@@ -38,22 +41,24 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
+	/// The amount of statistics that compression writes. Each level includes the statistics of the levels below it.
 	enum class stat_logging
 	{
-		none						= 0x0000,
-		summary						= 0x0001,
-		detailed					= 0x0002 | summary,
-		exhaustive					= 0x0004 | detailed,
+		none						= 0x0000,	///< Compression writes no statistics
+		summary						= 0x0001,	///< Compression writes the summary statistics of the compressed tracks
+		detailed					= 0x0002 | summary,	///< Compression also writes the details of each segment and the timings
+		exhaustive					= 0x0004 | detailed,	///< Compression also writes the error of each transform at each sample (the output is large)
 	};
 
 	ACL_IMPL_ENUM_FLAGS_OPERATORS(stat_logging)
 
+	/// The statistics that compression writes, and where it writes them.
 	struct output_stats
 	{
-		stat_logging			logging = stat_logging::none;
+		stat_logging			logging = stat_logging::none;	///< The amount of statistics to write
 
 #if defined(ACL_USE_SJSON)
-		sjson::ObjectWriter*	writer = nullptr;
+		sjson::ObjectWriter*	writer = nullptr;	///< The SJSON writer that receives the statistics, required when `logging` is not `none`
 #endif
 	};
 

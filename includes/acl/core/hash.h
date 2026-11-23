@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The FNV-1a hash functions.
+
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 
@@ -39,20 +42,16 @@ namespace acl
 
 	namespace hash_impl
 	{
-		////////////////////////////////////////////////////////////////////////////////
 		// FNV 1a hash implementation for 32/64 bit hashes.
-		////////////////////////////////////////////////////////////////////////////////
 		template <typename ResultType, ResultType OffsetBasis, ResultType Prime>
 		class fnv1a_impl final
 		{
 		public:
-			////////////////////////////////////////////////////////////////////////////////
 			// Constructs a hash structures and initializes it with the offset basis.
 			constexpr fnv1a_impl()
 				: m_state(OffsetBasis)
 			{}
 
-			////////////////////////////////////////////////////////////////////////////////
 			// Updates the current hash with the new provided data.
 			//
 			// data: A pointer to the memory buffer to hash.
@@ -69,7 +68,6 @@ namespace acl
 				m_state = acc;
 			}
 
-			////////////////////////////////////////////////////////////////////////////////
 			// Returns the current hash digest value.
 			constexpr ResultType digest() const { return m_state; }
 
@@ -81,16 +79,13 @@ namespace acl
 		};
 	}
 
-	////////////////////////////////////////////////////////////////////////////////
-	// A 32 bit hash instance type
+	/// A 32 bit hash instance type
 	using fnv1a_32 = hash_impl::fnv1a_impl<uint32_t, 2166136261U, 16777619U>;
 
-	////////////////////////////////////////////////////////////////////////////////
-	// A 64 bit hash instance type
+	/// A 64 bit hash instance type
 	using fnv1a_64 = hash_impl::fnv1a_impl<uint64_t, 14695981039346656037ULL, 1099511628211ULL>;
 
-	////////////////////////////////////////////////////////////////////////////////
-	// Returns the 32 bit hash of the provided buffer and size in bytes.
+	/// Returns the 32 bit hash of the provided buffer and size in bytes.
 	inline uint32_t hash32(const void* buffer, size_t buffer_size)
 	{
 		fnv1a_32 hashfn = fnv1a_32();
@@ -98,22 +93,19 @@ namespace acl
 		return hashfn.digest();
 	}
 
-	////////////////////////////////////////////////////////////////////////////////
-	// Returns the 32 bit hash of the provided element.
+	/// Returns the 32 bit hash of the provided element.
 	template<typename ElementType>
 	inline uint32_t hash32(const ElementType& element) { return hash32(&element, sizeof(ElementType)); }
 
-	////////////////////////////////////////////////////////////////////////////////
-	// Returns the 32 bit hash of the provided string.
-	// The null terminator not included in the hash.
+	/// Returns the 32 bit hash of the provided string.
+	/// The null terminator not included in the hash.
 	inline uint32_t hash32(const char* str)
 	{
 		const size_t buffer_size = str != nullptr ? std::strlen(str) : 0;
 		return hash32(str, buffer_size);
 	}
 
-	////////////////////////////////////////////////////////////////////////////////
-	// Returns the 64 bit hash of the provided buffer and size in bytes.
+	/// Returns the 64 bit hash of the provided buffer and size in bytes.
 	inline uint64_t hash64(const void* buffer, size_t buffer_size)
 	{
 		fnv1a_64 hashfn = fnv1a_64();
@@ -121,23 +113,22 @@ namespace acl
 		return hashfn.digest();
 	}
 
-	////////////////////////////////////////////////////////////////////////////////
-	// Returns the 64 bit hash of the provided element.
+	/// Returns the 64 bit hash of the provided element.
 	template<typename ElementType>
 	inline uint64_t hash64(const ElementType& element) { return hash64(&element, sizeof(ElementType)); }
 
-	////////////////////////////////////////////////////////////////////////////////
-	// Returns the 64 bit hash of the provided string.
-	// The null terminator not included in the hash.
+	/// Returns the 64 bit hash of the provided string.
+	/// The null terminator not included in the hash.
 	inline uint64_t hash64(const char* str)
 	{
 		const size_t buffer_size = str != nullptr ? std::strlen(str) : 0;
 		return hash64(str, buffer_size);
 	}
 
-	////////////////////////////////////////////////////////////////////////////////
-	// Combines two hashes into a new one.
+	/// Combines two hashes into a new one.
 	inline uint32_t hash_combine(uint32_t hash_a, uint32_t hash_b) { return (hash_a ^ hash_b) * 16777619U; }
+
+	/// Combines two hashes into a new one.
 	inline uint64_t hash_combine(uint64_t hash_a, uint64_t hash_b) { return (hash_a ^ hash_b) * 1099511628211ULL; }
 
 	ACL_IMPL_VERSION_NAMESPACE_END

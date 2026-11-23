@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The functions that write tracks to the ACL clip file format (SJSON).
+
 #if defined(ACL_USE_SJSON)
 
 #include "acl/version.h"
@@ -436,17 +439,13 @@ namespace acl
 		}
 	}
 
-	//////////////////////////////////////////////////////////////////////////
-	// Write out an SJSON ACL track list file.
-	//////////////////////////////////////////////////////////////////////////
+	/// Write out an SJSON ACL track list file.
 	inline error_result write_track_list(const track_array& track_list, const char* acl_filename)
 	{
 		return acl_impl::write_track_list(track_list, nullptr, acl_filename);
 	}
 
-	//////////////////////////////////////////////////////////////////////////
-	// Write out an SJSON ACL track list file.
-	//////////////////////////////////////////////////////////////////////////
+	/// Write out an SJSON ACL track list file.
 	inline error_result write_track_list(const track_array& track_list, const compression_settings& settings, const char* acl_filename)
 	{
 		return acl_impl::write_track_list(track_list, &settings, acl_filename);

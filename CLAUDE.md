@@ -44,6 +44,8 @@ cd tools/acl_compressor && python3 acl_compressor.py -acl=<clip dir> -stats=<sta
 
 Builds use `-Wall -Wextra -Werror` (GCC/Clang) and `/W4 /WX` (MSVC) -- warnings break the build. Tests define `ACL_ON_ASSERT_THROW` (and `RTM_ON_ASSERT_THROW`, `SJSON_CPP_ON_ASSERT_THROW`) so asserts can be caught.
 
+The API reference site uses Doxygen 1.18 (on the `PATH`) and MkDocs (`pip install -r tools/docs/requirements.txt`). `requirements.txt` is a lock file with hashes: to change a dependency, edit `tools/docs/requirements.in` and run the `uv pip compile` command in it. Run `python3 tools/docs/generate_api_docs.py` to write the pages to `docs/api/`, then `mkdocs build --strict` or `mkdocs serve`. Doxygen stops with an error when public API has no `///` comment. A new public header needs its page in the `nav` of `mkdocs.yml`. `.github/workflows/docs.yml` deploys the site to GitHub Pages for `develop` and for each release tag.
+
 `tests/validate_includes` generates one `.cpp` per public header (`includes/acl/*.h`, `compression/*.h`, `core/*.h`, `decompression/*.h`, `decompression/database/*.h`) to verify each header compiles standalone -- every public header must include everything it uses.
 
 ## Architecture & conventions
@@ -56,7 +58,7 @@ Builds use `-Wall -Wextra -Werror` (GCC/Clang) and `/W4 /WX` (MSVC) -- warnings 
 - **Decompression settings**: decompression is specialized at compile time through a `decompression_settings` struct of `static constexpr` functions (`is_track_type_supported`, `is_rotation_format_supported`, `are_extended_samples_supported`, ...). The optimizer removes the code for a feature that a setting turns off. When you add a feature to decompression, add a setting for it and keep the default variants (`default_transform_decompression_settings`, ...) as small as possible.
 - **Compressed data versions**: `core/compressed_tracks_version.h` lists each binary format version. These values are serialized: do not change one after it is assigned. A change to the compressed format adds a new `vXX_YY_99_N` entry and updates `latest`. Decompression must still read each supported older version (see `decompression_version_selector.h`).
 - **Asserts** (`core/error.h`) are stripped by default; `ACL_ON_ASSERT_ABORT`, `ACL_ON_ASSERT_THROW`, or `ACL_ON_ASSERT_CUSTOM` enable them. Functions that can fail return an `error_result`.
-- **Comments**: use `//` comments. A `//////` banner line goes above each public function, type, and enum value that has a description.
+- **Comments**: all public API must have a comment. Put it in `///` lines directly above the function, type, or macro. Put a `///<` comment after a data member or an enum value. Doxygen reads only these comments to make the API reference. Use `//` comments for implementation details, for the code in `acl_impl`, and for TODO notes. To put the members of a long class in sections, use a Doxygen member group: `/// \name <title>` and `/// \{` above the first member, and `/// \}` after the last member.
 - **Memory**: all allocations go through an `iallocator` (`allocate_type`, `deallocate_type_array`, ...). Do not use `new`, `delete`, or `malloc` directly.
 
 ## Tests

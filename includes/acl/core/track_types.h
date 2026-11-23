@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The track types, the track categories, and the track interpolators.
+
 #include "acl/version.h"
 #include "acl/core/error.h"
 #include "acl/core/error_result.h"
@@ -41,13 +44,11 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-	//////////////////////////////////////////////////////////////////////////
-	// We only support up to 4294967295 tracks. We reserve 4294967295 for the invalid index
+	/// We only support up to 4294967295 tracks. We reserve 4294967295 for the invalid index
 	constexpr uint32_t k_invalid_track_index = 0xFFFFFFFFU;
 
-	//////////////////////////////////////////////////////////////////////////
-	// The various supported track types.
-	// Note: be careful when changing values here as they might be serialized.
+	/// The various supported track types.
+	/// Note: be careful when changing values here as they might be serialized.
 	enum class track_type8 : uint8_t
 	{
 		float1f		= 0,
@@ -91,7 +92,6 @@ namespace acl
 
 	namespace acl_impl
 	{
-		//////////////////////////////////////////////////////////////////////////
 		// Returns true if the track type is a transform type that ACL supports: vqvf, vqf, or vqsf.
 		constexpr bool is_transform_track_type(track_type8 type)
 		{
@@ -99,8 +99,7 @@ namespace acl
 		}
 	}
 
-	//////////////////////////////////////////////////////////////////////////
-	// The categories of track types.
+	/// The categories of track types.
 	enum class track_category8 : uint8_t
 	{
 		scalarf		= 0,
@@ -111,22 +110,20 @@ namespace acl
 		transformd	= 5,
 	};
 
-	//////////////////////////////////////////////////////////////////////////
-	// The interpolator function used by a track.
+	/// The interpolator function used by a track.
 	enum class track_interpolator_t : uint8_t
 	{
-		// Simple linear interpolation means we have a single value per sample
+		/// Simple linear interpolation means we have a single value per sample
 		linear		= 0,
 
-		// Extended interpolation means each sample can be customized independently
+		/// Extended interpolation means each sample can be customized independently
 		extended	= 1,
 	};
 
 	//////////////////////////////////////////////////////////////////////////
 
-	//////////////////////////////////////////////////////////////////////////
-	// Returns the string representation for the provided track type.
 	// TODO: constexpr
+	/// Returns the string representation for the provided track type.
 	inline const char* get_track_type_name(track_type8 type)
 	{
 		switch (type)
@@ -143,9 +140,8 @@ namespace acl
 		}
 	}
 
-	//////////////////////////////////////////////////////////////////////////
-	// Returns the track type from its string representation.
-	// Returns true on success, false otherwise.
+	/// Returns the track type from its string representation.
+	/// Returns true on success, false otherwise.
 	inline bool get_track_type(const char* type, track_type8& out_type)
 	{
 		// Entries in the same order as the enum integral value
@@ -199,8 +195,7 @@ namespace acl
 		return false;
 	}
 
-	//////////////////////////////////////////////////////////////////////////
-	// Returns the track category for the provided track type.
+	/// Returns the track category for the provided track type.
 	inline track_category8 get_track_category(track_type8 type)
 	{
 		// Entries in the same order as the enum integral value
@@ -234,9 +229,8 @@ namespace acl
 		return type <= track_type8::vqsf ? k_track_type_to_category[static_cast<uint32_t>(type)] : track_category8::scalarf;
 	}
 
-	//////////////////////////////////////////////////////////////////////////
-	// Returns the string representation for the provided track interpolator type.
 	// TODO: constexpr
+	/// Returns the string representation for the provided track interpolator type.
 	inline const char* get_track_interpolator_name(track_interpolator_t interpolator)
 	{
 		switch (interpolator)
@@ -247,9 +241,8 @@ namespace acl
 		}
 	}
 
-	//////////////////////////////////////////////////////////////////////////
-	// Returns the track interpolator from its string representation.
-	// Returns true on success, false otherwise.
+	/// Returns the track interpolator from its string representation.
+	/// Returns true on success, false otherwise.
 	inline bool get_track_interpolator(const char* interpolator, track_interpolator_t& out_interpolator)
 	{
 		// Entries in the same order as the enum integral value
@@ -278,8 +271,7 @@ namespace acl
 		return false;
 	}
 
-	//////////////////////////////////////////////////////////////////////////
-	// Returns the num of elements within a sample for the provided track type.
+	/// Returns the num of elements within a sample for the provided track type.
 	inline uint32_t get_track_num_sample_elements(track_type8 type)
 	{
 		// Entries in the same order as the enum integral value

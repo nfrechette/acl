@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// A timer that measures the time of a scope.
+
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 
@@ -36,42 +39,32 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
-	////////////////////////////////////////////////////////////////////////////////
-	// A scope activated profiler.
-	////////////////////////////////////////////////////////////////////////////////
+	/// A scope activated profiler.
 	class scope_profiler
 	{
 	public:
-		////////////////////////////////////////////////////////////////////////////////
-		// Creates and starts a scope profiler and automatically starts it.
+		/// Creates and starts a scope profiler and automatically starts it.
 		scope_profiler();
 
-		////////////////////////////////////////////////////////////////////////////////
-		// Destroys a scope profiler and automatically stops it.
+		/// Destroys a scope profiler and automatically stops it.
 		~scope_profiler() = default;
 
-		////////////////////////////////////////////////////////////////////////////////
-		// Manually stops the profiler.
+		/// Manually stops the profiler.
 		scope_profiler& stop();
 
-		////////////////////////////////////////////////////////////////////////////////
-		// Returns whether the profiler has been stopped or not.
+		/// Returns whether the profiler has been stopped or not.
 		bool is_stopped() const { return m_start_time != m_end_time; }
 
-		////////////////////////////////////////////////////////////////////////////////
-		// Returns the elapsed time in nanoseconds since the profiler was started.
+		/// Returns the elapsed time in nanoseconds since the profiler was started.
 		std::chrono::nanoseconds get_elapsed_time() const;
 
-		////////////////////////////////////////////////////////////////////////////////
-		// Returns the elapsed time in microseconds since the profiler was started.
+		/// Returns the elapsed time in microseconds since the profiler was started.
 		double get_elapsed_microseconds() const { return std::chrono::duration<double, std::chrono::microseconds::period>(get_elapsed_time()).count(); }
 
-		////////////////////////////////////////////////////////////////////////////////
-		// Returns the elapsed time in milliseconds since the profiler was started.
+		/// Returns the elapsed time in milliseconds since the profiler was started.
 		double get_elapsed_milliseconds() const { return std::chrono::duration<double, std::chrono::milliseconds::period>(get_elapsed_time()).count(); }
 
-		////////////////////////////////////////////////////////////////////////////////
-		// Returns the elapsed time in seconds since the profiler was started.
+		/// Returns the elapsed time in seconds since the profiler was started.
 		double get_elapsed_seconds() const { return std::chrono::duration<double, std::chrono::seconds::period>(get_elapsed_time()).count(); }
 
 	private:

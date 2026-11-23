@@ -1,0 +1,14 @@
+# The direct dependencies of the documentation site.
+# requirements.txt locks these packages and all of their dependencies, with the hash of each file.
+# The lock uses only versions that are 14 days old or older: a new version of a package can contain malicious code
+# that nobody has found yet. A security fix can need a newer version: add a minimum version below, and add an
+# --exclude-newer-package exception for that package to the command.
+# After a change to this file, generate requirements.txt again (uv is a Python package):
+#   uv pip compile tools/docs/requirements.in --universal --python-version 3.9 --generate-hashes --exclude-newer "14 days" --custom-compile-command "uv pip compile tools/docs/requirements.in --universal --python-version 3.9 --generate-hashes --exclude-newer \"14 days\"" -o tools/docs/requirements.txt
+mike==2.2.0
+mkdocs==1.6.1
+mkdocs-material==9.7.7
+
+# Security fixes
+# GHSA-6q48-6c7w-9gw2: certifi bundles emSign root CAs with compromised intermediate CA keys.
+certifi>=2026.10.19

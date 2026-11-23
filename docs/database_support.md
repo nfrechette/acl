@@ -15,7 +15,7 @@ settings.include_contributing_error = true;
 
 This will add metadata to the compressed byte stream which will later be stripped once the database is created. Its footprint is only temporary as it isn't needed at runtime when decompressing.
 
-The database creation API is exposed in [acl/compression/compress.h](../includes/acl/compression/compress.h).
+The database creation API is exposed in [acl/compression/compress.h](https://github.com/nfrechette/acl/blob/develop/includes/acl/compression/compress.h).
 
 First, use `build_database(..)` to create a database. It takes as input the compressed animation clips you wish to merge and it will output new compressed animation clips and the database they are bound to. All of these buffers are binary blobs and can be moved around with `std::memcpy` safely. The only requirement is that they be 16 bytes aligned.
 
@@ -27,7 +27,7 @@ If some quality tiers aren't necessary on your platform of choice (e.g. mobile),
 
 At runtime, animation clips that are bound to a database can be decompressed without the database. If you attempt to do so, only the data within the clip will be used (lowest visual quality).
 
-In order to use a database, a [acl::database_context](../includes/decompression/database/database.h) must be created for it.
+In order to use a database, a [acl::database_context](https://github.com/nfrechette/acl/blob/develop/includes/acl/decompression/database/database.h) must be created for it.
 
 ```c++
 const acl::compressed_database* database = ...
@@ -37,7 +37,7 @@ acl::database_context<acl::default_database_settings> database_context;
 database_context.initialize(allocator, *database);
 ```
 
-The above will work if the database contains its bulk data inline (if it hasn't been stripped). To support streaming (whether from memory, memory mapped, network, or other IO) a [acl::database_streamer](../includes/acl/decompression/database/database_streamer.h) must be provided. See the linked header for details on how to implement it.
+The above will work if the database contains its bulk data inline (if it hasn't been stripped). To support streaming (whether from memory, memory mapped, network, or other IO) a [acl::database_streamer](https://github.com/nfrechette/acl/blob/develop/includes/acl/decompression/database/database_streamer.h) must be provided. See the linked header for details on how to implement it.
 
 ```c++
 acl::null_database_streamer medium_streamer(medium_data, medium_data_size);

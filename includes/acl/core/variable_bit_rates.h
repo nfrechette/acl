@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The variable bit rate types, which are deprecated.
+
 #include "acl/version.h"
 #include "acl/core/error.h"
 #include "acl/core/memory_utils.h"
@@ -65,11 +68,12 @@ namespace acl
 	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
 	constexpr bool is_raw_bit_rate(uint32_t bit_rate) { return bit_rate == 24; }
 
+	/// The bit rates of the sub-tracks of a transform track.
 	struct ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0") BoneBitRate
 	{
-		uint8_t rotation;
-		uint8_t translation;
-		uint8_t scale;
+		uint8_t rotation;	///< The bit rate of the rotation sub-track
+		uint8_t translation;	///< The bit rate of the translation sub-track
+		uint8_t scale;	///< The bit rate of the scale sub-track
 	};
 
 	ACL_IMPL_VERSION_NAMESPACE_END

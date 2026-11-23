@@ -24,6 +24,9 @@
 // SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \file
+/// The functions that pack and unpack quaternions.
+
 #include "acl/version.h"
 #include "acl/core/impl/compiler_utils.h"
 #include "acl/core/error.h"
@@ -46,60 +49,71 @@ namespace acl
 {
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
+	/// Writes the four components of a quaternion with float32 values (16 bytes).
 	inline void RTM_SIMD_CALL pack_quat_128(rtm::quatf_arg0 rotation, uint8_t* out_rotation_data)
 	{
 		pack_vector4_128(rtm::quat_to_vector(rotation), out_rotation_data);
 	}
 
+	/// Reads a quaternion that pack_quat_128 wrote.
 	inline rtm::quatf RTM_SIMD_CALL unpack_quat_128(const uint8_t* data_ptr)
 	{
 		return rtm::vector_to_quat(unpack_vector4_128(data_ptr));
 	}
 
+	/// Writes the [x,y,z] components of a quaternion with float32 values (12 bytes).
+	/// The function makes [w] positive first, thus the reader can find [w] from [x,y,z].
 	inline void RTM_SIMD_CALL pack_quat_96(rtm::quatf_arg0 rotation, uint8_t* out_rotation_data)
 	{
 		rtm::vector4f rotation_xyz = rtm::quat_to_vector(rtm::quat_ensure_positive_w(rotation));
 		pack_vector3_96(rotation_xyz, out_rotation_data);
 	}
 
-	// Assumes the 'data_ptr' is padded in order to load up to 16 bytes from it
+	/// Assumes the `data_ptr` is padded in order to load up to 16 bytes from it
 	inline rtm::quatf RTM_SIMD_CALL unpack_quat_96_unsafe(const uint8_t* data_ptr)
 	{
 		rtm::vector4f rotation_xyz = unpack_vector3_96_unsafe(data_ptr);
 		return acl_impl::quat_from_positive_w_stable(rotation_xyz);
 	}
 
+	/// Writes the [x,y,z] components of a quaternion with 16 bits each (6 bytes).
+	/// The function makes [w] positive first, thus the reader can find [w] from [x,y,z].
 	inline void RTM_SIMD_CALL pack_quat_48(rtm::quatf_arg0 rotation, uint8_t* out_rotation_data)
 	{
 		rtm::vector4f rotation_xyz = rtm::quat_to_vector(rtm::quat_ensure_positive_w(rotation));
 		pack_vector3_s48_unsafe(rotation_xyz, out_rotation_data);
 	}
 
+	/// Reads a quaternion that pack_quat_48 wrote. The function finds [w] from [x,y,z].
 	inline rtm::quatf RTM_SIMD_CALL unpack_quat_48(const uint8_t* data_ptr)
 	{
 		rtm::vector4f rotation_xyz = unpack_vector3_s48_unsafe(data_ptr);
 		return acl_impl::quat_from_positive_w_stable(rotation_xyz);
 	}
 
+	/// Writes the [x,y,z] components of a quaternion with 11, 11, and 10 bits (4 bytes).
+	/// The function makes [w] positive first, thus the reader can find [w] from [x,y,z].
 	inline void RTM_SIMD_CALL pack_quat_32(rtm::quatf_arg0 rotation, uint8_t* out_rotation_data)
 	{
 		rtm::vector4f rotation_xyz = rtm::quat_to_vector(rtm::quat_ensure_positive_w(rotation));
 		pack_vector3_32(rotation_xyz, 11, 11, 10, false, out_rotation_data);
 	}
 
+	/// Reads a quaternion that pack_quat_32 wrote. The function finds [w] from [x,y,z].
 	inline rtm::quatf RTM_SIMD_CALL unpack_quat_32(const uint8_t* data_ptr)
 	{
 		rtm::vector4f rotation_xyz = unpack_vector3_32(11, 11, 10, false, data_ptr);
 		return acl_impl::quat_from_positive_w_stable(rotation_xyz);
 	}
 
-	//////////////////////////////////////////////////////////////////////////
-
+	/// Returns the size in bytes of a full precision rotation sample with the given rotation format.
 	constexpr uint32_t get_packed_rotation_size(rotation_format8 format)
 	{
 		return format == rotation_format8::quatf_full ? (sizeof(float) * 4) : (sizeof(float) * 3);
 	}
 
+	/// Returns the size in bytes of the clip range of a rotation sub-track with the given rotation format:
+	/// the minimum and the extent of each component, with float32 values.
 	constexpr uint32_t get_range_reduction_rotation_size(rotation_format8 format)
 	{
 		return format == rotation_format8::quatf_full ? (sizeof(float) * 8) : (sizeof(float) * 6);
