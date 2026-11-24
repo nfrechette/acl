@@ -32,6 +32,7 @@
 #include <acl/compression/transform_error_metrics.h>
 #include <acl/compression/transform_metrics.h>
 #include <acl/core/ansi_allocator.h>
+#include <acl/core/impl/debug_track_writer.h>
 #include <acl/decompression/decompress.h>
 
 #include <rtm/quatf.h>
@@ -860,6 +861,193 @@ TEST_CASE("the constant translation test uses the scale of the parent", "[compre
 	CHECK(error <= precision);
 
 	allocator.deallocate(tracks, tracks->get_size());
+}
+
+namespace
+{
+	// A transform of a small clip for the tests of the constant sub-track test
+	struct constant_test_transform
+	{
+		uint32_t parent_index;
+		float precision;
+		float shell_distance;
+		rtm::vqvf transform;
+		float noise_angle;		// The amplitude of a rotation noise around Z, in radians
+	};
+
+	track_array_vqvf make_constant_test_clip(iallocator& allocator, const constant_test_transform* transforms, uint32_t num_transforms)
+	{
+		track_array_vqvf track_list(allocator, num_transforms);
+		for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
+		{
+			const constant_test_transform& transform = transforms[transform_index];
+
+			track_desc_transformf desc;
+			desc.output_index = transform_index;
+			desc.parent_index = transform.parent_index;
+			desc.precision = transform.precision;
+			desc.shell_distance = transform.shell_distance;
+
+			track_vqvf track = track_vqvf::make_reserve(desc, allocator, k_num_samples, k_sample_rate);
+			for (uint32_t sample_index = 0; sample_index < k_num_samples; ++sample_index)
+			{
+				const float alpha = float(sample_index) / float(k_num_samples - 1);
+				const rtm::quatf noise = rtm::quat_from_axis_angle(rtm::vector_set(0.0F, 0.0F, 1.0F), transform.noise_angle * std::sin(alpha * 9.0F));
+
+				rtm::vqvf sample = transform.transform;
+				sample.rotation = rtm::quat_normalize(rtm::quat_mul(sample.rotation, noise));
+				track[sample_index] = sample;
+			}
+
+			track_list[transform_index] = std::move(track);
+		}
+
+		return track_list;
+	}
+
+	// Decompresses each sample of the first 'num_transforms' tracks
+	track_array_vqvf decompress_constant_test_clip(iallocator& allocator, const compressed_tracks& tracks, const track_array_vqvf& raw_track_list, uint32_t num_transforms)
+	{
+		decompression_context<debug_transform_decompression_settings> context;
+		REQUIRE(context.initialize(tracks));
+
+		acl_impl::debug_track_writer writer(allocator, track_type8::vqvf, raw_track_list.get_num_tracks());
+
+		track_array_vqvf track_list(allocator, num_transforms);
+		for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
+			track_list[transform_index] = track_vqvf::make_reserve(raw_track_list[transform_index].get_description(), allocator, k_num_samples, k_sample_rate);
+
+		for (uint32_t sample_index = 0; sample_index < k_num_samples; ++sample_index)
+		{
+			writer.initialize_with_defaults(raw_track_list);
+			context.seek(float(sample_index) / k_sample_rate, sample_rounding_policy::nearest);
+			context.decompress_tracks(writer);
+
+			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
+				track_list[transform_index][sample_index] = writer.read_vqv(transform_index);
+		}
+
+		return track_list;
+	}
+
+	// Copies the first 'num_transforms' tracks
+	track_array_vqvf copy_constant_test_clip(iallocator& allocator, const track_array_vqvf& track_list, uint32_t num_transforms)
+	{
+		track_array_vqvf result(allocator, num_transforms);
+		for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
+		{
+			const track_vqvf& track = track_list[transform_index];
+			result[transform_index] = track_vqvf::make_copy(track.get_description(), allocator, &track[0], track.get_num_samples(), track.get_sample_rate());
+		}
+
+		return result;
+	}
+}
+
+TEST_CASE("the constant rotation test uses the scale of the transform one time", "[compression][transform]")
+{
+	ansi_allocator allocator;
+
+	// The rotation of the transform with a small scale moves by 3x the precision on the child shell.
+	// Before the fix, the scale of the transform applied two times and the rotation was constant.
+	const float precision = 0.01F;
+	const uint32_t none = k_invalid_track_index;
+
+	for (const float scale : { 0.01F, 0.1F, 1.0F, 2.0F })
+	{
+		INFO("scale: " << scale);
+
+		const float noise_angle = (3.0F * precision) / (13.0F * scale);
+		const constant_test_transform transforms[] =
+		{
+			{ none, precision, 3.0F, rtm::vqv_identity(), 0.0F },
+			{ 0, precision, 3.0F, rtm::vqv_set(rtm::quat_identity(), rtm::vector_zero(), rtm::vector_set(scale)), noise_angle },
+			{ 1, precision, 3.0F, rtm::vqv_set(rtm::quat_identity(), rtm::vector_set(0.0F, 10.0F, 0.0F), rtm::vector_set(1.0F)), 0.0F },
+		};
+
+		const track_array_vqvf track_list = make_constant_test_clip(allocator, transforms, 3);
+
+		const compression_settings settings = get_default_compression_settings();
+		compressed_tracks* tracks = compress(allocator, track_list, settings, nullptr, additive_clip_format8::none);
+
+		const float error = measure_error(allocator, track_list, *tracks, settings, nullptr, additive_clip_format8::none);
+		CHECK(error <= precision);
+
+		allocator.deallocate(tracks, tracks->get_size());
+	}
+}
+
+TEST_CASE("the constant test uses the smallest precision of the descendants", "[compression][transform]")
+{
+	ansi_allocator allocator;
+
+	// Two children of the transform with the noise: a near child with a small precision and a far child.
+	// The far child is dominant. Before the fix, its precision applied to the near child.
+	// The transform with the noise has a small shell: the error of the first three tracks is the error of the near child.
+	const float near_precision = 0.001F;
+	const float far_precision = 0.01F;
+	const float noise_angle = (0.8F * far_precision) / 23.0F;
+	const uint32_t none = k_invalid_track_index;
+
+	const constant_test_transform transforms[] =
+	{
+		{ none, far_precision, 0.001F, rtm::vqv_identity(), 0.0F },
+		{ 0, far_precision, 0.001F, rtm::vqv_identity(), noise_angle },
+		{ 1, near_precision, 3.0F, rtm::vqv_set(rtm::quat_identity(), rtm::vector_set(1.0F, 0.0F, 0.0F), rtm::vector_set(1.0F)), 0.0F },
+		{ 1, far_precision, 3.0F, rtm::vqv_set(rtm::quat_identity(), rtm::vector_set(20.0F, 0.0F, 0.0F), rtm::vector_set(1.0F)), 0.0F },
+	};
+
+	const track_array_vqvf track_list = make_constant_test_clip(allocator, transforms, 4);
+
+	const compression_settings settings = get_default_compression_settings();
+	compressed_tracks* tracks = compress(allocator, track_list, settings, nullptr, additive_clip_format8::none);
+
+	const float error = measure_error(allocator, track_list, *tracks, settings, nullptr, additive_clip_format8::none);
+	CHECK(error <= far_precision);
+
+	// Without the far child
+	const track_array_vqvf raw_near_track_list = copy_constant_test_clip(allocator, track_list, 3);
+	const track_array_vqvf lossy_near_track_list = decompress_constant_test_clip(allocator, *tracks, track_list, 3);
+	const track_error near_error = calculate_compression_error(allocator, raw_near_track_list, lossy_near_track_list, settings);
+	CHECK(near_error.error <= near_precision);
+
+	allocator.deallocate(tracks, tracks->get_size());
+}
+
+TEST_CASE("the constant test bounds a non-uniform scale with a rotation", "[compression][transform]")
+{
+	ansi_allocator allocator;
+
+	// A rotation between two non-uniform scales: the true stretch is 10x the product of the scales per component.
+	// Before the fix, the shell used the product per component and the root rotation was constant.
+	const float precision = 0.01F;
+	const float noise_angle = (5.0F * precision) / 400.0F;
+	const rtm::quatf rotation = rtm::quat_from_axis_angle(rtm::vector_set(0.0F, 0.0F, 1.0F), rtm::constants::half_pi());
+	const uint32_t none = k_invalid_track_index;
+
+	const constant_test_transform transforms[] =
+	{
+		{ none, precision, 3.0F, rtm::vqv_identity(), noise_angle },
+		{ 0, precision, 3.0F, rtm::vqv_set(rtm::quat_identity(), rtm::vector_zero(), rtm::vector_set(1.0F, 10.0F, 1.0F)), 0.0F },
+		{ 1, precision, 3.0F, rtm::vqv_set(rotation, rtm::vector_zero(), rtm::vector_set(10.0F, 1.0F, 1.0F)), 0.0F },
+		{ 2, precision, 3.0F, rtm::vqv_set(rtm::quat_identity(), rtm::vector_set(1.0F, 0.0F, 0.0F), rtm::vector_set(1.0F)), 0.0F },
+	};
+
+	const track_array_vqvf track_list = make_constant_test_clip(allocator, transforms, 4);
+
+	const transform_runtime_type_t types[] = { transform_runtime_type_t::automatic, transform_runtime_type_t::matrix3x4f };
+	for (const transform_runtime_type_t type : types)
+	{
+		compression_settings settings = get_default_compression_settings();
+		settings.transform_runtime_type = type;
+
+		compressed_tracks* tracks = compress(allocator, track_list, settings, nullptr, additive_clip_format8::none);
+
+		const float error = measure_error(allocator, track_list, *tracks, settings, nullptr, additive_clip_format8::none);
+		CHECK(error <= precision);
+
+		allocator.deallocate(tracks, tracks->get_size());
+	}
 }
 
 ACL_IMPL_DEPRECATION_WARNING_POP

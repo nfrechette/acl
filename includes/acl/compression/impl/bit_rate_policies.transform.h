@@ -67,7 +67,6 @@ namespace acl
 		//    - 'init_error_args(args, shell_distance)'
 		//    - 'get_transform_size()', 'uses_cache()', 'needs_chain_child()', and 'needs_conversion()'
 		//    - 'local_to_object_space(..)': converts a local space pose and takes it into object space
-		//    - 'compute_shell_distances(..)': finds the rigid shell of each transform from the object space poses
 		//    - 'measure_cached(..)': measures the error with the cached transforms
 		//    - 'measure_chain(..)': measures the error with the transform chains
 		//    - 'update_cached(..)' and 'store_local(..)': update the cached transforms after optimization
@@ -302,27 +301,6 @@ namespace acl
 		};
 
 		//////////////////////////////////////////////////////////////////////////
-		// Reads VQ object space transforms for 'compute_segment_shell_distances_with_reader'
-		// VQ math does not use the scale: the largest scale is always 1.0
-		struct vq_shell_transform_reader
-		{
-			const rtm::vqvf* object_transforms;
-			uint32_t num_transforms;
-
-			rtm::vector4f RTM_SIMD_CALL get_translation(uint32_t sample_index, uint32_t transform_index) const
-			{
-				return object_transforms[(sample_index * num_transforms) + transform_index].translation;
-			}
-
-			rtm::scalarf RTM_SIMD_CALL get_largest_scale(uint32_t sample_index, uint32_t transform_index) const
-			{
-				(void)sample_index;
-				(void)transform_index;
-				return rtm::scalar_set(1.0F);
-			}
-		};
-
-		//////////////////////////////////////////////////////////////////////////
 		// A policy for a built-in transform type and a metric that the compiler knows.
 		// There is no virtual function call, except in the legacy error metrics.
 		template<class transform_math_t, class metric_t>
@@ -371,11 +349,6 @@ namespace acl
 					else
 						object_pose[transform_index] = local_transform;	// The root has no parent: its local and object space transforms are equal
 				}
-			}
-
-			void compute_shell_distances(const segment_context& segment, const void* object_poses, rigid_shell_metadata_t* out_shell_metadata) const
-			{
-				compute_shell_distances_impl(std::integral_constant<bool, std::is_same<transform_math_t, vq_transform_math>::value>(), segment, static_cast<const transform_type*>(object_poses), out_shell_metadata);
 			}
 
 			// result = measured_to_transform * transform_being_optimized * parent_transform_to_root
@@ -479,18 +452,6 @@ namespace acl
 			}
 
 		private:
-			// VQ math does not use the scale: the scale of each transform is 1.0
-			static void compute_shell_distances_impl(std::true_type, const segment_context& segment, const rtm::vqvf* object_poses, rigid_shell_metadata_t* out_shell_metadata)
-			{
-				const vq_shell_transform_reader reader{ object_poses, segment.num_bones };
-				compute_segment_shell_distances_with_reader(segment, reader, out_shell_metadata);
-			}
-
-			static void compute_shell_distances_impl(std::false_type, const segment_context& segment, const transform_type* object_poses, rigid_shell_metadata_t* out_shell_metadata)
-			{
-				compute_segment_shell_distances(segment, object_poses, out_shell_metadata);
-			}
-
 			// Returns the object transform of a transform from the object transform of its parent
 			transform_type mul_with_parent(const transform_type& transform, const transform_type& parent_object_transform) const
 			{
@@ -499,55 +460,6 @@ namespace acl
 
 			metric_t m_metric;
 			bool m_is_mesh_rotation;
-		};
-
-		//////////////////////////////////////////////////////////////////////////
-		// Reads object space transforms through a transform adapter for 'compute_segment_shell_distances_with_reader'
-		// We transform the unit axes and the origin with the transform
-		struct adapter_shell_transform_reader
-		{
-			const itransform_adapter* adapter;
-			const uint8_t* object_poses;
-			size_t transform_size;
-			uint32_t num_transforms;
-
-			void RTM_SIMD_CALL get_points(uint32_t sample_index, uint32_t transform_index, rtm::vector4f& out_xxxx, rtm::vector4f& out_yyyy, rtm::vector4f& out_zzzz) const
-			{
-				// The X, Y, and Z lanes hold the X, Y, and Z unit axes, the W lane holds the origin
-				const rtm::vector4f points_xxxx = rtm::vector_set(1.0F, 0.0F, 0.0F, 0.0F);
-				const rtm::vector4f points_yyyy = rtm::vector_set(0.0F, 1.0F, 0.0F, 0.0F);
-				const rtm::vector4f points_zzzz = rtm::vector_set(0.0F, 0.0F, 1.0F, 0.0F);
-
-				const uint8_t* transform = object_poses + (((sample_index * num_transforms) + transform_index) * transform_size);
-				adapter->mul_point3_x4(points_xxxx, points_yyyy, points_zzzz, transform, out_xxxx, out_yyyy, out_zzzz);
-			}
-
-			rtm::vector4f RTM_SIMD_CALL get_translation(uint32_t sample_index, uint32_t transform_index) const
-			{
-				rtm::vector4f points_xxxx;
-				rtm::vector4f points_yyyy;
-				rtm::vector4f points_zzzz;
-				get_points(sample_index, transform_index, points_xxxx, points_yyyy, points_zzzz);
-
-				return rtm::vector_set(rtm::vector_get_w(points_xxxx), rtm::vector_get_w(points_yyyy), rtm::vector_get_w(points_zzzz), 0.0F);
-			}
-
-			rtm::scalarf RTM_SIMD_CALL get_largest_scale(uint32_t sample_index, uint32_t transform_index) const
-			{
-				rtm::vector4f points_xxxx;
-				rtm::vector4f points_yyyy;
-				rtm::vector4f points_zzzz;
-				get_points(sample_index, transform_index, points_xxxx, points_yyyy, points_zzzz);
-
-				// The distance from the origin to each unit axis after the transform
-				const rtm::vector4f axes_xxxx = rtm::vector_sub(points_xxxx, rtm::vector_dup_w(points_xxxx));
-				const rtm::vector4f axes_yyyy = rtm::vector_sub(points_yyyy, rtm::vector_dup_w(points_yyyy));
-				const rtm::vector4f axes_zzzz = rtm::vector_sub(points_zzzz, rtm::vector_dup_w(points_zzzz));
-				const rtm::vector4f axes_length_sq = rtm::vector_add(rtm::vector_add(rtm::vector_mul(axes_xxxx, axes_xxxx), rtm::vector_mul(axes_yyyy, axes_yyyy)), rtm::vector_mul(axes_zzzz, axes_zzzz));
-
-				// The W lane is zero, it is the origin
-				return rtm::scalar_sqrt(rtm::vector_get_max_component_as_scalar(axes_length_sq));
-			}
 		};
 
 		//////////////////////////////////////////////////////////////////////////
@@ -644,12 +556,6 @@ namespace acl
 					else if (object_transform != local_transform)
 						std::memcpy(object_transform, local_transform, m_transform_size);	// The root has no parent: its local and object space transforms are equal
 				}
-			}
-
-			void compute_shell_distances(const segment_context& segment, const void* object_poses, rigid_shell_metadata_t* out_shell_metadata) const
-			{
-				const adapter_shell_transform_reader reader{ &m_adapter, static_cast<const uint8_t*>(object_poses), m_transform_size, segment.num_bones };
-				compute_segment_shell_distances_with_reader(segment, reader, out_shell_metadata);
 			}
 
 			rtm::scalarf RTM_SIMD_CALL measure_cached(

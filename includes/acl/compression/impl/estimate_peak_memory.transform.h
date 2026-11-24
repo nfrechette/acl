@@ -357,6 +357,7 @@ namespace acl
 			size_t initialization_size = persistent_size;
 			initialization_size += clip_streams_size;
 			initialization_size += track_stream::get_required_size(num_samples, sizeof(rtm::quatf));
+			initialization_size += metric_transform_size * num_samples;						// The parent transforms of the constant sub-track test
 
 			// The segments, see 'segment_streams'
 			size_t segment_streams_size = clip_streams_size;

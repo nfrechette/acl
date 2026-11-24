@@ -2226,8 +2226,10 @@ namespace acl
 				policy.local_to_object_space(*context.topology, local_pose_lossy, cached_transforms_lossy + (sample_index * pose_size), clip_sample_index, true);
 			}
 
-			// Compute our dominant transforms
-			policy.compute_shell_distances(*context.segment, cached_transforms_lossy, context.shell_metadata_per_transform);
+#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_BASIC_INFO
+			// The debug output measures the constant transforms with the v1 function, it uses the segment shell
+			compute_segment_shell_distances(*context.segment, context.space_context, context.shell_metadata_per_transform);
+#endif
 
 			// Without the cache, we multiply the transform chains manually
 			const bool use_transform_chains = !policy.uses_cache();
@@ -2328,7 +2330,7 @@ namespace acl
 				if (bone_bit_rates.rotation == k_invalid_bit_rate && bone_bit_rates.translation == k_invalid_bit_rate && bone_bit_rates.scale == k_invalid_bit_rate)
 				{
 #if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_BASIC_INFO
-					const float transform_precision = context.shell_metadata_per_transform[transform_index].precision;
+					const float transform_precision = context.metadata[transform_index].precision;
 					const float error = calculate_max_error_at_bit_rate_local(context, transform_index, error_scan_stop_condition::until_end_of_segment);
 					printf("%8u: Best bit rates: [%3u, %3u, %3u](  0) @ %.4f%s (all constant)\n",
 						transform_index, bone_bit_rates.rotation, bone_bit_rates.translation, bone_bit_rates.scale,
@@ -2457,7 +2459,8 @@ namespace acl
 							cached_transforms_lossy,
 							best_error);
 
-						const float critical_transform_precision = context.shell_metadata_per_transform[critical_transform_index].precision;
+						// Each critical transform must stay within its own precision
+						const float critical_transform_precision = context.metadata[critical_transform_index].precision;
 						is_permutation_good_enough &= critical_transform_error <= critical_transform_precision;
 
 						// TODO: Try this out
@@ -2716,7 +2719,7 @@ namespace acl
 			printf("Variable quantization optimization results (total size %u bits):\n", total_num_bits);
 			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 			{
-				const float transform_precision = context.shell_metadata_per_transform[transform_index].precision;
+				const float transform_precision = context.metadata[transform_index].precision;
 				const transform_bit_rates& bone_bit_rate = context.bit_rate_per_bone[transform_index];
 
 				const uint32_t num_bones_in_chain = calculate_bone_chain_indices(context.clip, transform_index, context.chain_bone_indices);
