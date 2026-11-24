@@ -156,6 +156,10 @@ namespace acl
 
 			// The index of the dominant transform (current transform index for leaf transforms)
 			uint32_t dominant_transform_index;
+
+			// The largest scale of the object space transform over the samples: the largest distance from the origin of a unit axis
+			// A translation delta in the local space of a child moves the child in object space by up to this value times the delta
+			float largest_object_scale;
 		};
 
 		// Represents the working space for a clip (raw or lossy)

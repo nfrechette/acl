@@ -813,4 +813,53 @@ TEST_CASE("the error between two raw track arrays uses the playback scale", "[co
 	CHECK_THROWS(calculate_compression_error(allocator, track_list0, track_list1, settings));
 }
 
+TEST_CASE("the constant translation test uses the scale of the parent", "[compression][transform]")
+{
+	ansi_allocator allocator;
+
+	// A chain of three transforms. The root has a large constant scale, for example from a conversion of units.
+	// The translation of the child moves by less than the precision in local space, and by much more in object space.
+	const float root_scale = 100.0F;
+	const float translation_delta = 0.004F;
+	const float precision = 0.01F;
+
+	const uint32_t num_transforms = 3;
+	track_array_vqvf track_list(allocator, num_transforms);
+	for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
+	{
+		track_desc_transformf desc;
+		desc.output_index = transform_index;
+		desc.parent_index = transform_index == 0 ? k_invalid_track_index : (transform_index - 1);
+		desc.precision = precision;
+		desc.shell_distance = 3.0F;
+
+		track_vqvf track = track_vqvf::make_reserve(desc, allocator, k_num_samples, k_sample_rate);
+		for (uint32_t sample_index = 0; sample_index < k_num_samples; ++sample_index)
+		{
+			const float alpha = float(sample_index) / float(k_num_samples - 1);
+
+			rtm::vqvf transform = rtm::vqv_identity();
+			if (transform_index == 0)
+				transform.scale = rtm::vector_set(root_scale);
+			else if (transform_index == 1)
+				transform.translation = rtm::vector_set(10.0F + translation_delta * std::sin(alpha * 6.0F), 0.0F, 0.0F);
+			else
+				transform.translation = rtm::vector_set(0.0F, 10.0F, 0.0F);
+
+			track[sample_index] = transform;
+		}
+
+		track_list[transform_index] = std::move(track);
+	}
+
+	const compression_settings settings = get_default_compression_settings();
+	compressed_tracks* tracks = compress(allocator, track_list, settings, nullptr, additive_clip_format8::none);
+
+	// Before the fix, the translation of the child was constant and the error was about 'root_scale * translation_delta'
+	const float error = measure_error(allocator, track_list, *tracks, settings, nullptr, additive_clip_format8::none);
+	CHECK(error <= precision);
+
+	allocator.deallocate(tracks, tracks->get_size());
+}
+
 ACL_IMPL_DEPRECATION_WARNING_POP

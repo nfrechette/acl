@@ -130,6 +130,22 @@ namespace acl
 
 			const rtm::scalarf precision_sq = rtm::scalar_set(shell.precision * shell.precision);
 
+			// We measure the error in local space. A translation delta does not change the rotation and the scale,
+			// thus the error is the length of the delta. In object space, the scale of the parent multiplies the delta.
+			// We scale the error with the largest scale of the parent: with a large scale (for example from a
+			// conversion of units), a delta below the precision in local space can be above it in object space.
+			// A rotation or a scale delta moves the shell points, and the dominant shell distance is already in object space.
+			rtm::scalarf error_scale_sq = rtm::scalar_set(1.0F);
+			if (sub_track_type == animation_track_type8::translation)
+			{
+				const uint32_t parent_index = lossy_clip_context.topology->transforms[transform_index].parent_index;
+				if (parent_index != k_invalid_track_index)
+				{
+					const float parent_scale = lossy_clip_context.clip_shell_metadata[parent_index].largest_object_scale;
+					error_scale_sq = rtm::scalar_set(parent_scale * parent_scale);
+				}
+			}
+
 			const uint32_t num_samples = lossy_clip_context.num_samples;
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 			{
@@ -177,7 +193,7 @@ namespace acl
 				else
 					std::memcpy(&local_transforms_converted[0], &local_transforms[0], metric_transform_size * 2);
 
-				const rtm::scalarf vtx_error_sq = error_metric.calculate_error_squared(calculate_error_args);
+				const rtm::scalarf vtx_error_sq = rtm::scalar_mul(error_metric.calculate_error_squared(calculate_error_args), error_scale_sq);
 
 				// If our error exceeds the desired precision, we are not constant
 				if (rtm::scalar_greater_than(vtx_error_sq, precision_sq))

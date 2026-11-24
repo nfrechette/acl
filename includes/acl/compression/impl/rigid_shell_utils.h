@@ -91,6 +91,7 @@ namespace acl
 				transform_shell_metadata.local_shell_distance = raw_clip.get_transform_shell_distance(transform_index);
 				transform_shell_metadata.precision = raw_clip.get_transform_precision(transform_index);
 				transform_shell_metadata.dominant_transform_index = transform_index;
+				transform_shell_metadata.largest_object_scale = 0.0F;
 			}
 
 			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
@@ -141,6 +142,7 @@ namespace acl
 
 					rigid_shell_metadata_t& transform_shell_metadata = shell_metadata[transform_index];
 					transform_shell_metadata.local_shell_distance = rtm::scalar_max(object_shell_distance, transform_shell_metadata.local_shell_distance);
+					transform_shell_metadata.largest_object_scale = rtm::scalar_max(rtm::scalar_cast(largest_scale), transform_shell_metadata.largest_object_scale);
 
 					max_distance_to_parents[transform_index] = rtm::scalar_max(distance_to_parent, max_distance_to_parents[transform_index]);
 				}
@@ -550,6 +552,7 @@ namespace acl
 				shell_metadata.local_shell_distance = metadata.shell_distance;
 				shell_metadata.precision = metadata.precision;
 				shell_metadata.dominant_transform_index = transform_index;
+				shell_metadata.largest_object_scale = 0.0F;
 			}
 
 			for (uint32_t segment_sample_index = 0; segment_sample_index < num_samples; ++segment_sample_index)
@@ -607,6 +610,7 @@ namespace acl
 
 					rigid_shell_metadata_t& transform_shell_metadata = out_shell_metadata[transform_index];
 					transform_shell_metadata.local_shell_distance = rtm::scalar_max(object_shell_distance, transform_shell_metadata.local_shell_distance);
+					transform_shell_metadata.largest_object_scale = rtm::scalar_max(rtm::scalar_cast(largest_scale), transform_shell_metadata.largest_object_scale);
 
 					max_distance_to_parents[transform_index] = rtm::scalar_max(distance_to_parent, max_distance_to_parents[transform_index]);
 				}
@@ -733,6 +737,7 @@ namespace acl
 				shell_metadata.local_shell_distance = metadata.shell_distance;
 				shell_metadata.precision = metadata.precision;
 				shell_metadata.dominant_transform_index = transform_index;
+				shell_metadata.largest_object_scale = 0.0F;
 			}
 
 			for (uint32_t segment_sample_index = 0; segment_sample_index < num_samples; ++segment_sample_index)
@@ -756,6 +761,7 @@ namespace acl
 
 					rigid_shell_metadata_t& transform_shell_metadata = out_shell_metadata[transform_index];
 					transform_shell_metadata.local_shell_distance = rtm::scalar_max(object_shell_distance, transform_shell_metadata.local_shell_distance);
+					transform_shell_metadata.largest_object_scale = rtm::scalar_max(rtm::scalar_cast(largest_scale), transform_shell_metadata.largest_object_scale);
 
 					max_distance_to_parents[transform_index] = rtm::scalar_max(distance_to_parent, max_distance_to_parents[transform_index]);
 				}

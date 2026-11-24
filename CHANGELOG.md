@@ -78,6 +78,7 @@
 *  Add a documentation site: Doxygen reads the `///` comments of the public headers, and MkDocs makes the site with the guides and the API reference for develop and for each release
 *  Add the [configuration macros](docs/configuration_macros.md) page: it lists each macro that configures ACL
 *  The precise transform metric computes the error without the delta transform: compression is faster, for example 15% on a data set of clips without scale, and the results do not change
+*  Fix the constant and default translation tests with a parent scale: the scale of the parent multiplies the translation error, as in object space. Before, with a large scale (for example from a conversion of units), a translation delta below the precision in local space could give an error far above the precision
 
 ## 2.1.0
 
