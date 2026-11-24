@@ -77,6 +77,7 @@
 *  Add WASM SIMD code paths where ACL uses SSE2 or NEON intrinsics directly. With V8 on arm64, the time to decompress a full pose is 15% lower
 *  Add a documentation site: Doxygen reads the `///` comments of the public headers, and MkDocs makes the site with the guides and the API reference for develop and for each release
 *  Add the [configuration macros](docs/configuration_macros.md) page: it lists each macro that configures ACL
+*  The precise transform metric computes the error without the delta transform: compression is faster, for example 15% on a data set of clips without scale, and the results do not change
 
 ## 2.1.0
 
