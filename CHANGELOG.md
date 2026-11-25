@@ -82,6 +82,7 @@
 *  The rigid shell of a transform keeps the smallest precision of its descendants, and each descendant distance is scaled by the ratio of the precisions
 *  The bit rate algorithm v2 tests each critical transform with its own precision, and it no longer computes the rigid shell of each segment
 *  When a bit rate permutation fails, the bit rate algorithm v2 measures the critical transform that failed first in the next permutations. The results do not change, and compression is faster: up to 9x on long clips with scale and deep transform chains
+*  The bit rate algorithm v2 measures the raw bit rates of a transform first. When their error is within the precision, the search rejects each permutation with an error above the precision at the first sample above it. The results do not change, and compression is 57% to 66% faster
 
 ## 2.1.0
 

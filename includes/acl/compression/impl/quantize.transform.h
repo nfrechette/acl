@@ -58,6 +58,8 @@
 #endif
 
 #include <algorithm>
+#include <cfloat>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -2378,6 +2380,66 @@ namespace acl
 
 				const size_t num_bit_rate_permutations = num_bit_rate_permutations_per_dofs[num_dof - 1];
 
+				// The search rejects a permutation when one critical transform reaches the best error.
+				// Before the search finds a permutation that is good enough, the best error is too large to reject
+				// the permutations quickly. Thus, we measure the last permutation (raw) first.
+				// If its error is not above the largest precision of the critical transforms, we also reject
+				// each permutation with an error above that precision. The result does not change:
+				//    - The search ends when the best permutation is good enough. Its error is then not above the largest precision.
+				//    - Otherwise, the search measures each permutation and selects the lowest error. The last permutation
+				//      gives an upper bound for that error.
+				// Thus, a permutation with an error above the largest precision is never the best permutation
+				// at the end of a size group, and is never selected.
+				float search_threshold = 1.0E10F;
+				{
+					float max_critical_precision = 0.0F;
+					for (uint32_t critical_index = 0; critical_index < num_critical_transforms; ++critical_index)
+						max_critical_precision = rtm::scalar_max(max_critical_precision, context.metadata[critical_transform_indices[critical_index]].precision);
+
+					// The smallest error that is above the largest precision
+					const float precision_threshold = std::nextafter(max_critical_precision, FLT_MAX);
+
+					const uint8_t* last_permutation_bit_rates = get_local_bit_rate_permutation(num_dof, num_bit_rate_permutations - 1);
+					transform_bit_rates last_bit_rates = bone_bit_rates;
+					uint32_t dof_index = 0;
+					if (last_bit_rates.rotation != k_invalid_bit_rate)
+						last_bit_rates.rotation = last_permutation_bit_rates[dof_index++];
+					if (last_bit_rates.translation != k_invalid_bit_rate)
+						last_bit_rates.translation = last_permutation_bit_rates[dof_index++];
+					if (last_bit_rates.scale != k_invalid_bit_rate)
+						last_bit_rates.scale = last_permutation_bit_rates[dof_index++];
+
+					context.bit_rate_per_bone[transform_index] = last_bit_rates;
+
+					bool is_last_permutation_within_threshold = true;
+					for (uint32_t measure_index = 0; measure_index < num_critical_transforms; ++measure_index)
+					{
+						const uint32_t critical_chain_index = critical_measure_order[measure_index];
+						const uint32_t critical_transform_index = critical_transform_indices[critical_chain_index];
+
+						const uint32_t* transform_chain = use_transform_chains ? transform_chains[critical_chain_index] : nullptr;
+						const uint32_t transform_chain_length = use_transform_chains ? transform_chain_counts[critical_chain_index] : 0;
+
+						const float critical_transform_error = calculate_max_error_at_bit_rate_object_v2(
+							context, policy,
+							transform_index, critical_transform_index, critical_chain_child_indices[critical_chain_index],
+							transform_chain, transform_chain_length,
+							object_transforms_raw,
+							cached_transforms_lossy,
+							precision_threshold);
+
+						if (critical_transform_error >= precision_threshold)
+						{
+							std::rotate(critical_measure_order, critical_measure_order + measure_index, critical_measure_order + measure_index + 1);
+							is_last_permutation_within_threshold = false;
+							break;
+						}
+					}
+
+					if (is_last_permutation_within_threshold)
+						search_threshold = precision_threshold;
+				}
+
 				// Our desired bit rates start with the initial value
 				transform_bit_rates desired_bit_rates = bone_bit_rates;
 
@@ -2453,6 +2515,9 @@ namespace acl
 					float worst_critical_transform_error = 0.0F;
 					bool is_permutation_good_enough = true;
 
+					// We reject this permutation when one critical transform reaches this error, see above
+					const float reject_error = rtm::scalar_min(best_error, search_threshold);
+
 					// A permutation is rejected when one critical transform reaches the best error, in any order.
 					// When a permutation fails, the next permutations measure the critical transform that failed first:
 					// the permutations of a transform are similar, and that critical transform is likely to fail again.
@@ -2471,7 +2536,7 @@ namespace acl
 							transform_chain, transform_chain_length,
 							object_transforms_raw,
 							cached_transforms_lossy,
-							best_error);
+							reject_error);
 
 						// Each critical transform must stay within its own precision
 						const float critical_transform_precision = context.metadata[critical_transform_index].precision;
@@ -2515,7 +2580,7 @@ namespace acl
 						// We are only as precise as our least precise critical transform
 						worst_critical_transform_error = rtm::scalar_max(critical_transform_error, worst_critical_transform_error);
 
-						if (critical_transform_error >= best_error)
+						if (critical_transform_error >= reject_error)
 						{
 							// The error of this transform is too high, this permutation will not be selected
 							// We move this critical transform to the front of the order
