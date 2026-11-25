@@ -81,6 +81,7 @@
 *  Fix the constant and default sub-track tests: they measure the error in object space with the raw object space transform of the parent, and the rigid shell of each transform is in its local space. Before, with a large parent scale (for example from a conversion of units), a scale below 1, mixed precisions, or a rotation between two non-uniform scales, the error could be far above the precision
 *  The rigid shell of a transform keeps the smallest precision of its descendants, and each descendant distance is scaled by the ratio of the precisions
 *  The bit rate algorithm v2 tests each critical transform with its own precision, and it no longer computes the rigid shell of each segment
+*  When a bit rate permutation fails, the bit rate algorithm v2 measures the critical transform that failed first in the next permutations. The results do not change, and compression is faster: up to 9x on long clips with scale and deep transform chains
 
 ## 2.1.0
 

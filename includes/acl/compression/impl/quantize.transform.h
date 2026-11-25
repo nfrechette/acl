@@ -57,6 +57,7 @@
 #include <sjson/writer.h>
 #endif
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -164,6 +165,7 @@ namespace acl
 			size_t runtime_transform_size = 0;						// The size of a transform in the runtime buffers above
 			uint32_t* critical_transform_indices = nullptr;			// 1 per transform
 			uint32_t* critical_chain_child_indices = nullptr;		// 1 per transform, for the mesh rotation cache
+			uint32_t* critical_measure_order = nullptr;				// 1 per transform, the order in which we measure the critical transforms
 
 			uint32_t* transform_chain_indices = nullptr;			// max_num_transform_chains * max_chain_length
 			uint32_t** transform_chains = nullptr;					// max_num_transform_chains
@@ -256,6 +258,7 @@ namespace acl
 				deallocate_runtime_buffers();
 				deallocate_type_array(allocator, critical_transform_indices, num_bones);
 				deallocate_type_array(allocator, critical_chain_child_indices, num_bones);
+				deallocate_type_array(allocator, critical_measure_order, num_bones);
 				deallocate_type_array(allocator, transform_chain_indices, max_num_transform_chains * max_chain_length);
 				deallocate_type_array(allocator, transform_chains, max_num_transform_chains);
 				deallocate_type_array(allocator, transform_chain_counts, max_num_transform_chains);
@@ -320,6 +323,7 @@ namespace acl
 
 				critical_transform_indices = allocate_type_array<uint32_t>(allocator, num_bones);
 				critical_chain_child_indices = allocate_type_array<uint32_t>(allocator, num_bones);
+				critical_measure_order = allocate_type_array<uint32_t>(allocator, num_bones);
 			}
 
 			// Allocates the buffers for a runtime transform type that is not rtm::vqvf
@@ -2203,6 +2207,7 @@ namespace acl
 
 			uint32_t* critical_transform_indices = context.critical_transform_indices;
 			uint32_t* critical_chain_child_indices = context.critical_chain_child_indices;
+			uint32_t* critical_measure_order = context.critical_measure_order;
 
 			// When the runtime transform type is rtm::vqvf, we convert the poses in place
 			uint8_t* object_transforms_raw = reinterpret_cast<uint8_t*>(context.object_transforms_raw);
@@ -2293,6 +2298,10 @@ namespace acl
 					const uint32_t critical_transform_index = critical_transform_indices[critical_index];
 					critical_chain_child_indices[critical_index] = needs_chain_child ? get_chain_child_index(*context.topology, transform_index, critical_transform_index) : k_invalid_track_index;
 				}
+
+				// We measure the critical transforms in this order, see the permutation loop below
+				for (uint32_t critical_index = 0; critical_index < num_critical_transforms; ++critical_index)
+					critical_measure_order[critical_index] = critical_index;
 
 				// Without the cache, we need slower full chain processing
 				if (use_transform_chains)
@@ -2444,8 +2453,13 @@ namespace acl
 					float worst_critical_transform_error = 0.0F;
 					bool is_permutation_good_enough = true;
 
-					for (uint32_t critical_chain_index = 0; critical_chain_index < num_critical_transforms; ++critical_chain_index)
+					// A permutation is rejected when one critical transform reaches the best error, in any order.
+					// When a permutation fails, the next permutations measure the critical transform that failed first:
+					// the permutations of a transform are similar, and that critical transform is likely to fail again.
+					// The order does not change the result, only the number of critical transforms that we measure.
+					for (uint32_t measure_index = 0; measure_index < num_critical_transforms; ++measure_index)
 					{
+						const uint32_t critical_chain_index = critical_measure_order[measure_index];
 						const uint32_t critical_transform_index = critical_transform_indices[critical_chain_index];
 
 						const uint32_t* transform_chain = use_transform_chains ? transform_chains[critical_chain_index] : nullptr;
@@ -2502,7 +2516,12 @@ namespace acl
 						worst_critical_transform_error = rtm::scalar_max(critical_transform_error, worst_critical_transform_error);
 
 						if (critical_transform_error >= best_error)
-							break;	// The error of this transform is too high, this permutation will not be selected
+						{
+							// The error of this transform is too high, this permutation will not be selected
+							// We move this critical transform to the front of the order
+							std::rotate(critical_measure_order, critical_measure_order + measure_index, critical_measure_order + measure_index + 1);
+							break;
+						}
 					}
 
 
