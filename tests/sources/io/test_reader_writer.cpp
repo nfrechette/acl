@@ -104,15 +104,19 @@
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <string>
 #include <thread>
 
-// Only test the reader/writer on non-mobile platforms
-#if defined(RTM_SSE2_INTRINSICS) && defined(ACL_USE_SJSON)
-	#define ACL_IMPL_ENABLE_IO_UNIT_TESTS
+#if defined(__APPLE__)
+	#include <unistd.h>
 #endif
 
-#define ACL_IMPL_ENABLE_IO_UNIT_TESTS
+// Test the reader and the writer when we have SJSON and a temporary directory that we can write to
+// An Android app has no such directory that we can find without JNI
+#if defined(ACL_USE_SJSON) && !defined(__ANDROID__)
+	#define ACL_IMPL_ENABLE_IO_UNIT_TESTS
+#endif
 
 using namespace acl;
 
@@ -136,12 +140,23 @@ static void get_temporary_filename(char* filename, uint32_t filename_size, const
 	strcat_s(filename, filename_size, id);
 	strcat_s(filename, filename_size, ".acl.sjson");
 #else
+	// The caller can call us again with the previous file name, we start a new one
+	filename[0] = '\0';
+
+#if defined(__APPLE__)
+	// The temporary directory of the user, on iOS it is in the sandbox of the app
+	// The path ends with a '/'
+	const size_t dir_size = confstr(_CS_DARWIN_USER_TEMP_DIR, filename, filename_size);
+	REQUIRE(dir_size != 0);
+	REQUIRE(dir_size <= filename_size);
+#else
 	(void)filename_size;
+	std::strcat(filename, "/tmp/");
+#endif
 
 	char id[1024];
 	snprintf(id, get_array_size(id), "%u", std::rand());
 
-	std::strcat(filename, "/tmp/");
 	std::strcat(filename, prefix);
 	std::strcat(filename, id);
 	std::strcat(filename, ".acl.sjson");
