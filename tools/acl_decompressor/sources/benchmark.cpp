@@ -42,6 +42,10 @@
 #include <string>
 #include <vector>
 
+#if defined(__APPLE__)
+#include <pthread.h>
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 // Constants
 
@@ -134,6 +138,19 @@ struct benchmark_state
 
 acl::ansi_allocator s_allocator;
 static benchmark_state s_benchmark_state;
+
+bool request_performance_core()
+{
+#if defined(__APPLE__)
+	// macOS and iOS have no API to pin a thread to a core, and arm64 does not support THREAD_AFFINITY_POLICY.
+	// The scheduler uses the QoS class of a thread to select a core type. With the user interactive class,
+	// the scheduler puts the thread on a performance core. It can move the thread to an efficiency core
+	// only when all the performance cores are busy.
+	return pthread_set_qos_class_self_np(QOS_CLASS_USER_INTERACTIVE, 0) == 0;
+#else
+	return true;
+#endif
+}
 
 void clear_benchmark_state()
 {

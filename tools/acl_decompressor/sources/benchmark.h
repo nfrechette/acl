@@ -44,6 +44,10 @@
 
 extern acl::ansi_allocator s_allocator;
 
+// Tells the OS to run the calling thread on a performance core, when the OS has a method for it.
+// Returns false when the OS rejects the request.
+bool request_performance_core();
+
 void clear_benchmark_state();
 
 bool parse_metadata(const char* buffer, size_t buffer_size, std::string& out_clip_dir, std::vector<std::string>& out_clips);
