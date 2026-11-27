@@ -644,6 +644,11 @@ namespace acl
 			const transform_streams& bone_stream = m_mutable_bone_streams[track_index];
 			const size_t rotation_cache_index_ = rotation_cache_index;
 
+			// The compressed tracks do not contain a stripped track, thus the runtime cannot decompress it.
+			// calculate_compression_error uses the raw value of a stripped track, thus we use it too.
+			if (bone_stream.output_index == k_invalid_track_index)
+				return get_rotation_sample(m_raw_bone_streams[track_index], bone_stream.segment->clip_sample_offset + context.sample_key);
+
 			rtm::quatf rotation;
 			if (bone_stream.is_rotation_default)
 				rotation = bone_stream.default_value.rotation;
@@ -720,6 +725,11 @@ namespace acl
 			const transform_streams& bone_stream = m_mutable_bone_streams[track_index];
 			const size_t translation_cache_index_ = translation_cache_index;
 
+			// The compressed tracks do not contain a stripped track, thus the runtime cannot decompress it.
+			// calculate_compression_error uses the raw value of a stripped track, thus we use it too.
+			if (bone_stream.output_index == k_invalid_track_index)
+				return get_translation_sample(m_raw_bone_streams[track_index], bone_stream.segment->clip_sample_offset + context.sample_key);
+
 			rtm::vector4f translation;
 			if (bone_stream.is_translation_default)
 				translation = bone_stream.default_value.translation;
@@ -792,6 +802,11 @@ namespace acl
 			const uint32_t track_index = context.track_index;
 			const transform_streams& bone_stream = m_mutable_bone_streams[track_index];
 			const size_t scale_cache_index_ = scale_cache_index;
+
+			// The compressed tracks do not contain a stripped track, thus the runtime cannot decompress it.
+			// calculate_compression_error uses the raw value of a stripped track, thus we use it too.
+			if (bone_stream.output_index == k_invalid_track_index)
+				return get_scale_sample(m_raw_bone_streams[track_index], bone_stream.segment->clip_sample_offset + context.sample_key);
 
 			rtm::vector4f scale;
 			if (bone_stream.is_scale_default)

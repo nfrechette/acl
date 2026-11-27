@@ -83,6 +83,7 @@
 *  The bit rate algorithm v2 tests each critical transform with its own precision, and it no longer computes the rigid shell of each segment
 *  When a bit rate permutation fails, the bit rate algorithm v2 measures the critical transform that failed first in the next permutations. The results do not change, and compression is faster: up to 9x on long clips with scale and deep transform chains
 *  The bit rate algorithm v2 measures the raw bit rates of a transform first. When their error is within the precision, the search rejects each permutation with an error above the precision at the first sample above it. The results do not change, and compression is 57% to 66% faster
+*  Fix the bit rate search with a stripped track (`k_invalid_track_index`): it now uses the raw value of the track, as `calculate_compression_error`. Before, it used the compressed value that the runtime never decompresses. For example, a stripped constant rotation with W near 0 gave an error on its descendants that no bit rate removes, and the search selected bit rates that were too high or too low
 
 ## 2.1.0
 

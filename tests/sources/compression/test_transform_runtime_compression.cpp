@@ -1050,4 +1050,59 @@ TEST_CASE("the constant test bounds a non-uniform scale with a rotation", "[comp
 	}
 }
 
+TEST_CASE("the bit rate search uses the raw value of a stripped track", "[compression][transform]")
+{
+	ansi_allocator allocator;
+
+	// The root is stripped and has a constant rotation with W near 0. Its children are far from it.
+	// The compressed rotation rebuilds W from [xyz]: W becomes about 2.0E-4 and the error on the children is about 0.1.
+	// The runtime does not decompress a stripped track, and calculate_compression_error uses its raw value.
+	// Before the fix, the bit rate search used the rebuilt W: it measured an error that no bit rate removes,
+	// and it selected higher bit rates: the compressed size was 88% larger than with an identity root.
+	// With the raw value, the rotation of the root does not change the bit rates of its children.
+	const float precision = 0.01F;
+	const float noise_angle = 0.05F;
+	const uint32_t none = k_invalid_track_index;
+
+	const rtm::quatf root_rotations[] =
+	{
+		rtm::quat_identity(),
+		rtm::quat_set(-4.3E-17F, 0.7071068F, -0.7071068F, 4.3E-17F),
+	};
+
+	uint32_t compressed_sizes[2] = { 0, 0 };
+	for (uint32_t rotation_index = 0; rotation_index < 2; ++rotation_index)
+	{
+		INFO("root rotation: " << rotation_index);
+
+		const constant_test_transform transforms[] =
+		{
+			{ none, precision, 3.0F, rtm::vqv_set(root_rotations[rotation_index], rtm::vector_zero(), rtm::vector_set(1.0F)), 0.0F },
+			{ 0, precision, 3.0F, rtm::vqv_set(rtm::quat_identity(), rtm::vector_set(0.0F, 250.0F, 0.0F), rtm::vector_set(1.0F)), noise_angle },
+			{ 1, precision, 3.0F, rtm::vqv_set(rtm::quat_identity(), rtm::vector_set(0.0F, 30.0F, 0.0F), rtm::vector_set(1.0F)), noise_angle },
+			{ 2, precision, 3.0F, rtm::vqv_set(rtm::quat_identity(), rtm::vector_set(0.0F, 40.0F, 0.0F), rtm::vector_set(1.0F)), noise_angle },
+		};
+
+		track_array_vqvf track_list = make_constant_test_clip(allocator, transforms, 4);
+
+		// Strip the root
+		track_list[0].get_description().output_index = k_invalid_track_index;
+		for (uint32_t transform_index = 1; transform_index < 4; ++transform_index)
+			track_list[transform_index].get_description().output_index = transform_index - 1;
+
+		const compression_settings settings = get_default_compression_settings();
+		compressed_tracks* tracks = compress(allocator, track_list, settings, nullptr, additive_clip_format8::none);
+
+		const float error = measure_error(allocator, track_list, *tracks, settings, nullptr, additive_clip_format8::none);
+		CHECK(error <= precision);
+
+		compressed_sizes[rotation_index] = tracks->get_size();
+
+		allocator.deallocate(tracks, tracks->get_size());
+	}
+
+	// The float rounding of the object space transforms can change a bit rate
+	CHECK(float(compressed_sizes[1]) <= float(compressed_sizes[0]) * 1.05F);
+}
+
 ACL_IMPL_DEPRECATION_WARNING_POP
