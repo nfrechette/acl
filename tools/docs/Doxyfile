@@ -45,6 +45,7 @@ PREDEFINED             = ACL_USE_SJSON \
                          RTM_SIMD_CALL= \
                          RTM_NO_EXCEPT= \
                          ACL_NO_EXCEPT= \
+                         ACL_NO_DISCARD= \
                          "ACL_DEPRECATED(msg)=[[deprecated(msg)]]" \
                          ACL_IMPL_VERSION_NAMESPACE_BEGIN= \
                          ACL_IMPL_VERSION_NAMESPACE_END= \

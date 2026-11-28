@@ -53,6 +53,7 @@ Both `ACL_USE_POPCOUNT` and `ACL_BMI_INTRINSICS` stop the compilation on a proce
 | `ACL_NO_VERSION_NAMESPACE` | Do not use a versioned namespace, even when `ACL_ENABLE_VERSION_NAMESPACE` is defined. ACL defines this macro with Visual Studio 2015. |
 | `ACL_NO_DEPRECATION` | Do not show deprecation warnings when your code uses deprecated API. |
 | `ACL_USE_CPP11_STD_MEMORY_ORDER` | With C++20 or later, use the C++11 names of `std::memory_order`. Use it when a modern compiler uses an older standard library that does not have the C++20 names. |
+| `ACL_NO_DISCARD` | The attribute on each public function that returns a value. With C++17 and later, it is `[[nodiscard]]`: the compiler gives a warning when the caller does not use the return value. With an earlier version, it is empty. Define it to use a different attribute, or define it as empty to use none. |
 
 ## Allocator debugging
 

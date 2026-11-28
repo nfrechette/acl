@@ -228,6 +228,20 @@ namespace acl
 #endif
 
 //////////////////////////////////////////////////////////////////////////
+// Marks a function whose return value must be used.
+// With C++17 and later, the compiler gives a warning when the caller does not use the return value.
+// With an earlier version, the macro is empty.
+// To use a different attribute, or none, define ACL_NO_DISCARD before you include ACL.
+//////////////////////////////////////////////////////////////////////////
+#if !defined(ACL_NO_DISCARD)
+	#if RTM_CPP_VERSION >= RTM_CPP_VERSION_17
+		#define ACL_NO_DISCARD [[nodiscard]]
+	#else
+		#define ACL_NO_DISCARD
+	#endif
+#endif
+
+//////////////////////////////////////////////////////////////////////////
 // Allows force inlined functions to be debugged temporarily by disabling inlining
 //////////////////////////////////////////////////////////////////////////
 #if defined(ACL_IMPL_ENABLE_DEBUG_FORCE_INLINE)
