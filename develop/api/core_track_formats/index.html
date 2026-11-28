@@ -4474,6 +4474,8 @@
 <span class="w">    </span><span class="n">quatf_full</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
 <span class="w">    </span><span class="n">quatf_drop_w_full</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
 <span class="w">    </span><span class="n">quatf_drop_w_variable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
+<span class="w">    </span><span class="n">quatf_drop_largest_full</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
+<span class="w">    </span><span class="n">quatf_drop_largest_variable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
 <span class="p">};</span>
 </code></pre></div>
 <p>The format of the rotation samples of transform tracks.</p>
@@ -4496,6 +4498,14 @@
 <tr>
 <td><code>quatf_drop_w_variable</code></td>
 <td>Quantized quaternion, [x,y,z] stored with [N,N,N] bits (w is dropped, same number of bits per component).</td>
+</tr>
+<tr>
+<td><code>quatf_drop_largest_full</code></td>
+<td>Full precision quaternion, [a,b,c] stored with float32 (the largest component of each sample is dropped).</td>
+</tr>
+<tr>
+<td><code>quatf_drop_largest_variable</code></td>
+<td>Quantized quaternion, [a,b,c] stored with [N,N,N] bits (each segment drops the component whose smallest absolute value is the largest, same number of bits per component).</td>
 </tr>
 </tbody>
 </table>
@@ -4609,6 +4619,7 @@
 <span class="p">{</span>
 <span class="w">    </span><span class="n">quat</span><span class="p">,</span>
 <span class="w">    </span><span class="n">quat_drop_w</span><span class="p">,</span>
+<span class="w">    </span><span class="n">quat_drop_largest</span><span class="p">,</span>
 <span class="p">};</span>
 </code></pre></div>
 <p>The representation of a rotation, without its precision.</p>
@@ -4627,6 +4638,10 @@
 <tr>
 <td><code>quat_drop_w</code></td>
 <td>A quaternion with the three components [x,y,z], [w] is dropped.</td>
+</tr>
+<tr>
+<td><code>quat_drop_largest</code></td>
+<td>A quaternion with three components, one component is dropped.</td>
 </tr>
 </tbody>
 </table>

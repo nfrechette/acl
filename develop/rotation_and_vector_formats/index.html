@@ -4048,6 +4048,14 @@
 <p>Same as Vector3 96 above to store <code>[X, Y, Z]</code>.</p>
 <h3 id="quat-variable">Quat Variable<a class="headerlink" href="#quat-variable" title="Permanent link">&para;</a></h3>
 <p>See <a href="./#vector3-variable">Vector3 Variable</a></p>
+<h2 id="dropping-the-largest-quaternion-component">Dropping the largest quaternion component<a class="headerlink" href="#dropping-the-largest-quaternion-component" title="Permanent link">&para;</a></h2>
+<p>The rotation is rebuilt from the three stored components: <code>c = sqrt(1.0 - a * a - b * b - d * d)</code>. The error of the rebuilt component grows as <code>1 / |c|</code>. When a rotation crosses <code>W = 0</code>, the error on <code>W</code> can be large: for example, a rotation error of 0.0007 radians when <code>W</code> is 0.000001. A child far from its parent multiplies this error by its distance. These formats drop another component to keep the dropped component far from 0. The dropped component is always positive. Its index uses 2 bits: <code>[W, X, Y, Z] = [0, 1, 2, 3]</code>. A track that drops <code>W</code> thus has the same data as with a format that always drops <code>W</code>.</p>
+<p>These formats are the default since ACL 2.2: <code>get_default_compression_settings()</code> uses <code>quatf_drop_largest_variable</code>, and <code>default_transform_decompression_settings</code> supports only this rotation format.</p>
+<h3 id="quat-drop-largest-full">Quat Drop Largest Full<a class="headerlink" href="#quat-drop-largest-full" title="Permanent link">&para;</a></h3>
+<p>Each sample stores the three kept components with full precision using <code>float32</code>, and drops its largest component. Each component is in <code>[-1.0, 1.0]</code>, thus bit 30 of each <code>float32</code> is always 0. Bit 30 of the first two components holds the index of the dropped component.</p>
+<h3 id="quat-drop-largest-variable">Quat Drop Largest Variable<a class="headerlink" href="#quat-drop-largest-variable" title="Permanent link">&para;</a></h3>
+<p>Each segment of a track drops the component whose smallest absolute value is the largest in that segment. The three kept components use <a href="./#vector3-variable">Vector3 Variable</a>. The per sub-track metadata of each segment holds the index of the dropped component, it uses no additional memory. The clip range of each component bounds the components that it holds in each segment.</p>
+<p>A constant rotation always drops its largest component, with either format. It holds the index in bit 30 of its first two components.</p>
 
 
 

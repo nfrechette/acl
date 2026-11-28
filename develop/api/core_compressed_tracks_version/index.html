@@ -4028,8 +4028,9 @@
 <span class="w">    </span><span class="n">v02_01_00</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span>
 <span class="w">    </span><span class="n">v02_02_99_0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">11</span><span class="p">,</span>
 <span class="w">    </span><span class="n">v02_02_99_1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">12</span><span class="p">,</span>
+<span class="w">    </span><span class="n">v02_02_99_2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">13</span><span class="p">,</span>
 <span class="w">    </span><span class="n">first</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">v02_00_00</span><span class="p">,</span>
-<span class="w">    </span><span class="n">latest</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">v02_02_99_1</span><span class="p">,</span>
+<span class="w">    </span><span class="n">latest</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">v02_02_99_2</span><span class="p">,</span>
 <span class="p">};</span>
 </code></pre></div>
 <p>Enum for versions used by <code>compressed_tracks</code>. These values are used by serialization, do not change them once assigned. To add a new version, create a new entry and follow the naming and numbering scheme described below.</p>
@@ -4076,6 +4077,10 @@
 <tr>
 <td><code>v02_02_99_1</code></td>
 <td>ACL v2.2.0-wip (vqf and vqsf transform track types).</td>
+</tr>
+<tr>
+<td><code>v02_02_99_2</code></td>
+<td>ACL v2.2.0-wip (rotation formats that drop the largest component).</td>
 </tr>
 <tr>
 <td><code>first</code></td>

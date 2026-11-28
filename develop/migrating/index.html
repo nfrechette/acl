@@ -964,6 +964,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#rotation-formats" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rotation formats
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#return-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Return values
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#additive-clips-and-the-transform-space" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4106,6 +4128,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#rotation-formats" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rotation formats
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#return-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Return values
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#additive-clips-and-the-transform-space" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4222,6 +4266,18 @@
 <p>With these settings, compression applies the additive base itself, and it always uses the faster bit rate algorithm. See <a href="../error_metrics/">error metrics</a> for the runtime transform type of each legacy error metric.</p>
 <p>To measure the error as compression does, use the <code>calculate_compression_error</code> overloads that take the compression settings. The overloads that take an <code>itransform_error_metric</code> are deprecated.</p>
 <p><code>itransform_error_metric</code> and the legacy error metrics (<code>vqvf_transform_error_metric</code> and the others) are also deprecated. To measure the error with your own transform type, implement an <code>itransform_adapter</code>. To measure it in your own way, implement an <code>itransform_metric</code>.</p>
+<h3 id="rotation-formats">Rotation formats<a class="headerlink" href="#rotation-formats" title="Permanent link">&para;</a></h3>
+<p>The default rotation format is now <code>quatf_drop_largest_variable</code> (see <a href="../rotation_and_vector_formats/#dropping-the-largest-quaternion-component">rotation formats</a>), and <code>default_transform_decompression_settings</code> supports only this rotation format. If you decompress clips that use <code>quatf_drop_w_variable</code>, for example clips compressed with ACL 2.1 or with your own compression settings, override <code>is_rotation_format_supported</code> in your decompression settings:</p>
+<div class="highlight"><pre><span></span><code><span class="k">struct</span><span class="w"> </span><span class="nc">my_decompression_settings</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">default_transform_decompression_settings</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">is_rotation_format_supported</span><span class="p">(</span><span class="n">rotation_format8</span><span class="w"> </span><span class="n">format</span><span class="p">)</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">format</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">rotation_format8</span><span class="o">::</span><span class="n">quatf_drop_largest_variable</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">format</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">rotation_format8</span><span class="o">::</span><span class="n">quatf_drop_w_variable</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">};</span>
+</code></pre></div>
+<h3 id="return-values">Return values<a class="headerlink" href="#return-values" title="Permanent link">&para;</a></h3>
+<p>Each public function that returns a value now has the <code>ACL_NO_DISCARD</code> macro. With C++17 and later, it is <code>[[nodiscard]]</code>: the compiler gives a warning when your code does not use the return value, for example the <code>bool</code> of <code>decompression_context::initialize</code> or the <code>error_result</code> of <code>pre_process_track_list</code>. Check the return value. To keep the previous behavior, define <code>ACL_NO_DISCARD</code> as empty before you include ACL (see <a href="../configuration_macros/">configuration macros</a>).</p>
 <h3 id="additive-clips-and-the-transform-space">Additive clips and the transform space<a class="headerlink" href="#additive-clips-and-the-transform-space" title="Permanent link">&para;</a></h3>
 <p>A <code>transform_base_desc_t</code> now holds the base of an additive clip and its additive format, and the track array holds its transform space (see <a href="../additive_clips/#the-transform-space">here</a>). These APIs are deprecated, and ACL 2.3 will remove them:</p>
 <ul>

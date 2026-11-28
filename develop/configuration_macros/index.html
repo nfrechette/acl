@@ -4241,6 +4241,10 @@
 <td><code>ACL_USE_CPP11_STD_MEMORY_ORDER</code></td>
 <td>With C++20 or later, use the C++11 names of <code>std::memory_order</code>. Use it when a modern compiler uses an older standard library that does not have the C++20 names.</td>
 </tr>
+<tr>
+<td><code>ACL_NO_DISCARD</code></td>
+<td>The attribute on each public function that returns a value. With C++17 and later, it is <code>[[nodiscard]]</code>: the compiler gives a warning when the caller does not use the return value. With an earlier version, it is empty. Define it to use a different attribute, or define it as empty to use none.</td>
+</tr>
 </tbody>
 </table>
 <h2 id="allocator-debugging">Allocator debugging<a class="headerlink" href="#allocator-debugging" title="Permanent link">&para;</a></h2>
