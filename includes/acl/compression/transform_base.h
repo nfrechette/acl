@@ -79,7 +79,7 @@ namespace acl
 		const itransform_base_adapter_t* adapter = nullptr;
 
 		/// Returns whether or not the clip has a base.
-		bool has_base() const { return format != additive_clip_format8::none; }
+		ACL_NO_DISCARD bool has_base() const { return format != additive_clip_format8::none; }
 
 		/// Returns whether a base description is valid or not, for a clip in the specified transform space.
 		/// It is valid if:
@@ -89,7 +89,7 @@ namespace acl
 		///    - Without a base format, the base is null
 		///    - With the `custom` base format, the base adapter is not null and its default scale is 0.0 or 1.0
 		///    - With another base format, the base adapter is null
-		error_result is_valid(transform_space_t space) const;
+		ACL_NO_DISCARD error_result is_valid(transform_space_t space) const;
 	};
 
 	ACL_IMPL_VERSION_NAMESPACE_END

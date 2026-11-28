@@ -673,7 +673,8 @@ static void compare_raw_with_compressed(iallocator& allocator, const track_array
 		{
 			const track_desc_scalarf& raw_desc = raw_track.get_description<track_desc_scalarf>();
 			track_desc_scalarf desc;
-			compressed_tracks_.get_track_description(output_index, desc);
+			const bool has_description = compressed_tracks_.get_track_description(output_index, desc);
+			ACL_ASSERT(has_description, "Expected a track description"); (void)has_description;
 
 			ACL_ASSERT(raw_desc.precision == desc.precision, "Unexpected precision");
 		}
@@ -681,7 +682,8 @@ static void compare_raw_with_compressed(iallocator& allocator, const track_array
 		{
 			const track_desc_transformf& raw_desc = raw_track.get_description<track_desc_transformf>();
 			track_desc_transformf desc;
-			compressed_tracks_.get_track_description(output_index, desc);
+			const bool has_description = compressed_tracks_.get_track_description(output_index, desc);
+			ACL_ASSERT(has_description, "Expected a track description"); (void)has_description;
 
 			ACL_ASSERT(raw_desc.parent_index == desc.parent_index, "Unexpected parent index");
 			ACL_ASSERT(raw_desc.precision == desc.precision, "Unexpected precision");

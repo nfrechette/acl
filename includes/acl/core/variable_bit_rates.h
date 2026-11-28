@@ -53,7 +53,7 @@ namespace acl
 	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
 	constexpr uint8_t k_highest_bit_rate = 24;
 
-	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
+	ACL_NO_DISCARD ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
 	inline uint32_t get_num_bits_at_bit_rate(uint32_t bit_rate)
 	{
 		ACL_ASSERT(bit_rate <= 24, "Invalid bit rate: %u", bit_rate);
@@ -62,10 +62,10 @@ namespace acl
 	}
 
 	// Track is constant, our constant sample is stored in the range information
-	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
+	ACL_NO_DISCARD ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
 	constexpr bool is_constant_bit_rate(uint32_t bit_rate) { return bit_rate == 0; }
 
-	ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
+	ACL_NO_DISCARD ACL_DEPRECATED("Internal implementation detail; to be removed in v3.0")
 	constexpr bool is_raw_bit_rate(uint32_t bit_rate) { return bit_rate == 24; }
 
 	/// The bit rates of the sub-tracks of a transform track.

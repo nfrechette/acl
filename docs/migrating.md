@@ -16,6 +16,24 @@ To measure the error as compression does, use the `calculate_compression_error` 
 
 `itransform_error_metric` and the legacy error metrics (`vqvf_transform_error_metric` and the others) are also deprecated. To measure the error with your own transform type, implement an `itransform_adapter`. To measure it in your own way, implement an `itransform_metric`.
 
+### Rotation formats
+
+The default rotation format is now `quatf_drop_largest_variable` (see [rotation formats](rotation_and_vector_formats.md#dropping-the-largest-quaternion-component)), and `default_transform_decompression_settings` supports only this rotation format. If you decompress clips that use `quatf_drop_w_variable`, for example clips compressed with ACL 2.1 or with your own compression settings, override `is_rotation_format_supported` in your decompression settings:
+
+```c++
+struct my_decompression_settings : public default_transform_decompression_settings
+{
+	static constexpr bool is_rotation_format_supported(rotation_format8 format)
+	{
+		return format == rotation_format8::quatf_drop_largest_variable || format == rotation_format8::quatf_drop_w_variable;
+	}
+};
+```
+
+### Return values
+
+Each public function that returns a value now has the `ACL_NO_DISCARD` macro. With C++17 and later, it is `[[nodiscard]]`: the compiler gives a warning when your code does not use the return value, for example the `bool` of `decompression_context::initialize` or the `error_result` of `pre_process_track_list`. Check the return value. To keep the previous behavior, define `ACL_NO_DISCARD` as empty before you include ACL (see [configuration macros](configuration_macros.md)).
+
 ### Additive clips and the transform space
 
 A `transform_base_desc_t` now holds the base of an additive clip and its additive format, and the track array holds its transform space (see [here](additive_clips.md#the-transform-space)). These APIs are deprecated, and ACL 2.3 will remove them:

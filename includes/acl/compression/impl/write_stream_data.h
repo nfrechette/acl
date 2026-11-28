@@ -30,6 +30,7 @@
 #include "acl/core/error.h"
 #include "acl/core/track_formats.h"
 #include "acl/core/impl/variable_bit_rates.h"
+#include "acl/math/quatf.h"
 #include "acl/compression/impl/animated_track_utils.h"
 #include "acl/compression/impl/clip_context.h"
 
@@ -232,8 +233,9 @@ namespace acl
 
 			const uint8_t* constant_data_start = constant_data;
 
-			// If our rotation format drops the W component, we swizzle the data to store XXXX, YYYY, ZZZZ
-			const bool swizzle_rotations = get_rotation_variant(rotation_format) == rotation_variant8::quat_drop_w;
+			// If our rotation format drops a component, we swizzle the data to store XXXX, YYYY, ZZZZ
+			// With a drop largest format, bit 30 of [x] and [y] holds the index of the dropped component, see 'encode_dropped_component_in_floats'
+			const bool swizzle_rotations = get_rotation_variant(rotation_format) != rotation_variant8::quat;
 			float xxxx[4];
 			float yyyy[4];
 			float zzzz[4];
@@ -535,8 +537,15 @@ namespace acl
 				const transform_streams& bone_stream = segment.bone_streams[bone_index];
 
 				uint32_t bit_rate;
+				uint32_t encoded_dropped_component = 0;
 				if (group_type == animation_track_type8::rotation)
+				{
 					bit_rate = bone_stream.rotations.get_bit_rate();
+
+					// With the quatf_drop_largest_variable format, bits [5, 6] hold the index of the rotation component that the segment drops
+					if (bone_stream.rotations.get_rotation_format() == rotation_format8::quatf_drop_largest_variable)
+						encoded_dropped_component = encode_dropped_component(bone_stream.rotation_dropped_component);
+				}
 				else if (group_type == animation_track_type8::translation)
 					bit_rate = bone_stream.translations.get_bit_rate();
 				else
@@ -551,11 +560,13 @@ namespace acl
 				// Instead, we store the number of bits on 5 bits which has a max value of 31.
 				// To do so, we remap 32 to 31 since that value is unused.
 				// This leaves 3 unused bits in our per sub-track metadata.
-				// These will later be needed:
-				//    - 1 bit to dictate if rotations contain 3 or 4 components (to allow mixing full quats in with packed quats)
-				//    - 2 bits to dictate which rotation component is dropped (to allow the largest component to be dropped over our segment)
+				// They are used as follows:
+				//    - Bits [5, 6]: with the quatf_drop_largest_variable format, the index of the rotation component that the segment drops,
+				//      see 'encode_dropped_component'. W has the value 0.
+				//    - Bit 7: unused, later it can tell if a rotation contains 3 or 4 components (to allow mixing full quats in with packed quats)
 
-				format_per_track_group[group_size] = (bit_rate == k_highest_bit_rate) ? static_cast<uint8_t>(31) : (uint8_t)num_bits;
+				const uint32_t num_bits_value = (bit_rate == k_highest_bit_rate) ? 31U : num_bits;
+				format_per_track_group[group_size] = static_cast<uint8_t>(num_bits_value | (encoded_dropped_component << 5));
 			};
 
 			auto group_flush_action = [&format_per_track_data, format_per_track_data_end, &format_per_track_group](animation_track_type8 group_type, uint32_t group_size)

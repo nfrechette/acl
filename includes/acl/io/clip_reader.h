@@ -158,7 +158,7 @@ namespace acl
 		}
 
 		/// Returns the type of the file: a raw clip, a raw track list, or unknown.
-		sjson_file_type get_file_type()
+		ACL_NO_DISCARD sjson_file_type get_file_type()
 		{
 			reset_state();
 
@@ -176,7 +176,7 @@ namespace acl
 
 		/// Reads a raw clip file with transform tracks.
 		/// Returns true on success. On failure, get_error() returns the error.
-		bool read_raw_clip(sjson_raw_clip& out_data)
+		ACL_NO_DISCARD bool read_raw_clip(sjson_raw_clip& out_data)
 		{
 			reset_state();
 
@@ -204,7 +204,7 @@ namespace acl
 
 		/// Reads a raw track list file.
 		/// Returns true on success. On failure, get_error() returns the error.
-		bool read_raw_track_list(sjson_raw_track_list& out_data)
+		ACL_NO_DISCARD bool read_raw_track_list(sjson_raw_track_list& out_data)
 		{
 			reset_state();
 
@@ -227,7 +227,7 @@ namespace acl
 		}
 
 		/// Returns the last error.
-		clip_reader_error get_error() const { return m_error; }
+		ACL_NO_DISCARD clip_reader_error get_error() const { return m_error; }
 
 	private:
 		clip_reader(const clip_reader&) = delete;
@@ -889,7 +889,7 @@ namespace acl
 
 		// Returns whether we have any errors or not
 		template<typename sample_type_t, typename sample_type_ex_t>
-		bool read_binary_scalar_sample(
+		ACL_NO_DISCARD bool read_binary_scalar_sample(
 			track_interpolator_t track_interpolator,
 			sample_type_t* out_sample,
 			sample_type_ex_t* out_sample_ex)
@@ -955,7 +955,7 @@ namespace acl
 
 		// Returns whether we have any errors or not
 		template<typename sample_type_t, typename sample_type_ex_t>
-		bool read_text_scalar_sample(
+		ACL_NO_DISCARD bool read_text_scalar_sample(
 			track_interpolator_t track_interpolator,
 			sample_type_t* out_sample,
 			sample_type_ex_t* out_sample_ex)

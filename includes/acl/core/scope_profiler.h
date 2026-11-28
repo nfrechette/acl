@@ -53,19 +53,19 @@ namespace acl
 		scope_profiler& stop();
 
 		/// Returns whether the profiler has been stopped or not.
-		bool is_stopped() const { return m_start_time != m_end_time; }
+		ACL_NO_DISCARD bool is_stopped() const { return m_start_time != m_end_time; }
 
 		/// Returns the elapsed time in nanoseconds since the profiler was started.
-		std::chrono::nanoseconds get_elapsed_time() const;
+		ACL_NO_DISCARD std::chrono::nanoseconds get_elapsed_time() const;
 
 		/// Returns the elapsed time in microseconds since the profiler was started.
-		double get_elapsed_microseconds() const { return std::chrono::duration<double, std::chrono::microseconds::period>(get_elapsed_time()).count(); }
+		ACL_NO_DISCARD double get_elapsed_microseconds() const { return std::chrono::duration<double, std::chrono::microseconds::period>(get_elapsed_time()).count(); }
 
 		/// Returns the elapsed time in milliseconds since the profiler was started.
-		double get_elapsed_milliseconds() const { return std::chrono::duration<double, std::chrono::milliseconds::period>(get_elapsed_time()).count(); }
+		ACL_NO_DISCARD double get_elapsed_milliseconds() const { return std::chrono::duration<double, std::chrono::milliseconds::period>(get_elapsed_time()).count(); }
 
 		/// Returns the elapsed time in seconds since the profiler was started.
-		double get_elapsed_seconds() const { return std::chrono::duration<double, std::chrono::seconds::period>(get_elapsed_time()).count(); }
+		ACL_NO_DISCARD double get_elapsed_seconds() const { return std::chrono::duration<double, std::chrono::seconds::period>(get_elapsed_time()).count(); }
 
 	private:
 		scope_profiler(const scope_profiler&) = delete;

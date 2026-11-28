@@ -91,7 +91,7 @@ namespace acl
 		/// If per track rounding is specified when seeking, this function must return a
 		/// valid per track value.
 		/// This function cannot return the `per_track` value. Doing so will assert at runtime.
-		constexpr sample_rounding_policy get_rounding_policy(sample_rounding_policy seek_policy, uint32_t /*track_index*/) const { return seek_policy; }
+		ACL_NO_DISCARD constexpr sample_rounding_policy get_rounding_policy(sample_rounding_policy seek_policy, uint32_t /*track_index*/) const { return seek_policy; }
 
 		//////////////////////////////////////////////////////////////////////////
 		// Scalar track writing
@@ -99,27 +99,27 @@ namespace acl
 		/// These allow host runtimes to control which tracks they are interested in.
 		/// This information allows the codecs to avoid unpacking values that are not needed.
 		/// Must be non-static member functions!
-		constexpr bool skip_track_float1(uint32_t /*track_index*/) const { return false; }
+		ACL_NO_DISCARD constexpr bool skip_track_float1(uint32_t /*track_index*/) const { return false; }
 
 		/// These allow host runtimes to control which tracks they are interested in.
 		/// This information allows the codecs to avoid unpacking values that are not needed.
 		/// Must be non-static member functions!
-		constexpr bool skip_track_float2(uint32_t /*track_index*/) const { return false; }
+		ACL_NO_DISCARD constexpr bool skip_track_float2(uint32_t /*track_index*/) const { return false; }
 
 		/// These allow host runtimes to control which tracks they are interested in.
 		/// This information allows the codecs to avoid unpacking values that are not needed.
 		/// Must be non-static member functions!
-		constexpr bool skip_track_float3(uint32_t /*track_index*/) const { return false; }
+		ACL_NO_DISCARD constexpr bool skip_track_float3(uint32_t /*track_index*/) const { return false; }
 
 		/// These allow host runtimes to control which tracks they are interested in.
 		/// This information allows the codecs to avoid unpacking values that are not needed.
 		/// Must be non-static member functions!
-		constexpr bool skip_track_float4(uint32_t /*track_index*/) const { return false; }
+		ACL_NO_DISCARD constexpr bool skip_track_float4(uint32_t /*track_index*/) const { return false; }
 
 		/// These allow host runtimes to control which tracks they are interested in.
 		/// This information allows the codecs to avoid unpacking values that are not needed.
 		/// Must be non-static member functions!
-		constexpr bool skip_track_vector4(uint32_t /*track_index*/) const { return false; }
+		ACL_NO_DISCARD constexpr bool skip_track_vector4(uint32_t /*track_index*/) const { return false; }
 
 		/// Called by the decoder to write out a value for a specified track index.
 		void RTM_SIMD_CALL write_float1(uint32_t track_index, rtm::scalarf_arg0 value)
@@ -164,69 +164,69 @@ namespace acl
 		/// sub-track (e.g. bind pose).
 		/// By default, default sub-tracks are constant and the identity.
 		/// Must be static constexpr!
-		static constexpr default_sub_track_mode get_default_rotation_mode() { return default_sub_track_mode::constant; }
+		ACL_NO_DISCARD static constexpr default_sub_track_mode get_default_rotation_mode() { return default_sub_track_mode::constant; }
 
 		/// If default sub-tracks aren't skipped, a value must be written. Either
 		/// they are constant for every sub-track (e.g. identity) or they vary per
 		/// sub-track (e.g. bind pose).
 		/// By default, default sub-tracks are constant and the identity.
 		/// Must be static constexpr!
-		static constexpr default_sub_track_mode get_default_translation_mode() { return default_sub_track_mode::constant; }
+		ACL_NO_DISCARD static constexpr default_sub_track_mode get_default_translation_mode() { return default_sub_track_mode::constant; }
 
 		/// If default sub-tracks aren't skipped, a value must be written. Either
 		/// they are constant for every sub-track (e.g. identity) or they vary per
 		/// sub-track (e.g. bind pose).
 		/// By default, default sub-tracks are constant and the identity.
 		/// Must be static constexpr!
-		static constexpr default_sub_track_mode get_default_scale_mode() { return default_sub_track_mode::legacy; }
+		ACL_NO_DISCARD static constexpr default_sub_track_mode get_default_scale_mode() { return default_sub_track_mode::legacy; }
 
 		/// If default sub-tracks are constant, these functions return their value.
-		rtm::quatf RTM_SIMD_CALL get_constant_default_rotation() const { return rtm::quat_identity(); }
+		ACL_NO_DISCARD rtm::quatf RTM_SIMD_CALL get_constant_default_rotation() const { return rtm::quat_identity(); }
 
 		/// If default sub-tracks are constant, these functions return their value.
-		rtm::vector4f RTM_SIMD_CALL get_constant_default_translation() const { return rtm::vector_zero(); }
+		ACL_NO_DISCARD rtm::vector4f RTM_SIMD_CALL get_constant_default_translation() const { return rtm::vector_zero(); }
 
 		/// If default sub-tracks are constant, these functions return their value.
-		rtm::vector4f RTM_SIMD_CALL get_constant_default_scale() const { return rtm::vector_set(1.0F); }
+		ACL_NO_DISCARD rtm::vector4f RTM_SIMD_CALL get_constant_default_scale() const { return rtm::vector_set(1.0F); }
 
 		/// If default sub-tracks are variable, these functions return their value.
-		rtm::quatf RTM_SIMD_CALL get_variable_default_rotation(uint32_t /*track_index*/) const { return rtm::quat_identity(); }
+		ACL_NO_DISCARD rtm::quatf RTM_SIMD_CALL get_variable_default_rotation(uint32_t /*track_index*/) const { return rtm::quat_identity(); }
 
 		/// If default sub-tracks are variable, these functions return their value.
-		rtm::vector4f RTM_SIMD_CALL get_variable_default_translation(uint32_t /*track_index*/) const { return rtm::vector_zero(); }
+		ACL_NO_DISCARD rtm::vector4f RTM_SIMD_CALL get_variable_default_translation(uint32_t /*track_index*/) const { return rtm::vector_zero(); }
 
 		/// If default sub-tracks are variable, these functions return their value.
-		rtm::vector4f RTM_SIMD_CALL get_variable_default_scale(uint32_t /*track_index*/) const { return rtm::vector_set(1.0F); }
+		ACL_NO_DISCARD rtm::vector4f RTM_SIMD_CALL get_variable_default_scale(uint32_t /*track_index*/) const { return rtm::vector_set(1.0F); }
 
 		/// These allow host runtimes to control which track types they are interested in.
 		/// This information allows the codecs to avoid unpacking values that are not needed.
 		/// Must be static constexpr!
-		static constexpr bool skip_all_rotations() { return false; }
+		ACL_NO_DISCARD static constexpr bool skip_all_rotations() { return false; }
 
 		/// These allow host runtimes to control which track types they are interested in.
 		/// This information allows the codecs to avoid unpacking values that are not needed.
 		/// Must be static constexpr!
-		static constexpr bool skip_all_translations() { return false; }
+		ACL_NO_DISCARD static constexpr bool skip_all_translations() { return false; }
 
 		/// These allow host runtimes to control which track types they are interested in.
 		/// This information allows the codecs to avoid unpacking values that are not needed.
 		/// Must be static constexpr!
-		static constexpr bool skip_all_scales() { return false; }
+		ACL_NO_DISCARD static constexpr bool skip_all_scales() { return false; }
 
 		/// These allow host runtimes to control which tracks they are interested in.
 		/// This information allows the codecs to avoid unpacking values that are not needed.
 		/// Must be non-static member functions!
-		constexpr bool skip_track_rotation(uint32_t /*track_index*/) const { return false; }
+		ACL_NO_DISCARD constexpr bool skip_track_rotation(uint32_t /*track_index*/) const { return false; }
 
 		/// These allow host runtimes to control which tracks they are interested in.
 		/// This information allows the codecs to avoid unpacking values that are not needed.
 		/// Must be non-static member functions!
-		constexpr bool skip_track_translation(uint32_t /*track_index*/) const { return false; }
+		ACL_NO_DISCARD constexpr bool skip_track_translation(uint32_t /*track_index*/) const { return false; }
 
 		/// These allow host runtimes to control which tracks they are interested in.
 		/// This information allows the codecs to avoid unpacking values that are not needed.
 		/// Must be non-static member functions!
-		constexpr bool skip_track_scale(uint32_t /*track_index*/) const { return false; }
+		ACL_NO_DISCARD constexpr bool skip_track_scale(uint32_t /*track_index*/) const { return false; }
 
 		/// Called by the decoder to write out a quaternion rotation value for a specified bone index.
 		void RTM_SIMD_CALL write_rotation(uint32_t track_index, rtm::quatf_arg0 rotation)

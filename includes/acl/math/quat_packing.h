@@ -56,7 +56,7 @@ namespace acl
 	}
 
 	/// Reads a quaternion that pack_quat_128 wrote.
-	inline rtm::quatf RTM_SIMD_CALL unpack_quat_128(const uint8_t* data_ptr)
+	ACL_NO_DISCARD inline rtm::quatf RTM_SIMD_CALL unpack_quat_128(const uint8_t* data_ptr)
 	{
 		return rtm::vector_to_quat(unpack_vector4_128(data_ptr));
 	}
@@ -70,7 +70,7 @@ namespace acl
 	}
 
 	/// Assumes the `data_ptr` is padded in order to load up to 16 bytes from it
-	inline rtm::quatf RTM_SIMD_CALL unpack_quat_96_unsafe(const uint8_t* data_ptr)
+	ACL_NO_DISCARD inline rtm::quatf RTM_SIMD_CALL unpack_quat_96_unsafe(const uint8_t* data_ptr)
 	{
 		rtm::vector4f rotation_xyz = unpack_vector3_96_unsafe(data_ptr);
 		return acl_impl::quat_from_positive_w_stable(rotation_xyz);
@@ -85,7 +85,7 @@ namespace acl
 	}
 
 	/// Reads a quaternion that pack_quat_48 wrote. The function finds [w] from [x,y,z].
-	inline rtm::quatf RTM_SIMD_CALL unpack_quat_48(const uint8_t* data_ptr)
+	ACL_NO_DISCARD inline rtm::quatf RTM_SIMD_CALL unpack_quat_48(const uint8_t* data_ptr)
 	{
 		rtm::vector4f rotation_xyz = unpack_vector3_s48_unsafe(data_ptr);
 		return acl_impl::quat_from_positive_w_stable(rotation_xyz);
@@ -100,21 +100,21 @@ namespace acl
 	}
 
 	/// Reads a quaternion that pack_quat_32 wrote. The function finds [w] from [x,y,z].
-	inline rtm::quatf RTM_SIMD_CALL unpack_quat_32(const uint8_t* data_ptr)
+	ACL_NO_DISCARD inline rtm::quatf RTM_SIMD_CALL unpack_quat_32(const uint8_t* data_ptr)
 	{
 		rtm::vector4f rotation_xyz = unpack_vector3_32(11, 11, 10, false, data_ptr);
 		return acl_impl::quat_from_positive_w_stable(rotation_xyz);
 	}
 
 	/// Returns the size in bytes of a full precision rotation sample with the given rotation format.
-	constexpr uint32_t get_packed_rotation_size(rotation_format8 format)
+	ACL_NO_DISCARD constexpr uint32_t get_packed_rotation_size(rotation_format8 format)
 	{
 		return format == rotation_format8::quatf_full ? (sizeof(float) * 4) : (sizeof(float) * 3);
 	}
 
 	/// Returns the size in bytes of the clip range of a rotation sub-track with the given rotation format:
 	/// the minimum and the extent of each component, with float32 values.
-	constexpr uint32_t get_range_reduction_rotation_size(rotation_format8 format)
+	ACL_NO_DISCARD constexpr uint32_t get_range_reduction_rotation_size(rotation_format8 format)
 	{
 		return format == rotation_format8::quatf_full ? (sizeof(float) * 8) : (sizeof(float) * 6);
 	}

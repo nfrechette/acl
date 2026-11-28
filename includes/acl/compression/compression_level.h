@@ -63,10 +63,10 @@ namespace acl
 
 	// TODO: constexpr
 	/// Returns a string representing the compression level.
-	inline const char* get_compression_level_name(compression_level8 level);
+	ACL_NO_DISCARD inline const char* get_compression_level_name(compression_level8 level);
 
 	/// Returns the compression level from its string representation.
-	inline bool get_compression_level(const char* level_name, compression_level8& out_level);
+	ACL_NO_DISCARD inline bool get_compression_level(const char* level_name, compression_level8& out_level);
 
 	ACL_IMPL_VERSION_NAMESPACE_END
 }

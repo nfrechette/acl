@@ -28,11 +28,17 @@
 /// The quaternion functions that RTM does not have.
 
 #include "acl/version.h"
+#include "acl/core/error.h"
 #include "acl/core/impl/compiler_utils.h"
+#include "acl/core/memory_utils.h"
 
+#include <rtm/mask4f.h>
 #include <rtm/quatf.h>
+#include <rtm/scalarf.h>
+#include <rtm/vector4f.h>
 
 #include <cstdint>
+#include <cstring>
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
@@ -42,7 +48,7 @@ namespace acl
 
 	/// Interpolates linearly between two quaternions and does not normalize the result.
 	/// The function negates `end` if necessary to interpolate along the shortest path.
-	RTM_DISABLE_SECURITY_COOKIE_CHECK inline rtm::quatf RTM_SIMD_CALL quat_lerp_no_normalization(rtm::quatf_arg0 start, rtm::quatf_arg1 end, float alpha) RTM_NO_EXCEPT
+	ACL_NO_DISCARD RTM_DISABLE_SECURITY_COOKIE_CHECK inline rtm::quatf RTM_SIMD_CALL quat_lerp_no_normalization(rtm::quatf_arg0 start, rtm::quatf_arg1 end, float alpha) RTM_NO_EXCEPT
 	{
 		using namespace rtm;
 
@@ -417,6 +423,273 @@ namespace acl
 
 			return quat_normalize_stable(rtm::vector_to_quat(interpolated_rotation));
 		}
+
+		// ///////////////////////////////////////////////////////////////////////
+		// The rotation formats that drop one component (quatf_drop_largest_full and quatf_drop_largest_variable).
+		// A packed rotation holds the three kept components in [x, y, z], in their order, and the dropped
+		// component in [w]: (kept0, kept1, kept2, dropped). The dropped component is positive or zero.
+		// The compressed data stores the index of the dropped component on 2 bits: [w, x, y, z] = [0, 1, 2, 3].
+		// W has the value 0: a rotation that drops W has the same bits as with a format that always drops W.
+		// The functions below use the index in [x, y, z, w] = [0, 1, 2, 3].
+		// ///////////////////////////////////////////////////////////////////////
+
+		// The bit of a float32 that holds the index of the dropped component in a full precision sample.
+		// Each component is in [-1.0, 1.0], thus its exponent is 127 or less and this bit is always 0.
+		// [x] holds the low bit of the index and [y] holds the high bit.
+		constexpr uint32_t k_dropped_component_float_bit = 0x40000000U;
+
+		// Returns the bits of a float32
+		inline uint32_t float_to_bits(float value)
+		{
+			uint32_t bits;
+			std::memcpy(&bits, &value, sizeof(uint32_t));
+			return bits;
+		}
+
+		// Returns the float32 that has these bits
+		inline float bits_to_float(uint32_t bits)
+		{
+			float value;
+			std::memcpy(&value, &bits, sizeof(float));
+			return value;
+		}
+
+		// Returns the 2 bits that the compressed data stores for the index of a dropped component
+		constexpr uint32_t encode_dropped_component(uint32_t component) { return (component + 1) & 3; }
+
+		// Returns the index of a dropped component from the 2 bits that the compressed data stores
+		constexpr uint32_t decode_dropped_component(uint32_t encoded_component) { return (encoded_component + 3) & 3; }
+
+		// Returns the index of the component with the largest absolute value, W wins a tie
+		inline uint32_t RTM_SIMD_CALL quat_get_largest_component(rtm::quatf_arg0 rotation)
+		{
+			float components[4];
+			rtm::quat_store(rotation, &components[0]);
+
+			// Keep the largest value in a variable: an array read with a variable index forces the array to the stack
+			uint32_t largest_component = 3;
+			float largest_value = rtm::scalar_abs(components[3]);
+			for (uint32_t component = 0; component < 3; ++component)
+			{
+				const float value = rtm::scalar_abs(components[component]);
+				if (value > largest_value)
+				{
+					largest_component = component;
+					largest_value = value;
+				}
+			}
+
+			return largest_component;
+		}
+
+		// Returns (kept0, kept1, kept2, dropped) with the dropped component positive or zero
+		inline rtm::vector4f RTM_SIMD_CALL quat_drop_component(rtm::quatf_arg0 rotation, uint32_t component)
+		{
+			ACL_ASSERT(component < 4, "Invalid component index");
+
+			const rtm::vector4f value = rtm::quat_to_vector(rotation);
+
+			rtm::vector4f packed;
+			switch (component)
+			{
+			case 0:		packed = rtm::vector_mix<rtm::mix4::y, rtm::mix4::z, rtm::mix4::w, rtm::mix4::x>(value, value); break;
+			case 1:		packed = rtm::vector_mix<rtm::mix4::x, rtm::mix4::z, rtm::mix4::w, rtm::mix4::y>(value, value); break;
+			case 2:		packed = rtm::vector_mix<rtm::mix4::x, rtm::mix4::y, rtm::mix4::w, rtm::mix4::z>(value, value); break;
+			default:	packed = value; break;
+			}
+
+			// q and -q are the same rotation: flip each sign bit with the sign bit of the dropped component
+			const rtm::vector4f dropped_sign = rtm::vector_and(rtm::vector_dup_w(packed), rtm::vector_set(-0.0F));
+			return rtm::vector_xor(packed, dropped_sign);
+		}
+
+		// Moves the components of (kept0, kept1, kept2, dropped) back into [x, y, z, w], the inverse of quat_drop_component
+		inline rtm::quatf RTM_SIMD_CALL quat_restore_dropped_component(rtm::quatf_arg0 rotation, uint32_t component)
+		{
+			ACL_ASSERT(component < 4, "Invalid component index");
+
+			// A shuffle moves each component, see quat_drop_component
+			// Note: GCC 14 has an internal compiler error when it inlines a version that reads each lane and sets it again
+			const rtm::vector4f value = rtm::quat_to_vector(rotation);
+
+			switch (component)
+			{
+			case 0:		return rtm::vector_to_quat(rtm::vector_mix<rtm::mix4::w, rtm::mix4::x, rtm::mix4::y, rtm::mix4::z>(value, value));
+			case 1:		return rtm::vector_to_quat(rtm::vector_mix<rtm::mix4::x, rtm::mix4::w, rtm::mix4::y, rtm::mix4::z>(value, value));
+			case 2:		return rtm::vector_to_quat(rtm::vector_mix<rtm::mix4::x, rtm::mix4::y, rtm::mix4::w, rtm::mix4::z>(value, value));
+			default:	return rotation;
+			}
+		}
+
+		// Moves the components of 4 rotations (kept0, kept1, kept2, dropped) back into [x, y, z, w]
+		// Each mask tells which lanes drop [x], [y], or [z], the other lanes drop [w]
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE void RTM_SIMD_CALL quat_restore_dropped_component_x4(
+			rtm::vector4f& xxxx, rtm::vector4f& yyyy, rtm::vector4f& zzzz, rtm::vector4f& wwww,
+			rtm::mask4f_arg0 drops_x, rtm::mask4f_arg1 drops_y, rtm::mask4f_arg2 drops_z)
+		{
+			const rtm::mask4f drops_x_or_y = rtm::mask_or(drops_x, drops_y);
+			const rtm::mask4f drops_x_or_y_or_z = rtm::mask_or(drops_x_or_y, drops_z);
+
+			const rtm::vector4f kept0 = xxxx;
+			const rtm::vector4f kept1 = yyyy;
+			const rtm::vector4f kept2 = zzzz;
+			const rtm::vector4f dropped = wwww;
+
+			xxxx = rtm::vector_select(drops_x, dropped, kept0);
+			yyyy = rtm::vector_select(drops_x, kept0, rtm::vector_select(drops_y, dropped, kept1));
+			zzzz = rtm::vector_select(drops_x_or_y, kept1, rtm::vector_select(drops_z, dropped, kept2));
+			wwww = rtm::vector_select(drops_x_or_y_or_z, kept2, dropped);
+		}
+
+		// Returns the masks of the lanes that drop [x], [y], or [z] from 4 bytes of per sub-track metadata
+		// Bits [5, 6] of each byte hold the encoded index of the dropped component
+		// The SIMD paths keep the index in place: they AND with the index bits and compare with the shifted
+		// encoded values, which removes a shift
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE void RTM_SIMD_CALL get_dropped_component_masks_x4(
+			const uint8_t* format_per_track_data,
+			rtm::mask4f& out_drops_x, rtm::mask4f& out_drops_y, rtm::mask4f& out_drops_z)
+		{
+			constexpr uint32_t component_mask = 3U << 5;
+			constexpr uint32_t drops_x_value = encode_dropped_component(0) << 5;
+			constexpr uint32_t drops_y_value = encode_dropped_component(1) << 5;
+			constexpr uint32_t drops_z_value = encode_dropped_component(2) << 5;
+
+#if defined(RTM_SSE2_INTRINSICS)
+			const int32_t packed_bytes = unaligned_load<int32_t>(format_per_track_data);
+
+			const __m128i zero = _mm_setzero_si128();
+			const __m128i bytes_u8 = _mm_cvtsi32_si128(packed_bytes);
+			const __m128i bytes_u32 = _mm_unpacklo_epi16(_mm_unpacklo_epi8(bytes_u8, zero), zero);
+			const __m128i shifted_components = _mm_and_si128(bytes_u32, _mm_set1_epi32(static_cast<int32_t>(component_mask)));
+
+			out_drops_x = _mm_castsi128_ps(_mm_cmpeq_epi32(shifted_components, _mm_set1_epi32(static_cast<int32_t>(drops_x_value))));
+			out_drops_y = _mm_castsi128_ps(_mm_cmpeq_epi32(shifted_components, _mm_set1_epi32(static_cast<int32_t>(drops_y_value))));
+			out_drops_z = _mm_castsi128_ps(_mm_cmpeq_epi32(shifted_components, _mm_set1_epi32(static_cast<int32_t>(drops_z_value))));
+#elif defined(RTM_NEON_INTRINSICS)
+			const uint32_t packed_bytes = unaligned_load<uint32_t>(format_per_track_data);
+
+			const uint8x8_t bytes_u8 = vreinterpret_u8_u32(vdup_n_u32(packed_bytes));
+			const uint32x4_t bytes_u32 = vmovl_u16(vget_low_u16(vmovl_u8(bytes_u8)));
+			const uint32x4_t shifted_components = vandq_u32(bytes_u32, vdupq_n_u32(component_mask));
+
+			out_drops_x = vceqq_u32(shifted_components, vdupq_n_u32(drops_x_value));
+			out_drops_y = vceqq_u32(shifted_components, vdupq_n_u32(drops_y_value));
+			out_drops_z = vceqq_u32(shifted_components, vdupq_n_u32(drops_z_value));
+#elif defined(RTM_WASM128_INTRINSICS)
+			const v128_t bytes_u8 = wasm_v128_load32_zero(format_per_track_data);
+			const v128_t bytes_u32 = wasm_u32x4_extend_low_u16x8(wasm_u16x8_extend_low_u8x16(bytes_u8));
+			const v128_t shifted_components = wasm_v128_and(bytes_u32, wasm_i32x4_splat(static_cast<int32_t>(component_mask)));
+
+			out_drops_x = wasm_i32x4_eq(shifted_components, wasm_i32x4_splat(static_cast<int32_t>(drops_x_value)));
+			out_drops_y = wasm_i32x4_eq(shifted_components, wasm_i32x4_splat(static_cast<int32_t>(drops_y_value)));
+			out_drops_z = wasm_i32x4_eq(shifted_components, wasm_i32x4_splat(static_cast<int32_t>(drops_z_value)));
+#else
+			const rtm::vector4f shifted_components = rtm::vector_set(
+				float(format_per_track_data[0] & component_mask), float(format_per_track_data[1] & component_mask),
+				float(format_per_track_data[2] & component_mask), float(format_per_track_data[3] & component_mask));
+
+			out_drops_x = rtm::vector_equal(shifted_components, rtm::vector_set(float(drops_x_value)));
+			out_drops_y = rtm::vector_equal(shifted_components, rtm::vector_set(float(drops_y_value)));
+			out_drops_z = rtm::vector_equal(shifted_components, rtm::vector_set(float(drops_z_value)));
+#endif
+		}
+
+		// Stores the index of the dropped component in bit 30 of [x] and [y] of a packed full precision rotation
+		inline rtm::vector4f RTM_SIMD_CALL encode_dropped_component_in_floats(rtm::vector4f_arg0 packed_rotation, uint32_t component)
+		{
+			const uint32_t encoded_component = encode_dropped_component(component);
+
+			uint32_t x = float_to_bits(float(rtm::vector_get_x(packed_rotation)));
+			uint32_t y = float_to_bits(float(rtm::vector_get_y(packed_rotation)));
+			ACL_ASSERT((x & k_dropped_component_float_bit) == 0 && (y & k_dropped_component_float_bit) == 0, "Expected a component in [-1.0, 1.0]");
+
+			x |= (encoded_component & 1) != 0 ? k_dropped_component_float_bit : 0;
+			y |= (encoded_component & 2) != 0 ? k_dropped_component_float_bit : 0;
+
+			return rtm::vector_set(bits_to_float(x), bits_to_float(y), float(rtm::vector_get_z(packed_rotation)), float(rtm::vector_get_w(packed_rotation)));
+		}
+
+		// Clears bit 30 of [x] and [y] of a packed full precision rotation and returns the index of the dropped component
+		inline rtm::vector4f RTM_SIMD_CALL decode_dropped_component_from_floats(rtm::vector4f_arg0 packed_rotation, uint32_t& out_component)
+		{
+			uint32_t x = float_to_bits(float(rtm::vector_get_x(packed_rotation)));
+			uint32_t y = float_to_bits(float(rtm::vector_get_y(packed_rotation)));
+
+			const uint32_t encoded_component = ((x & k_dropped_component_float_bit) != 0 ? 1U : 0U) | ((y & k_dropped_component_float_bit) != 0 ? 2U : 0U);
+			out_component = decode_dropped_component(encoded_component);
+
+			x &= ~k_dropped_component_float_bit;
+			y &= ~k_dropped_component_float_bit;
+
+			return rtm::vector_set(bits_to_float(x), bits_to_float(y), float(rtm::vector_get_z(packed_rotation)), float(rtm::vector_get_w(packed_rotation)));
+		}
+
+		// Clears bit 30 of [x] and [y] of 4 packed full precision rotations and returns the masks of the lanes
+		// that drop [x], [y], or [z]
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE void RTM_SIMD_CALL decode_dropped_component_from_floats_x4(
+			rtm::vector4f& xxxx, rtm::vector4f& yyyy,
+			rtm::mask4f& out_drops_x, rtm::mask4f& out_drops_y, rtm::mask4f& out_drops_z)
+		{
+			const rtm::vector4f bit = rtm::vector_set(bits_to_float(k_dropped_component_float_bit));
+			const rtm::vector4f clear_bit = rtm::vector_set(bits_to_float(~k_dropped_component_float_bit));
+			const rtm::vector4f zero = rtm::vector_zero();
+
+			// The bit alone is the float 2.0, without it the value is 0.0
+			const rtm::mask4f low_bit = rtm::vector_not_equal(rtm::vector_and(xxxx, bit), zero);
+			const rtm::mask4f high_bit = rtm::vector_not_equal(rtm::vector_and(yyyy, bit), zero);
+
+			// [w, x, y, z] = [0, 1, 2, 3]
+			out_drops_x = rtm::mask_and(low_bit, rtm::mask_not(high_bit));
+			out_drops_y = rtm::mask_and(rtm::mask_not(low_bit), high_bit);
+			out_drops_z = rtm::mask_and(low_bit, high_bit);
+
+			xxxx = rtm::vector_and(xxxx, clear_bit);
+			yyyy = rtm::vector_and(yyyy, clear_bit);
+		}
+
+#if defined(RTM_AVX_INTRINSICS)
+		// Clears bit 30 of [x] and [y] of 8 packed full precision rotations and returns the masks of the lanes
+		// that drop [x], [y], or [z], see 'decode_dropped_component_from_floats_x4'
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE void RTM_SIMD_CALL decode_dropped_component_from_floats_avx8(
+			__m256& xxxx, __m256& yyyy,
+			__m256& out_drops_x, __m256& out_drops_y, __m256& out_drops_z)
+		{
+			const __m256 bit = _mm256_castsi256_ps(_mm256_set1_epi32(static_cast<int32_t>(k_dropped_component_float_bit)));
+			const __m256 zero = _mm256_setzero_ps();
+
+			// The bit alone is the float 2.0, without it the value is 0.0
+			const __m256 low_bit = _mm256_cmp_ps(_mm256_and_ps(xxxx, bit), zero, _CMP_NEQ_OQ);
+			const __m256 high_bit = _mm256_cmp_ps(_mm256_and_ps(yyyy, bit), zero, _CMP_NEQ_OQ);
+
+			// [w, x, y, z] = [0, 1, 2, 3]
+			out_drops_x = _mm256_andnot_ps(high_bit, low_bit);
+			out_drops_y = _mm256_andnot_ps(low_bit, high_bit);
+			out_drops_z = _mm256_and_ps(low_bit, high_bit);
+
+			xxxx = _mm256_andnot_ps(bit, xxxx);
+			yyyy = _mm256_andnot_ps(bit, yyyy);
+		}
+
+		// Moves the components of 8 rotations (kept0, kept1, kept2, dropped) back into [x, y, z, w], see 'quat_restore_dropped_component_x4'
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE void RTM_SIMD_CALL quat_restore_dropped_component_avx8(
+			__m256& xxxx, __m256& yyyy, __m256& zzzz, __m256& wwww,
+			__m256 drops_x, __m256 drops_y, __m256 drops_z)
+		{
+			const __m256 drops_x_or_y = _mm256_or_ps(drops_x, drops_y);
+			const __m256 drops_x_or_y_or_z = _mm256_or_ps(drops_x_or_y, drops_z);
+
+			const __m256 kept0 = xxxx;
+			const __m256 kept1 = yyyy;
+			const __m256 kept2 = zzzz;
+			const __m256 dropped = wwww;
+
+			// _mm256_blendv_ps(a, b, mask) selects b where the mask is set
+			xxxx = _mm256_blendv_ps(kept0, dropped, drops_x);
+			yyyy = _mm256_blendv_ps(_mm256_blendv_ps(kept1, dropped, drops_y), kept0, drops_x);
+			zzzz = _mm256_blendv_ps(_mm256_blendv_ps(kept2, dropped, drops_z), kept1, drops_x_or_y);
+			wwww = _mm256_blendv_ps(dropped, kept2, drops_x_or_y_or_z);
+		}
+#endif
 	}
 
 	ACL_IMPL_VERSION_NAMESPACE_END

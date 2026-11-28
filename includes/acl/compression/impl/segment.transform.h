@@ -151,6 +151,8 @@ namespace acl
 			uint32_t* num_samples_per_segment = split_samples_per_segment(allocator, clip.num_samples, settings, num_estimated_segments, num_segments);
 			ACL_ASSERT(num_samples_per_segment != nullptr, "Expected at least one segment");
 
+			ACL_ASSERT(clip.rotation_dropped_components == nullptr || clip.num_rotation_dropped_components == size_t(num_segments) * clip.num_bones, "The dropped rotation components do not match the segments");
+
 			segment_context* clip_segment = clip.segments;
 			clip.segments = allocate_type_array<segment_context>(allocator, num_segments);
 			clip.num_segments = num_segments;
@@ -191,6 +193,12 @@ namespace acl
 					segment_bone_stream.parent_bone_index = clip_bone_stream.parent_bone_index;
 					segment_bone_stream.output_index = clip_bone_stream.output_index;
 					segment_bone_stream.default_value = clip_bone_stream.default_value;
+
+					// With a drop largest rotation format, each segment can drop another rotation component
+					if (clip.rotation_dropped_components != nullptr)
+						segment_bone_stream.rotation_dropped_component = clip.rotation_dropped_components[(size_t(segment_index) * clip.num_bones) + bone_index];
+					else
+						segment_bone_stream.rotation_dropped_component = clip_bone_stream.rotation_dropped_component;
 
 					if (clip_bone_stream.is_rotation_constant)
 					{

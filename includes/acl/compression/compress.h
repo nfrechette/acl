@@ -65,7 +65,7 @@ namespace acl
 	/// \param settings The compression settings to use.
 	/// \param out_compressed_tracks The resulting compressed tracks. The caller owns the returned memory and must free it.
 	/// \param out_stats Stat output structure.
-	error_result compress_track_list(iallocator& allocator, const track_array& track_list, const compression_settings& settings,
+	ACL_NO_DISCARD error_result compress_track_list(iallocator& allocator, const track_array& track_list, const compression_settings& settings,
 		compressed_tracks*& out_compressed_tracks, output_stats& out_stats);
 
 	/// Compresses a transform track array and its base with uniform sampling.
@@ -80,7 +80,7 @@ namespace acl
 	/// \param transform_base The base of `track_list` and how its samples combine with it.
 	/// \param out_compressed_tracks The resulting compressed tracks. The caller owns the returned memory and must free it.
 	/// \param out_stats Stat output structure.
-	error_result compress_track_list(iallocator& allocator, const track_array& track_list, const compression_settings& settings,
+	ACL_NO_DISCARD error_result compress_track_list(iallocator& allocator, const track_array& track_list, const compression_settings& settings,
 		const transform_base_desc_t& transform_base,
 		compressed_tracks*& out_compressed_tracks, output_stats& out_stats);
 
@@ -96,7 +96,7 @@ namespace acl
 	/// \param additive_format The additive format of `track_list`.
 	/// \param out_compressed_tracks The resulting compressed tracks. The caller owns the returned memory and must free it.
 	/// \param out_stats Stat output structure.
-	ACL_DEPRECATED("Use the overload with a transform_base_desc_t instead, to be removed in v2.3")
+	ACL_NO_DISCARD ACL_DEPRECATED("Use the overload with a transform_base_desc_t instead, to be removed in v2.3")
 	error_result compress_track_list(iallocator& allocator, const track_array& track_list, const compression_settings& settings,
 		const track_array& additive_base_track_list, additive_clip_format8 additive_format,
 		compressed_tracks*& out_compressed_tracks, output_stats& out_stats);
@@ -119,7 +119,7 @@ namespace acl
 	///
 	/// \param track_list The track list to compress.
 	/// \param settings The compression settings to use.
-	size_t estimate_compression_peak_memory_usage(const track_array& track_list, const compression_settings& settings);
+	ACL_NO_DISCARD size_t estimate_compression_peak_memory_usage(const track_array& track_list, const compression_settings& settings);
 
 	/// Returns an estimate of the peak memory usage of `compress_track_list` in bytes.
 	/// The value is the largest sum of the sizes of the live allocations that compression requests
@@ -140,7 +140,7 @@ namespace acl
 	/// \param track_list The track list to compress.
 	/// \param settings The compression settings to use.
 	/// \param transform_base The base of `track_list` and how its samples combine with it.
-	size_t estimate_compression_peak_memory_usage(const track_array& track_list, const compression_settings& settings,
+	ACL_NO_DISCARD size_t estimate_compression_peak_memory_usage(const track_array& track_list, const compression_settings& settings,
 		const transform_base_desc_t& transform_base);
 
 	/// Returns an estimate of the peak memory usage of `compress_track_list` in bytes.
@@ -161,7 +161,7 @@ namespace acl
 	///
 	/// \param settings The compression settings to use.
 	/// \param desc The size of the track list to compress and of its base.
-	size_t estimate_compression_peak_memory_usage(const compression_memory_desc_t& desc, const compression_settings& settings);
+	ACL_NO_DISCARD size_t estimate_compression_peak_memory_usage(const compression_memory_desc_t& desc, const compression_settings& settings);
 
 	/// Takes a list of compressed track instances that contain the contributing error metadata and uses their data to build
 	/// a new database instance. Each compressed track instance will be duplicated and split between a new instance and the
@@ -173,7 +173,7 @@ namespace acl
 	/// \param num_compressed_tracks The number of compressed track instances in the above list
 	/// \param out_compressed_tracks The output list of compressed tracks bound to the output database (array allocated by the caller (must be large enough); compressed_tracks instances allocated by the function)
 	/// \param out_database The output database (allocated by the function)
-	error_result build_database(iallocator& allocator, const compression_database_settings& settings,
+	ACL_NO_DISCARD error_result build_database(iallocator& allocator, const compression_database_settings& settings,
 		const compressed_tracks* const* compressed_tracks_list, uint32_t num_compressed_tracks,
 		compressed_tracks** out_compressed_tracks, compressed_database*& out_database);
 
@@ -185,7 +185,7 @@ namespace acl
 	/// \param out_split_database The new database without inline bulk data.
 	/// \param out_bulk_data_medium The new database's bulk data for the medium importance tier.
 	/// \param out_bulk_data_low The new database's bulk data for the low importance tier.
-	error_result split_database_bulk_data(iallocator& allocator, const compressed_database& database, compressed_database*& out_split_database, uint8_t*& out_bulk_data_medium, uint8_t*& out_bulk_data_low);
+	ACL_NO_DISCARD error_result split_database_bulk_data(iallocator& allocator, const compressed_database& database, compressed_database*& out_split_database, uint8_t*& out_bulk_data_medium, uint8_t*& out_bulk_data_low);
 
 	/// Takes a compressed database and strips the specified quality tier from it.
 	/// The database is duplicated including its remaining bulk data (if inline).
@@ -195,7 +195,7 @@ namespace acl
 	/// \param database The source database to strip.
 	/// \param tier The quality tier to strip.
 	/// \param out_stripped_database The new database without the specified quality tier.
-	error_result strip_database_quality_tier(iallocator& allocator, const compressed_database& database, quality_tier tier, compressed_database*& out_stripped_database);
+	ACL_NO_DISCARD error_result strip_database_quality_tier(iallocator& allocator, const compressed_database& database, quality_tier tier, compressed_database*& out_stripped_database);
 
 	ACL_IMPL_VERSION_NAMESPACE_END
 }

@@ -69,7 +69,7 @@ namespace acl
 			}
 
 			// Returns the current hash digest value.
-			constexpr ResultType digest() const { return m_state; }
+			ACL_NO_DISCARD constexpr ResultType digest() const { return m_state; }
 
 		private:
 			static_assert(std::is_unsigned<ResultType>::value, "need unsigned integer");
@@ -86,7 +86,7 @@ namespace acl
 	using fnv1a_64 = hash_impl::fnv1a_impl<uint64_t, 14695981039346656037ULL, 1099511628211ULL>;
 
 	/// Returns the 32 bit hash of the provided buffer and size in bytes.
-	inline uint32_t hash32(const void* buffer, size_t buffer_size)
+	ACL_NO_DISCARD inline uint32_t hash32(const void* buffer, size_t buffer_size)
 	{
 		fnv1a_32 hashfn = fnv1a_32();
 		hashfn.update(buffer, buffer_size);
@@ -95,18 +95,18 @@ namespace acl
 
 	/// Returns the 32 bit hash of the provided element.
 	template<typename ElementType>
-	inline uint32_t hash32(const ElementType& element) { return hash32(&element, sizeof(ElementType)); }
+	ACL_NO_DISCARD inline uint32_t hash32(const ElementType& element) { return hash32(&element, sizeof(ElementType)); }
 
 	/// Returns the 32 bit hash of the provided string.
 	/// The null terminator not included in the hash.
-	inline uint32_t hash32(const char* str)
+	ACL_NO_DISCARD inline uint32_t hash32(const char* str)
 	{
 		const size_t buffer_size = str != nullptr ? std::strlen(str) : 0;
 		return hash32(str, buffer_size);
 	}
 
 	/// Returns the 64 bit hash of the provided buffer and size in bytes.
-	inline uint64_t hash64(const void* buffer, size_t buffer_size)
+	ACL_NO_DISCARD inline uint64_t hash64(const void* buffer, size_t buffer_size)
 	{
 		fnv1a_64 hashfn = fnv1a_64();
 		hashfn.update(buffer, buffer_size);
@@ -115,21 +115,21 @@ namespace acl
 
 	/// Returns the 64 bit hash of the provided element.
 	template<typename ElementType>
-	inline uint64_t hash64(const ElementType& element) { return hash64(&element, sizeof(ElementType)); }
+	ACL_NO_DISCARD inline uint64_t hash64(const ElementType& element) { return hash64(&element, sizeof(ElementType)); }
 
 	/// Returns the 64 bit hash of the provided string.
 	/// The null terminator not included in the hash.
-	inline uint64_t hash64(const char* str)
+	ACL_NO_DISCARD inline uint64_t hash64(const char* str)
 	{
 		const size_t buffer_size = str != nullptr ? std::strlen(str) : 0;
 		return hash64(str, buffer_size);
 	}
 
 	/// Combines two hashes into a new one.
-	inline uint32_t hash_combine(uint32_t hash_a, uint32_t hash_b) { return (hash_a ^ hash_b) * 16777619U; }
+	ACL_NO_DISCARD inline uint32_t hash_combine(uint32_t hash_a, uint32_t hash_b) { return (hash_a ^ hash_b) * 16777619U; }
 
 	/// Combines two hashes into a new one.
-	inline uint64_t hash_combine(uint64_t hash_a, uint64_t hash_b) { return (hash_a ^ hash_b) * 1099511628211ULL; }
+	ACL_NO_DISCARD inline uint64_t hash_combine(uint64_t hash_a, uint64_t hash_b) { return (hash_a ^ hash_b) * 1099511628211ULL; }
 
 	ACL_IMPL_VERSION_NAMESPACE_END
 }

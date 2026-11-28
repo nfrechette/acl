@@ -112,7 +112,7 @@ namespace acl
 		ansi_allocator(const ansi_allocator&) = delete;
 		ansi_allocator& operator=(const ansi_allocator&) = delete;
 
-		virtual void* allocate(size_t size, size_t alignment = k_default_alignment) override
+		ACL_NO_DISCARD virtual void* allocate(size_t size, size_t alignment = k_default_alignment) override
 		{
 			/*
 			 * This is a common requirement for many of the aligned allocators, see

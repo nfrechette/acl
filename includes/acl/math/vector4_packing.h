@@ -55,13 +55,13 @@ namespace acl
 	}
 
 	/// Reads a vector that pack_vector4_128 wrote.
-	inline rtm::vector4f RTM_SIMD_CALL unpack_vector4_128(const uint8_t* vector_data)
+	ACL_NO_DISCARD inline rtm::vector4f RTM_SIMD_CALL unpack_vector4_128(const uint8_t* vector_data)
 	{
 		return rtm::vector_load(vector_data);
 	}
 
 	/// Assumes the `vector_data` is in big-endian order and is padded in order to load up to 23 bytes from it
-	inline rtm::vector4f RTM_SIMD_CALL unpack_vector4_128_unsafe(const uint8_t* vector_data, uint32_t bit_offset)
+	ACL_NO_DISCARD inline rtm::vector4f RTM_SIMD_CALL unpack_vector4_128_unsafe(const uint8_t* vector_data, uint32_t bit_offset)
 	{
 #if defined(RTM_SSE2_INTRINSICS)
 		const uint32_t byte_offset = bit_offset / 8;
@@ -207,7 +207,7 @@ namespace acl
 	}
 
 	/// Reads a vector that pack_vector4_64 wrote, with the same `is_unsigned` value.
-	inline rtm::vector4f RTM_SIMD_CALL unpack_vector4_64(const uint8_t* vector_data, bool is_unsigned)
+	ACL_NO_DISCARD inline rtm::vector4f RTM_SIMD_CALL unpack_vector4_64(const uint8_t* vector_data, bool is_unsigned)
 	{
 		const uint16_t* data_ptr_u16 = safe_ptr_cast<const uint16_t>(vector_data);
 		uint16_t x16 = data_ptr_u16[0];
@@ -237,7 +237,7 @@ namespace acl
 	}
 
 	/// Reads a vector that pack_vector4_32 wrote, with the same `is_unsigned` value.
-	inline rtm::vector4f RTM_SIMD_CALL unpack_vector4_32(const uint8_t* vector_data, bool is_unsigned)
+	ACL_NO_DISCARD inline rtm::vector4f RTM_SIMD_CALL unpack_vector4_32(const uint8_t* vector_data, bool is_unsigned)
 	{
 		uint8_t x8 = vector_data[0];
 		uint8_t y8 = vector_data[1];
@@ -292,7 +292,7 @@ namespace acl
 	}
 
 	/// Assumes the `vector_data` is in big-endian order and padded in order to load up to 16 bytes from it
-	inline rtm::vector4f RTM_SIMD_CALL unpack_vector4_uXX_unsafe(uint32_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
+	ACL_NO_DISCARD inline rtm::vector4f RTM_SIMD_CALL unpack_vector4_uXX_unsafe(uint32_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
 	{
 		ACL_ASSERT(num_bits <= 23, "This function does not support reading more than 23 bits per component");
 
@@ -468,7 +468,7 @@ namespace acl
 	}
 
 	/// Assumes the `vector_data` is in big-endian order and is padded in order to load up to 16 bytes from it
-	inline rtm::vector4f RTM_SIMD_CALL unpack_vector2_64_unsafe(const uint8_t* vector_data, uint32_t bit_offset)
+	ACL_NO_DISCARD inline rtm::vector4f RTM_SIMD_CALL unpack_vector2_64_unsafe(const uint8_t* vector_data, uint32_t bit_offset)
 	{
 #if defined(RTM_SSE2_INTRINSICS)
 		const uint32_t byte_offset = bit_offset / 8;
@@ -560,14 +560,14 @@ namespace acl
 	}
 
 	/// Assumes the `vector_data` is padded in order to load up to 16 bytes from it
-	inline rtm::vector4f RTM_SIMD_CALL unpack_vector3_96_unsafe(const uint8_t* vector_data)
+	ACL_NO_DISCARD inline rtm::vector4f RTM_SIMD_CALL unpack_vector3_96_unsafe(const uint8_t* vector_data)
 	{
 		return rtm::vector_load(vector_data);
 	}
 
 #if defined(RTM_SSE2_INTRINSICS)
 	/// Assumes the `vector_data` is in big-endian order and is padded in order to load up to 19 bytes from it
-	ACL_IMPL_DEBUG_FORCE_INLINE
+	ACL_NO_DISCARD ACL_IMPL_DEBUG_FORCE_INLINE
 	rtm::vector4f RTM_SIMD_CALL unpack_vector3_96_unsafe(
 		const uint8_t* vector_data,
 		uint32_t bit_offset)
@@ -615,7 +615,7 @@ namespace acl
 	}
 #elif defined(RTM_WASM128_INTRINSICS)
 	/// Assumes the `vector_data` is in big-endian order and is padded in order to load up to 19 bytes from it
-	ACL_IMPL_DEBUG_FORCE_INLINE
+	ACL_NO_DISCARD ACL_IMPL_DEBUG_FORCE_INLINE
 	rtm::vector4f RTM_SIMD_CALL unpack_vector3_96_unsafe(
 		const uint8_t* vector_data,
 		uint32_t bit_offset)
@@ -644,7 +644,7 @@ namespace acl
 	}
 #elif defined(RTM_NEON_INTRINSICS)
 	/// Assumes the `vector_data` is in big-endian order and is padded in order to load up to 19 bytes from it
-	ACL_IMPL_DEBUG_FORCE_INLINE
+	ACL_NO_DISCARD ACL_IMPL_DEBUG_FORCE_INLINE
 	rtm::vector4f RTM_SIMD_CALL unpack_vector3_96_unsafe(
 		const uint8_t* vector_data,
 		uint32_t bit_offset)
@@ -682,7 +682,7 @@ namespace acl
 	}
 #else
 	/// Assumes the `vector_data` is in big-endian order and is padded in order to load up to 19 bytes from it
-	ACL_IMPL_DEBUG_FORCE_INLINE
+	ACL_NO_DISCARD ACL_IMPL_DEBUG_FORCE_INLINE
 	rtm::vector4f RTM_SIMD_CALL unpack_vector3_96_unsafe(
 		const uint8_t* vector_data,
 		uint32_t bit_offset)
@@ -745,7 +745,7 @@ namespace acl
 	}
 
 	/// Assumes the `vector_data` is padded in order to load up to 16 bytes from it
-	inline rtm::vector4f RTM_SIMD_CALL unpack_vector3_u48_unsafe(const uint8_t* vector_data)
+	ACL_NO_DISCARD inline rtm::vector4f RTM_SIMD_CALL unpack_vector3_u48_unsafe(const uint8_t* vector_data)
 	{
 #if defined(RTM_SSE2_INTRINSICS)
 		__m128i x16y16z16 = _mm_loadu_si128((const __m128i*)vector_data);
@@ -785,7 +785,7 @@ namespace acl
 	}
 
 	/// Assumes the `vector_data` is padded in order to load up to 16 bytes from it
-	inline rtm::vector4f RTM_SIMD_CALL unpack_vector3_s48_unsafe(const uint8_t* vector_data)
+	ACL_NO_DISCARD inline rtm::vector4f RTM_SIMD_CALL unpack_vector3_s48_unsafe(const uint8_t* vector_data)
 	{
 		const rtm::vector4f unsigned_value = unpack_vector3_u48_unsafe(vector_data);
 		return rtm::vector_neg_mul_sub(unsigned_value, -2.0F, rtm::vector_set(-1.0F));
@@ -793,7 +793,7 @@ namespace acl
 
 	/// Returns the [x,y,z] components of a vector after a quantization to 16 bits each, without a write to memory.
 	/// The components must be in the range [0.0, 1.0].
-	inline rtm::vector4f RTM_SIMD_CALL decay_vector3_u48(rtm::vector4f_arg0 input)
+	ACL_NO_DISCARD inline rtm::vector4f RTM_SIMD_CALL decay_vector3_u48(rtm::vector4f_arg0 input)
 	{
 		ACL_ASSERT(rtm::vector_all_greater_equal3(input, rtm::vector_zero()) && rtm::vector_all_less_equal3(input, rtm::vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f", (float)rtm::vector_get_x(input), (float)rtm::vector_get_y(input), (float)rtm::vector_get_z(input));
 
@@ -807,7 +807,7 @@ namespace acl
 
 	/// Returns the [x,y,z] components of a vector after a quantization to 16 bits each, without a write to memory.
 	/// The components must be in the range [-1.0, 1.0].
-	inline rtm::vector4f RTM_SIMD_CALL decay_vector3_s48(rtm::vector4f_arg0 input)
+	ACL_NO_DISCARD inline rtm::vector4f RTM_SIMD_CALL decay_vector3_s48(rtm::vector4f_arg0 input)
 	{
 		const rtm::vector4f half = rtm::vector_set(0.5F);
 		const rtm::vector4f unsigned_input = rtm::vector_mul_add(input, half, half);
@@ -843,7 +843,7 @@ namespace acl
 
 	/// Returns the [x,y,z] components of a vector after a quantization with the given number of bits for each component, without a write to memory.
 	/// The sum of the bits must be 32 and the components must be in the range [0.0, 1.0].
-	inline rtm::vector4f RTM_SIMD_CALL decay_vector3_u32(rtm::vector4f_arg0 input, uint32_t XBits, uint32_t YBits, uint32_t ZBits)
+	ACL_NO_DISCARD inline rtm::vector4f RTM_SIMD_CALL decay_vector3_u32(rtm::vector4f_arg0 input, uint32_t XBits, uint32_t YBits, uint32_t ZBits)
 	{
 		ACL_ASSERT(XBits + YBits + ZBits == 32, "Sum of XYZ bits does not equal 32!");
 		ACL_ASSERT(rtm::vector_all_greater_equal3(input, rtm::vector_zero()) && rtm::vector_all_less_equal(input, rtm::vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f", (float)rtm::vector_get_x(input), (float)rtm::vector_get_y(input), (float)rtm::vector_get_z(input));
@@ -861,7 +861,7 @@ namespace acl
 
 	/// Returns the [x,y,z] components of a vector after a quantization with the given number of bits for each component, without a write to memory.
 	/// The sum of the bits must be 32 and the components must be in the range [-1.0, 1.0].
-	inline rtm::vector4f RTM_SIMD_CALL decay_vector3_s32(rtm::vector4f_arg0 input, uint32_t XBits, uint32_t YBits, uint32_t ZBits)
+	ACL_NO_DISCARD inline rtm::vector4f RTM_SIMD_CALL decay_vector3_s32(rtm::vector4f_arg0 input, uint32_t XBits, uint32_t YBits, uint32_t ZBits)
 	{
 		const rtm::vector4f half = rtm::vector_set(0.5F);
 		const rtm::vector4f unsigned_input = rtm::vector_mul_add(input, half, half);
@@ -881,7 +881,7 @@ namespace acl
 	}
 
 	/// Reads a vector that pack_vector3_32 wrote, with the same number of bits and the same `is_unsigned` value.
-	inline rtm::vector4f RTM_SIMD_CALL unpack_vector3_32(uint32_t XBits, uint32_t YBits, uint32_t ZBits, bool is_unsigned, const uint8_t* vector_data)
+	ACL_NO_DISCARD inline rtm::vector4f RTM_SIMD_CALL unpack_vector3_32(uint32_t XBits, uint32_t YBits, uint32_t ZBits, bool is_unsigned, const uint8_t* vector_data)
 	{
 		ACL_ASSERT(XBits + YBits + ZBits == 32, "Sum of XYZ bits does not equal 32!");
 
@@ -922,7 +922,7 @@ namespace acl
 	}
 
 	/// Assumes the `vector_data` is padded in order to load up to 16 bytes from it
-	inline rtm::vector4f RTM_SIMD_CALL unpack_vector3_u24_unsafe(const uint8_t* vector_data)
+	ACL_NO_DISCARD inline rtm::vector4f RTM_SIMD_CALL unpack_vector3_u24_unsafe(const uint8_t* vector_data)
 	{
 #if defined(RTM_SSE2_INTRINSICS) && 0
 		// This implementation leverages fast fixed point coercion, it relies on the
@@ -975,7 +975,7 @@ namespace acl
 	}
 
 	/// Assumes the `vector_data` is padded in order to load up to 16 bytes from it
-	inline rtm::vector4f RTM_SIMD_CALL unpack_vector3_s24_unsafe(const uint8_t* vector_data)
+	ACL_NO_DISCARD inline rtm::vector4f RTM_SIMD_CALL unpack_vector3_s24_unsafe(const uint8_t* vector_data)
 	{
 		const rtm::vector4f unsigned_value = unpack_vector3_u24_unsafe(vector_data);
 		return rtm::vector_neg_mul_sub(unsigned_value, -2.0F, rtm::vector_set(-1.0F));
@@ -1049,7 +1049,7 @@ namespace acl
 
 	/// Returns the [x,y,z] components of a vector after a quantization to `num_bits` bits each, without a write to memory.
 	/// The components must be in the range [0.0, 1.0].
-	inline rtm::vector4f RTM_SIMD_CALL decay_vector3_uXX(rtm::vector4f_arg0 input, uint32_t num_bits)
+	ACL_NO_DISCARD inline rtm::vector4f RTM_SIMD_CALL decay_vector3_uXX(rtm::vector4f_arg0 input, uint32_t num_bits)
 	{
 		ACL_ASSERT(rtm::vector_all_greater_equal3(input, rtm::vector_zero()) && rtm::vector_all_less_equal3(input, rtm::vector_set(1.0F)), "Expected normalized unsigned input value: %f, %f, %f", (float)rtm::vector_get_x(input), (float)rtm::vector_get_y(input), (float)rtm::vector_get_z(input));
 
@@ -1063,7 +1063,7 @@ namespace acl
 
 	/// Returns the [x,y,z] components of a vector after a quantization to `num_bits` bits each, without a write to memory.
 	/// The components must be in the range [-1.0, 1.0].
-	inline rtm::vector4f RTM_SIMD_CALL decay_vector3_sXX(rtm::vector4f_arg0 input, uint32_t num_bits)
+	ACL_NO_DISCARD inline rtm::vector4f RTM_SIMD_CALL decay_vector3_sXX(rtm::vector4f_arg0 input, uint32_t num_bits)
 	{
 		const rtm::vector4f half = rtm::vector_set(0.5F);
 		const rtm::vector4f unsigned_input = rtm::vector_mul_add(input, half, half);
@@ -1080,7 +1080,7 @@ namespace acl
 
 #if defined(RTM_SSE4_INTRINSICS)
 	/// Assumes the `vector_data` is in big-endian order and padded in order to load up to 16 bytes from it
-	ACL_IMPL_DEBUG_FORCE_INLINE
+	ACL_NO_DISCARD ACL_IMPL_DEBUG_FORCE_INLINE
 	rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_unsafe(
 		uint32_t num_bits,
 		const uint8_t* vector_data,
@@ -1174,7 +1174,7 @@ namespace acl
 	}
 #elif defined(RTM_SSE2_INTRINSICS)
 	/// Assumes the `vector_data` is in big-endian order and padded in order to load up to 16 bytes from it
-	ACL_IMPL_DEBUG_FORCE_INLINE
+	ACL_NO_DISCARD ACL_IMPL_DEBUG_FORCE_INLINE
 	rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_unsafe(
 		uint32_t num_bits,
 		const uint8_t* vector_data,
@@ -1233,7 +1233,7 @@ namespace acl
 	}
 #elif defined(RTM_WASM128_INTRINSICS)
 	/// Assumes the `vector_data` is in big-endian order and padded in order to load up to 16 bytes from it
-	ACL_IMPL_DEBUG_FORCE_INLINE
+	ACL_NO_DISCARD ACL_IMPL_DEBUG_FORCE_INLINE
 	rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_unsafe(
 		uint32_t num_bits,
 		const uint8_t* vector_data,
@@ -1290,7 +1290,7 @@ namespace acl
 	}
 #elif defined(RTM_NEON_INTRINSICS)
 	/// Assumes the `vector_data` is in big-endian order and padded in order to load up to 16 bytes from it
-	ACL_IMPL_DEBUG_FORCE_INLINE
+	ACL_NO_DISCARD ACL_IMPL_DEBUG_FORCE_INLINE
 	rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_unsafe(
 		uint32_t num_bits,
 		const uint8_t* vector_data,
@@ -1478,7 +1478,7 @@ namespace acl
 	}
 #else
 	/// Assumes the `vector_data` is in big-endian order and padded in order to load up to 16 bytes from it
-	ACL_IMPL_DEBUG_FORCE_INLINE
+	ACL_NO_DISCARD ACL_IMPL_DEBUG_FORCE_INLINE
 	rtm::vector4f RTM_SIMD_CALL unpack_vector3_uXX_unsafe(
 		uint32_t num_bits,
 		const uint8_t* vector_data,
@@ -1535,7 +1535,7 @@ namespace acl
 #endif
 
 	/// Assumes the `vector_data` is in big-endian order and padded in order to load up to 16 bytes from it
-	inline rtm::vector4f RTM_SIMD_CALL unpack_vector3_sXX_unsafe(uint32_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
+	ACL_NO_DISCARD inline rtm::vector4f RTM_SIMD_CALL unpack_vector3_sXX_unsafe(uint32_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
 	{
 		const rtm::vector4f unsigned_value = unpack_vector3_uXX_unsafe(num_bits, vector_data, bit_offset);
 		return rtm::vector_neg_mul_sub(unsigned_value, -2.0F, rtm::vector_set(-1.0F));
@@ -1558,7 +1558,7 @@ namespace acl
 	}
 
 	/// Assumes the `vector_data` is in big-endian order and padded in order to load up to 16 bytes from it
-	inline rtm::vector4f RTM_SIMD_CALL unpack_vector2_uXX_unsafe(uint32_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
+	ACL_NO_DISCARD inline rtm::vector4f RTM_SIMD_CALL unpack_vector2_uXX_unsafe(uint32_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
 	{
 		ACL_ASSERT(num_bits != 0 && num_bits <= 23, "This function does not support reading more than 23 bits per component");
 
@@ -2100,7 +2100,7 @@ namespace acl
 	// TODO: constexpr
 	/// Returns the size in bytes of a full precision vector3 sample with the given vector format.
 	/// The variable format has no fixed size: the function asserts and returns 0.
-	inline uint32_t get_packed_vector_size(vector_format8 format)
+	ACL_NO_DISCARD inline uint32_t get_packed_vector_size(vector_format8 format)
 	{
 		switch (format)
 		{

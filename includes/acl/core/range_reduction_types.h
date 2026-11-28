@@ -75,7 +75,7 @@ namespace acl
 
 	// TODO: constexpr
 	/// Returns a string of the algorithm name suitable for display.
-	inline const char* get_range_reduction_name(range_reduction_flags8 flags)
+	ACL_NO_DISCARD inline const char* get_range_reduction_name(range_reduction_flags8 flags)
 	{
 		// Some compilers have trouble with constexpr operator| with enums in a case switch statement
 		if (flags == range_reduction_flags8::none)

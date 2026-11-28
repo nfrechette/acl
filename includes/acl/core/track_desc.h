@@ -67,7 +67,7 @@ namespace acl
 		/// Returns whether a scalar track description is valid or not.
 		/// It is valid if:
 		///    - The precision is positive or zero and finite
-		error_result is_valid() const;
+		ACL_NO_DISCARD error_result is_valid() const;
 	};
 
 	// Disable warning for implicit constructor using deprecated members
@@ -157,7 +157,7 @@ namespace acl
 		///    - The constant rotation threshold angle is positive or zero and finite
 		///    - The constant translation threshold is positive or zero and finite
 		///    - The constant scale threshold is positive or zero and finite
-		error_result is_valid() const;
+		ACL_NO_DISCARD error_result is_valid() const;
 	};
 
 #if defined(RTM_COMPILER_CLANG)

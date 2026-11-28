@@ -61,7 +61,7 @@ namespace acl
 		uint32_t				generation_id = 0;	///< A value that changes each time the streamer reuses this request, to detect a stale request ID
 
 		/// Returns true if the request is in use.
-		bool is_valid() const { return tier != quality_tier::highest_importance; }
+		ACL_NO_DISCARD bool is_valid() const { return tier != quality_tier::highest_importance; }
 
 		/// Marks the request as not in use.
 		void reset() { tier = quality_tier::highest_importance; }
@@ -76,7 +76,7 @@ namespace acl
 		uint64_t value;
 
 		/// Returns true if the ID is not the invalid ID.
-		bool is_valid() const { return value != ~0ULL; }
+		ACL_NO_DISCARD bool is_valid() const { return value != ~0ULL; }
 	};
 
 	/// An invalid streaming request ID
@@ -98,13 +98,13 @@ namespace acl
 		virtual ~database_streamer() = default;
 
 		/// Returns true if the streamer is initialized.
-		virtual bool is_initialized() const = 0;
+		ACL_NO_DISCARD virtual bool is_initialized() const = 0;
 
 		/// Returns a valid pointer to the bulk data used to decompress from for the specified quality tier.
 		/// Note that the pointer will not be used until after the first successful stream in
 		/// request is completed. As such, it is safe to allocate the bulk data when the first
 		/// stream in request happens.
-		virtual const uint8_t* get_bulk_data(quality_tier tier) const = 0;
+		ACL_NO_DISCARD virtual const uint8_t* get_bulk_data(quality_tier tier) const = 0;
 
 		/// Called when we request some data to be streamed in.
 		/// Only one stream in/out request can be in flight at a time per quality tier.

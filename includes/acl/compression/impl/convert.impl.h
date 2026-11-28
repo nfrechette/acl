@@ -202,7 +202,8 @@ namespace acl
 		{
 			// Our input transform data uses full precision, retain it
 			decompression_context<acl_impl::raw_sampling_decompression_settings> context;
-			context.initialize(tracks);
+			if (!context.initialize(tracks))
+				return error_result("Failed to initialize the decompression context");
 
 			acl_impl::debug_track_writer writer(allocator, writer_type, num_tracks);
 			writer.initialize_with_defaults(result);
@@ -262,7 +263,8 @@ namespace acl
 		else
 		{
 			decompression_context<decompression_settings> context;
-			context.initialize(tracks);
+			if (!context.initialize(tracks))
+				return error_result("Failed to initialize the decompression context");
 
 			acl_impl::debug_track_writer writer(allocator, writer_type, num_tracks);
 

@@ -34,6 +34,7 @@
 #include "acl/core/track_types.h"
 #include "acl/core/range_reduction_types.h"
 #include "acl/compression/impl/clip_context.h"
+#include "acl/math/quatf.h"
 #include "acl/compression/impl/compression_stats.h"
 
 #include <rtm/vector4f.h>
@@ -75,6 +76,33 @@ namespace acl
 			return track_stream_range::from_min_max(min, max);
 		}
 
+		// Returns the range of a rotation stream
+		// With the quatf_drop_largest_full format, bit 30 of [x] and [y] of a sample holds the index of its dropped component,
+		// we ignore it: see 'encode_dropped_component_in_floats'
+		inline track_stream_range calculate_rotation_track_range(const rotation_track_stream& stream)
+		{
+			if (stream.get_rotation_format() != rotation_format8::quatf_drop_largest_full)
+				return calculate_track_range(stream, true);
+
+			const uint32_t num_samples = stream.get_num_samples();
+			if (num_samples == 0)
+				return track_stream_range::from_min_max(rtm::vector_zero(), rtm::vector_zero());
+
+			rtm::vector4f min = rtm::vector_set(1e10F);
+			rtm::vector4f max = rtm::vector_set(-1e10F);
+
+			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+			{
+				uint32_t dropped_component;
+				const rtm::vector4f sample = decode_dropped_component_from_floats(stream.get_raw_sample<rtm::vector4f>(sample_index), dropped_component);
+
+				min = rtm::vector_min(min, sample);
+				max = rtm::vector_max(max, sample);
+			}
+
+			return track_stream_range::from_min_max(min, max);
+		}
+
 		inline void extract_bone_ranges_impl(const segment_context& segment, transform_range* bone_ranges)
 		{
 			const bool has_scale = segment_context_has_scale(segment);
@@ -84,7 +112,7 @@ namespace acl
 				const transform_streams& bone_stream = segment.bone_streams[bone_index];
 				transform_range& bone_range = bone_ranges[bone_index];
 
-				bone_range.rotation = calculate_track_range(bone_stream.rotations, true);
+				bone_range.rotation = calculate_rotation_track_range(bone_stream.rotations);
 				bone_range.translation = calculate_track_range(bone_stream.translations, false);
 
 				if (has_scale)
@@ -251,6 +279,8 @@ namespace acl
 						break;
 					case rotation_format8::quatf_drop_w_full:
 					case rotation_format8::quatf_drop_w_variable:
+					case rotation_format8::quatf_drop_largest_full:
+					case rotation_format8::quatf_drop_largest_variable:
 						ACL_ASSERT(rtm::vector_all_greater_equal3(normalized_rotation, zero) && rtm::vector_all_less_equal3(normalized_rotation, one), "Invalid normalized rotation. 0.0 <= [%f, %f, %f] <= 1.0", (float)rtm::vector_get_x(normalized_rotation), (float)rtm::vector_get_y(normalized_rotation), (float)rtm::vector_get_z(normalized_rotation));
 						break;
 					}

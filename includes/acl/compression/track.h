@@ -86,55 +86,55 @@ namespace acl
 		/// \{
 
 		/// Returns a pointer to an untyped sample at the specified index.
-		void* operator[](uint32_t index);
+		ACL_NO_DISCARD void* operator[](uint32_t index);
 
 		/// Returns a pointer to an untyped sample at the specified index.
-		const void* operator[](uint32_t index) const;
+		ACL_NO_DISCARD const void* operator[](uint32_t index) const;
 		/// \}
 
 		/// \name Properties
 		/// \{
 
 		/// Returns true if the track owns its memory, false otherwise.
-		bool is_owner() const { return m_allocator != nullptr; }
+		ACL_NO_DISCARD bool is_owner() const { return m_allocator != nullptr; }
 
 		/// Returns true if the track references memory that it does not own, false otherwise.
-		bool is_ref() const { return m_allocator == nullptr; }
+		ACL_NO_DISCARD bool is_ref() const { return m_allocator == nullptr; }
 
 		/// Returns true if the track doesn't contain any data, false otherwise.
-		bool is_empty() const { return m_num_samples == 0; }
+		ACL_NO_DISCARD bool is_empty() const { return m_num_samples == 0; }
 
 		/// Returns a pointer to the allocator instance or nullptr if there is none present.
-		iallocator* get_allocator() const { return m_allocator; }
+		ACL_NO_DISCARD iallocator* get_allocator() const { return m_allocator; }
 
 		/// Returns the number of samples contained within the track.
 		/// This does not account for the repeating first sample when the wrap
 		/// looping policy is used.
 		/// See `sample_looping_policy` for details.
-		uint32_t get_num_samples() const { return m_num_samples; }
+		ACL_NO_DISCARD uint32_t get_num_samples() const { return m_num_samples; }
 
 		/// Returns the stride in bytes in between samples as laid out in memory.
 		/// This is always sizeof(sample_type) unless the memory isn't owned internally.
-		uint32_t get_stride() const { return m_stride; }
+		ACL_NO_DISCARD uint32_t get_stride() const { return m_stride; }
 
 		/// Returns the track interpolator type.
-		track_interpolator_t get_interpolator() const { return m_interpolator; }
+		ACL_NO_DISCARD track_interpolator_t get_interpolator() const { return m_interpolator; }
 
 		/// Returns the track type.
-		track_type8 get_type() const { return m_type; }
+		ACL_NO_DISCARD track_type8 get_type() const { return m_type; }
 
 		/// Returns the track category.
-		track_category8 get_category() const { return m_category; }
+		ACL_NO_DISCARD track_category8 get_category() const { return m_category; }
 
 		/// Returns the size in bytes of each track sample.
-		uint32_t get_sample_size() const { return m_sample_size; }
+		ACL_NO_DISCARD uint32_t get_sample_size() const { return m_sample_size; }
 
 		/// Returns the track sample rate.
 		/// A track has its sampled uniformly distributed in time at a fixed rate (e.g. 30 samples per second).
-		float get_sample_rate() const { return m_sample_rate; }
+		ACL_NO_DISCARD float get_sample_rate() const { return m_sample_rate; }
 
 		/// Returns the track name.
-		const string& get_name() const { return m_name; }
+		ACL_NO_DISCARD const string& get_name() const { return m_name; }
 
 		/// Sets the track name.
 		void set_name(const string& name) { m_name = name.get_copy(); }
@@ -143,32 +143,32 @@ namespace acl
 		/// When compressing, it is often desirable to strip or re-order the tracks we output.
 		/// This can be used to sort by LOD or to strip stale tracks. Tracks with an invalid
 		/// track index are stripped in the output.
-		uint32_t get_output_index() const;
+		ACL_NO_DISCARD uint32_t get_output_index() const;
 
 		/// Returns the track description.
 		template<typename desc_type>
-		desc_type& get_description();
+		ACL_NO_DISCARD desc_type& get_description();
 
 		/// Returns the track description.
 		template<typename desc_type>
-		const desc_type& get_description() const;
+		ACL_NO_DISCARD const desc_type& get_description() const;
 		/// \}
 
 		/// \name Copies and validation
 		/// \{
 
 		/// Returns a copy of the track where the memory will be owned by the copy.
-		track get_copy(iallocator& allocator) const;
+		ACL_NO_DISCARD track get_copy(iallocator& allocator) const;
 
 		/// Returns a reference to the track where the memory isn't owned.
-		track get_ref() const;
+		ACL_NO_DISCARD track get_ref() const;
 
 		/// Returns whether a track is valid or not.
 		/// A track is valid if:
 		///    - It is empty
 		///    - It has a positive and finite sample rate
 		///    - A valid description
-		error_result is_valid() const;
+		ACL_NO_DISCARD error_result is_valid() const;
 		/// \}
 
 	protected:
@@ -272,61 +272,61 @@ namespace acl
 		/// Returns the sample at the specified index.
 		/// If this track does not own the memory, mutable references aren't allowed and an
 		/// invalid reference will be returned, leading to a crash.
-		sample_type& operator[](uint32_t index);
+		ACL_NO_DISCARD sample_type& operator[](uint32_t index);
 
 		/// Returns the sample at the specified index.
-		const sample_type& operator[](uint32_t index) const;
+		ACL_NO_DISCARD const sample_type& operator[](uint32_t index) const;
 
 		/// Returns a pointer to the sample data.
 		/// Note that if the sample stride is not sizeof(sample_type) then samples
 		/// are not contiguous in memory!
-		sample_type* get_data();
+		ACL_NO_DISCARD sample_type* get_data();
 
 		/// Note that if the sample stride is not sizeof(sample_type) then samples
 		/// are not contiguous in memory!
-		const sample_type* get_data() const;
+		ACL_NO_DISCARD const sample_type* get_data() const;
 		/// \}
 
 		/// \name Properties
 		/// \{
 
 		/// Returns the track description.
-		desc_type& get_description();
+		ACL_NO_DISCARD desc_type& get_description();
 
 		/// Returns the track description.
-		const desc_type& get_description() const;
+		ACL_NO_DISCARD const desc_type& get_description() const;
 
 		/// Returns the track type.
-		track_type8 get_type() const { return type; }
+		ACL_NO_DISCARD track_type8 get_type() const { return type; }
 
 		/// Returns the track category.
-		track_category8 get_category() const { return category; }
+		ACL_NO_DISCARD track_category8 get_category() const { return category; }
 		/// \}
 
 		/// \name Copies
 		/// \{
 
 		/// Returns a copy of the track where the memory will be owned by the copy.
-		track_typed get_copy(iallocator& allocator) const;
+		ACL_NO_DISCARD track_typed get_copy(iallocator& allocator) const;
 
 		/// Returns a reference to the track where the memory isn't owned.
-		track_typed get_ref() const;
+		ACL_NO_DISCARD track_typed get_ref() const;
 		/// \}
 
 		/// \name Factory functions
 		/// \{
 
 		/// Creates a track that copies the data and owns the memory.
-		static track_typed<track_type_, track_interpolator_> make_copy(const desc_type& desc, iallocator& allocator, const sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride = sizeof(sample_type));
+		ACL_NO_DISCARD static track_typed<track_type_, track_interpolator_> make_copy(const desc_type& desc, iallocator& allocator, const sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride = sizeof(sample_type));
 
 		/// Creates a track and preallocates but does not initialize the memory that it owns.
-		static track_typed<track_type_, track_interpolator_> make_reserve(const desc_type& desc, iallocator& allocator, uint32_t num_samples, float sample_rate);
+		ACL_NO_DISCARD static track_typed<track_type_, track_interpolator_> make_reserve(const desc_type& desc, iallocator& allocator, uint32_t num_samples, float sample_rate);
 
 		/// Creates a track and takes ownership of the already allocated memory.
-		static track_typed<track_type_, track_interpolator_> make_owner(const desc_type& desc, iallocator& allocator, sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride = sizeof(sample_type));
+		ACL_NO_DISCARD static track_typed<track_type_, track_interpolator_> make_owner(const desc_type& desc, iallocator& allocator, sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride = sizeof(sample_type));
 
 		/// Creates a track that just references the data without owning it.
-		static track_typed<track_type_, track_interpolator_> make_ref(const desc_type& desc, sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride = sizeof(sample_type));
+		ACL_NO_DISCARD static track_typed<track_type_, track_interpolator_> make_ref(const desc_type& desc, sample_type* data, uint32_t num_samples, float sample_rate, uint32_t stride = sizeof(sample_type));
 		/// \}
 
 	private:
@@ -340,21 +340,21 @@ namespace acl
 
 	/// Casts an untyped track into the desired track type while asserting for safety.
 	template<typename track_type>
-	track_type& track_cast(track& track_);
+	ACL_NO_DISCARD track_type& track_cast(track& track_);
 
 	/// Casts an untyped track into the desired track type while asserting for safety.
 	template<typename track_type>
-	const track_type& track_cast(const track& track_);
+	ACL_NO_DISCARD const track_type& track_cast(const track& track_);
 
 	/// Casts an untyped track into the desired track type. Returns nullptr if the types
 	/// are not compatible or if the input is nullptr.
 	template<typename track_type>
-	track_type* track_cast(track* track_);
+	ACL_NO_DISCARD track_type* track_cast(track* track_);
 
 	/// Casts an untyped track into the desired track type. Returns nullptr if the types
 	/// are not compatible or if the input is nullptr.
 	template<typename track_type>
-	const track_type* track_cast(const track* track_);
+	ACL_NO_DISCARD const track_type* track_cast(const track* track_);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Create aliases for the various typed track types.

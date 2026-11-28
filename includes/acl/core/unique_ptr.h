@@ -81,7 +81,7 @@ namespace acl
 	/// Allocates an instance of a type with the allocator and returns it in a std::unique_ptr.
 	/// The deleter of the std::unique_ptr releases the memory with the same allocator.
 	template<typename allocated_type, typename... args>
-	std::unique_ptr<allocated_type, deleter<allocated_type>> make_unique(iallocator& allocator, args&&... arguments)
+	ACL_NO_DISCARD std::unique_ptr<allocated_type, deleter<allocated_type>> make_unique(iallocator& allocator, args&&... arguments)
 	{
 		return std::unique_ptr<allocated_type, deleter<allocated_type>>(
 			allocate_type<allocated_type>(allocator, std::forward<args>(arguments)...),
@@ -91,7 +91,7 @@ namespace acl
 	/// Allocates an instance of a type with the given alignment and returns it in a std::unique_ptr.
 	/// The deleter of the std::unique_ptr releases the memory with the same allocator.
 	template<typename allocated_type, typename... args>
-	std::unique_ptr<allocated_type, deleter<allocated_type>> make_unique_aligned(iallocator& allocator, size_t alignment, args&&... arguments)
+	ACL_NO_DISCARD std::unique_ptr<allocated_type, deleter<allocated_type>> make_unique_aligned(iallocator& allocator, size_t alignment, args&&... arguments)
 	{
 		return std::unique_ptr<allocated_type, deleter<allocated_type>>(
 			allocate_type_aligned<allocated_type>(allocator, alignment, std::forward<args>(arguments)...),

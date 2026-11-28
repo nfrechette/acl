@@ -109,27 +109,27 @@ namespace acl
 		virtual ~itransform_adapter() = default;
 
 		/// Returns the unique name of the transform adapter.
-		virtual const char* get_name() const = 0;
+		ACL_NO_DISCARD virtual const char* get_name() const = 0;
 
 		/// Returns a unique hash to represent the transform adapter.
-		virtual uint32_t get_hash() const { return hash32(get_name()); }
+		ACL_NO_DISCARD virtual uint32_t get_hash() const { return hash32(get_name()); }
 
 		/// Returns the runtime transform type of the adapter.
 		/// A custom transform adapter returns `custom`.
-		virtual transform_runtime_type_t get_type() const { return transform_runtime_type_t::custom; }
+		ACL_NO_DISCARD virtual transform_runtime_type_t get_type() const { return transform_runtime_type_t::custom; }
 
 		/// Returns the size in bytes of the runtime transform type.
-		virtual size_t get_transform_size() const = 0;
+		ACL_NO_DISCARD virtual size_t get_transform_size() const = 0;
 
 		/// Returns whether or not the product of two transforms is associative.
 		/// When it is, compression can keep object space transforms and update only what changes.
 		/// When it is not, compression must multiply the full chain of transforms from the root.
-		virtual bool is_associative() const = 0;
+		ACL_NO_DISCARD virtual bool is_associative() const = 0;
 
 		/// Returns whether or not the runtime transform type is different from rtm::vqvf.
 		/// When it is not, compression uses the rtm::vqvf transforms directly and does not
 		/// call `convert_transforms`.
-		virtual bool needs_conversion() const { return true; }
+		ACL_NO_DISCARD virtual bool needs_conversion() const { return true; }
 
 		/// Input arguments for the `convert_transforms` function.
 		struct convert_transforms_args
@@ -460,7 +460,7 @@ namespace acl
 	class vqf_transform_adapter final : public acl_impl::builtin_transform_adapter<acl_impl::vq_transform_math>
 	{
 	public:
-		virtual const char* get_name() const override { return "vqf_transform_adapter"; }
+		ACL_NO_DISCARD virtual const char* get_name() const override { return "vqf_transform_adapter"; }
 	};
 
 	/// The transform adapter for VQS transforms: a rotation, a translation, and a uniform scale.
@@ -468,7 +468,7 @@ namespace acl
 	class vqsf_transform_adapter final : public acl_impl::builtin_transform_adapter<acl_impl::vqs_transform_math>
 	{
 	public:
-		virtual const char* get_name() const override { return "vqsf_transform_adapter"; }
+		ACL_NO_DISCARD virtual const char* get_name() const override { return "vqsf_transform_adapter"; }
 	};
 
 	/// The transform adapter for VQV transforms: a rotation, a translation, and a 3D scale.
@@ -476,7 +476,7 @@ namespace acl
 	class vqvf_transform_adapter final : public acl_impl::builtin_transform_adapter<acl_impl::vqv_transform_math>
 	{
 	public:
-		virtual const char* get_name() const override { return "vqvf_transform_adapter"; }
+		ACL_NO_DISCARD virtual const char* get_name() const override { return "vqvf_transform_adapter"; }
 	};
 
 	/// The transform adapter for VQM transforms: a rotation, a translation, and a 3x3 scale/shear matrix.
@@ -484,7 +484,7 @@ namespace acl
 	class vqmf_transform_adapter final : public acl_impl::builtin_transform_adapter<acl_impl::vqm_transform_math>
 	{
 	public:
-		virtual const char* get_name() const override { return "vqmf_transform_adapter"; }
+		ACL_NO_DISCARD virtual const char* get_name() const override { return "vqmf_transform_adapter"; }
 	};
 
 	/// The transform adapter for 3x4 affine matrices.
@@ -492,7 +492,7 @@ namespace acl
 	class matrix3x4f_transform_adapter final : public acl_impl::builtin_transform_adapter<acl_impl::matrix3x4_transform_math>
 	{
 	public:
-		virtual const char* get_name() const override { return "matrix3x4f_transform_adapter"; }
+		ACL_NO_DISCARD virtual const char* get_name() const override { return "matrix3x4f_transform_adapter"; }
 	};
 
 	ACL_IMPL_VERSION_NAMESPACE_END

@@ -51,14 +51,14 @@ namespace acl
 
 		/// Creates a bit set description from a compile time known number of bits.
 		template<uint64_t num_bits>
-		static constexpr bitset_description make_from_num_bits()
+		ACL_NO_DISCARD static constexpr bitset_description make_from_num_bits()
 		{
 			static_assert(num_bits <= (std::numeric_limits<uint32_t>::max)() - 31, "Number of bits exceeds the maximum number allowed");
 			return bitset_description((uint32_t(num_bits) + 32 - 1) / 32);
 		}
 
 		/// Creates a bit set description from a runtime known number of bits.
-		inline static bitset_description make_from_num_bits(uint32_t num_bits)
+		ACL_NO_DISCARD inline static bitset_description make_from_num_bits(uint32_t num_bits)
 		{
 			ACL_ASSERT(num_bits <= (std::numeric_limits<uint32_t>::max)() - 31, "Number of bits exceeds the maximum number allowed");
 			return bitset_description((num_bits + 32 - 1) / 32);
@@ -66,16 +66,16 @@ namespace acl
 
 		/// Returns the number of 32 bit words used to represent the bitset.
 		/// 1 == 32 bits, 2 == 64 bits, etc.
-		constexpr uint32_t get_size() const { return m_size; }
+		ACL_NO_DISCARD constexpr uint32_t get_size() const { return m_size; }
 
 		/// Returns the number of bits contained within the bit set.
-		constexpr uint32_t get_num_bits() const { return m_size * 32; }
+		ACL_NO_DISCARD constexpr uint32_t get_num_bits() const { return m_size * 32; }
 
 		/// Returns the number of bytes used by the bit set.
-		constexpr uint32_t get_num_bytes() const { return m_size * sizeof(uint32_t); }
+		ACL_NO_DISCARD constexpr uint32_t get_num_bytes() const { return m_size * sizeof(uint32_t); }
 
 		/// Returns true if the index is valid within the bit set.
-		constexpr bool is_bit_index_valid(uint32_t index) const { return index < get_num_bits(); }
+		ACL_NO_DISCARD constexpr bool is_bit_index_valid(uint32_t index) const { return index < get_num_bits(); }
 
 	private:
 		/// Creates a bit set description from a specified size.
@@ -157,7 +157,7 @@ namespace acl
 	}
 
 	/// Returns the bit value as a specific index.
-	inline bool bitset_test(const uint32_t* bitset, bitset_description desc, uint32_t bit_index)
+	ACL_NO_DISCARD inline bool bitset_test(const uint32_t* bitset, bitset_description desc, uint32_t bit_index)
 	{
 		ACL_ASSERT(desc.is_bit_index_valid(bit_index), "Invalid bit index: %d", bit_index);
 		(void)desc;
@@ -169,13 +169,13 @@ namespace acl
 	}
 
 	/// Returns the bit value as a specific index.
-	inline bool bitset_test(const uint32_t* bitset, const bitset_index_ref& ref)
+	ACL_NO_DISCARD inline bool bitset_test(const uint32_t* bitset, const bitset_index_ref& ref)
 	{
 		return (bitset[ref.offset] & ref.mask) != 0;
 	}
 
 	/// Counts the total number of set (true) bits within the bit set.
-	inline uint32_t bitset_count_set_bits(const uint32_t* bitset, bitset_description desc)
+	ACL_NO_DISCARD inline uint32_t bitset_count_set_bits(const uint32_t* bitset, bitset_description desc)
 	{
 		const uint32_t size = desc.get_size();
 

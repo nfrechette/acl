@@ -62,7 +62,7 @@ namespace acl
 		///
 		/// \param size Size in bytes to allocate.
 		/// \param alignment Alignment to allocate the memory with.
-		virtual void* allocate(size_t size, size_t alignment = k_default_alignment) = 0;
+		ACL_NO_DISCARD virtual void* allocate(size_t size, size_t alignment = k_default_alignment) = 0;
 
 		/// Deallocates previously allocated memory and releases it.
 		///
@@ -74,7 +74,7 @@ namespace acl
 	/// Allocates an instance of a type with the allocator, and constructs it with the given arguments.
 	/// A type that is trivially default constructible is not constructed.
 	template<typename allocated_type, typename... args>
-	allocated_type* allocate_type(iallocator& allocator, args&&... arguments)
+	ACL_NO_DISCARD allocated_type* allocate_type(iallocator& allocator, args&&... arguments)
 	{
 		allocated_type* ptr = acl_impl::bit_cast<allocated_type*>(allocator.allocate(sizeof(allocated_type), alignof(allocated_type)));
 		if (acl_impl::is_trivially_default_constructible<allocated_type>::value)
@@ -85,7 +85,7 @@ namespace acl
 	/// Allocates an instance of a type with the given alignment, and constructs it with the given arguments.
 	/// The alignment must be a power of two and at least the alignment of the type.
 	template<typename allocated_type, typename... args>
-	allocated_type* allocate_type_aligned(iallocator& allocator, size_t alignment, args&&... arguments)
+	ACL_NO_DISCARD allocated_type* allocate_type_aligned(iallocator& allocator, size_t alignment, args&&... arguments)
 	{
 		ACL_ASSERT(is_alignment_valid<allocated_type>(alignment), "Invalid alignment: %u. Expected a power of two at least equal to %u", alignment, alignof(allocated_type));
 		allocated_type* ptr = acl_impl::bit_cast<allocated_type*>(allocator.allocate(sizeof(allocated_type), alignment));
@@ -110,7 +110,7 @@ namespace acl
 	/// Allocates an array of instances of a type, and constructs each instance with the given arguments.
 	/// A type that is trivially default constructible is not constructed.
 	template<typename allocated_type, typename... args>
-	allocated_type* allocate_type_array(iallocator& allocator, size_t num_elements, args&&... arguments)
+	ACL_NO_DISCARD allocated_type* allocate_type_array(iallocator& allocator, size_t num_elements, args&&... arguments)
 	{
 		allocated_type* ptr = acl_impl::bit_cast<allocated_type*>(allocator.allocate(sizeof(allocated_type) * num_elements, alignof(allocated_type)));
 		if (acl_impl::is_trivially_default_constructible<allocated_type>::value)
@@ -123,7 +123,7 @@ namespace acl
 	/// Allocates an array of instances of a type with the given alignment, and constructs each instance with the given arguments.
 	/// The alignment must be a power of two and at least the alignment of the type.
 	template<typename allocated_type, typename... args>
-	allocated_type* allocate_type_array_aligned(iallocator& allocator, size_t num_elements, size_t alignment, args&&... arguments)
+	ACL_NO_DISCARD allocated_type* allocate_type_array_aligned(iallocator& allocator, size_t num_elements, size_t alignment, args&&... arguments)
 	{
 		ACL_ASSERT(is_alignment_valid<allocated_type>(alignment), "Invalid alignment: %zu. Expected a power of two at least equal to %zu", alignment, alignof(allocated_type));
 		allocated_type* ptr = acl_impl::bit_cast<allocated_type*>(allocator.allocate(sizeof(allocated_type) * num_elements, alignment));

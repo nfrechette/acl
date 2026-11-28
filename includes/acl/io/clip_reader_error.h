@@ -71,7 +71,7 @@ namespace acl
 		}
 
 		/// Returns a description of the error.
-		virtual const char* get_description() const override
+		ACL_NO_DISCARD virtual const char* get_description() const override
 		{
 			switch (error)
 			{

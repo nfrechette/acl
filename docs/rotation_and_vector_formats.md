@@ -29,3 +29,19 @@ Same as Vector3 96 above to store `[X, Y, Z]`.
 ### Quat Variable
 
 See [Vector3 Variable](rotation_and_vector_formats.md#vector3-variable)
+
+## Dropping the largest quaternion component
+
+The rotation is rebuilt from the three stored components: `c = sqrt(1.0 - a * a - b * b - d * d)`. The error of the rebuilt component grows as `1 / |c|`. When a rotation crosses `W = 0`, the error on `W` can be large: for example, a rotation error of 0.0007 radians when `W` is 0.000001. A child far from its parent multiplies this error by its distance. These formats drop another component to keep the dropped component far from 0. The dropped component is always positive. Its index uses 2 bits: `[W, X, Y, Z] = [0, 1, 2, 3]`. A track that drops `W` thus has the same data as with a format that always drops `W`.
+
+These formats are the default since ACL 2.2: `get_default_compression_settings()` uses `quatf_drop_largest_variable`, and `default_transform_decompression_settings` supports only this rotation format.
+
+### Quat Drop Largest Full
+
+Each sample stores the three kept components with full precision using `float32`, and drops its largest component. Each component is in `[-1.0, 1.0]`, thus bit 30 of each `float32` is always 0. Bit 30 of the first two components holds the index of the dropped component.
+
+### Quat Drop Largest Variable
+
+Each segment of a track drops the component whose smallest absolute value is the largest in that segment. The three kept components use [Vector3 Variable](rotation_and_vector_formats.md#vector3-variable). The per sub-track metadata of each segment holds the index of the dropped component, it uses no additional memory. The clip range of each component bounds the components that it holds in each segment.
+
+A constant rotation always drops its largest component, with either format. It holds the index in bit 30 of its first two components.

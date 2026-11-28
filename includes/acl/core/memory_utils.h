@@ -67,7 +67,7 @@ namespace acl
 	struct static_condition
 	{
 		/// Returns the value of the expression.
-		static constexpr bool test() { return true; }
+		ACL_NO_DISCARD static constexpr bool test() { return true; }
 	};
 
 	/// The specialization of static_condition for a false expression.
@@ -75,28 +75,28 @@ namespace acl
 	struct static_condition<false>
 	{
 		/// Returns the value of the expression.
-		static constexpr bool test() { return false; }
+		ACL_NO_DISCARD static constexpr bool test() { return false; }
 	};
 
 	//////////////////////////////////////////////////////////////////////////
 	// Various miscellaneous utilities related to alignment
 
 	/// Returns true if the input is a power of two. Zero is not a power of two.
-	RTM_FORCE_INLINE constexpr bool is_power_of_two(size_t input)
+	ACL_NO_DISCARD RTM_FORCE_INLINE constexpr bool is_power_of_two(size_t input)
 	{
 		return input != 0 && (input & (input - 1)) == 0;
 	}
 
 	/// Returns true if the alignment is a power of two and is at least the alignment of the given type.
 	template<typename Type>
-	RTM_FORCE_INLINE constexpr bool is_alignment_valid(size_t alignment)
+	ACL_NO_DISCARD RTM_FORCE_INLINE constexpr bool is_alignment_valid(size_t alignment)
 	{
 		return is_power_of_two(alignment) && alignment >= alignof(Type);
 	}
 
 	/// Returns true if the pointer is a multiple of the alignment. The alignment must be a power of two.
 	template<typename PtrType>
-	RTM_FORCE_INLINE bool is_aligned_to(PtrType* value, size_t alignment)
+	ACL_NO_DISCARD RTM_FORCE_INLINE bool is_aligned_to(PtrType* value, size_t alignment)
 	{
 		ACL_ASSERT(is_power_of_two(alignment), "Alignment value must be a power of two");
 		return (acl_impl::bit_cast<intptr_t>(value) & (alignment - 1)) == 0;
@@ -104,7 +104,7 @@ namespace acl
 
 	/// Returns true if the value is a multiple of the alignment. The alignment must be a power of two.
 	template<typename IntegralType>
-	RTM_FORCE_INLINE bool is_aligned_to(IntegralType value, size_t alignment)
+	ACL_NO_DISCARD RTM_FORCE_INLINE bool is_aligned_to(IntegralType value, size_t alignment)
 	{
 		ACL_ASSERT(is_power_of_two(alignment), "Alignment value must be a power of two");
 		return (static_cast<size_t>(value) & (alignment - 1)) == 0;
@@ -112,14 +112,14 @@ namespace acl
 
 	/// Returns true if the pointer has the alignment of the type that it points to.
 	template<typename PtrType>
-	RTM_FORCE_INLINE constexpr bool is_aligned(PtrType* value)
+	ACL_NO_DISCARD RTM_FORCE_INLINE constexpr bool is_aligned(PtrType* value)
 	{
 		return is_aligned_to(value, alignof(PtrType));
 	}
 
 	/// Returns the pointer, rounded up to the next multiple of the alignment. The alignment must be a power of two.
 	template<typename PtrType>
-	RTM_FORCE_INLINE PtrType* align_to(PtrType* value, size_t alignment)
+	ACL_NO_DISCARD RTM_FORCE_INLINE PtrType* align_to(PtrType* value, size_t alignment)
 	{
 		ACL_ASSERT(is_power_of_two(alignment), "Alignment value must be a power of two");
 		return acl_impl::bit_cast<PtrType*>((acl_impl::bit_cast<intptr_t>(value) + (alignment - 1)) & ~(alignment - 1));
@@ -127,7 +127,7 @@ namespace acl
 
 	/// Returns the value, rounded up to the next multiple of the alignment. The alignment must be a power of two.
 	template<typename IntegralType>
-	RTM_FORCE_INLINE IntegralType align_to(IntegralType value, size_t alignment)
+	ACL_NO_DISCARD RTM_FORCE_INLINE IntegralType align_to(IntegralType value, size_t alignment)
 	{
 		ACL_ASSERT(is_power_of_two(alignment), "Alignment value must be a power of two");
 		return static_cast<IntegralType>((static_cast<size_t>(value) + (alignment - 1)) & ~(alignment - 1));
@@ -135,7 +135,7 @@ namespace acl
 
 	/// Returns the number of padding bytes between a member of the first type and a member of the second type that follows it.
 	template<typename PreviousMemberType, typename NextMemberType>
-	RTM_FORCE_INLINE constexpr size_t get_required_padding()
+	ACL_NO_DISCARD RTM_FORCE_INLINE constexpr size_t get_required_padding()
 	{
 		// align_to(sizeof(PreviousMemberType), alignof(NextMemberType)) - sizeof(PreviousMemberType)
 		return ((sizeof(PreviousMemberType) + (alignof(NextMemberType) - 1)) & ~(alignof(NextMemberType)- 1)) - sizeof(PreviousMemberType);
@@ -143,7 +143,7 @@ namespace acl
 
 	/// Returns the number of elements in a C array.
 	template<typename ElementType, size_t num_elements>
-	RTM_FORCE_INLINE constexpr size_t get_array_size(ElementType const (&)[num_elements]) { return num_elements; }
+	ACL_NO_DISCARD RTM_FORCE_INLINE constexpr size_t get_array_size(ElementType const (&)[num_elements]) { return num_elements; }
 
 	//////////////////////////////////////////////////////////////////////////
 	// Type safe casting
@@ -153,7 +153,7 @@ namespace acl
 		template<typename DestPtrType, typename SrcType>
 		struct safe_ptr_to_ptr_cast_impl
 		{
-			RTM_FORCE_INLINE static DestPtrType* cast(SrcType* input)
+			ACL_NO_DISCARD RTM_FORCE_INLINE static DestPtrType* cast(SrcType* input)
 			{
 				ACL_ASSERT(is_aligned_to(input, alignof(DestPtrType)), "bit_cast would result in an unaligned pointer");
 				return acl_impl::bit_cast<DestPtrType*>(input);
@@ -163,13 +163,13 @@ namespace acl
 		template<typename SrcType>
 		struct safe_ptr_to_ptr_cast_impl<void, SrcType>
 		{
-			RTM_FORCE_INLINE static constexpr void* cast(SrcType* input) { return input; }
+			ACL_NO_DISCARD RTM_FORCE_INLINE static constexpr void* cast(SrcType* input) { return input; }
 		};
 
 		template<typename DestPtrType, typename SrcType>
 		struct safe_int_to_ptr_cast_impl
 		{
-			RTM_FORCE_INLINE static DestPtrType* cast(SrcType input)
+			ACL_NO_DISCARD RTM_FORCE_INLINE static DestPtrType* cast(SrcType input)
 			{
 				ACL_ASSERT(is_aligned_to(input, alignof(DestPtrType)), "bit_cast would result in an unaligned pointer");
 				return acl_impl::bit_cast<DestPtrType*>(static_cast<uintptr_t>(input));
@@ -179,20 +179,20 @@ namespace acl
 		template<typename SrcType>
 		struct safe_int_to_ptr_cast_impl<void, SrcType>
 		{
-			RTM_FORCE_INLINE static constexpr void* cast(SrcType input) { return acl_impl::bit_cast<void*>(static_cast<uintptr_t>(input)); }
+			ACL_NO_DISCARD RTM_FORCE_INLINE static constexpr void* cast(SrcType input) { return acl_impl::bit_cast<void*>(static_cast<uintptr_t>(input)); }
 		};
 	}
 
 	/// Casts a pointer type into a pointer of a different type with an alignment runtime check
 	template<typename dest_ptr_t, typename src_ptr_t>
-	RTM_FORCE_INLINE dest_ptr_t* safe_ptr_cast(src_ptr_t* input)
+	ACL_NO_DISCARD RTM_FORCE_INLINE dest_ptr_t* safe_ptr_cast(src_ptr_t* input)
 	{
 		return memory_impl::safe_ptr_to_ptr_cast_impl<dest_ptr_t, src_ptr_t>::cast(input);
 	}
 
 	/// Casts an integral type into a pointer type with an alignment runtime check
 	template<typename dest_ptr_t, typename src_int_t>
-	RTM_FORCE_INLINE dest_ptr_t* safe_ptr_cast(src_int_t input)
+	ACL_NO_DISCARD RTM_FORCE_INLINE dest_ptr_t* safe_ptr_cast(src_int_t input)
 	{
 		return memory_impl::safe_int_to_ptr_cast_impl<dest_ptr_t, src_int_t>::cast(input);
 	}
@@ -215,7 +215,7 @@ namespace acl
 		template<typename DstType, typename SrcType, bool is_floating_point = false>
 		struct is_static_cast_safe_s
 		{
-			RTM_FORCE_INLINE static bool test(SrcType input)
+			ACL_NO_DISCARD RTM_FORCE_INLINE static bool test(SrcType input)
 			{
 				using SrcRealType = typename safe_underlying_type<SrcType, std::is_enum<SrcType>::value>::type;
 
@@ -231,14 +231,14 @@ namespace acl
 		template<typename DstType, typename SrcType>
 		struct is_static_cast_safe_s<DstType, SrcType, true>
 		{
-			RTM_FORCE_INLINE static bool test(SrcType input)
+			ACL_NO_DISCARD RTM_FORCE_INLINE static bool test(SrcType input)
 			{
 				return SrcType(DstType(input)) == input;
 			}
 		};
 
 		template<typename DstType, typename SrcType>
-		RTM_FORCE_INLINE bool is_static_cast_safe(SrcType input)
+		ACL_NO_DISCARD RTM_FORCE_INLINE bool is_static_cast_safe(SrcType input)
 		{
 			// TODO: In C++17 this should be folded to constexpr if
 			return is_static_cast_safe_s<DstType, SrcType, static_condition<(std::is_floating_point<SrcType>::value || std::is_floating_point<DstType>::value)>::test()>::test(input);
@@ -248,7 +248,7 @@ namespace acl
 	/// Converts a value with static_cast.
 	/// When asserts are enabled, the function asserts if the conversion loses data.
 	template<typename DstType, typename SrcType>
-	RTM_FORCE_INLINE DstType safe_static_cast(SrcType input)
+	ACL_NO_DISCARD RTM_FORCE_INLINE DstType safe_static_cast(SrcType input)
 	{
 #if defined(ACL_HAS_ASSERT_CHECKS)
 		const bool is_safe = memory_impl::is_static_cast_safe<DstType, SrcType>(input);
@@ -268,13 +268,13 @@ namespace acl
 	/// Adds an offset in bytes to a pointer and returns it as a pointer to the output type.
 	/// When asserts are enabled, the function asserts if the result does not have the alignment of the output type.
 	template<typename OutputPtrType, typename InputPtrType, typename offset_type>
-	RTM_FORCE_INLINE OutputPtrType* add_offset_to_ptr(InputPtrType* ptr, offset_type offset)
+	ACL_NO_DISCARD RTM_FORCE_INLINE OutputPtrType* add_offset_to_ptr(InputPtrType* ptr, offset_type offset)
 	{
 		return safe_ptr_cast<OutputPtrType>(acl_impl::bit_cast<uintptr_t>(ptr) + offset);
 	}
 
 	/// Returns the value with the order of its bytes reversed.
-	RTM_FORCE_INLINE uint16_t byte_swap(uint16_t value)
+	ACL_NO_DISCARD RTM_FORCE_INLINE uint16_t byte_swap(uint16_t value)
 	{
 #if defined(RTM_COMPILER_MSVC)
 		return _byteswap_ushort(value);
@@ -288,7 +288,7 @@ namespace acl
 	}
 
 	/// Returns the value with the order of its bytes reversed.
-	RTM_FORCE_INLINE uint32_t byte_swap(uint32_t value)
+	ACL_NO_DISCARD RTM_FORCE_INLINE uint32_t byte_swap(uint32_t value)
 	{
 #if defined(RTM_COMPILER_MSVC)
 		return _byteswap_ulong(value);
@@ -304,7 +304,7 @@ namespace acl
 	}
 
 	/// Returns the value with the order of its bytes reversed.
-	RTM_FORCE_INLINE uint64_t byte_swap(uint64_t value)
+	ACL_NO_DISCARD RTM_FORCE_INLINE uint64_t byte_swap(uint64_t value)
 	{
 #if defined(RTM_COMPILER_MSVC)
 		return _byteswap_uint64(value);
@@ -365,7 +365,7 @@ namespace acl
 
 	/// Reads a value from memory that can be unaligned.
 	template<typename data_type>
-	RTM_FORCE_INLINE data_type unaligned_load(const void* input)
+	ACL_NO_DISCARD RTM_FORCE_INLINE data_type unaligned_load(const void* input)
 	{
 		data_type result;
 		std::memcpy(&result, input, sizeof(data_type));
@@ -374,7 +374,7 @@ namespace acl
 
 	/// Reads a value from memory that has the alignment of the type.
 	template<typename data_type>
-	RTM_FORCE_INLINE data_type aligned_load(const void* input)
+	ACL_NO_DISCARD RTM_FORCE_INLINE data_type aligned_load(const void* input)
 	{
 		return *safe_ptr_cast<const data_type>(input);
 	}

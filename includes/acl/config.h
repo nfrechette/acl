@@ -108,6 +108,10 @@
 // that does not contain the necessary enum entries
 //#define ACL_USE_CPP11_STD_MEMORY_ORDER
 
+// With C++17 and later, ACL_NO_DISCARD is [[nodiscard]]. With an earlier version, it is empty.
+// To use a different attribute, or none, define ACL_NO_DISCARD before you include ACL
+//#define ACL_NO_DISCARD
+
 ////////////////////////////////////////////////////////////////////////////////
 // Defines below are for development debugging/profiling purposes
 ////////////////////////////////////////////////////////////////////////////////

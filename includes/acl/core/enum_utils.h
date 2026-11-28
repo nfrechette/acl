@@ -37,7 +37,7 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 // This macro defines common operators for manipulating bit flags
 
 #define ACL_IMPL_ENUM_FLAGS_OPERATORS(enum_type) \
-	constexpr enum_type operator|(enum_type lhs, enum_type rhs) \
+	ACL_NO_DISCARD constexpr enum_type operator|(enum_type lhs, enum_type rhs) \
 	{ \
 		using integral_type = typename std::underlying_type<enum_type>::type; \
 		using raw_type = typename std::make_unsigned<integral_type>::type; \
@@ -49,7 +49,7 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 		using raw_type = typename std::make_unsigned<integral_type>::type; \
 		lhs = static_cast<enum_type>(static_cast<raw_type>(lhs) | static_cast<raw_type>(rhs)); \
 	} \
-	constexpr enum_type operator&(enum_type lhs, enum_type rhs) \
+	ACL_NO_DISCARD constexpr enum_type operator&(enum_type lhs, enum_type rhs) \
 	{ \
 		using integral_type = typename std::underlying_type<enum_type>::type; \
 		using raw_type = typename std::make_unsigned<integral_type>::type; \
@@ -61,7 +61,7 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 		using raw_type = typename std::make_unsigned<integral_type>::type; \
 		lhs = static_cast<enum_type>(static_cast<raw_type>(lhs) & static_cast<raw_type>(rhs)); \
 	} \
-	constexpr enum_type operator^(enum_type lhs, enum_type rhs) \
+	ACL_NO_DISCARD constexpr enum_type operator^(enum_type lhs, enum_type rhs) \
 	{ \
 		using integral_type = typename std::underlying_type<enum_type>::type; \
 		using raw_type = typename std::make_unsigned<integral_type>::type; \
@@ -73,7 +73,7 @@ ACL_IMPL_FILE_PRAGMA_PUSH
 		using raw_type = typename std::make_unsigned<integral_type>::type; \
 		lhs = static_cast<enum_type>(static_cast<raw_type>(lhs) ^ static_cast<raw_type>(rhs)); \
 	} \
-	constexpr enum_type operator~(enum_type rhs) \
+	ACL_NO_DISCARD constexpr enum_type operator~(enum_type rhs) \
 	{ \
 		using integral_type = typename std::underlying_type<enum_type>::type; \
 		using raw_type = typename std::make_unsigned<integral_type>::type; \
@@ -86,7 +86,7 @@ namespace acl
 
 	/// Returns true if any of the requested flags are set.
 	template<typename enum_type>
-	constexpr bool are_any_enum_flags_set(enum_type flags, enum_type flags_to_test)
+	ACL_NO_DISCARD constexpr bool are_any_enum_flags_set(enum_type flags, enum_type flags_to_test)
 	{
 		using IntegralType = typename std::underlying_type<enum_type>::type;
 		return static_cast<IntegralType>(flags & flags_to_test) != 0;
@@ -94,7 +94,7 @@ namespace acl
 
 	/// Returns true if all of the requested flags are set.
 	template<typename enum_type>
-	constexpr bool are_all_enum_flags_set(enum_type flags, enum_type flags_to_test)
+	ACL_NO_DISCARD constexpr bool are_all_enum_flags_set(enum_type flags, enum_type flags_to_test)
 	{
 		using IntegralType = typename std::underlying_type<enum_type>::type;
 		return static_cast<IntegralType>(flags & flags_to_test) == static_cast<IntegralType>(flags_to_test);

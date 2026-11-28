@@ -55,12 +55,12 @@ namespace acl
 		//quatf_variable			= 1,	// TODO Quantized quaternion, [x,y,z,w] stored with [N,N,N,N] bits (same number of bits per component)
 		quatf_drop_w_full			= 2,	///< Full precision quaternion, [x,y,z] stored with float32 (w is dropped)
 		quatf_drop_w_variable		= 3,	///< Quantized quaternion, [x,y,z] stored with [N,N,N] bits (w is dropped, same number of bits per component)
+		quatf_drop_largest_full		= 4,	///< Full precision quaternion, [a,b,c] stored with float32 (the largest component of each sample is dropped)
+		quatf_drop_largest_variable	= 5,	///< Quantized quaternion, [a,b,c] stored with [N,N,N] bits (each segment drops the component whose smallest absolute value is the largest, same number of bits per component)
 
 		//quatf_optimal				= 15,	// Mix of quatf_variable and quatf_drop_w_variable
 
 		// TODO: Implement these?
-		//quatf_drop_largest_full			// Full precision quaternion, [a,b,c] stored with float32 (largest component dropped)
-		//quatf_drop_largest_variable		// Quantized quaternion, [a,b,c] stored with [N,N,N] bits (largest component dropped, same number of bits per component)
 		//quatf_log_full,					// Full precision quaternion logarithm, [x,y,z] stored with float32
 		//quatf_log_variable,				// Quantized quaternion logarithm, [x,y,z] stored with [N,N,N] bits (same number of bits per component)
 	};
@@ -112,48 +112,48 @@ namespace acl
 	{
 		quat,			///< A quaternion with the four components [x,y,z,w]
 		quat_drop_w,	///< A quaternion with the three components [x,y,z], [w] is dropped
-		//quat_drop_largest,
+		quat_drop_largest,	///< A quaternion with three components, one component is dropped
 		//quat_log,
 	};
 
 	/// Returns the name of a rotation format.
-	const char* get_rotation_format_name(rotation_format8 format);
+	ACL_NO_DISCARD const char* get_rotation_format_name(rotation_format8 format);
 
 	/// Finds the rotation format that has the given name.
 	/// Returns true and writes the format to `out_format` when the name is valid, otherwise returns false.
-	bool get_rotation_format(const char* format, rotation_format8& out_format);
+	ACL_NO_DISCARD bool get_rotation_format(const char* format, rotation_format8& out_format);
 
 	/// Returns the name of a vector format.
-	constexpr const char* get_vector_format_name(vector_format8 format);
+	ACL_NO_DISCARD constexpr const char* get_vector_format_name(vector_format8 format);
 
 	/// Finds the vector format that has the given name.
 	/// Returns true and writes the format to `out_format` when the name is valid, otherwise returns false.
-	bool get_vector_format(const char* format, vector_format8& out_format);
+	ACL_NO_DISCARD bool get_vector_format(const char* format, vector_format8& out_format);
 
 	/// Returns the name of a scalar format.
-	constexpr const char* get_scalar_format_name(scalar_format8 format);
+	ACL_NO_DISCARD constexpr const char* get_scalar_format_name(scalar_format8 format);
 
 	/// Finds the scalar format that has the given name.
 	/// Returns true and writes the format to `out_format` when the name is valid, otherwise returns false.
-	bool get_scalar_format(const char* format, scalar_format8& out_format);
+	ACL_NO_DISCARD bool get_scalar_format(const char* format, scalar_format8& out_format);
 
 	/// Returns the rotation variant of a rotation format.
-	constexpr rotation_variant8 get_rotation_variant(rotation_format8 rotation_format);
+	ACL_NO_DISCARD constexpr rotation_variant8 get_rotation_variant(rotation_format8 rotation_format);
 
 	/// Returns the full precision rotation format of a rotation variant.
-	constexpr rotation_format8 get_highest_variant_precision(rotation_variant8 variant);
+	ACL_NO_DISCARD constexpr rotation_format8 get_highest_variant_precision(rotation_variant8 variant);
 
 	/// Returns true if the rotation format uses a variable bit rate.
-	constexpr bool is_rotation_format_variable(rotation_format8 format);
+	ACL_NO_DISCARD constexpr bool is_rotation_format_variable(rotation_format8 format);
 
 	/// Returns true if the rotation format stores each component with float32.
-	constexpr bool is_rotation_format_full_precision(rotation_format8 format);
+	ACL_NO_DISCARD constexpr bool is_rotation_format_full_precision(rotation_format8 format);
 
 	/// Returns true if the vector format uses a variable bit rate.
-	constexpr bool is_vector_format_variable(vector_format8 format);
+	ACL_NO_DISCARD constexpr bool is_vector_format_variable(vector_format8 format);
 
 	/// Returns true if the vector format stores each component with float32.
-	constexpr bool is_vector_format_full_precision(vector_format8 format);
+	ACL_NO_DISCARD constexpr bool is_vector_format_full_precision(vector_format8 format);
 
 	ACL_IMPL_VERSION_NAMESPACE_END
 }

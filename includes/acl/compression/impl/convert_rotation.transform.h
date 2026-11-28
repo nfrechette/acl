@@ -30,6 +30,7 @@
 #include "acl/core/error.h"
 #include "acl/core/scope_profiler.h"
 #include "acl/core/track_formats.h"
+#include "acl/math/quatf.h"
 #include "acl/compression/impl/clip_context.h"
 #include "acl/compression/impl/compression_stats.h"
 
@@ -46,12 +47,14 @@ namespace acl
 
 	namespace acl_impl
 	{
-		inline rtm::vector4f RTM_SIMD_CALL convert_rotation(rtm::vector4f_arg0 rotation, rotation_format8 from, rotation_format8 to)
+		// Converts a full precision rotation into the full precision format of the variant of 'to'
+		// With a drop largest format, 'dropped_component' is the index of the dropped component, see 'quat_drop_component'
+		inline rtm::vector4f RTM_SIMD_CALL convert_rotation(rtm::vector4f_arg0 rotation, rotation_format8 from, rotation_format8 to, uint32_t dropped_component = 3)
 		{
 			ACL_ASSERT(from == rotation_format8::quatf_full, "Source rotation format must be a full precision quaternion");
 			(void)from;
 
-			const rotation_format8 high_precision_format = get_rotation_variant(to) == rotation_variant8::quat ? rotation_format8::quatf_full : rotation_format8::quatf_drop_w_full;
+			const rotation_format8 high_precision_format = get_highest_variant_precision(get_rotation_variant(to));
 			switch (high_precision_format)
 			{
 			case rotation_format8::quatf_full:
@@ -60,7 +63,11 @@ namespace acl
 			case rotation_format8::quatf_drop_w_full:
 				// Drop W, we just ensure it is positive and write it back, the W component can be ignored afterwards
 				return rtm::quat_to_vector(rtm::quat_ensure_positive_w(rtm::vector_to_quat(rotation)));
+			case rotation_format8::quatf_drop_largest_full:
+				// Move the dropped component into W, it is positive
+				return quat_drop_component(rtm::vector_to_quat(rotation), dropped_component);
 			case rotation_format8::quatf_drop_w_variable:
+			case rotation_format8::quatf_drop_largest_variable:
 			default:
 				ACL_ASSERT(false, "Invalid or unsupported rotation format: " ACL_ASSERT_STRING_FORMAT_SPECIFIER, get_rotation_format_name(to));
 				return rotation;
@@ -69,7 +76,7 @@ namespace acl
 
 		inline void convert_rotation_streams(iallocator& allocator, segment_context& segment, rotation_format8 rotation_format)
 		{
-			const rotation_format8 high_precision_format = get_rotation_variant(rotation_format) == rotation_variant8::quat ? rotation_format8::quatf_full : rotation_format8::quatf_drop_w_full;
+			const rotation_format8 high_precision_format = get_highest_variant_precision(get_rotation_variant(rotation_format));
 
 			for (transform_streams& bone_stream : segment.bone_iterator())
 			{
@@ -91,10 +98,13 @@ namespace acl
 						// Original format, nothing to do
 						break;
 					case rotation_format8::quatf_drop_w_full:
+					case rotation_format8::quatf_drop_largest_full:
 						// Drop W, we just ensure it is positive and write it back, the W component can be ignored afterwards
+						// A drop largest format drops W until select_dropped_rotation_components(..) runs
 						rotation = rtm::quat_ensure_positive_w(rotation);
 						break;
 					case rotation_format8::quatf_drop_w_variable:
+					case rotation_format8::quatf_drop_largest_variable:
 					default:
 						ACL_ASSERT(false, "Invalid or unsupported rotation format: " ACL_ASSERT_STRING_FORMAT_SPECIFIER, get_rotation_format_name(high_precision_format));
 						break;

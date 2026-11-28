@@ -88,22 +88,22 @@ namespace acl
 		/// \{
 
 		/// Returns the unique name of the error metric.
-		virtual const char* get_name() const = 0;
+		ACL_NO_DISCARD virtual const char* get_name() const = 0;
 
 		/// Returns a unique hash to represent the error metric.
-		virtual uint32_t get_hash() const { return hash32(get_name()); }
+		ACL_NO_DISCARD virtual uint32_t get_hash() const { return hash32(get_name()); }
 
 		/// Returns the transform size used by the error metric.
-		virtual size_t get_transform_size(bool has_scale) const = 0;
+		ACL_NO_DISCARD virtual size_t get_transform_size(bool has_scale) const = 0;
 
 		/// Returns whether or not the error metric uses a transform that isn't rtm::vqvf.
 		/// If this is the case, we need to convert from rtm::vqvf into the transform type
 		/// used by the error metric.
-		virtual bool needs_conversion(bool has_scale) const { (void)has_scale; return false; }
+		ACL_NO_DISCARD virtual bool needs_conversion(bool has_scale) const { (void)has_scale; return false; }
 
 		/// Whether or not this error metric supports the new bit rate algorithm v2
 		/// See: [Bit Rate Optimization Algorithm]
-		virtual bool supports_bit_rate_algorithm_v2() const { return false; }
+		ACL_NO_DISCARD virtual bool supports_bit_rate_algorithm_v2() const { return false; }
 		/// \}
 
 		/// Input arguments for the `convert_transforms*` functions.
@@ -320,22 +320,22 @@ namespace acl
 		/// \{
 
 		/// Measures the error between a raw and lossy transform.
-		rtm::scalarf RTM_SIMD_CALL calculate_error(const calculate_error_args& args) const
+		ACL_NO_DISCARD rtm::scalarf RTM_SIMD_CALL calculate_error(const calculate_error_args& args) const
 		{
 			return rtm::scalar_sqrt(calculate_error_squared(args));
 		}
 
 		/// Measures the squared error between a raw and lossy transform.
-		virtual rtm::scalarf RTM_SIMD_CALL calculate_error_squared(const calculate_error_args& args) const = 0;
+		ACL_NO_DISCARD virtual rtm::scalarf RTM_SIMD_CALL calculate_error_squared(const calculate_error_args& args) const = 0;
 
 		/// Measures the error between a raw and lossy transform.
-		rtm::scalarf RTM_SIMD_CALL calculate_error_no_scale(const calculate_error_args& args) const
+		ACL_NO_DISCARD rtm::scalarf RTM_SIMD_CALL calculate_error_no_scale(const calculate_error_args& args) const
 		{
 			return rtm::scalar_sqrt(calculate_error_squared_no_scale(args));
 		}
 
 		/// Measures the squared error between a raw and lossy transform.
-		virtual rtm::scalarf RTM_SIMD_CALL calculate_error_squared_no_scale(const calculate_error_args& args) const = 0;
+		ACL_NO_DISCARD virtual rtm::scalarf RTM_SIMD_CALL calculate_error_squared_no_scale(const calculate_error_args& args) const = 0;
 		/// \}
 	};
 
@@ -344,11 +344,11 @@ namespace acl
 	class ACL_DEPRECATED("Use the transform adapters and the transform metrics instead, to be removed in v2.3") vqvf_transform_error_metric : public itransform_error_metric
 	{
 	public:
-		virtual const char* get_name() const override { return "vqvf_transform_error_metric"; }
+		ACL_NO_DISCARD virtual const char* get_name() const override { return "vqvf_transform_error_metric"; }
 
-		virtual size_t get_transform_size(bool has_scale) const override { (void)has_scale; return sizeof(rtm::vqvf); }
-		virtual bool needs_conversion(bool has_scale) const override { (void)has_scale; return false; }
-		virtual bool supports_bit_rate_algorithm_v2() const override { return true; }
+		ACL_NO_DISCARD virtual size_t get_transform_size(bool has_scale) const override { (void)has_scale; return sizeof(rtm::vqvf); }
+		ACL_NO_DISCARD virtual bool needs_conversion(bool has_scale) const override { (void)has_scale; return false; }
+		ACL_NO_DISCARD virtual bool supports_bit_rate_algorithm_v2() const override { return true; }
 
 		virtual RTM_DISABLE_SECURITY_COOKIE_CHECK void local_to_object_space(const local_to_object_space_args& args, void* out_object_transforms) const override
 		{
@@ -396,7 +396,7 @@ namespace acl
 			}
 		}
 
-		virtual rtm::scalarf RTM_SIMD_CALL calculate_error_squared(const calculate_error_args& args) const override
+		ACL_NO_DISCARD virtual rtm::scalarf RTM_SIMD_CALL calculate_error_squared(const calculate_error_args& args) const override
 		{
 			const rtm::vqvf& raw_transform_ = *static_cast<const rtm::vqvf*>(args.transform0);
 			const rtm::vqvf& lossy_transform_ = *static_cast<const rtm::vqvf*>(args.transform1);
@@ -462,7 +462,7 @@ namespace acl
 #endif
 		}
 
-		virtual rtm::scalarf RTM_SIMD_CALL calculate_error_squared_no_scale(const calculate_error_args& args) const override
+		ACL_NO_DISCARD virtual rtm::scalarf RTM_SIMD_CALL calculate_error_squared_no_scale(const calculate_error_args& args) const override
 		{
 			const rtm::vqvf& raw_transform_ = *static_cast<const rtm::vqvf*>(args.transform0);
 			const rtm::vqvf& lossy_transform_ = *static_cast<const rtm::vqvf*>(args.transform1);
@@ -543,9 +543,9 @@ namespace acl
 	class ACL_DEPRECATED("Use the transform adapters and the transform metrics instead, to be removed in v2.3") vqvf_precise_transform_error_metric : public vqvf_transform_error_metric
 	{
 	public:
-		virtual const char* get_name() const override { return "vqvf_precise_transform_error_metric"; }
+		ACL_NO_DISCARD virtual const char* get_name() const override { return "vqvf_precise_transform_error_metric"; }
 
-		virtual rtm::scalarf RTM_SIMD_CALL calculate_error_squared_no_scale(const calculate_error_args& args) const override
+		ACL_NO_DISCARD virtual rtm::scalarf RTM_SIMD_CALL calculate_error_squared_no_scale(const calculate_error_args& args) const override
 		{
 			const rtm::vqvf& raw_transform_ = *static_cast<const rtm::vqvf*>(args.transform0);
 			const rtm::vqvf& lossy_transform_ = *static_cast<const rtm::vqvf*>(args.transform1);
@@ -571,11 +571,11 @@ namespace acl
 	class ACL_DEPRECATED("Use the transform adapters and the transform metrics instead, to be removed in v2.3") vqvf_matrix3x4f_transform_error_metric : public vqvf_transform_error_metric
 	{
 	public:
-		virtual const char* get_name() const override { return "vqvf_matrix3x4f_transform_error_metric"; }
+		ACL_NO_DISCARD virtual const char* get_name() const override { return "vqvf_matrix3x4f_transform_error_metric"; }
 
-		virtual size_t get_transform_size(bool has_scale) const override { return has_scale ? sizeof(rtm::matrix3x4f) : sizeof(rtm::vqvf); }
-		virtual bool needs_conversion(bool has_scale) const override { return has_scale; }
-		virtual bool supports_bit_rate_algorithm_v2() const override { return false; }
+		ACL_NO_DISCARD virtual size_t get_transform_size(bool has_scale) const override { return has_scale ? sizeof(rtm::matrix3x4f) : sizeof(rtm::vqvf); }
+		ACL_NO_DISCARD virtual bool needs_conversion(bool has_scale) const override { return has_scale; }
+		ACL_NO_DISCARD virtual bool supports_bit_rate_algorithm_v2() const override { return false; }
 
 		virtual RTM_DISABLE_SECURITY_COOKIE_CHECK void convert_transforms(const convert_transforms_args& args, void* out_transforms) const override
 		{
@@ -618,7 +618,7 @@ namespace acl
 			}
 		}
 
-		virtual rtm::scalarf RTM_SIMD_CALL calculate_error_squared(const calculate_error_args& args) const override
+		ACL_NO_DISCARD virtual rtm::scalarf RTM_SIMD_CALL calculate_error_squared(const calculate_error_args& args) const override
 		{
 			const rtm::matrix3x4f& raw_transform_ = *static_cast<const rtm::matrix3x4f*>(args.transform0);
 			const rtm::matrix3x4f& lossy_transform_ = *static_cast<const rtm::matrix3x4f*>(args.transform1);
@@ -659,7 +659,7 @@ namespace acl
 	class ACL_DEPRECATED("Use the transform adapters and the transform metrics instead, to be removed in v2.3") additive_vqvf_transform_error_metric : public vqvf_transform_error_metric
 	{
 	public:
-		virtual const char* get_name() const override
+		ACL_NO_DISCARD virtual const char* get_name() const override
 		{
 			switch (additive_format)
 			{

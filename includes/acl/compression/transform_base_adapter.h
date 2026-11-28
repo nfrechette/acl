@@ -58,10 +58,10 @@ namespace acl
 		virtual ~itransform_base_adapter_t() = default;
 
 		/// Returns the unique name of the base adapter.
-		virtual const char* get_name() const = 0;
+		ACL_NO_DISCARD virtual const char* get_name() const = 0;
 
 		/// Returns a unique hash to represent the base adapter.
-		virtual uint32_t get_hash() const { return hash32(get_name()); }
+		ACL_NO_DISCARD virtual uint32_t get_hash() const { return hash32(get_name()); }
 
 		/// Returns the default scale of the clip samples: 0.0 or 1.0.
 		/// A track without scale (for example, a `vqf` track) gives this scale to each of its samples.
@@ -69,7 +69,7 @@ namespace acl
 		/// The compressed data keeps one bit for the default scale, thus other values are not valid.
 		///
 		/// Defaults to 1.0.
-		virtual float get_default_scale() const { return 1.0F; }
+		ACL_NO_DISCARD virtual float get_default_scale() const { return 1.0F; }
 
 		/// Combines a transform of a clip sample with its base transform and returns the result.
 		///    - `transform_index`: the index of the transform in the clip
@@ -78,7 +78,7 @@ namespace acl
 		/// Compression and the error measurement use the result as is: they do not normalize its rotation.
 		/// Thus the measured error is the error of your runtime when it combines the transforms with the
 		/// same function and does not normalize the result. If your runtime normalizes the result, normalize it here.
-		virtual rtm::vqvf apply_base(uint32_t transform_index, const rtm::vqvf& base_transform, const rtm::vqvf& transform) const = 0;
+		ACL_NO_DISCARD virtual rtm::vqvf apply_base(uint32_t transform_index, const rtm::vqvf& base_transform, const rtm::vqvf& transform) const = 0;
 	};
 
 	ACL_IMPL_VERSION_NAMESPACE_END

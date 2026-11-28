@@ -84,11 +84,11 @@ namespace acl
 		uint32_t max_chunk_size = 1 * 1024 * 1024;
 
 		/// Calculates a hash from the internal state to uniquely identify a configuration.
-		uint32_t get_hash() const;
+		ACL_NO_DISCARD uint32_t get_hash() const;
 
 		/// Checks if everything is valid and if it isn't, returns an error string.
 		/// Returns nullptr if the settings are valid.
-		error_result is_valid() const;
+		ACL_NO_DISCARD error_result is_valid() const;
 	};
 
 	/// Encapsulates all the optional metadata compression settings.
@@ -126,11 +126,11 @@ namespace acl
 		bool include_contributing_error = false;
 
 		/// Calculates a hash from the internal state to uniquely identify a configuration.
-		uint32_t get_hash() const;
+		ACL_NO_DISCARD uint32_t get_hash() const;
 
 		/// Checks if everything is valid and if it isn't, returns an error string.
 		/// Returns nullptr if the settings are valid.
-		error_result is_valid() const;
+		ACL_NO_DISCARD error_result is_valid() const;
 	};
 
 	/// Encapsulates all frame stripping compression settings.
@@ -163,7 +163,7 @@ namespace acl
 		/// See [compression_keyframe_stripping_settings] for details.
 		///
 		/// Defaults to `false`
-		bool is_enabled() const;
+		ACL_NO_DISCARD bool is_enabled() const;
 
 		/// The minimum proportion of keyframes that should be stripped.
 		/// Proportion value must be between 0.0 and 1.0.
@@ -193,11 +193,11 @@ namespace acl
 		bool strip_trivial = false;
 
 		/// Calculates a hash from the internal state to uniquely identify a configuration.
-		uint32_t get_hash() const;
+		ACL_NO_DISCARD uint32_t get_hash() const;
 
 		/// Checks if everything is valid and if it isn't, returns an error string.
 		/// Returns nullptr if the settings are valid.
-		error_result is_valid() const;
+		ACL_NO_DISCARD error_result is_valid() const;
 	};
 
 	/// Encapsulates all the compression settings.
@@ -317,20 +317,20 @@ namespace acl
 		/// \{
 
 		/// Calculates a hash from the internal state to uniquely identify a configuration.
-		uint32_t get_hash() const;
+		ACL_NO_DISCARD uint32_t get_hash() const;
 
 		/// Checks if everything is valid and if it isn't, returns an error string.
-		error_result is_valid() const;
+		ACL_NO_DISCARD error_result is_valid() const;
 		/// \}
 	};
 
 	/// Returns raw compression settings. No compression is performed and
 	/// samples are all retained with full precision.
-	compression_settings get_raw_compression_settings();
+	ACL_NO_DISCARD compression_settings get_raw_compression_settings();
 
 	/// Returns the recommended and default compression settings. These have
 	/// been tested in a wide range of scenarios and perform best overall.
-	compression_settings get_default_compression_settings();
+	ACL_NO_DISCARD compression_settings get_default_compression_settings();
 
 	ACL_IMPL_VERSION_NAMESPACE_END
 }
