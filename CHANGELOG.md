@@ -88,6 +88,7 @@
 *  The default compression settings use `quatf_drop_largest_variable`, and `default_transform_decompression_settings` supports only this rotation format, see [migrating](docs/migrating.md)
 *  Add the `ACL_NO_DISCARD` macro: it is `[[nodiscard]]` with C++17 and later, and empty with an earlier version. All the public functions that return a value use it. With C++17 and later, the compiler gives a warning when the caller does not use the return value. To use a different attribute, or none, define `ACL_NO_DISCARD` before you include ACL, see [configuration macros](docs/configuration_macros.md)
 *  `convert_track_list` returns an error when it cannot initialize its decompression context, and `acl_compressor` and `acl_decompressor` stop when `pre_process_track_list` returns an error
+*  Add the compressed data version `v02_02_00` for ACL 2.2.0, it has the same value as `v02_02_99_2` and `latest` now uses it
 
 ## 2.1.0
 

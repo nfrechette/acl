@@ -122,8 +122,8 @@ namespace acl
 		{};
 
 		template<>
-		struct decompression_version_selector<compressed_tracks_version16::v02_02_99_2>
-			: decompression_version_selector_v0<compressed_tracks_version16::v02_02_99_2>
+		struct decompression_version_selector<compressed_tracks_version16::v02_02_00>
+			: decompression_version_selector_v0<compressed_tracks_version16::v02_02_00>
 		{};
 
 		//////////////////////////////////////////////////////////////////////////
@@ -150,7 +150,7 @@ namespace acl
 				case compressed_tracks_version16::v02_01_00:
 				case compressed_tracks_version16::v02_02_99_0:
 				case compressed_tracks_version16::v02_02_99_1:
-				case compressed_tracks_version16::v02_02_99_2:
+				case compressed_tracks_version16::v02_02_00:
 					return acl_impl::initialize_v0<decompression_settings_type>(context, tracks, database);
 				case compressed_tracks_version16::none:
 				case compressed_tracks_version16::any:
@@ -172,7 +172,7 @@ namespace acl
 				case compressed_tracks_version16::v02_01_00:
 				case compressed_tracks_version16::v02_02_99_0:
 				case compressed_tracks_version16::v02_02_99_1:
-				case compressed_tracks_version16::v02_02_99_2:
+				case compressed_tracks_version16::v02_02_00:
 					return acl_impl::relocated_v0<decompression_settings_type>(context, tracks, database);
 				case compressed_tracks_version16::none:
 				case compressed_tracks_version16::any:
@@ -194,7 +194,7 @@ namespace acl
 				case compressed_tracks_version16::v02_01_00:
 				case compressed_tracks_version16::v02_02_99_0:
 				case compressed_tracks_version16::v02_02_99_1:
-				case compressed_tracks_version16::v02_02_99_2:
+				case compressed_tracks_version16::v02_02_00:
 					return acl_impl::is_bound_to_v0<decompression_settings_type>(context, tracks);
 				case compressed_tracks_version16::none:
 				case compressed_tracks_version16::any:
@@ -216,7 +216,7 @@ namespace acl
 				case compressed_tracks_version16::v02_01_00:
 				case compressed_tracks_version16::v02_02_99_0:
 				case compressed_tracks_version16::v02_02_99_1:
-				case compressed_tracks_version16::v02_02_99_2:
+				case compressed_tracks_version16::v02_02_00:
 					return acl_impl::is_bound_to_v0<decompression_settings_type>(context, database);
 				case compressed_tracks_version16::none:
 				case compressed_tracks_version16::any:
@@ -238,7 +238,7 @@ namespace acl
 				case compressed_tracks_version16::v02_01_00:
 				case compressed_tracks_version16::v02_02_99_0:
 				case compressed_tracks_version16::v02_02_99_1:
-				case compressed_tracks_version16::v02_02_99_2:
+				case compressed_tracks_version16::v02_02_00:
 					acl_impl::set_looping_policy_v0<decompression_settings_type>(context, policy);
 					break;
 				case compressed_tracks_version16::none:
@@ -261,7 +261,7 @@ namespace acl
 				case compressed_tracks_version16::v02_01_00:
 				case compressed_tracks_version16::v02_02_99_0:
 				case compressed_tracks_version16::v02_02_99_1:
-				case compressed_tracks_version16::v02_02_99_2:
+				case compressed_tracks_version16::v02_02_00:
 					acl_impl::seek_v0<decompression_settings_type>(context, sample_time, rounding_policy);
 					break;
 				case compressed_tracks_version16::none:
@@ -284,7 +284,7 @@ namespace acl
 				case compressed_tracks_version16::v02_01_00:
 				case compressed_tracks_version16::v02_02_99_0:
 				case compressed_tracks_version16::v02_02_99_1:
-				case compressed_tracks_version16::v02_02_99_2:
+				case compressed_tracks_version16::v02_02_00:
 					acl_impl::decompress_tracks_v0<decompression_settings_type>(context, writer);
 					break;
 				case compressed_tracks_version16::none:
@@ -307,7 +307,7 @@ namespace acl
 				case compressed_tracks_version16::v02_01_00:
 				case compressed_tracks_version16::v02_02_99_0:
 				case compressed_tracks_version16::v02_02_99_1:
-				case compressed_tracks_version16::v02_02_99_2:
+				case compressed_tracks_version16::v02_02_00:
 					acl_impl::decompress_track_v0<decompression_settings_type>(context, track_index, writer);
 					break;
 				case compressed_tracks_version16::none:
