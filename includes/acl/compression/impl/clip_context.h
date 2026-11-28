@@ -196,6 +196,12 @@ namespace acl
 			// Sorted by stripping order within this clip
 			keyframe_stripping_metadata_t* contributing_error = nullptr;
 
+			// With a drop largest rotation format and more than one segment: the rotation component that each segment drops,
+			// [segment][transform] (num_rotation_dropped_components present), see 'select_dropped_rotation_components'
+			// segment_streams(..) copies it into the transform streams of each segment
+			uint8_t* rotation_dropped_components		= nullptr;
+			uint32_t num_rotation_dropped_components	= 0;
+
 			uint32_t num_segments						= 0;
 			uint32_t num_bones							= 0;	// TODO: Rename num_transforms
 			uint32_t num_samples_allocated				= 0;

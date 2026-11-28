@@ -476,6 +476,10 @@ def shorten_rotation_format(format):
 		return 'R:QuatNoW32'
 	elif format == 'quatf_drop_w_variable':
 		return 'R:QuatNoWVar'
+	elif format == 'quatf_drop_largest_full':
+		return 'R:QuatNoLargest96'
+	elif format == 'quatf_drop_largest_variable':
+		return 'R:QuatNoLargestVar'
 	else:
 		return 'R:???'
 

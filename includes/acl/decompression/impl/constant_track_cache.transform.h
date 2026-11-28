@@ -92,6 +92,29 @@ namespace acl
 
 	namespace acl_impl
 	{
+		// Rebuilds the dropped component of 4 constant rotations in SOA form
+		// With a drop largest format, bit 30 of [x] and [y] holds the index of the dropped component, see 'encode_dropped_component_in_floats'
+		template<class decompression_settings_type>
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE void RTM_SIMD_CALL rebuild_constant_rotations_x4(rotation_format8 rotation_format,
+			rtm::vector4f& xxxx, rtm::vector4f& yyyy, rtm::vector4f& zzzz, rtm::vector4f& wwww)
+		{
+			if (is_rotation_format_drop_largest_supported<decompression_settings_type>(rotation_format))
+			{
+				rtm::mask4f drops_x;
+				rtm::mask4f drops_y;
+				rtm::mask4f drops_z;
+				decode_dropped_component_from_floats_x4(xxxx, yyyy, drops_x, drops_y, drops_z);
+
+				wwww = quat_from_positive_w_x4(xxxx, yyyy, zzzz);
+
+				// When each rotation drops W, we have nothing to move
+				if (rtm::mask_any_true(rtm::mask_or(rtm::mask_or(drops_x, drops_y), drops_z)))
+					quat_restore_dropped_component_x4(xxxx, yyyy, zzzz, wwww, drops_x, drops_y, drops_z);
+			}
+			else
+				wwww = quat_from_positive_w_x4(xxxx, yyyy, zzzz);
+		}
+
 		struct constant_track_cache_read_cursor_v0
 		{
 			uint32_t cache_read_index = 0;
@@ -201,7 +224,8 @@ namespace acl
 						// Update our read ptr
 						constant_track_data += load_size * 3;
 
-						rtm::vector4f wwww = quat_from_positive_w_x4(xxxx, yyyy, zzzz);
+						rtm::vector4f wwww;
+						rebuild_constant_rotations_x4<decompression_settings_type>(rotation_format, xxxx, yyyy, zzzz, wwww);
 
 						// quat_from_positive_w might not yield an accurate quaternion because the square-root instruction
 						// isn't very accurate on small inputs, we need to normalize
@@ -287,8 +311,10 @@ namespace acl
 						// Update our read ptr
 						constant_track_data += sizeof(rtm::float4f) * 6;
 
-						rtm::vector4f wwww0 = quat_from_positive_w_x4(xxxx0, yyyy0, zzzz0);
-						rtm::vector4f wwww1 = quat_from_positive_w_x4(xxxx1, yyyy1, zzzz1);
+						rtm::vector4f wwww0;
+						rebuild_constant_rotations_x4<decompression_settings_type>(rotation_format, xxxx0, yyyy0, zzzz0, wwww0);
+						rtm::vector4f wwww1;
+						rebuild_constant_rotations_x4<decompression_settings_type>(rotation_format, xxxx1, yyyy1, zzzz1, wwww1);
 
 						// quat_from_positive_w might not yield an accurate quaternion because the square-root instruction
 						// isn't very accurate on small inputs, we need to normalize
@@ -354,8 +380,10 @@ namespace acl
 						// Update our read ptr
 						constant_track_data += load_size * 3;
 
-						rtm::vector4f wwww0 = quat_from_positive_w_x4(xxxx0, yyyy0, zzzz0);
-						rtm::vector4f wwww1 = quat_from_positive_w_x4(xxxx1, yyyy1, zzzz1);
+						rtm::vector4f wwww0;
+						rebuild_constant_rotations_x4<decompression_settings_type>(rotation_format, xxxx0, yyyy0, zzzz0, wwww0);
+						rtm::vector4f wwww1;
+						rebuild_constant_rotations_x4<decompression_settings_type>(rotation_format, xxxx1, yyyy1, zzzz1, wwww1);
 
 						// quat_from_positive_w might not yield an accurate quaternion because the square-root instruction
 						// isn't very accurate on small inputs, we need to normalize
@@ -412,7 +440,8 @@ namespace acl
 						// Update our read ptr
 						constant_track_data += load_size * 3;
 
-						rtm::vector4f wwww = quat_from_positive_w_x4(xxxx, yyyy, zzzz);
+						rtm::vector4f wwww;
+						rebuild_constant_rotations_x4<decompression_settings_type>(rotation_format, xxxx, yyyy, zzzz, wwww);
 
 						// quat_from_positive_w might not yield an accurate quaternion because the square-root instruction
 						// isn't very accurate on small inputs, we need to normalize
@@ -555,6 +584,19 @@ namespace acl
 
 						num_to_unpack -= unpack_count;
 
+						// With a drop largest format, bit 30 of [x] and [y] holds the index of the dropped component, we clear it first
+						__m256 drops_x01 = _mm256_setzero_ps();
+						__m256 drops_y01 = _mm256_setzero_ps();
+						__m256 drops_z01 = _mm256_setzero_ps();
+						__m256 drops_x23 = _mm256_setzero_ps();
+						__m256 drops_y23 = _mm256_setzero_ps();
+						__m256 drops_z23 = _mm256_setzero_ps();
+						if (is_rotation_format_drop_largest_supported<decompression_settings_type>(rotation_format))
+						{
+							decode_dropped_component_from_floats_avx8(xxxx0_xxxx1, yyyy0_yyyy1, drops_x01, drops_y01, drops_z01);
+							decode_dropped_component_from_floats_avx8(xxxx2_xxxx3, yyyy2_yyyy3, drops_x23, drops_y23, drops_z23);
+						}
+
 						// quat_from_positive_w_avx8
 						const __m256 xxxx0_xxxx1_squared = _mm256_mul_ps(xxxx0_xxxx1, xxxx0_xxxx1);
 						const __m256 yyyy0_yyyy1_squared = _mm256_mul_ps(yyyy0_yyyy1, yyyy0_yyyy1);
@@ -598,6 +640,13 @@ namespace acl
 							yyyy2_yyyy3 = _mm256_mul_ps(yyyy2_yyyy3, inv_length23);
 							zzzz2_zzzz3 = _mm256_mul_ps(zzzz2_zzzz3, inv_length23);
 							wwww2_wwww3 = _mm256_mul_ps(wwww2_wwww3, inv_length23);
+						}
+
+						// With a drop largest format, the rebuilt component is in [w], we move each component to its place
+						if (is_rotation_format_drop_largest_supported<decompression_settings_type>(rotation_format))
+						{
+							quat_restore_dropped_component_avx8(xxxx0_xxxx1, yyyy0_yyyy1, zzzz0_zzzz1, wwww0_wwww1, drops_x01, drops_y01, drops_z01);
+							quat_restore_dropped_component_avx8(xxxx2_xxxx3, yyyy2_yyyy3, zzzz2_zzzz3, wwww2_wwww3, drops_x23, drops_y23, drops_z23);
 						}
 
 						const __m256 x0x1y0y1_x4x5y4y5 = _mm256_shuffle_ps(xxxx0_xxxx1, yyyy0_yyyy1, _MM_SHUFFLE(1, 0, 1, 0));
@@ -661,6 +710,13 @@ namespace acl
 						__m256 yyyy0_yyyy1 = _mm256_permute2f128_ps(xxxx0_yyyy0, _mm256_castps128_ps256(yyyy1), 0x21);
 						__m256 zzzz0_zzzz1 = _mm256_insertf128_ps(zzzz0_xxxx1, zzzz1, 1);
 
+						// With a drop largest format, bit 30 of [x] and [y] holds the index of the dropped component, we clear it first
+						__m256 drops_x01 = _mm256_setzero_ps();
+						__m256 drops_y01 = _mm256_setzero_ps();
+						__m256 drops_z01 = _mm256_setzero_ps();
+						if (is_rotation_format_drop_largest_supported<decompression_settings_type>(rotation_format))
+							decode_dropped_component_from_floats_avx8(xxxx0_xxxx1, yyyy0_yyyy1, drops_x01, drops_y01, drops_z01);
+
 						// quat_from_positive_w_avx8
 						const __m256 xxxx0_xxxx1_squared = _mm256_mul_ps(xxxx0_xxxx1, xxxx0_xxxx1);
 						const __m256 yyyy0_yyyy1_squared = _mm256_mul_ps(yyyy0_yyyy1, yyyy0_yyyy1);
@@ -686,6 +742,10 @@ namespace acl
 							zzzz0_zzzz1 = _mm256_mul_ps(zzzz0_zzzz1, inv_length01);
 							wwww0_wwww1 = _mm256_mul_ps(wwww0_wwww1, inv_length01);
 						}
+
+						// With a drop largest format, the rebuilt component is in [w], we move each component to its place
+						if (is_rotation_format_drop_largest_supported<decompression_settings_type>(rotation_format))
+							quat_restore_dropped_component_avx8(xxxx0_xxxx1, yyyy0_yyyy1, zzzz0_zzzz1, wwww0_wwww1, drops_x01, drops_y01, drops_z01);
 
 						const __m256 x0x1y0y1_x4x5y4y5 = _mm256_shuffle_ps(xxxx0_xxxx1, yyyy0_yyyy1, _MM_SHUFFLE(1, 0, 1, 0));
 						const __m256 x2x3y2y3_x6x7y6y7 = _mm256_shuffle_ps(xxxx0_xxxx1, yyyy0_yyyy1, _MM_SHUFFLE(3, 2, 3, 2));
@@ -720,6 +780,13 @@ namespace acl
 						// Update our read ptr
 						constant_track_data += load_size * 3;
 
+						// With a drop largest format, bit 30 of [x] and [y] holds the index of the dropped component, we clear it first
+						rtm::mask4f drops_x = rtm::mask_set(false, false, false, false);
+						rtm::mask4f drops_y = drops_x;
+						rtm::mask4f drops_z = drops_x;
+						if (is_rotation_format_drop_largest_supported<decompression_settings_type>(rotation_format))
+							decode_dropped_component_from_floats_x4(xxxx, yyyy, drops_x, drops_y, drops_z);
+
 						// quat_from_positive_w_x4
 						// We inline it here manually to be able to re-use the same constants
 						__m128 xxxx_squared = _mm_mul_ps(xxxx, xxxx);
@@ -746,6 +813,10 @@ namespace acl
 							zzzz = _mm_mul_ps(zzzz, inv_length);
 							wwww = _mm_mul_ps(wwww, inv_length);
 						}
+
+						// With a drop largest format, the rebuilt component is in [w], we move each component to its place
+						if (is_rotation_format_drop_largest_supported<decompression_settings_type>(rotation_format))
+							quat_restore_dropped_component_x4(xxxx, yyyy, zzzz, wwww, drops_x, drops_y, drops_z);
 
 						rtm::vector4f sample0;
 						rtm::vector4f sample1;
@@ -815,7 +886,16 @@ namespace acl
 					const float y = constant_track_data[group_size * 1];
 					const float z = constant_track_data[group_size * 2];
 					const rtm::vector4f sample_v = rtm::vector_set(x, y, z, 0.0F);
-					sample = quat_from_positive_w_stable(sample_v);
+
+					if (is_rotation_format_drop_largest_supported<decompression_settings_type>(rotation_format))
+					{
+						// Bit 30 of [x] and [y] holds the index of the dropped component
+						uint32_t dropped_component;
+						const rtm::vector4f packed_sample = decode_dropped_component_from_floats(sample_v, dropped_component);
+						sample = quat_restore_dropped_component(quat_from_positive_w_stable(packed_sample), dropped_component);
+					}
+					else
+						sample = quat_from_positive_w_stable(sample_v);
 
 					// quat_from_positive_w might not yield an accurate quaternion because the square-root instruction
 					// isn't very accurate on small inputs, we need to normalize

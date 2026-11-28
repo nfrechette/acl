@@ -410,9 +410,12 @@ namespace acl
 					pack_vector4_128(rtm::quat_to_vector(rotation), quantized_ptr);
 					break;
 				case rotation_format8::quatf_drop_w_full:
+				case rotation_format8::quatf_drop_largest_full:
+					// With quatf_drop_largest_full, the sample holds the index of its dropped component in bit 30 of [x] and [y]
 					pack_vector3_96(rtm::quat_to_vector(rotation), quantized_ptr);
 					break;
 				case rotation_format8::quatf_drop_w_variable:
+				case rotation_format8::quatf_drop_largest_variable:
 				default:
 					ACL_ASSERT(false, "Invalid or unsupported rotation format: " ACL_ASSERT_STRING_FORMAT_SPECIFIER, get_rotation_format_name(rotation_format));
 					break;
@@ -446,7 +449,7 @@ namespace acl
 			const uint32_t num_samples = is_constant_bit_rate(bit_rate) ? 1 : lossy_rotations.get_num_samples();
 			const uint32_t sample_size = sizeof(uint64_t) * 2;
 			const float sample_rate = lossy_rotations.get_sample_rate();
-			rotation_track_stream quantized_stream(context.allocator, num_samples, sample_size, sample_rate, rotation_format8::quatf_drop_w_variable, bit_rate);
+			rotation_track_stream quantized_stream(context.allocator, num_samples, sample_size, sample_rate, context.rotation_format, bit_rate);
 
 			if (is_constant_bit_rate(bit_rate))
 			{
@@ -471,7 +474,7 @@ namespace acl
 					if (is_raw_bit_rate(bit_rate))
 					{
 						rtm::vector4f rotation = raw_rotations.get_raw_sample<rtm::vector4f>(context.segment_sample_start_index + sample_index);
-						rotation = convert_rotation(rotation, rotation_format8::quatf_full, rotation_format8::quatf_drop_w_variable);
+						rotation = convert_rotation(rotation, rotation_format8::quatf_full, context.rotation_format, lossy_track.rotation_dropped_component);
 						pack_vector3_96(rotation, quantized_ptr);
 					}
 					else
@@ -496,7 +499,7 @@ namespace acl
 				return;
 
 			const transform_streams& raw_track = context.raw_bone_streams[bone_index];
-			const rotation_format8 highest_bit_rate = get_highest_variant_precision(rotation_variant8::quat_drop_w);
+			const rotation_format8 highest_bit_rate = get_highest_variant_precision(get_rotation_variant(context.rotation_format));
 
 			// If our format is variable, we keep them fixed at the highest bit rate in the variant
 			if (lossy_track.is_rotation_constant)

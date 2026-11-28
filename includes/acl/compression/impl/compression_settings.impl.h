@@ -185,7 +185,7 @@ namespace acl
 	{
 		compression_settings settings;
 		settings.level = compression_level8::automatic;
-		settings.rotation_format = rotation_format8::quatf_drop_w_variable;
+		settings.rotation_format = rotation_format8::quatf_drop_largest_variable;
 		settings.translation_format = vector_format8::vector3f_variable;
 		settings.scale_format = vector_format8::vector3f_variable;
 		settings.scalar_format = scalar_format8::scalarf_variable;

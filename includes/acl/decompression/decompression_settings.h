@@ -210,7 +210,7 @@ namespace acl
 		static constexpr bool is_track_type_supported(track_type8 type) { return acl_impl::is_transform_track_type(type); }
 
 		/// By default, we only support the variable bit rates as they are generally optimal
-		static constexpr bool is_rotation_format_supported(rotation_format8 format) { return format == rotation_format8::quatf_drop_w_variable; }
+		static constexpr bool is_rotation_format_supported(rotation_format8 format) { return format == rotation_format8::quatf_drop_largest_variable; }
 
 		/// By default, we only support the variable bit rates as they are generally optimal
 		static constexpr bool is_translation_format_supported(vector_format8 format) { return format == vector_format8::vector3f_variable; }

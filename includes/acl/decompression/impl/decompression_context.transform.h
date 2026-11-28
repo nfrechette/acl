@@ -149,7 +149,9 @@ namespace acl
 		{
 			return int32_t(decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full))
 				+ int32_t(decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_full))
-				+ int32_t(decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable));
+				+ int32_t(decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
+				+ int32_t(decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_largest_full))
+				+ int32_t(decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_largest_variable));
 		}
 
 		// Returns the statically known rotation format supported if we only support one, otherwise we return the input value
@@ -163,7 +165,41 @@ namespace acl
 				// Only one format is supported, figure out statically which one it is and return it
 				: (decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full) ? rotation_format8::quatf_full
 					: (decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_full) ? rotation_format8::quatf_drop_w_full
-						: rotation_format8::quatf_drop_w_variable));
+						: (decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable) ? rotation_format8::quatf_drop_w_variable
+							: (decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_largest_full) ? rotation_format8::quatf_drop_largest_full
+								: rotation_format8::quatf_drop_largest_variable))));
+		}
+
+		// Returns true if the rotation format stores three components with a variable bit rate and the decompression settings support it
+		template<class decompression_settings_type>
+		constexpr bool is_rotation_format_variable_supported(rotation_format8 format)
+		{
+			return (format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
+				|| (format == rotation_format8::quatf_drop_largest_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_largest_variable));
+		}
+
+		// Returns true if the rotation format is quatf_drop_largest_variable and the decompression settings support it
+		// Bits [5, 6] of the per sub-track metadata of each segment hold the index of the dropped component
+		template<class decompression_settings_type>
+		constexpr bool is_rotation_format_drop_largest_variable_supported(rotation_format8 format)
+		{
+			return format == rotation_format8::quatf_drop_largest_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_largest_variable);
+		}
+
+		// Returns true if the rotation format is quatf_drop_largest_full and the decompression settings support it
+		// Bit 30 of [x] and [y] of each sample holds the index of the dropped component
+		template<class decompression_settings_type>
+		constexpr bool is_rotation_format_drop_largest_full_supported(rotation_format8 format)
+		{
+			return format == rotation_format8::quatf_drop_largest_full && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_largest_full);
+		}
+
+		// Returns true if the rotation format drops one component and the decompression settings support it
+		// The constant rotations hold the index of the dropped component in bit 30 of [x] and [y]
+		template<class decompression_settings_type>
+		constexpr bool is_rotation_format_drop_largest_supported(rotation_format8 format)
+		{
+			return is_rotation_format_drop_largest_variable_supported<decompression_settings_type>(format) || is_rotation_format_drop_largest_full_supported<decompression_settings_type>(format);
 		}
 
 		// Returns the statically known number of vector formats supported by the decompression settings

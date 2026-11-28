@@ -254,6 +254,9 @@ namespace acl
 					return rtm::vector_to_quat(rotation);
 				case rotation_format8::quatf_drop_w_full:
 				case rotation_format8::quatf_drop_w_variable:
+				case rotation_format8::quatf_drop_largest_full:
+				case rotation_format8::quatf_drop_largest_variable:
+					// The drop largest formats drop W until select_dropped_rotation_components(..) runs, see its comment
 					// quat_from_positive_w might not yield an accurate quaternion because the square-root instruction
 					// isn't very accurate on small inputs, we need to normalize
 					return quat_normalize_stable(quat_from_positive_w_stable(rotation));
@@ -448,7 +451,9 @@ namespace acl
 			bool is_scale_constant					= false;
 			bool is_scale_default					= false;
 
-			uint8_t padding[2]						= {};
+			// The index in [x, y, z, w] of the rotation component that a drop largest format drops in this segment
+			uint8_t rotation_dropped_component	= 3;
+			uint8_t padding[1]						= {};
 
 			bool is_stripped_from_output() const { return output_index == k_invalid_track_index; }
 

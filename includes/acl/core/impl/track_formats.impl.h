@@ -45,6 +45,8 @@ namespace acl
 		case rotation_format8::quatf_full:				return "quatf_full";
 		case rotation_format8::quatf_drop_w_full:		return "quatf_drop_w_full";
 		case rotation_format8::quatf_drop_w_variable:	return "quatf_drop_w_variable";
+		case rotation_format8::quatf_drop_largest_full:	return "quatf_drop_largest_full";
+		case rotation_format8::quatf_drop_largest_variable:	return "quatf_drop_largest_variable";
 		default:										return "<Invalid>";
 		}
 	}
@@ -79,6 +81,20 @@ namespace acl
 			|| std::strncmp(format, quatf_drop_w_variable_format, std::strlen(quatf_drop_w_variable_format)) == 0)
 		{
 			out_format = rotation_format8::quatf_drop_w_variable;
+			return true;
+		}
+
+		const char* quatf_drop_largest_full_format = "quatf_drop_largest_full";
+		if (std::strncmp(format, quatf_drop_largest_full_format, std::strlen(quatf_drop_largest_full_format)) == 0)
+		{
+			out_format = rotation_format8::quatf_drop_largest_full;
+			return true;
+		}
+
+		const char* quatf_drop_largest_variable_format = "quatf_drop_largest_variable";
+		if (std::strncmp(format, quatf_drop_largest_variable_format, std::strlen(quatf_drop_largest_variable_format)) == 0)
+		{
+			out_format = rotation_format8::quatf_drop_largest_variable;
 			return true;
 		}
 
@@ -147,22 +163,24 @@ namespace acl
 
 	constexpr rotation_variant8 get_rotation_variant(rotation_format8 rotation_format)
 	{
-		return rotation_format == rotation_format8::quatf_full ? rotation_variant8::quat : rotation_variant8::quat_drop_w;
+		return rotation_format == rotation_format8::quatf_full ? rotation_variant8::quat
+			: ((rotation_format == rotation_format8::quatf_drop_largest_full || rotation_format == rotation_format8::quatf_drop_largest_variable) ? rotation_variant8::quat_drop_largest : rotation_variant8::quat_drop_w);
 	}
 
 	constexpr rotation_format8 get_highest_variant_precision(rotation_variant8 variant)
 	{
-		return variant == rotation_variant8::quat ? rotation_format8::quatf_full : rotation_format8::quatf_drop_w_full;
+		return variant == rotation_variant8::quat ? rotation_format8::quatf_full
+			: (variant == rotation_variant8::quat_drop_largest ? rotation_format8::quatf_drop_largest_full : rotation_format8::quatf_drop_w_full);
 	}
 
 	constexpr bool is_rotation_format_variable(rotation_format8 format)
 	{
-		return format == rotation_format8::quatf_drop_w_variable;
+		return format == rotation_format8::quatf_drop_w_variable || format == rotation_format8::quatf_drop_largest_variable;
 	}
 
 	constexpr bool is_rotation_format_full_precision(rotation_format8 format)
 	{
-		return format == rotation_format8::quatf_full || format == rotation_format8::quatf_drop_w_full;
+		return format == rotation_format8::quatf_full || format == rotation_format8::quatf_drop_w_full || format == rotation_format8::quatf_drop_largest_full;
 	}
 
 	constexpr bool is_vector_format_variable(vector_format8 format)

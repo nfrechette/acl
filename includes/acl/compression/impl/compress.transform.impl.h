@@ -45,6 +45,7 @@
 #include "acl/compression/impl/compression_stats.h"
 #include "acl/compression/impl/track_stream.h"
 #include "acl/compression/impl/convert_rotation.transform.h"
+#include "acl/compression/impl/drop_component.transform.h"
 #include "acl/compression/impl/compact.transform.h"
 #include "acl/compression/impl/keyframe_stripping.h"
 #include "acl/compression/impl/normalize.transform.h"
@@ -325,6 +326,9 @@ namespace acl
 
 			// Compact and collapse the constant streams
 			compact_constant_streams(allocator, lossy_clip_context, space_context, track_list, settings, compression_stats);
+
+			// With a drop largest rotation format, select the rotation component that each segment drops
+			select_dropped_rotation_components(allocator, lossy_clip_context, segmenting_settings, settings.rotation_format);
 
 			// We now know whether the clip has scale
 			if (use_runtime_error_metric)

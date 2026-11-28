@@ -87,4 +87,7 @@ TEST_CASE("quat packing math", "[math][quat][packing]")
 	CHECK(get_range_reduction_rotation_size(rotation_format8::quatf_full) == 32);
 	CHECK(get_range_reduction_rotation_size(rotation_format8::quatf_drop_w_full) == 24);
 	CHECK(get_range_reduction_rotation_size(rotation_format8::quatf_drop_w_variable) == 24);
+	CHECK(get_packed_rotation_size(rotation_format8::quatf_drop_largest_full) == 12);
+	CHECK(get_range_reduction_rotation_size(rotation_format8::quatf_drop_largest_full) == 24);
+	CHECK(get_range_reduction_rotation_size(rotation_format8::quatf_drop_largest_variable) == 24);
 }

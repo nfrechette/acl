@@ -42,6 +42,7 @@
 #include <rtm/packing/quatf.h>
 
 #include <cstdint>
+#include <cstring>
 
 ACL_IMPL_FILE_PRAGMA_PUSH
 
@@ -630,9 +631,10 @@ namespace acl
 				// Our decompressed rotation as a vector4
 				rtm::vector4f rotation_as_vec;
 
-				if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
+				if (is_rotation_format_variable_supported<decompression_settings_type>(rotation_format))
 				{
-					const uint32_t num_bits_at_bit_rate = format_per_track_data[unpack_index];
+					// Bits [5, 6] hold the dropped component with the quatf_drop_largest_variable format, see write_format_per_track_data(..)
+					const uint32_t num_bits_at_bit_rate = format_per_track_data[unpack_index] & 0x1F;
 
 					uint32_t sample_segment_range_ignore_mask;
 					uint32_t sample_clip_range_ignore_mask;
@@ -704,7 +706,7 @@ namespace acl
 						rotation_as_vec = unpack_vector4_128_unsafe(animated_track_data, animated_track_data_bit_offset);
 						animated_track_data_bit_offset += 128;
 					}
-					else // rotation_format8::quatf_drop_w_full
+					else // rotation_format8::quatf_drop_w_full or rotation_format8::quatf_drop_largest_full
 					{
 						rotation_as_vec = unpack_vector3_96_unsafe(animated_track_data, animated_track_data_bit_offset);
 						animated_track_data_bit_offset += 96;
@@ -731,7 +733,7 @@ namespace acl
 #endif
 
 			// Update our pointers
-			if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
+			if (is_rotation_format_variable_supported<decompression_settings_type>(rotation_format))
 			{
 #if defined(ACL_IMPL_PREFETCH_EARLY)
 				// Prefetch the next cache line in all levels of the CPU cache
@@ -746,7 +748,7 @@ namespace acl
 
 			range_reduction_masks_t range_reduction_masks;	// function's return value
 
-			if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
+			if (is_rotation_format_variable_supported<decompression_settings_type>(rotation_format))
 			{
 #if defined(RTM_SSE2_INTRINSICS)
 				const __m128i ignore_masks_v8 = _mm_set_epi32(0, 0, static_cast<int32_t>(clip_range_ignore_mask), static_cast<int32_t>(segment_range_ignore_mask));
@@ -804,7 +806,7 @@ namespace acl
 
 			// Unpack sample
 			rtm::vector4f rotation_as_vec;
-			if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
+			if (is_rotation_format_variable_supported<decompression_settings_type>(rotation_format))
 			{
 				// Fall-through intentional
 				uint32_t skip_size = 0;
@@ -814,19 +816,19 @@ namespace acl
 				case 3:
 				{
 					// TODO: Can we do an alternate more efficient implementation? We want to increment by one if num bits == 31
-					const uint32_t num_bits_at_bit_rate = format_per_track_data[2];
+					const uint32_t num_bits_at_bit_rate = format_per_track_data[2] & 0x1F;
 					skip_size += (num_bits_at_bit_rate == num_raw_bit_rate_bits) ? 32 : num_bits_at_bit_rate;
 				}
 					ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL;
 				case 2:
 				{
-					const uint32_t num_bits_at_bit_rate = format_per_track_data[1];
+					const uint32_t num_bits_at_bit_rate = format_per_track_data[1] & 0x1F;
 					skip_size += (num_bits_at_bit_rate == num_raw_bit_rate_bits) ? 32 : num_bits_at_bit_rate;
 				}
 					ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL;
 				case 1:
 				{
-					const uint32_t num_bits_at_bit_rate = format_per_track_data[0];
+					const uint32_t num_bits_at_bit_rate = format_per_track_data[0] & 0x1F;
 					skip_size += (num_bits_at_bit_rate == num_raw_bit_rate_bits) ? 32 : num_bits_at_bit_rate;
 				}
 					ACL_SWITCH_CASE_FALLTHROUGH_INTENTIONAL;
@@ -838,7 +840,7 @@ namespace acl
 				// Skip prior samples
 				animated_track_data_bit_offset += skip_size * 3;
 
-				const uint32_t num_bits_at_bit_rate = format_per_track_data[unpack_index];
+				const uint32_t num_bits_at_bit_rate = format_per_track_data[unpack_index] & 0x1F;
 
 				if (num_bits_at_bit_rate == 0)	// Constant bit rate
 				{
@@ -901,7 +903,7 @@ namespace acl
 					animated_track_data_bit_offset += unpack_index * 128;
 					rotation_as_vec = unpack_vector4_128_unsafe(animated_track_data, animated_track_data_bit_offset);
 				}
-				else // rotation_format8::quatf_drop_w_full
+				else // rotation_format8::quatf_drop_w_full or rotation_format8::quatf_drop_largest_full
 				{
 					animated_track_data_bit_offset += unpack_index * 96;
 					rotation_as_vec = unpack_vector3_96_unsafe(animated_track_data, animated_track_data_bit_offset);
@@ -909,7 +911,7 @@ namespace acl
 			}
 
 			// Remap within our ranges
-			if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
+			if (is_rotation_format_variable_supported<decompression_settings_type>(rotation_format))
 			{
 				if (decomp_context.has_segments && segment_range_ignore_mask == 0)
 				{
@@ -991,6 +993,7 @@ namespace acl
 #if defined(RTM_SSE3_INTRINSICS)
 			const __m128i zero = _mm_setzero_si128();
 			const __m128i num_raw_bit_rate_bits_v = _mm_set1_epi32(static_cast<int32_t>(num_raw_bit_rate_bits));
+			const __m128i num_bits_mask = _mm_set1_epi32(0x1F);	// Bits [5, 6] can hold the dropped rotation component
 			__m128i group_bit_size_per_component0_v = zero;
 			__m128i group_bit_size_per_component1_v = zero;
 
@@ -1002,8 +1005,8 @@ namespace acl
 				const __m128i group_bit_size_per_component1_u8 = _mm_loadu_si128(bit_cast<const __m128i*>(format_per_track_data1 + group_offset));
 
 				// Unpack from uint8_t to uint32_t
-				__m128i group_bit_size_per_component0_u32 = _mm_unpacklo_epi16(_mm_unpacklo_epi8(group_bit_size_per_component0_u8, zero), zero);
-				__m128i group_bit_size_per_component1_u32 = _mm_unpacklo_epi16(_mm_unpacklo_epi8(group_bit_size_per_component1_u8, zero), zero);
+				__m128i group_bit_size_per_component0_u32 = _mm_and_si128(_mm_unpacklo_epi16(_mm_unpacklo_epi8(group_bit_size_per_component0_u8, zero), zero), num_bits_mask);
+				__m128i group_bit_size_per_component1_u32 = _mm_and_si128(_mm_unpacklo_epi16(_mm_unpacklo_epi8(group_bit_size_per_component1_u8, zero), zero), num_bits_mask);
 
 				if (version >= compressed_tracks_version16::v02_01_99_1)
 				{
@@ -1032,6 +1035,7 @@ namespace acl
 			out_group_bit_size_per_component1 = static_cast<uint32_t>(_mm_cvtsi128_si32(group_bit_size_per_component1_v));
 #elif defined(RTM_WASM128_INTRINSICS)
 			const v128_t num_raw_bit_rate_bits_v = wasm_i32x4_splat(static_cast<int32_t>(num_raw_bit_rate_bits));
+			const v128_t num_bits_mask = wasm_i32x4_splat(0x1F);	// Bits [5, 6] can hold the dropped rotation component
 			v128_t group_bit_size_per_component0_v = wasm_i32x4_splat(0);
 			v128_t group_bit_size_per_component1_v = wasm_i32x4_splat(0);
 
@@ -1044,8 +1048,8 @@ namespace acl
 				const v128_t group_bit_size_per_component0_u8 = wasm_v128_load32_zero(format_per_track_data0 + group_offset);
 				const v128_t group_bit_size_per_component1_u8 = wasm_v128_load32_zero(format_per_track_data1 + group_offset);
 
-				v128_t group_bit_size_per_component0_u32 = wasm_u32x4_extend_low_u16x8(wasm_u16x8_extend_low_u8x16(group_bit_size_per_component0_u8));
-				v128_t group_bit_size_per_component1_u32 = wasm_u32x4_extend_low_u16x8(wasm_u16x8_extend_low_u8x16(group_bit_size_per_component1_u8));
+				v128_t group_bit_size_per_component0_u32 = wasm_v128_and(wasm_u32x4_extend_low_u16x8(wasm_u16x8_extend_low_u8x16(group_bit_size_per_component0_u8)), num_bits_mask);
+				v128_t group_bit_size_per_component1_u32 = wasm_v128_and(wasm_u32x4_extend_low_u16x8(wasm_u16x8_extend_low_u8x16(group_bit_size_per_component1_u8)), num_bits_mask);
 
 				if (version >= compressed_tracks_version16::v02_01_99_1)
 				{
@@ -1082,14 +1086,14 @@ namespace acl
 			{
 				// TODO: Can we do an alternate more efficient implementation? We want to increment by one if num bits == 31
 
-				const uint32_t num_bits_at_bit_rate_0_0 = format_per_track_data0[(group_index * 4) + 0];
-				const uint32_t num_bits_at_bit_rate_1_0 = format_per_track_data1[(group_index * 4) + 0];
-				const uint32_t num_bits_at_bit_rate_0_1 = format_per_track_data0[(group_index * 4) + 1];
-				const uint32_t num_bits_at_bit_rate_1_1 = format_per_track_data1[(group_index * 4) + 1];
-				const uint32_t num_bits_at_bit_rate_0_2 = format_per_track_data0[(group_index * 4) + 2];
-				const uint32_t num_bits_at_bit_rate_1_2 = format_per_track_data1[(group_index * 4) + 2];
-				const uint32_t num_bits_at_bit_rate_0_3 = format_per_track_data0[(group_index * 4) + 3];
-				const uint32_t num_bits_at_bit_rate_1_3 = format_per_track_data1[(group_index * 4) + 3];
+				const uint32_t num_bits_at_bit_rate_0_0 = format_per_track_data0[(group_index * 4) + 0] & 0x1F;
+				const uint32_t num_bits_at_bit_rate_1_0 = format_per_track_data1[(group_index * 4) + 0] & 0x1F;
+				const uint32_t num_bits_at_bit_rate_0_1 = format_per_track_data0[(group_index * 4) + 1] & 0x1F;
+				const uint32_t num_bits_at_bit_rate_1_1 = format_per_track_data1[(group_index * 4) + 1] & 0x1F;
+				const uint32_t num_bits_at_bit_rate_0_2 = format_per_track_data0[(group_index * 4) + 2] & 0x1F;
+				const uint32_t num_bits_at_bit_rate_1_2 = format_per_track_data1[(group_index * 4) + 2] & 0x1F;
+				const uint32_t num_bits_at_bit_rate_0_3 = format_per_track_data0[(group_index * 4) + 3] & 0x1F;
+				const uint32_t num_bits_at_bit_rate_1_3 = format_per_track_data1[(group_index * 4) + 3] & 0x1F;
 
 				group_bit_size_per_component0 += (num_bits_at_bit_rate_0_0 == num_raw_bit_rate_bits) ? 32 : num_bits_at_bit_rate_0_0;
 				group_bit_size_per_component1 += (num_bits_at_bit_rate_1_0 == num_raw_bit_rate_bits) ? 32 : num_bits_at_bit_rate_1_0;
@@ -1170,7 +1174,7 @@ namespace acl
 				segment_sampling_context_rotations[1].animated_track_data_bit_offset = animated_track_data_bit_offset_rotations1;
 
 				const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(decomp_context.rotation_format);
-				const bool are_rotations_variable = rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable);
+				const bool are_rotations_variable = is_rotation_format_variable_supported<decompression_settings_type>(rotation_format);
 
 				const uint32_t num_animated_rotation_sub_tracks_padded = align_to(transform_header.num_animated_rotation_sub_tracks, 4);
 
@@ -1258,7 +1262,7 @@ namespace acl
 
 				// We start by unpacking our segment range data into our scratch memory
 				// We often only use a single segment to interpolate, we can avoid redundant work
-				if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
+				if (is_rotation_format_variable_supported<decompression_settings_type>(rotation_format))
 				{
 					if (decomp_context.has_segments)
 					{
@@ -1276,6 +1280,10 @@ namespace acl
 					}
 				}
 
+				// With the quatf_drop_largest_variable format, the per sub-track metadata of each segment holds the dropped component
+				const uint8_t* format_per_track_data_rotations0 = segment_sampling_context_rotations[0].format_per_track_data;
+				const uint8_t* format_per_track_data_rotations1 = segment_sampling_context_rotations[1].format_per_track_data;
+
 				const range_reduction_masks_t range_reduction_masks0 = unpack_animated_quat<decompression_settings_type>(decomp_context, scratch0, num_to_unpack, segment_sampling_context_rotations[0]);
 				const range_reduction_masks_t range_reduction_masks1 = unpack_animated_quat<decompression_settings_type>(decomp_context, scratch1, num_to_unpack, segment_sampling_context_rotations[1]);
 
@@ -1292,6 +1300,41 @@ namespace acl
 				rtm::vector4f scratch1_wwww;
 				RTM_MATRIXF_TRANSPOSE_4X4(scratch1[0], scratch1[1], scratch1[2], scratch1[3], scratch1_xxxx, scratch1_yyyy, scratch1_zzzz, scratch1_wwww);
 
+				// With a drop largest format, find the lanes that drop [x], [y], or [z], the other lanes drop [w]
+				rtm::mask4f drops_x0;
+				rtm::mask4f drops_y0;
+				rtm::mask4f drops_z0;
+				rtm::mask4f drops_x1;
+				rtm::mask4f drops_y1;
+				rtm::mask4f drops_z1;
+				bool drops_other_than_w = false;
+				if (is_rotation_format_drop_largest_variable_supported<decompression_settings_type>(rotation_format))
+				{
+					// Bits [5, 6] of the per sub-track metadata, the groups are padded to 4 entries
+					// When each track of the group drops W in both segments, we have nothing to move
+					uint32_t packed_metadata0;
+					uint32_t packed_metadata1;
+					std::memcpy(&packed_metadata0, format_per_track_data_rotations0, sizeof(uint32_t));
+					std::memcpy(&packed_metadata1, format_per_track_data_rotations1, sizeof(uint32_t));
+					drops_other_than_w = ((packed_metadata0 | packed_metadata1) & 0x60606060U) != 0;
+
+					get_dropped_component_masks_x4(format_per_track_data_rotations0, drops_x0, drops_y0, drops_z0);
+					get_dropped_component_masks_x4(format_per_track_data_rotations1, drops_x1, drops_y1, drops_z1);
+				}
+				else if (is_rotation_format_drop_largest_full_supported<decompression_settings_type>(rotation_format))
+				{
+					// Bit 30 of [x] and [y] of each sample, we clear it before we rebuild the dropped component
+					decode_dropped_component_from_floats_x4(scratch0_xxxx, scratch0_yyyy, drops_x0, drops_y0, drops_z0);
+					decode_dropped_component_from_floats_x4(scratch1_xxxx, scratch1_yyyy, drops_x1, drops_y1, drops_z1);
+					drops_other_than_w = true;
+				}
+				else
+				{
+					drops_x0 = drops_y0 = drops_z0 = drops_x1 = drops_y1 = drops_z1 = rtm::mask_set(false, false, false, false);
+				}
+				(void)format_per_track_data_rotations0;
+				(void)format_per_track_data_rotations1;
+
 #if defined(ACL_IMPL_USE_AVX_8_WIDE_DECOMP)
 				__m256 scratch_xxxx0_xxxx1 = _mm256_set_m128(scratch1_xxxx, scratch0_xxxx);
 				__m256 scratch_yyyy0_yyyy1 = _mm256_set_m128(scratch1_yyyy, scratch0_yyyy);
@@ -1299,7 +1342,7 @@ namespace acl
 #endif
 
 				// If we have a variable bit rate, we perform range reduction, skip the data we used
-				if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
+				if (is_rotation_format_variable_supported<decompression_settings_type>(rotation_format))
 				{
 					if (decomp_context.has_segments)
 					{
@@ -1349,7 +1392,7 @@ namespace acl
 					scratch0_wwww = quat_from_positive_w_x4(scratch0_xxxx, scratch0_yyyy, scratch0_zzzz);
 
 #if !defined(ACL_IMPL_PREFETCH_EARLY)
-					if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
+					if (is_rotation_format_variable_supported<decompression_settings_type>(rotation_format))
 					{
 						// Our segment per track metadata takes 4 bytes per group (4 samples, 1 byte each), each cache line fits 16 groups
 						// Prefetch every other 8th group
@@ -1366,7 +1409,7 @@ namespace acl
 					scratch1_wwww = quat_from_positive_w_x4(scratch1_xxxx, scratch1_yyyy, scratch1_zzzz);
 
 #if !defined(ACL_IMPL_PREFETCH_EARLY)
-					if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
+					if (is_rotation_format_variable_supported<decompression_settings_type>(rotation_format))
 					{
 						// Our clip range data is 24 bytes per sub-track and as such we need to prefetch two cache lines ahead to process 4 sub-tracks
 						// Each group is 96 bytes (4 samples, 24 bytes each), each cache line fits 0.67 groups
@@ -1377,6 +1420,13 @@ namespace acl
 					}
 #endif
 #endif
+
+					// With a drop largest format, the rebuilt component is in [w], we move each component to its place
+					if (is_rotation_format_drop_largest_supported<decompression_settings_type>(rotation_format) && drops_other_than_w)
+					{
+						quat_restore_dropped_component_x4(scratch0_xxxx, scratch0_yyyy, scratch0_zzzz, scratch0_wwww, drops_x0, drops_y0, drops_z0);
+						quat_restore_dropped_component_x4(scratch1_xxxx, scratch1_yyyy, scratch1_zzzz, scratch1_wwww, drops_x1, drops_y1, drops_z1);
+					}
 
 					if (decompression_settings_type::get_rotation_normalization_policy() == rotation_normalization_policy_t::always)
 					{
@@ -1589,7 +1639,7 @@ namespace acl
 				rotations.num_left_to_unpack = num_left_to_unpack - num_to_skip;
 
 				const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(decomp_context.rotation_format);
-				if (rotation_format == rotation_format8::quatf_drop_w_variable && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_drop_w_variable))
+				if (is_rotation_format_variable_supported<decompression_settings_type>(rotation_format))
 				{
 					const uint8_t* format_per_track_data0 = segment_sampling_context_rotations[0].format_per_track_data;
 					const uint8_t* format_per_track_data1 = segment_sampling_context_rotations[1].format_per_track_data;
@@ -1616,7 +1666,7 @@ namespace acl
 					uint32_t group_bit_size;
 					if (rotation_format == rotation_format8::quatf_full && decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full))
 						group_bit_size = 32 * 4 * 4 * num_groups_to_skip;
-					else // drop w full
+					else // drop w full or drop largest full
 						group_bit_size = 32 * 3 * 4 * num_groups_to_skip;
 
 					segment_sampling_context_rotations[0].animated_track_data_bit_offset += group_bit_size;
@@ -1644,8 +1694,29 @@ namespace acl
 				// Reconstruct our quaternion W component
 				if (rotation_format != rotation_format8::quatf_full || !decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full))
 				{
-					sample0 = quat_from_positive_w_stable(sample_as_vec0);
-					sample1 = quat_from_positive_w_stable(sample_as_vec1);
+					if (is_rotation_format_drop_largest_variable_supported<decompression_settings_type>(rotation_format))
+					{
+						// Bits [5, 6] of the per sub-track metadata of each segment hold the dropped component
+						const uint32_t dropped_component0 = decode_dropped_component(segment_sampling_context_rotations[0].format_per_track_data[unpack_index] >> 5);
+						const uint32_t dropped_component1 = decode_dropped_component(segment_sampling_context_rotations[1].format_per_track_data[unpack_index] >> 5);
+						sample0 = quat_restore_dropped_component(quat_from_positive_w_stable(sample_as_vec0), dropped_component0);
+						sample1 = quat_restore_dropped_component(quat_from_positive_w_stable(sample_as_vec1), dropped_component1);
+					}
+					else if (is_rotation_format_drop_largest_full_supported<decompression_settings_type>(rotation_format))
+					{
+						// Bit 30 of [x] and [y] of each sample holds the dropped component
+						uint32_t dropped_component0;
+						uint32_t dropped_component1;
+						const rtm::vector4f packed_sample0 = decode_dropped_component_from_floats(sample_as_vec0, dropped_component0);
+						const rtm::vector4f packed_sample1 = decode_dropped_component_from_floats(sample_as_vec1, dropped_component1);
+						sample0 = quat_restore_dropped_component(quat_from_positive_w_stable(packed_sample0), dropped_component0);
+						sample1 = quat_restore_dropped_component(quat_from_positive_w_stable(packed_sample1), dropped_component1);
+					}
+					else
+					{
+						sample0 = quat_from_positive_w_stable(sample_as_vec0);
+						sample1 = quat_from_positive_w_stable(sample_as_vec1);
+					}
 
 					if (decompression_settings_type::get_rotation_normalization_policy() == rotation_normalization_policy_t::always)
 					{

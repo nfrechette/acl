@@ -61,8 +61,10 @@ namespace acl
 			case rotation_format8::quatf_full:
 				return unpack_vector4_128(ptr);
 			case rotation_format8::quatf_drop_w_full:
+			case rotation_format8::quatf_drop_largest_full:
 				return unpack_vector3_96_unsafe(ptr);
 			case rotation_format8::quatf_drop_w_variable:
+			case rotation_format8::quatf_drop_largest_variable:
 				ACL_ASSERT(bit_rate != k_invalid_bit_rate, "Invalid bit rate!");
 				if (is_constant_bit_rate(bit_rate))
 				{
@@ -105,7 +107,8 @@ namespace acl
 		}
 
 		// Returns a normalized rotation quaternion
-		inline rtm::quatf RTM_SIMD_CALL rotation_to_quat_32(rtm::vector4f_arg0 rotation, rotation_format8 format)
+		// With a drop largest format, 'dropped_component' is the index of the dropped component, see 'quat_drop_component'
+		inline rtm::quatf RTM_SIMD_CALL rotation_to_quat_32(rtm::vector4f_arg0 rotation, rotation_format8 format, uint32_t dropped_component)
 		{
 			switch (format)
 			{
@@ -117,6 +120,20 @@ namespace acl
 				// quat_from_positive_w might not yield an accurate quaternion because the square-root instruction
 				// isn't very accurate on small inputs, we need to normalize
 				return quat_normalize_stable(quat_from_positive_w_stable(rotation));
+			case rotation_format8::quatf_drop_largest_full:
+			{
+				// A constant sample, or a sample of the quatf_drop_largest_full format, holds the index of its dropped
+				// component in bit 30 of [x] and [y]. Its transform stream holds W.
+				// Before the quantization, the animated samples of the quatf_drop_largest_variable format also have this
+				// format but hold no bits: the transform stream of the segment holds the index.
+				uint32_t sample_dropped_component;
+				const rtm::vector4f packed_rotation = decode_dropped_component_from_floats(rotation, sample_dropped_component);
+				const uint32_t component = sample_dropped_component != 3 ? sample_dropped_component : dropped_component;
+				return quat_restore_dropped_component(quat_normalize_stable(quat_from_positive_w_stable(packed_rotation)), component);
+			}
+			case rotation_format8::quatf_drop_largest_variable:
+				// The transform stream of the segment holds the index of the dropped component
+				return quat_restore_dropped_component(quat_normalize_stable(quat_from_positive_w_stable(rotation)), dropped_component);
 			default:
 				ACL_ASSERT(false, "Invalid or unsupported rotation format: " ACL_ASSERT_STRING_FORMAT_SPECIFIER, get_rotation_format_name(format));
 				return rtm::quat_identity();
@@ -132,7 +149,7 @@ namespace acl
 			const rotation_format8 format = bone_steams.rotations.get_rotation_format();
 			const uint8_t bit_rate = bone_steams.rotations.get_bit_rate();
 
-			if (format == rotation_format8::quatf_drop_w_variable && is_constant_bit_rate(bit_rate))
+			if (is_rotation_format_variable(format) && is_constant_bit_rate(bit_rate))
 				sample_index = 0;
 
 			const uint8_t* quantized_ptr = bone_steams.rotations.get_raw_sample_ptr(sample_index);
@@ -159,7 +176,7 @@ namespace acl
 				packed_rotation = rtm::vector_mul_add(packed_rotation, clip_range_extent, clip_range_min);
 			}
 
-			return acl_impl::rotation_to_quat_32(packed_rotation, format);
+			return acl_impl::rotation_to_quat_32(packed_rotation, format, bone_steams.rotation_dropped_component);
 		}
 
 		// Gets a rotation sample at the specified bit rate
@@ -180,7 +197,7 @@ namespace acl
 			{
 				const uint8_t* quantized_ptr = raw_bone_steams.rotations.get_raw_sample_ptr(segment->clip_sample_offset + sample_index);
 				const rtm::vector4f rotation = acl_impl::load_rotation_sample(quantized_ptr, rotation_format8::quatf_full, k_invalid_bit_rate);
-				packed_rotation = convert_rotation(rotation, rotation_format8::quatf_full, format);
+				packed_rotation = convert_rotation(rotation, rotation_format8::quatf_full, format, bone_steams.rotation_dropped_component);
 			}
 			else
 			{
@@ -211,7 +228,7 @@ namespace acl
 				packed_rotation = rtm::vector_mul_add(packed_rotation, clip_range_extent, clip_range_min);
 			}
 
-			return acl_impl::rotation_to_quat_32(packed_rotation, format);
+			return acl_impl::rotation_to_quat_32(packed_rotation, format, bone_steams.rotation_dropped_component);
 		}
 
 		// Gets a rotation sample with the desired format
@@ -232,9 +249,11 @@ namespace acl
 			{
 			case rotation_format8::quatf_full:
 			case rotation_format8::quatf_drop_w_full:
+			case rotation_format8::quatf_drop_largest_full:
 				packed_rotation = rotation;
 				break;
 			case rotation_format8::quatf_drop_w_variable:
+			case rotation_format8::quatf_drop_largest_variable:
 			default:
 				ACL_ASSERT(false, "Invalid or unsupported rotation format: " ACL_ASSERT_STRING_FORMAT_SPECIFIER, get_rotation_format_name(desired_format));
 				packed_rotation = rtm::vector_zero();
@@ -262,7 +281,7 @@ namespace acl
 				packed_rotation = rtm::vector_mul_add(packed_rotation, clip_range_extent, clip_range_min);
 			}
 
-			return acl_impl::rotation_to_quat_32(packed_rotation, format);
+			return acl_impl::rotation_to_quat_32(packed_rotation, format, bone_steams.rotation_dropped_component);
 		}
 
 		// Gets a translation sample from the format/bit rate stored

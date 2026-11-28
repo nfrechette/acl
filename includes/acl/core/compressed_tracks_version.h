@@ -78,6 +78,7 @@ namespace acl
 
 		v02_02_99_0	= 11,			///< ACL v2.2.0-wip (extended scalar sample support)
 		v02_02_99_1	= 12,			///< ACL v2.2.0-wip (vqf and vqsf transform track types)
+		v02_02_99_2	= 13,			///< ACL v2.2.0-wip (rotation formats that drop the largest component)
 
 		/// First version marker, this is equal to the first version supported: ACL 2.0.0
 		/// Versions prior to ACL 2.0 are not backwards compatible.
@@ -85,7 +86,7 @@ namespace acl
 		first		= v02_00_00,
 
 		/// Always assigned to the latest version supported.
-		latest		= v02_02_99_1,
+		latest		= v02_02_99_2,
 	};
 
 	ACL_IMPL_VERSION_NAMESPACE_END
