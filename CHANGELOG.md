@@ -2,93 +2,99 @@
 
 ## Unreleased
 
-*  Add extended samples to scalar tracks, each sample can use a constant or a linear interpolation, see [extended samples](docs/extended_samples.md)
-*  Fix scalar tracks with more than one component that always used the raw bit rate
-*  Add the `scalar_format` compression setting, it defaults to full precision like the transform formats
-*  Default `compression_settings` now keep scalar tracks with full precision, use `get_default_compression_settings()` for variable bit rates
-*  Fix `pre_process_track_list` with extended scalar samples, it now changes only the sample values
-*  Compression ignores the sample interpolators that have no effect when it selects the interpolation mode of a track
-*  Add the `-analyze` action to `make.py` to run the clang static analyzer on the public headers
-*  Disable fast math with the `float_control` pragma under Clang where the target supports it
-*  Disable floating point contraction (FMA) in the ACL headers with the `clang fp contract(off)` pragma under Clang, on the targets that support `float_control`: x86, x64, AArch64 (Clang 16+, Apple Clang 15+), and RISC-V (Clang 18+). With `-ffp-contract=fast`, LLVM Clang ignores the pragma: use `-ffp-contract=fast-honor-pragmas`
-*  Add the `-fast_math` option to `make.py` to compile the public headers with fast math, and a CI workflow that uses it
-*  Add native Linux `riscv64` builds to `make.py`, they use the scalar code path of RTM
-*  Add Linux `armv7` cross compilation to `make.py` with GCC and Clang, `qemu-arm` runs the unit tests
-*  Fix `split_database_bulk_data` that gave a null pointer to `std::memcpy` when a quality tier is empty
-*  ACL now applies the additive base to the `rtm::vqvf` source transforms before `convert_transforms`, `apply_additive_to_base` always receives `rtm::vqvf` transforms
-*  Loop optimization and the detailed segment stats now support error metrics that convert transforms
-*  Fix the SoA quaternion rotation of the error metrics, two terms had the wrong sign
-*  Add the `-error_vqv` option and the `use_vqv_error_metric` config option to `acl_compressor`, they select the `vqvf` runtime transform type
-*  The `-error_mtx` option of `acl_compressor` now selects the `matrix3x4f` runtime transform type, it supports additive clips
-*  Add the `vqf` transform track type (rotation and translation, no scale) with `track_vqf` and `track_array_vqf`, the compressed tracks keep the type of the raw tracks
-*  Add the compressed data version `v02_02_99_1` for the `vqf` track type
-*  Decompression does not write the scale of a `vqf` clip, the default transform decompression settings accept `vqf` and `vqvf`
-*  Add the `convert_transform_type` pre-process action and `pre_process_settings_t::transform_type` to convert between `vqvf` and `vqf`
-*  The additive overloads of `compress_track_list` and `calculate_compression_error` take a `track_array`, the clip and its base can have different transform types
-*  `pre_process_settings_t::additive_base` is now a `const track_array*`
-*  The clip reader and writer support `vqf` tracks in the track list format
-*  Add the `-source_vq` option to `acl_compressor` and its python script, it compresses the clips without scale as `vqf` tracks
-*  Add the `vqsf` transform track type (rotation, translation, and uniform scale) with `track_vqsf` and `track_array_vqsf`, the compressed data version `v02_02_99_1` also covers it
-*  A compressed `vqsf` clip stores one scale component for each scale sub-track: the constant samples, the clip and segment ranges, and the animated samples are smaller than with `vqvf`
-*  Decompression writes the scale of a `vqsf` clip with the new `track_writer::write_scale(uint32_t, rtm::scalarf_arg0)` overload when the track writer has it, otherwise with the `rtm::vector4f_arg0` overload and the value in [xyzw]
-*  The default transform decompression settings accept `vqsf`
-*  The `convert_transform_type` pre-process action converts between `vqvf`, `vqsf`, and `vqf`
-*  The clip reader and writer support `vqsf` tracks in the track list format
-*  Add the `-source_vqs` option to `acl_compressor` and its python script, it compresses the clips without scale or with a uniform scale as `vqsf` tracks
-*  Add `transform_runtime_type_t` and the transform adapters (`itransform_adapter`): `vqf_transform_adapter`, `vqsf_transform_adapter`, `vqvf_transform_adapter`, `vqmf_transform_adapter`, and `matrix3x4f_transform_adapter`, see [error metrics](docs/error_metrics.md)
-*  Add the transform metrics (`itransform_metric`): `shell_transform_metric` and `precise_transform_metric`, they measure the error through a transform adapter
+See [migrating](docs/migrating.md) for the changes that can affect your code.
+
+### Breaking changes and deprecations
+
+*  ACL needs RTM 2.4.0 or later
+*  The `qvv` names are now `vqv`, as in RTM 2.4: `track_vqvf`, `track_array_vqvf`, `track_type8::vqvf`, `vqvf_transform_error_metric`, and `acl/math/vqvf.h`. The `qvv` names are deprecated, and ACL 2.3 will remove them
+*  A `compression_settings` that you construct keeps the scalar tracks with full precision. Use `get_default_compression_settings()` or the new `scalar_format` setting for a variable bit rate
+*  Deprecate the legacy error metrics: `itransform_error_metric`, the built-in legacy metrics, `compression_settings::error_metric`, `pre_process_settings_t::error_metric`, and the `calculate_compression_error` overloads that take a legacy metric. ACL 2.3 will remove them
+*  Deprecate the `compress_track_list` overload that takes an additive base and an additive format, and `pre_process_settings_t::additive_base` and `additive_format`. Use `transform_base_desc_t`. ACL 2.3 will remove them
+*  ACL applies the additive base before `convert_transforms`: `apply_additive_to_base` of a legacy error metric always receives `rtm::vqvf` transforms
+*  The default compression settings use the `quatf_drop_largest_variable` rotation format, and `default_transform_decompression_settings` supports only this rotation format. To decompress the clips that use `quatf_drop_w_variable`, override `is_rotation_format_supported` in your decompression settings
+*  All the public functions that return a value use the new `ACL_NO_DISCARD` macro. With C++17 and later, it is `[[nodiscard]]`, and the compiler gives a warning when your code does not use the return value. Define `ACL_NO_DISCARD` before you include ACL to use a different attribute, or none. See [configuration macros](docs/configuration_macros.md)
+*  The compiler gives a warning when your code uses a deprecated API. Define `ACL_NO_DEPRECATION` to disable the warnings
+*  The compressed data version is now `v02_02_00`. ACL 2.2 decompresses the data of ACL 2.0 and 2.1
+
+### Transform tracks
+
+*  Add the `vqf` transform track type (rotation and translation) and the `vqsf` transform track type (rotation, translation, and uniform scale), with `track_vqf`, `track_array_vqf`, `track_vqsf`, and `track_array_vqsf`. The compressed tracks keep the type of the raw tracks
+*  A compressed `vqsf` clip stores one scale component in place of three: the constant samples, the ranges, and the animated samples are smaller than with `vqvf`
+*  Decompression writes the scale of a `vqsf` clip with the new `track_writer::write_scale(uint32_t, rtm::scalarf_arg0)` overload when the track writer has it. It does not write the scale of a `vqf` clip
+*  Add the `convert_transform_type` pre-process action and `pre_process_settings_t::transform_type` to convert between `vqvf`, `vqsf`, and `vqf`
+*  Add the runtime transform type (`transform_runtime_type_t`), the transform adapters (`itransform_adapter`), and the transform metrics (`itransform_metric`). Compression measures the error with the arithmetic of your runtime: VQ, VQS, VQV, VQM, matrix, or your own type. See [error metrics](docs/error_metrics.md)
+*  Add the built-in transform adapters (`vqf_transform_adapter`, `vqsf_transform_adapter`, `vqvf_transform_adapter`, `vqmf_transform_adapter`, and `matrix3x4f_transform_adapter`) and transform metrics (`shell_transform_metric` and `precise_transform_metric`)
 *  Add the `transform_runtime_type`, `custom_transform_adapter`, and `transform_metric` settings to `compression_settings` and `pre_process_settings_t`
-*  The default runtime transform type `automatic` uses VQM arithmetic with scale, or VQS arithmetic with `vqsf` raw tracks
-*  Compression uses VQ arithmetic and the precise metric for each segment without scale, it measures the exact error: the compressed size can be slightly larger and fewer clips have an error above the threshold
-*  Compression always uses a custom transform adapter, also for a segment without scale
-*  Deprecate `compression_settings::error_metric` and `pre_process_settings_t::error_metric` with `ACL_DEPRECATED`, the compiler warns when you use them and ACL 2.3 will remove them, see [migrating](docs/migrating.md)
-*  Deprecate `itransform_error_metric`, the legacy error metrics, and the `calculate_compression_error` overloads that take one, ACL 2.3 will remove them
-*  Add the `calculate_compression_error` overloads that take the compression settings, they measure the error as compression does
-*  The bit rate algorithm v2 supports each runtime transform type, VQS, matrix, and custom transform types no longer use the bit rate algorithm v1
-*  The built-in transform adapters and metrics use code without virtual function calls, compression is faster
-*  Fix the bit rate algorithm v1 that converted transforms that it did not sample, an assert could fail with an additive base
-*  The documentation explains floating point contraction ([other considerations](docs/misc_integration_details.md)). With GCC, the headers do not disable contraction: GCC uses `-ffp-contract=fast` by default in C++ and merges the operations of the inlined functions, and a pragma with other optimization options stops GCC from inlining the functions. To get the same results on all the targets with GCC, compile with `-ffp-contract=off`
-*  Add `transform_space_t`: the space of the transform tracks, `track_array::set_transform_space` sets it, compression, pre-processing, and `calculate_compression_error` use it, see [additive clips](docs/additive_clips.md)
-*  Add `transform_base_desc_t`: the base of the transform tracks and its base format
-*  Add the `compress_track_list` overload that takes a `transform_base_desc_t`, and deprecate the overload that takes an additive base and an additive format, ACL 2.3 will remove it
-*  Add `pre_process_settings_t::transform_base`, and deprecate `pre_process_settings_t::additive_base` and `additive_format`, ACL 2.3 will remove them
-*  The `calculate_compression_error` overload with the compression settings and a base now takes a `transform_base_desc_t`
-*  The `calculate_compression_error` overloads that take a legacy error metric support only transform tracks in local space
-*  The clip reader reads the optional `transform_space` value of a raw clip into the transform space of its track list, it defaults to `local`
-*  `convert_track_list` converts a track array in each transform space
-*  Add the `mesh` transform space: each transform is in object space, compression measures the error of each transform without its parent, and it combines the clip with the base in mesh space
-*  Add the `-mesh_space` option and the `is_mesh_space` config option to `acl_compressor` and its python script, they convert a local space clip into mesh space
-*  Add two regression configurations in mesh space, without a base and with a relative base
-*  Add the `mesh_rotation` transform space: the rotations are in object space, the translations and scales are in local space, it supports the `vqf`, `vqsf`, `vqvf`, and `vqmf` runtime transform types, it does not support the `relative` base format
-*  Add the `-mesh_rotation_space` option and the `is_mesh_rotation_space`, `is_bind_pose_additive0`, and `is_bind_pose_additive1` config options to `acl_compressor`, and two regression configurations in mesh rotation space
-*  In the mesh rotation space, the bit rate search caches the transforms of the `vqf` and `vqsf` types, as in local space
-*  Add the `custom` base format and `itransform_base_adapter_t`: a base adapter combines each transform with the base, set it in `transform_base_desc_t::adapter`, see [additive clips](docs/additive_clips.md#custom-base-format)
-*  Add the `-base_custom` option and the `use_custom_base_format` config option to `acl_compressor`, and a regression configuration: they compress the clip with the `custom` base format and a base adapter that applies the built-in base format of the clip
-*  Fix the `max_error` stat of `acl_compressor` that ignored the additive base
-*  Compression no longer normalizes a transform after it combines it with the additive base, as the error measurement and the runtime: the bit rate search, the constant track detection, and the shell distances now measure the same error as `calculate_compression_error`
-*  Add the uniform playback scale of a clip with `track_array::set_playback_scale`: the precision, the keyframe stripping threshold, and the measured error are in playback units, see [playback scale](docs/creating_a_raw_track_list.md#playback-scale)
-*  Add the `-playback_scale=` option and the `playback_scale` config option to `acl_compressor` and its python script, and a regression configuration
-*  The clip writer writes the transform space and the playback scale of transform tracks, and the clip reader reads the optional `transform_space` and `playback_scale` values in the raw clip and the track list formats
-*  Add `estimate_compression_peak_memory_usage` to estimate the peak memory usage of `compress_track_list` before compression, from a track list or from a `compression_memory_desc_t` with the numbers of tracks and samples, see [compressing raw tracks](docs/compressing_raw_tracks.md#peak-memory-usage)
-*  Compression does not allocate the bit rate database when no format is variable: with full precision formats, the peak memory usage is 37% to 64% lower
-*  Fix the compression, the pre-processing, and `calculate_compression_error` of a clip with one sample and a base with more than one sample: the clip now uses the first base sample, before it asserted with a NaN interpolation alpha
-*  Fix the `track_bit_rate_database_size` value of the detailed stats: it added the number of bitset entries instead of their size in bytes
-*  Add the `sanitize_identity_rotations` pre-process action, it is part of the recommended actions: with the lossy policy, it sets the [xyz] components of each rotation with W = 1.0 or W = -1.0 to 0.0 when the error stays within the precision
-*  Add WASM SIMD code paths where ACL uses SSE2 or NEON intrinsics directly. With V8 on arm64, the time to decompress a full pose is 15% lower
-*  Add a documentation site: Doxygen reads the `///` comments of the public headers, and MkDocs makes the site with the guides and the API reference for develop and for each release
-*  Add the [configuration macros](docs/configuration_macros.md) page: it lists each macro that configures ACL
+*  The default runtime transform type, `automatic`, uses VQM arithmetic with scale, or VQS arithmetic with `vqsf` tracks. Each segment without scale uses VQ arithmetic and the precise metric: the error is exact, the compressed size can be slightly larger, and fewer clips have an error above the threshold
+*  Add the transform space of a track array (`transform_space_t`, `track_array::set_transform_space`): `local`, `mesh`, and `mesh_rotation`. The `mesh_rotation` space does not support the `relative` base format. See [additive clips](docs/additive_clips.md)
+*  Add `transform_base_desc_t` for the base of a clip, and `pre_process_settings_t::transform_base`. The clip and its base can have different transform types
+*  Add the `custom` base format: a base adapter (`itransform_base_adapter_t`) combines each transform with the base
+*  Add the uniform playback scale of a clip (`track_array::set_playback_scale`). The precision, the keyframe stripping threshold, and the measured error are in playback units
+*  Add the `sanitize_identity_rotations` pre-process action to the recommended actions. With the lossy policy, it sets the [xyz] components of a rotation with W = 1.0 or W = -1.0 to 0.0
+*  Add the `quatf_drop_largest_full` and `quatf_drop_largest_variable` rotation formats: a rotation drops another component than W to keep the dropped component far from 0. See [rotation formats](docs/rotation_and_vector_formats.md#dropping-the-largest-quaternion-component). With `quatf_drop_largest_variable`, each segment of a track drops the component whose smallest absolute value is the largest. A constant rotation, and each sample with `quatf_drop_largest_full`, drops its largest component. The index of the dropped component uses no additional memory
+*  On two data sets of raw clips, `quatf_drop_largest_variable` gives a compressed size 0.5% and 3.2% smaller than `quatf_drop_w_variable`, and the number of clips with an error above 0.02 goes from 115 to 0 and from 749 to 2. On arm64, the time to decompress a full pose is about 4% higher
+*  The clip reader and the clip writer support the `vqf` and `vqsf` tracks, the transform space, and the playback scale
+
+### Scalar tracks
+
+*  Add extended samples to scalar tracks: each sample can use a constant or a linear interpolation. See [extended samples](docs/extended_samples.md)
+*  Add the `scalar_format` compression setting. Its default value is full precision, the same as the transform formats
+*  A track writer can skip the scalar tracks that the runtime does not need, with `skip_track_float1` to `skip_track_float4` and `skip_track_vector4`
+*  Fix the scalar tracks with more than one component that always used the raw bit rate
+*  Fix `pre_process_track_list` with extended scalar samples: it now changes only the sample values
+*  Compression ignores the sample interpolators that have no effect when it selects the interpolation mode of a track
+
+### Compression
+
+*  Add the bit rate algorithm v2. It supports each runtime transform type, and it is faster than the bit rate algorithm v1. Only a legacy error metric that does not support the v2 algorithm uses the v1 algorithm
+*  Optimize the bit rate algorithm v2: it measures first the raw bit rates and the critical transform that failed. The results do not change. Compression is 57% to 66% faster, and up to 9x faster on long clips with scale and deep transform chains
+*  The built-in transform adapters and metrics use code without virtual function calls: compression is faster
 *  The precise transform metric computes the error without the delta transform: compression is faster, for example 15% on a data set of clips without scale, and the results do not change
-*  Fix the constant and default sub-track tests: they measure the error in object space with the raw object space transform of the parent, and the rigid shell of each transform is in its local space. Before, with a large parent scale (for example from a conversion of units), a scale below 1, mixed precisions, or a rotation between two non-uniform scales, the error could be far above the precision
-*  The rigid shell of a transform keeps the smallest precision of its descendants, and each descendant distance is scaled by the ratio of the precisions
-*  The bit rate algorithm v2 tests each critical transform with its own precision, and it no longer computes the rigid shell of each segment
-*  When a bit rate permutation fails, the bit rate algorithm v2 measures the critical transform that failed first in the next permutations. The results do not change, and compression is faster: up to 9x on long clips with scale and deep transform chains
-*  The bit rate algorithm v2 measures the raw bit rates of a transform first. When their error is within the precision, the search rejects each permutation with an error above the precision at the first sample above it. The results do not change, and compression is 57% to 66% faster
-*  Fix the bit rate search with a stripped track (`k_invalid_track_index`): it now uses the raw value of the track, as `calculate_compression_error`. Before, it used the compressed value that the runtime never decompresses. For example, a stripped constant rotation with W near 0 gave an error on its descendants that no bit rate removes, and the search selected bit rates that were too high or too low
-*  Add the `quatf_drop_largest_full` and `quatf_drop_largest_variable` rotation formats, and the compressed data version `v02_02_99_2`: a rotation drops another component than W to keep the dropped component far from 0, see [rotation formats](docs/rotation_and_vector_formats.md#dropping-the-largest-quaternion-component). With `quatf_drop_largest_variable`, each segment of a track drops the component whose smallest absolute value is the largest. A constant rotation, and each sample with `quatf_drop_largest_full`, drops its largest component. The index of the dropped component uses no additional memory. On two data sets of raw clips, `quatf_drop_largest_variable` gives a compressed size 0.5% and 3.2% smaller than `quatf_drop_w_variable`, and the number of clips with an error above 0.02 goes from 115 to 0 and from 749 to 2. On arm64, the time to decompress a full pose is about 4% higher
-*  The default compression settings use `quatf_drop_largest_variable`, and `default_transform_decompression_settings` supports only this rotation format, see [migrating](docs/migrating.md)
-*  Add the `ACL_NO_DISCARD` macro: it is `[[nodiscard]]` with C++17 and later, and empty with an earlier version. All the public functions that return a value use it. With C++17 and later, the compiler gives a warning when the caller does not use the return value. To use a different attribute, or none, define `ACL_NO_DISCARD` before you include ACL, see [configuration macros](docs/configuration_macros.md)
-*  `convert_track_list` returns an error when it cannot initialize its decompression context, and `acl_compressor` and `acl_decompressor` stop when `pre_process_track_list` returns an error
-*  Add the compressed data version `v02_02_00` for ACL 2.2.0, it has the same value as `v02_02_99_2` and `latest` now uses it
+*  Add `estimate_compression_peak_memory_usage` to estimate the peak memory usage of `compress_track_list`. See [compressing raw tracks](docs/compressing_raw_tracks.md#peak-memory-usage)
+*  Compression does not allocate the bit rate database when no format is variable: with full precision formats, the peak memory usage is 37% to 64% lower
+*  Compression measures the same error as `calculate_compression_error`: it no longer normalizes a transform after it combines the transform with the additive base
+*  Add the `calculate_compression_error` overloads that take the compression settings. They measure the error as compression does
+*  Fix the constant and default sub-track tests, the rigid shells, and the bit rate algorithm v2 with mixed precisions. Before, a large parent scale, a scale below 1, mixed precisions, or a rotation between two non-uniform scales could give an error far above the precision
+*  Loop optimization and the detailed segment stats support the error metrics that convert transforms
+*  Fix the compression of a clip with one sample and a base with more than one sample. The clip now uses the first base sample
+*  Fix `split_database_bulk_data`, which gave a null pointer to `std::memcpy` when a quality tier is empty
+*  Fix the bit rate algorithm v1, which converted transforms that it did not sample
+*  Fix the bit rate search with a stripped track (`k_invalid_track_index`): it now uses the raw value of the track, as `calculate_compression_error`. Before, it used the compressed value that the runtime never decompresses, and the search could select bit rates that were too high or too low
+*  `convert_track_list` returns an error when it cannot initialize its decompression context
+*  Fix the SoA quaternion rotation of the error metrics: two terms had the wrong sign
+*  Fix the `track_bit_rate_database_size` value of the detailed stats: it now gives the size in bytes
+
+### Decompression
+
+*  Optimize the decompression of transform tracks: the bit set iteration, the unpack of the vector3 values, and the unpack of the constant rotations are faster
+*  Add WASM SIMD code paths where ACL uses SSE2 or NEON intrinsics directly. With V8 on arm64, the time to decompress a full pose is 15% lower
+*  Fix the determinism of the results: with the NEON FMA instructions, with the interpolation alpha of scalar tracks, and with the rotation normalization
+
+### Platforms and build
+
+*  Add support for GCC 14 and 15, Clang 16 to 23, Visual Studio 2026, and Xcode 16 and 26
+*  CI tests GCC 14 and 15, Clang 22 and 23, Visual Studio 2022 and 2026, and Xcode 16 and 26. CI no longer tests the older compilers, but `make.py` still accepts them
+*  Add support for ARM64EC with Visual Studio
+*  Add native Linux `riscv64` builds, they use the scalar code path of RTM
+*  Add Linux `armv7` cross compilation with GCC and Clang, `qemu-arm` runs the unit tests
+*  Disable fast math in the ACL headers with the `float_control` pragma under Clang, on the targets that support it
+*  Disable floating point contraction (FMA) in the ACL headers under Clang, on the targets that support `float_control`: x86, x64, AArch64 (Clang 16+, Apple Clang 15+), and RISC-V (Clang 18+). With `-ffp-contract=fast`, LLVM Clang ignores the pragma: use `-ffp-contract=fast-honor-pragmas`
+*  With GCC, the headers do not disable floating point contraction. To get the same results on all the targets with GCC, compile with `-ffp-contract=off`. See [other considerations](docs/misc_integration_details.md)
+*  Add `acl/config.h`, which lists the macros that configure ACL
+*  Update to RTM 2.4.0
+
+### Tools and documentation
+
+*  Add a documentation site: Doxygen reads the `///` comments of the public headers, and MkDocs makes the site with the guides and the API reference for develop and for each release
+*  Add the [configuration macros](docs/configuration_macros.md) page
+*  Add these options to `acl_compressor`, with their config options: `-source_vq`, `-source_vqs`, `-error_vqv`, `-mesh_space`, `-mesh_rotation_space`, `-base_custom`, and `-playback_scale=`. The `-error_mtx` option now selects the `matrix3x4f` runtime transform type
+*  Add regression configurations for the mesh space, the mesh rotation space, the custom base format, and the playback scale
+*  Fix the `max_error` stat of `acl_compressor`, which ignored the additive base
+*  `acl_compressor` and `acl_decompressor` stop when `pre_process_track_list` returns an error
+*  Add the `-analyze` action to `make.py` to run the clang static analyzer on the public headers
+*  Add the `-fast_math` option to `make.py` to compile the public headers with fast math, and a CI workflow that uses it
+*  On macOS and iOS, the decompression benchmark runs on a performance core
 
 ## 2.1.0
 
