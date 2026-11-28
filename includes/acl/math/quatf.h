@@ -30,6 +30,7 @@
 #include "acl/version.h"
 #include "acl/core/error.h"
 #include "acl/core/impl/compiler_utils.h"
+#include "acl/core/memory_utils.h"
 
 #include <rtm/mask4f.h>
 #include <rtm/quatf.h>
@@ -462,13 +463,20 @@ namespace acl
 		// Returns the index of the component with the largest absolute value, W wins a tie
 		inline uint32_t RTM_SIMD_CALL quat_get_largest_component(rtm::quatf_arg0 rotation)
 		{
-			const float components[4] = { rtm::quat_get_x(rotation), rtm::quat_get_y(rotation), rtm::quat_get_z(rotation), rtm::quat_get_w(rotation) };
+			float components[4];
+			rtm::quat_store(rotation, &components[0]);
 
+			// Keep the largest value in a variable: an array read with a variable index forces the array to the stack
 			uint32_t largest_component = 3;
+			float largest_value = rtm::scalar_abs(components[3]);
 			for (uint32_t component = 0; component < 3; ++component)
 			{
-				if (rtm::scalar_abs(components[component]) > rtm::scalar_abs(components[largest_component]))
+				const float value = rtm::scalar_abs(components[component]);
+				if (value > largest_value)
+				{
 					largest_component = component;
+					largest_value = value;
+				}
 			}
 
 			return largest_component;
@@ -479,24 +487,20 @@ namespace acl
 		{
 			ACL_ASSERT(component < 4, "Invalid component index");
 
-			float components[4] = { rtm::quat_get_x(rotation), rtm::quat_get_y(rotation), rtm::quat_get_z(rotation), rtm::quat_get_w(rotation) };
-			if (components[component] < 0.0F)
+			const rtm::vector4f value = rtm::quat_to_vector(rotation);
+
+			rtm::vector4f packed;
+			switch (component)
 			{
-				// q and -q are the same rotation
-				for (float& value : components)
-					value = -value;
+			case 0:		packed = rtm::vector_mix<rtm::mix4::y, rtm::mix4::z, rtm::mix4::w, rtm::mix4::x>(value, value); break;
+			case 1:		packed = rtm::vector_mix<rtm::mix4::x, rtm::mix4::z, rtm::mix4::w, rtm::mix4::y>(value, value); break;
+			case 2:		packed = rtm::vector_mix<rtm::mix4::x, rtm::mix4::y, rtm::mix4::w, rtm::mix4::z>(value, value); break;
+			default:	packed = value; break;
 			}
 
-			float packed[4];
-			uint32_t kept_index = 0;
-			for (uint32_t i = 0; i < 4; ++i)
-			{
-				if (i != component)
-					packed[kept_index++] = components[i];
-			}
-
-			packed[3] = components[component];
-			return rtm::vector_set(packed[0], packed[1], packed[2], packed[3]);
+			// q and -q are the same rotation: flip each sign bit with the sign bit of the dropped component
+			const rtm::vector4f dropped_sign = rtm::vector_and(rtm::vector_dup_w(packed), rtm::vector_set(-0.0F));
+			return rtm::vector_xor(packed, dropped_sign);
 		}
 
 		// Moves the components of (kept0, kept1, kept2, dropped) back into [x, y, z, w], the inverse of quat_drop_component
@@ -538,59 +542,56 @@ namespace acl
 			wwww = rtm::vector_select(drops_x_or_y_or_z, kept2, dropped);
 		}
 
-		// Returns the masks of the lanes that drop [x], [y], or [z] from 4 encoded indices
-		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE void RTM_SIMD_CALL get_dropped_component_masks_x4(
-			uint32_t encoded_component0, uint32_t encoded_component1, uint32_t encoded_component2, uint32_t encoded_component3,
-			rtm::mask4f& out_drops_x, rtm::mask4f& out_drops_y, rtm::mask4f& out_drops_z)
-		{
-			const rtm::vector4f encoded_components = rtm::vector_set(float(encoded_component0), float(encoded_component1), float(encoded_component2), float(encoded_component3));
-			out_drops_x = rtm::vector_equal(encoded_components, rtm::vector_set(float(encode_dropped_component(0))));
-			out_drops_y = rtm::vector_equal(encoded_components, rtm::vector_set(float(encode_dropped_component(1))));
-			out_drops_z = rtm::vector_equal(encoded_components, rtm::vector_set(float(encode_dropped_component(2))));
-		}
-
 		// Returns the masks of the lanes that drop [x], [y], or [z] from 4 bytes of per sub-track metadata
 		// Bits [5, 6] of each byte hold the encoded index of the dropped component
+		// The SIMD paths keep the index in place: they AND with the index bits and compare with the shifted
+		// encoded values, which removes a shift
 		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE void RTM_SIMD_CALL get_dropped_component_masks_x4(
 			const uint8_t* format_per_track_data,
 			rtm::mask4f& out_drops_x, rtm::mask4f& out_drops_y, rtm::mask4f& out_drops_z)
 		{
+			constexpr uint32_t component_mask = 3U << 5;
+			constexpr uint32_t drops_x_value = encode_dropped_component(0) << 5;
+			constexpr uint32_t drops_y_value = encode_dropped_component(1) << 5;
+			constexpr uint32_t drops_z_value = encode_dropped_component(2) << 5;
+
 #if defined(RTM_SSE2_INTRINSICS)
-			int32_t packed_bytes;
-			std::memcpy(&packed_bytes, format_per_track_data, sizeof(int32_t));
+			const int32_t packed_bytes = unaligned_load<int32_t>(format_per_track_data);
 
 			const __m128i zero = _mm_setzero_si128();
 			const __m128i bytes_u8 = _mm_cvtsi32_si128(packed_bytes);
 			const __m128i bytes_u32 = _mm_unpacklo_epi16(_mm_unpacklo_epi8(bytes_u8, zero), zero);
-			const __m128i encoded_components = _mm_and_si128(_mm_srli_epi32(bytes_u32, 5), _mm_set1_epi32(3));
+			const __m128i shifted_components = _mm_and_si128(bytes_u32, _mm_set1_epi32(static_cast<int32_t>(component_mask)));
 
-			out_drops_x = _mm_castsi128_ps(_mm_cmpeq_epi32(encoded_components, _mm_set1_epi32(static_cast<int32_t>(encode_dropped_component(0)))));
-			out_drops_y = _mm_castsi128_ps(_mm_cmpeq_epi32(encoded_components, _mm_set1_epi32(static_cast<int32_t>(encode_dropped_component(1)))));
-			out_drops_z = _mm_castsi128_ps(_mm_cmpeq_epi32(encoded_components, _mm_set1_epi32(static_cast<int32_t>(encode_dropped_component(2)))));
+			out_drops_x = _mm_castsi128_ps(_mm_cmpeq_epi32(shifted_components, _mm_set1_epi32(static_cast<int32_t>(drops_x_value))));
+			out_drops_y = _mm_castsi128_ps(_mm_cmpeq_epi32(shifted_components, _mm_set1_epi32(static_cast<int32_t>(drops_y_value))));
+			out_drops_z = _mm_castsi128_ps(_mm_cmpeq_epi32(shifted_components, _mm_set1_epi32(static_cast<int32_t>(drops_z_value))));
 #elif defined(RTM_NEON_INTRINSICS)
-			uint32_t packed_bytes;
-			std::memcpy(&packed_bytes, format_per_track_data, sizeof(uint32_t));
+			const uint32_t packed_bytes = unaligned_load<uint32_t>(format_per_track_data);
 
 			const uint8x8_t bytes_u8 = vreinterpret_u8_u32(vdup_n_u32(packed_bytes));
 			const uint32x4_t bytes_u32 = vmovl_u16(vget_low_u16(vmovl_u8(bytes_u8)));
-			const uint32x4_t encoded_components = vandq_u32(vshrq_n_u32(bytes_u32, 5), vdupq_n_u32(3));
+			const uint32x4_t shifted_components = vandq_u32(bytes_u32, vdupq_n_u32(component_mask));
 
-			out_drops_x = vceqq_u32(encoded_components, vdupq_n_u32(encode_dropped_component(0)));
-			out_drops_y = vceqq_u32(encoded_components, vdupq_n_u32(encode_dropped_component(1)));
-			out_drops_z = vceqq_u32(encoded_components, vdupq_n_u32(encode_dropped_component(2)));
+			out_drops_x = vceqq_u32(shifted_components, vdupq_n_u32(drops_x_value));
+			out_drops_y = vceqq_u32(shifted_components, vdupq_n_u32(drops_y_value));
+			out_drops_z = vceqq_u32(shifted_components, vdupq_n_u32(drops_z_value));
 #elif defined(RTM_WASM128_INTRINSICS)
 			const v128_t bytes_u8 = wasm_v128_load32_zero(format_per_track_data);
 			const v128_t bytes_u32 = wasm_u32x4_extend_low_u16x8(wasm_u16x8_extend_low_u8x16(bytes_u8));
-			const v128_t encoded_components = wasm_v128_and(wasm_u32x4_shr(bytes_u32, 5), wasm_i32x4_splat(3));
+			const v128_t shifted_components = wasm_v128_and(bytes_u32, wasm_i32x4_splat(static_cast<int32_t>(component_mask)));
 
-			out_drops_x = wasm_i32x4_eq(encoded_components, wasm_i32x4_splat(static_cast<int32_t>(encode_dropped_component(0))));
-			out_drops_y = wasm_i32x4_eq(encoded_components, wasm_i32x4_splat(static_cast<int32_t>(encode_dropped_component(1))));
-			out_drops_z = wasm_i32x4_eq(encoded_components, wasm_i32x4_splat(static_cast<int32_t>(encode_dropped_component(2))));
+			out_drops_x = wasm_i32x4_eq(shifted_components, wasm_i32x4_splat(static_cast<int32_t>(drops_x_value)));
+			out_drops_y = wasm_i32x4_eq(shifted_components, wasm_i32x4_splat(static_cast<int32_t>(drops_y_value)));
+			out_drops_z = wasm_i32x4_eq(shifted_components, wasm_i32x4_splat(static_cast<int32_t>(drops_z_value)));
 #else
-			get_dropped_component_masks_x4(
-				uint32_t(format_per_track_data[0]) >> 5, uint32_t(format_per_track_data[1]) >> 5,
-				uint32_t(format_per_track_data[2]) >> 5, uint32_t(format_per_track_data[3]) >> 5,
-				out_drops_x, out_drops_y, out_drops_z);
+			const rtm::vector4f shifted_components = rtm::vector_set(
+				float(format_per_track_data[0] & component_mask), float(format_per_track_data[1] & component_mask),
+				float(format_per_track_data[2] & component_mask), float(format_per_track_data[3] & component_mask));
+
+			out_drops_x = rtm::vector_equal(shifted_components, rtm::vector_set(float(drops_x_value)));
+			out_drops_y = rtm::vector_equal(shifted_components, rtm::vector_set(float(drops_y_value)));
+			out_drops_z = rtm::vector_equal(shifted_components, rtm::vector_set(float(drops_z_value)));
 #endif
 		}
 

@@ -173,13 +173,20 @@ TEST_CASE("quat_restore_dropped_component_x4", "[math][quat]")
 	rtm::vector4f wwww;
 	RTM_MATRIXF_TRANSPOSE_4X4(packed[0], packed[1], packed[2], packed[3], xxxx, yyyy, zzzz, wwww);
 
+	// The format byte of each sub-track: bits [0, 4] hold the bit rate, bits [5, 6] the encoded index, and bit 7 is reserved.
+	// The masks must ignore the bits of the bit rate and the reserved bit.
+	const uint8_t format_per_track_data[4] =
+	{
+		uint8_t(19 | (acl_impl::encode_dropped_component(components[0]) << 5) | 0x80),
+		uint8_t(31 | (acl_impl::encode_dropped_component(components[1]) << 5)),
+		uint8_t(0 | (acl_impl::encode_dropped_component(components[2]) << 5) | 0x80),
+		uint8_t(7 | (acl_impl::encode_dropped_component(components[3]) << 5)),
+	};
+
 	rtm::mask4f drops_x;
 	rtm::mask4f drops_y;
 	rtm::mask4f drops_z;
-	acl_impl::get_dropped_component_masks_x4(
-		acl_impl::encode_dropped_component(components[0]), acl_impl::encode_dropped_component(components[1]),
-		acl_impl::encode_dropped_component(components[2]), acl_impl::encode_dropped_component(components[3]),
-		drops_x, drops_y, drops_z);
+	acl_impl::get_dropped_component_masks_x4(&format_per_track_data[0], drops_x, drops_y, drops_z);
 
 	acl_impl::quat_restore_dropped_component_x4(xxxx, yyyy, zzzz, wwww, drops_x, drops_y, drops_z);
 
