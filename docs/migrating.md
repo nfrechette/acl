@@ -2,6 +2,33 @@
 
 ## Migrating to ACL 2.2 from 2.1
 
+### Dependencies
+
+ACL 2.2 needs [Realtime Math](https://github.com/nfrechette/rtm) 2.4.0 or later, because it uses the `vqv` names of RTM. ACL 2.1 used RTM 2.2. ACL 2.2 uses the same version of [sjson-cpp](https://github.com/nfrechette/sjson-cpp) as ACL 2.1 (0.9.0).
+
+### The qvv names are now vqv
+
+RTM 2.4 renames `qvv` to `vqv`, because the new name follows the order of the operations. ACL 2.2 uses the same names. The old names are deprecated, and ACL 2.3 will remove them:
+
+| ACL 2.1 | ACL 2.2 |
+| ------- | ------- |
+| `track_qvvf` | `track_vqvf` |
+| `track_array_qvvf` | `track_array_vqvf` |
+| `track_type8::qvvf` | `track_type8::vqvf` |
+| `qvvf_transform_error_metric` | `vqvf_transform_error_metric` |
+| `qvvf_precise_transform_error_metric` | `vqvf_precise_transform_error_metric` |
+| `qvvf_matrix3x4f_transform_error_metric` | `vqvf_matrix3x4f_transform_error_metric` |
+| `additive_qvvf_transform_error_metric` | `additive_vqvf_transform_error_metric` |
+| `acl/math/qvvf.h` | `acl/math/vqvf.h` |
+
+The compiler gives no deprecation warning for `track_type8::qvvf`, because C++11 and C++14 do not support the attribute on an enum value. The clip reader reads the `qvvf` and the `vqvf` track types, and the clip writer writes `vqvf`.
+
+### Scalar tracks
+
+The new `compression_settings::scalar_format` setting selects the format of the scalar tracks. Its default value is `scalar_format8::scalarf_full`, the same as the default formats of the transform tracks. In ACL 2.1, scalar tracks always used a variable bit rate.
+
+Thus, when you construct a `compression_settings` yourself, ACL 2.2 keeps your scalar tracks with full precision, and the compressed data is larger. To keep the variable bit rate, use `get_default_compression_settings()`, or set `scalar_format` to `scalar_format8::scalarf_variable`.
+
 ### Error metrics
 
 `compression_settings::error_metric` and `pre_process_settings_t::error_metric` are deprecated. ACL 2.3 will remove them. The compiler gives a deprecation warning when your code uses them. To disable all ACL deprecation warnings, define `ACL_NO_DEPRECATION`. Use these settings instead:
@@ -43,7 +70,9 @@ A `transform_base_desc_t` now holds the base of an additive clip and its additiv
 
 To combine a clip with its base in your own way, you overrode `itransform_error_metric::apply_additive_to_base`. Now, implement an `itransform_base_adapter_t` and use the `custom` base format (see [here](additive_clips.md#custom-base-format)). Your adapter then works with each runtime transform type and each transform metric.
 
-The `calculate_compression_error` overload that takes the compression settings, the additive base, and the additive format is new in 2.2. It now takes a `transform_base_desc_t` in place of the base and the format.
+If you keep your own legacy error metric until you migrate, the order of the calls changed. Compression now applies the additive base before it calls `convert_transforms`. Thus `apply_additive_to_base` always receives `rtm::vqvf` transforms, also when your metric converts the transforms to another type.
+
+To measure the error of an additive clip as compression does, use the `calculate_compression_error` overload that takes the compression settings and a `transform_base_desc_t`.
 
 The functions that take a legacy error metric (`itransform_error_metric`) support only transform tracks in local space. They return an invalid error for another transform space.
 
@@ -57,6 +86,19 @@ transform_base.format = additive_clip_format8::additive1;
 transform_base.tracks = &base_tracks;
 compress_track_list(allocator, tracks, settings, transform_base, out_compressed_tracks, stats);
 ```
+
+### New transform track types
+
+`track_type8` has two new values: `vqf` (rotation and translation) and `vqsf` (rotation, translation, and uniform scale). If your code has a `switch` on `track_type8`, add these values or a `default` case. Otherwise, the compiler can give a warning.
+
+### Compressed data
+
+ACL 2.2 writes the compressed data with the format version `v02_02_00`. ACL 2.2 decompresses the data of ACL 2.0 and 2.1, but ACL 2.1 cannot decompress the data of ACL 2.2.
+
+With the same clip and the same settings, the compressed data of ACL 2.2 can be different from ACL 2.1, with a slightly different size and error. For example:
+
+*  The `recommended` pre-process actions now include `sanitize_identity_rotations`. With the lossy policy, it can change the rotations.
+*  Compression no longer normalizes a transform after it combines the transform with the additive base. The error that compression measures is now the same as the error that `calculate_compression_error` measures.
 
 ## Migrating to ACL 2.0 from 1.3
 
