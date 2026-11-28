@@ -214,11 +214,16 @@ TEST_CASE("drop largest rotation formats compression", "[compression][formats]")
 		errors[format_index] = calculate_compression_error(allocator, track_list, context, settings).error;
 
 		// Each track and all the tracks give the same rotations, within the rounding of the code paths
+		// With W near 0, the drop W formats rebuild W from 1 - (x^2 + y^2 + z^2): a rounding of the sum by one
+		// float epsilon gives a W of sqrt(epsilon), about 3.5E-4. Each code path, and each compiler, rounds differently.
+		const bool drops_w = get_rotation_variant(format) == rotation_variant8::quat_drop_w;
+		const float path_threshold = drops_w ? 1.0E-3F : 1.0E-5F;
+
 		rtm::quatf* rotations_all = allocate_type_array<rtm::quatf>(allocator, size_t(k_num_samples) * num_tracks);
 		rtm::quatf* rotations_single = allocate_type_array<rtm::quatf>(allocator, size_t(k_num_samples) * num_tracks);
 		decompress_rotations<debug_transform_decompression_settings>(*tracks, num_tracks, false, rotations_all);
 		decompress_rotations<debug_transform_decompression_settings>(*tracks, num_tracks, true, rotations_single);
-		CHECK(get_largest_difference(rotations_all, rotations_single, k_num_samples * num_tracks) < 1.0E-5F);
+		CHECK(get_largest_difference(rotations_all, rotations_single, k_num_samples * num_tracks) < path_threshold);
 
 		// The default decompression settings support the default rotation format
 		if (format == rotation_format8::quatf_drop_largest_variable)

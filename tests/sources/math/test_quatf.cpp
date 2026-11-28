@@ -243,5 +243,11 @@ TEST_CASE("dropped component in float bits", "[math][quat]")
 		const float lane_y = rtm::vector_get_component(yyyy, rtm::component4(lane));
 		CHECK(lane_x == float(rtm::vector_get_x(packed)));
 		CHECK(lane_y == float(rtm::vector_get_y(packed)));
+
+		// The decode does not change [z] and [w]
+		const float lane_z = rtm::vector_get_component(zzzz, rtm::component4(lane));
+		const float lane_w = rtm::vector_get_component(wwww, rtm::component4(lane));
+		CHECK(lane_z == float(rtm::vector_get_z(packed)));
+		CHECK(lane_w == float(rtm::vector_get_w(packed)));
 	}
 }
