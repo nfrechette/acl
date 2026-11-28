@@ -49,13 +49,13 @@ namespace acl
 		explicit error_result(const char* error) : m_error(error) {}
 
 		/// Returns true if there is no error.
-		bool empty() const { return m_error == nullptr; }
+		ACL_NO_DISCARD bool empty() const { return m_error == nullptr; }
 
 		/// Returns true if there is an error.
-		bool any() const { return m_error != nullptr; }
+		ACL_NO_DISCARD bool any() const { return m_error != nullptr; }
 
 		/// Returns the error message, or "" if there is no error.
-		const char* c_str() const { return m_error != nullptr ? m_error : ""; }
+		ACL_NO_DISCARD const char* c_str() const { return m_error != nullptr ? m_error : ""; }
 
 		/// Removes the error.
 		void reset() { m_error = nullptr; }

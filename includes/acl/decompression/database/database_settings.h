@@ -52,14 +52,14 @@ namespace acl
 		/// versions. This allows the creation of context objects specialized for specific
 		/// versions which yields optimal performance.
 		/// Must be static constexpr!
-		static constexpr compressed_tracks_version16 version_supported() { return compressed_tracks_version16::any; }
+		ACL_NO_DISCARD static constexpr compressed_tracks_version16 version_supported() { return compressed_tracks_version16::any; }
 	};
 
 	/// These settings disable database usage.
 	struct null_database_settings final : public database_settings
 	{
 		/// No compressed data version is supported: the decompression code for databases is removed.
-		static constexpr compressed_tracks_version16 version_supported() { return compressed_tracks_version16::none; }
+		ACL_NO_DISCARD static constexpr compressed_tracks_version16 version_supported() { return compressed_tracks_version16::none; }
 	};
 
 	/// These are debug settings, everything is enabled and nothing is stripped.

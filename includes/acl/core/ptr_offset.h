@@ -94,7 +94,7 @@ namespace acl
 
 		/// Adds this offset to the provided pointer.
 		template<typename BaseType>
-		inline data_type* add_to(BaseType* ptr) const
+		ACL_NO_DISCARD inline data_type* add_to(BaseType* ptr) const
 		{
 			ACL_ASSERT(is_valid(), "Invalid ptr_offset!");
 			return add_offset_to_ptr<data_type>(ptr, m_value);
@@ -102,7 +102,7 @@ namespace acl
 
 		/// Adds this offset to the provided pointer.
 		template<typename BaseType>
-		inline const data_type* add_to(const BaseType* ptr) const
+		ACL_NO_DISCARD inline const data_type* add_to(const BaseType* ptr) const
 		{
 			ACL_ASSERT(is_valid(), "Invalid ptr_offset!");
 			return add_offset_to_ptr<const data_type>(ptr, m_value);
@@ -110,14 +110,14 @@ namespace acl
 
 		/// Adds this offset to the provided pointer or returns nullptr if the offset is invalid.
 		template<typename BaseType>
-		inline data_type* safe_add_to(BaseType* ptr) const
+		ACL_NO_DISCARD inline data_type* safe_add_to(BaseType* ptr) const
 		{
 			return is_valid() ? add_offset_to_ptr<data_type>(ptr, m_value) : nullptr;
 		}
 
 		/// Adds this offset to the provided pointer or returns nullptr if the offset is invalid.
 		template<typename BaseType>
-		inline const data_type* safe_add_to(const BaseType* ptr) const
+		ACL_NO_DISCARD inline const data_type* safe_add_to(const BaseType* ptr) const
 		{
 			return is_valid() ? add_offset_to_ptr<data_type>(ptr, m_value) : nullptr;
 		}
@@ -126,7 +126,7 @@ namespace acl
 		constexpr operator offset_type() const { return m_value; }
 
 		/// Returns true if the offset is valid.
-		constexpr bool is_valid() const { return m_value != k_invalid_value; }
+		ACL_NO_DISCARD constexpr bool is_valid() const { return m_value != k_invalid_value; }
 
 	private:
 		// Value representing an invalid offset

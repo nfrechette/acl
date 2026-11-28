@@ -44,7 +44,7 @@ namespace acl
 
 	/// Quantizes a value in the range [0.0, 1.0] to an unsigned integer with the given number of bits.
 	/// The number of bits must be less than 31.
-	inline uint32_t pack_scalar_unsigned(float input, uint32_t num_bits)
+	ACL_NO_DISCARD inline uint32_t pack_scalar_unsigned(float input, uint32_t num_bits)
 	{
 		ACL_ASSERT(num_bits < 31, "Attempting to pack on too many bits");
 		ACL_ASSERT(input >= 0.0F && input <= 1.0F, "Expected normalized unsigned input value: %f", input);
@@ -53,7 +53,7 @@ namespace acl
 	}
 
 	/// Converts an unsigned integer that pack_scalar_unsigned wrote back to a value in the range [0.0, 1.0].
-	inline float unpack_scalar_unsigned(uint32_t input, uint32_t num_bits)
+	ACL_NO_DISCARD inline float unpack_scalar_unsigned(uint32_t input, uint32_t num_bits)
 	{
 		ACL_ASSERT(num_bits < 31, "Attempting to unpack from too many bits");
 		const uint32_t max_value = (1U << num_bits) - 1;
@@ -65,19 +65,19 @@ namespace acl
 
 	/// Quantizes a value in the range [-1.0, 1.0] to an unsigned integer with the given number of bits.
 	/// The number of bits must be less than 31.
-	inline uint32_t pack_scalar_signed(float input, uint32_t num_bits)
+	ACL_NO_DISCARD inline uint32_t pack_scalar_signed(float input, uint32_t num_bits)
 	{
 		return pack_scalar_unsigned((input * 0.5F) + 0.5F, num_bits);
 	}
 
 	/// Converts an unsigned integer that pack_scalar_signed wrote back to a value in the range [-1.0, 1.0].
-	inline float unpack_scalar_signed(uint32_t input, uint32_t num_bits)
+	ACL_NO_DISCARD inline float unpack_scalar_signed(uint32_t input, uint32_t num_bits)
 	{
 		return (unpack_scalar_unsigned(input, num_bits) * 2.0F) - 1.0F;
 	}
 
 	/// Assumes the `vector_data` is in big-endian order and is padded in order to load up to 8 bytes from it
-	inline rtm::scalarf RTM_SIMD_CALL unpack_scalarf_32_unsafe(const uint8_t* vector_data, uint32_t bit_offset)
+	ACL_NO_DISCARD inline rtm::scalarf RTM_SIMD_CALL unpack_scalarf_32_unsafe(const uint8_t* vector_data, uint32_t bit_offset)
 	{
 #if defined(RTM_SSE2_INTRINSICS)
 		const uint32_t byte_offset = bit_offset / 8;
@@ -132,7 +132,7 @@ namespace acl
 	}
 
 	/// Assumes the `vector_data` is in big-endian order and padded in order to load up to 8 bytes from it
-	inline rtm::scalarf RTM_SIMD_CALL unpack_scalarf_uXX_unsafe(uint32_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
+	ACL_NO_DISCARD inline rtm::scalarf RTM_SIMD_CALL unpack_scalarf_uXX_unsafe(uint32_t num_bits, const uint8_t* vector_data, uint32_t bit_offset)
 	{
 		ACL_ASSERT(num_bits <= 23, "This function does not support reading more than 23 bits per component");
 

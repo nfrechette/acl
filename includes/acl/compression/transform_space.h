@@ -67,12 +67,12 @@ namespace acl
 	};
 
 	/// Returns the name of a transform space.
-	constexpr const char* get_transform_space_name(transform_space_t space);
+	ACL_NO_DISCARD constexpr const char* get_transform_space_name(transform_space_t space);
 
 	/// Finds the transform space that has the provided name.
 	/// A name matches only when no other name character follows it: `mesh` does not match `mesh_space`.
 	/// Returns true on success, false otherwise.
-	bool get_transform_space(const char* name, transform_space_t& out_space);
+	ACL_NO_DISCARD bool get_transform_space(const char* name, transform_space_t& out_space);
 
 	ACL_IMPL_VERSION_NAMESPACE_END
 }

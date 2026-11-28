@@ -48,7 +48,7 @@ namespace acl
 
 	/// Interpolates linearly between two quaternions and does not normalize the result.
 	/// The function negates `end` if necessary to interpolate along the shortest path.
-	RTM_DISABLE_SECURITY_COOKIE_CHECK inline rtm::quatf RTM_SIMD_CALL quat_lerp_no_normalization(rtm::quatf_arg0 start, rtm::quatf_arg1 end, float alpha) RTM_NO_EXCEPT
+	ACL_NO_DISCARD RTM_DISABLE_SECURITY_COOKIE_CHECK inline rtm::quatf RTM_SIMD_CALL quat_lerp_no_normalization(rtm::quatf_arg0 start, rtm::quatf_arg1 end, float alpha) RTM_NO_EXCEPT
 	{
 		using namespace rtm;
 

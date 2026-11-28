@@ -68,11 +68,11 @@ namespace acl
 
 	// TODO: constexpr
 	/// Returns the string representation for the provided sample interpolator.
-	const char* get_sample_interpolator_name(sample_interpolator_t interpolator);
+	ACL_NO_DISCARD const char* get_sample_interpolator_name(sample_interpolator_t interpolator);
 
 	/// Returns the sample interpolator from its string representation.
 	/// Returns true on success, false otherwise.
-	bool get_sample_interpolator(const char* interpolator, sample_interpolator_t& out_interpolator);
+	ACL_NO_DISCARD bool get_sample_interpolator(const char* interpolator, sample_interpolator_t& out_interpolator);
 
 	ACL_IMPL_VERSION_NAMESPACE_END
 }

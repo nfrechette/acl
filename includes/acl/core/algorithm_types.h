@@ -57,7 +57,7 @@ namespace acl
 	// TODO: constexpr
 	/// Returns true if the algorithm type is a valid value. Used to validate if
 	/// memory has been corrupted.
-	inline bool is_valid_algorithm_type(algorithm_type8 type)
+	ACL_NO_DISCARD inline bool is_valid_algorithm_type(algorithm_type8 type)
 	{
 		switch (type)
 		{
@@ -72,7 +72,7 @@ namespace acl
 
 	// TODO: constexpr
 	/// Returns a string of the algorithm name suitable for display.
-	inline const char* get_algorithm_name(algorithm_type8 type)
+	ACL_NO_DISCARD inline const char* get_algorithm_name(algorithm_type8 type)
 	{
 		switch (type)
 		{
@@ -87,7 +87,7 @@ namespace acl
 	///
 	/// \param type A string representing the algorithm name to parse. It must match the `get_algorithm_name(..)` output.
 	/// \param out_type On success, it will contain the the parsed algorithm type otherwise it is left untouched.
-	inline bool get_algorithm_type(const char* type, algorithm_type8& out_type)
+	ACL_NO_DISCARD inline bool get_algorithm_type(const char* type, algorithm_type8& out_type)
 	{
 		ACL_ASSERT(type != nullptr, "Algorithm type name cannot be null");
 		if (type == nullptr)

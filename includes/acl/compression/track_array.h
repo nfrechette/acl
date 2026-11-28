@@ -81,41 +81,41 @@ namespace acl
 		/// \{
 
 		/// Returns a pointer to the allocator instance or nullptr if there is none present.
-		iallocator* get_allocator() const { return m_allocator; }
+		ACL_NO_DISCARD iallocator* get_allocator() const { return m_allocator; }
 
 		/// Returns the number of tracks contained in this array.
-		uint32_t get_num_tracks() const { return m_num_tracks; }
+		ACL_NO_DISCARD uint32_t get_num_tracks() const { return m_num_tracks; }
 
 		/// Returns the number of samples per track in this array.
 		/// This does not account for the repeating first sample when the wrap
 		/// looping policy is used.
 		/// See `sample_looping_policy` for details.
-		uint32_t get_num_samples_per_track() const { return m_allocator != nullptr && m_num_tracks != 0 ? m_tracks->get_num_samples() : 0; }
+		ACL_NO_DISCARD uint32_t get_num_samples_per_track() const { return m_allocator != nullptr && m_num_tracks != 0 ? m_tracks->get_num_samples() : 0; }
 
 		/// Returns the track interpolator type for tracks in this array.
-		track_interpolator_t get_track_interpolator() const { return m_allocator != nullptr && m_num_tracks != 0 ? m_tracks->get_interpolator() : track_interpolator_t::linear; }
+		ACL_NO_DISCARD track_interpolator_t get_track_interpolator() const { return m_allocator != nullptr && m_num_tracks != 0 ? m_tracks->get_interpolator() : track_interpolator_t::linear; }
 
 		/// Returns the track type for tracks in this array.
-		track_type8 get_track_type() const { return m_allocator != nullptr && m_num_tracks != 0 ? m_tracks->get_type() : track_type8::float1f; }
+		ACL_NO_DISCARD track_type8 get_track_type() const { return m_allocator != nullptr && m_num_tracks != 0 ? m_tracks->get_type() : track_type8::float1f; }
 
 		/// Returns the track category for tracks in this array.
-		track_category8 get_track_category() const { return m_allocator != nullptr && m_num_tracks != 0 ? m_tracks->get_category() : track_category8::scalarf; }
+		ACL_NO_DISCARD track_category8 get_track_category() const { return m_allocator != nullptr && m_num_tracks != 0 ? m_tracks->get_category() : track_category8::scalarf; }
 
 		/// Returns the sample rate for tracks in this array.
-		float get_sample_rate() const { return m_allocator != nullptr && m_num_tracks != 0 ? m_tracks->get_sample_rate() : 0.0F; }
+		ACL_NO_DISCARD float get_sample_rate() const { return m_allocator != nullptr && m_num_tracks != 0 ? m_tracks->get_sample_rate() : 0.0F; }
 
 		/// Returns the duration for tracks in this array.
 		/// Note that the duration depends on the looping policy.
 		/// See `sample_looping_policy` for details.
-		float get_duration() const;
+		ACL_NO_DISCARD float get_duration() const;
 
 		/// Returns the finite duration for tracks in this array.
 		/// Note that the duration depends on the looping policy.
 		/// See `sample_looping_policy` for details.
-		float get_finite_duration() const;
+		ACL_NO_DISCARD float get_finite_duration() const;
 
 		/// Returns the track name.
-		const string& get_name() const { return m_name; }
+		ACL_NO_DISCARD const string& get_name() const { return m_name; }
 
 		/// Sets the track name.
 		void set_name(const string& name) { m_name = name.get_copy(); }
@@ -125,7 +125,7 @@ namespace acl
 		/// Scalar tracks do not use it.
 		///
 		/// Defaults to `local`.
-		transform_space_t get_transform_space() const { return m_transform_space; }
+		ACL_NO_DISCARD transform_space_t get_transform_space() const { return m_transform_space; }
 
 		/// Sets the space of the transform tracks, see `transform_space_t`.
 		/// Scalar tracks do not use it.
@@ -141,7 +141,7 @@ namespace acl
 		/// Scalar tracks do not use it.
 		///
 		/// Defaults to 1.0.
-		float get_playback_scale() const { return m_playback_scale; }
+		ACL_NO_DISCARD float get_playback_scale() const { return m_playback_scale; }
 
 		/// Sets the uniform scale that the runtime applies to the whole clip at playback.
 		/// It must be positive and finite. See `get_playback_scale`.
@@ -159,32 +159,32 @@ namespace acl
 		void set_looping_policy(sample_looping_policy policy);
 
 		/// Returns the looping policy.
-		sample_looping_policy get_looping_policy() const { return m_looping_policy; }
+		ACL_NO_DISCARD sample_looping_policy get_looping_policy() const { return m_looping_policy; }
 		/// \}
 
 		/// \name Tracks
 		/// \{
 
 		/// Returns the track at the specified index.
-		track& operator[](uint32_t index);
+		ACL_NO_DISCARD track& operator[](uint32_t index);
 
 		/// Returns the track at the specified index.
-		const track& operator[](uint32_t index) const;
+		ACL_NO_DISCARD const track& operator[](uint32_t index) const;
 
 		/// Returns a pointer to the first track.
-		track* begin() { return m_tracks; }
+		ACL_NO_DISCARD track* begin() { return m_tracks; }
 
 		/// Returns a pointer to the first track.
-		const track* begin() const { return m_tracks; }
+		ACL_NO_DISCARD const track* begin() const { return m_tracks; }
 
 		/// Returns a pointer past the last track.
-		track* end() { return m_tracks + m_num_tracks; }
+		ACL_NO_DISCARD track* end() { return m_tracks + m_num_tracks; }
 
 		/// Returns a pointer past the last track.
-		const track* end() const { return m_tracks + m_num_tracks; }
+		ACL_NO_DISCARD const track* end() const { return m_tracks + m_num_tracks; }
 
 		/// Returns true if the track array doesn't contain any data, false otherwise.
-		bool is_empty() const { return m_num_tracks == 0; }
+		ACL_NO_DISCARD bool is_empty() const { return m_num_tracks == 0; }
 		/// \}
 
 		/// \name Validation and sampling
@@ -198,7 +198,7 @@ namespace acl
 		///    - All tracks have the same sample rate
 		///    - All tracks are valid
 		///    - The transform space is a valid value
-		error_result is_valid() const;
+		ACL_NO_DISCARD error_result is_valid() const;
 
 		/// Sample all tracks within this array at the specified sample time and
 		/// desired rounding policy. Track samples are written out using the `track_writer` provided.
@@ -215,7 +215,7 @@ namespace acl
 		/// Returns the raw size for this track array. Note that this differs from the actual
 		/// memory used by an instance of this class. It is meant for comparison against
 		/// the compressed size.
-		uint32_t get_raw_size() const;
+		ACL_NO_DISCARD uint32_t get_raw_size() const;
 		/// \}
 
 	protected:
@@ -287,52 +287,52 @@ namespace acl
 		/// \{
 
 		/// Returns the track type for tracks in this array.
-		track_type8 get_track_type() const { return type; }
+		ACL_NO_DISCARD track_type8 get_track_type() const { return type; }
 
 		/// Returns the track category for tracks in this array.
-		track_category8 get_track_category() const { return category; }
+		ACL_NO_DISCARD track_category8 get_track_category() const { return category; }
 		/// \}
 
 		/// \name Tracks
 		/// \{
 
 		/// Returns the track at the specified index.
-		track_member_type& operator[](uint32_t index);
+		ACL_NO_DISCARD track_member_type& operator[](uint32_t index);
 
 		/// Returns the track at the specified index.
-		const track_member_type& operator[](uint32_t index) const;
+		ACL_NO_DISCARD const track_member_type& operator[](uint32_t index) const;
 
 		/// Returns a pointer to the first track.
-		track_member_type* begin() { return track_cast<track_member_type>(m_tracks); }
+		ACL_NO_DISCARD track_member_type* begin() { return track_cast<track_member_type>(m_tracks); }
 
 		/// Returns a pointer to the first track.
-		const track_member_type* begin() const { return track_cast<track_member_type>(m_tracks); }
+		ACL_NO_DISCARD const track_member_type* begin() const { return track_cast<track_member_type>(m_tracks); }
 
 		/// Returns a pointer past the last track.
-		track_member_type* end() { return track_cast<track_member_type>(m_tracks) + m_num_tracks; }
+		ACL_NO_DISCARD track_member_type* end() { return track_cast<track_member_type>(m_tracks) + m_num_tracks; }
 
 		/// Returns a pointer past the last track.
-		const track_member_type* end() const { return track_cast<track_member_type>(m_tracks) + m_num_tracks; }
+		ACL_NO_DISCARD const track_member_type* end() const { return track_cast<track_member_type>(m_tracks) + m_num_tracks; }
 		/// \}
 	};
 
 	/// Casts an untyped track array into the desired track array type while asserting for safety.
 	template<typename track_array_type>
-	track_array_type& track_array_cast(track_array& track_array_);
+	ACL_NO_DISCARD track_array_type& track_array_cast(track_array& track_array_);
 
 	/// Casts an untyped track array into the desired track array type while asserting for safety.
 	template<typename track_array_type>
-	const track_array_type& track_array_cast(const track_array& track_array_);
+	ACL_NO_DISCARD const track_array_type& track_array_cast(const track_array& track_array_);
 
 	/// Casts an untyped track array into the desired track array type. Returns nullptr if the types
 	/// are not compatible or if the input is nullptr.
 	template<typename track_array_type>
-	track_array_type* track_array_cast(track_array* track_array_);
+	ACL_NO_DISCARD track_array_type* track_array_cast(track_array* track_array_);
 
 	/// Casts an untyped track array into the desired track array type. Returns nullptr if the types
 	/// are not compatible or if the input is nullptr.
 	template<typename track_array_type>
-	const track_array_type* track_array_cast(const track_array* track_array_);
+	ACL_NO_DISCARD const track_array_type* track_array_cast(const track_array* track_array_);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Create aliases for the various typed track array types.

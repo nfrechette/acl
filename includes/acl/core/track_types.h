@@ -124,7 +124,7 @@ namespace acl
 
 	// TODO: constexpr
 	/// Returns the string representation for the provided track type.
-	inline const char* get_track_type_name(track_type8 type)
+	ACL_NO_DISCARD inline const char* get_track_type_name(track_type8 type)
 	{
 		switch (type)
 		{
@@ -142,7 +142,7 @@ namespace acl
 
 	/// Returns the track type from its string representation.
 	/// Returns true on success, false otherwise.
-	inline bool get_track_type(const char* type, track_type8& out_type)
+	ACL_NO_DISCARD inline bool get_track_type(const char* type, track_type8& out_type)
 	{
 		// Entries in the same order as the enum integral value
 		static const char* k_track_type_names[] =
@@ -196,7 +196,7 @@ namespace acl
 	}
 
 	/// Returns the track category for the provided track type.
-	inline track_category8 get_track_category(track_type8 type)
+	ACL_NO_DISCARD inline track_category8 get_track_category(track_type8 type)
 	{
 		// Entries in the same order as the enum integral value
 		static constexpr track_category8 k_track_type_to_category[]
@@ -231,7 +231,7 @@ namespace acl
 
 	// TODO: constexpr
 	/// Returns the string representation for the provided track interpolator type.
-	inline const char* get_track_interpolator_name(track_interpolator_t interpolator)
+	ACL_NO_DISCARD inline const char* get_track_interpolator_name(track_interpolator_t interpolator)
 	{
 		switch (interpolator)
 		{
@@ -243,7 +243,7 @@ namespace acl
 
 	/// Returns the track interpolator from its string representation.
 	/// Returns true on success, false otherwise.
-	inline bool get_track_interpolator(const char* interpolator, track_interpolator_t& out_interpolator)
+	ACL_NO_DISCARD inline bool get_track_interpolator(const char* interpolator, track_interpolator_t& out_interpolator)
 	{
 		// Entries in the same order as the enum integral value
 		static const char* k_track_interpolator_names[] =
@@ -272,7 +272,7 @@ namespace acl
 	}
 
 	/// Returns the num of elements within a sample for the provided track type.
-	inline uint32_t get_track_num_sample_elements(track_type8 type)
+	ACL_NO_DISCARD inline uint32_t get_track_num_sample_elements(track_type8 type)
 	{
 		// Entries in the same order as the enum integral value
 		static constexpr uint32_t k_track_type_to_num_elements[]

@@ -71,14 +71,14 @@ namespace acl
 		virtual ~itransform_metric() = default;
 
 		/// Returns the unique name of the transform metric.
-		virtual const char* get_name() const = 0;
+		ACL_NO_DISCARD virtual const char* get_name() const = 0;
 
 		/// Returns a unique hash to represent the transform metric.
-		virtual uint32_t get_hash() const { return hash32(get_name()); }
+		ACL_NO_DISCARD virtual uint32_t get_hash() const { return hash32(get_name()); }
 
 		/// Returns whether or not the metric can measure the error of transforms
 		/// that use the provided transform adapter.
-		virtual bool is_supported(const itransform_adapter& adapter) const = 0;
+		ACL_NO_DISCARD virtual bool is_supported(const itransform_adapter& adapter) const = 0;
 
 		/// Input arguments for the `calculate_error*` functions.
 		struct calculate_error_args
@@ -129,13 +129,13 @@ namespace acl
 		};
 
 		/// Measures the error between a raw and lossy transform.
-		rtm::scalarf RTM_SIMD_CALL calculate_error(const calculate_error_args& args) const
+		ACL_NO_DISCARD rtm::scalarf RTM_SIMD_CALL calculate_error(const calculate_error_args& args) const
 		{
 			return rtm::scalar_sqrt(calculate_error_squared(args));
 		}
 
 		/// Measures the squared error between a raw and lossy transform.
-		virtual rtm::scalarf RTM_SIMD_CALL calculate_error_squared(const calculate_error_args& args) const = 0;
+		ACL_NO_DISCARD virtual rtm::scalarf RTM_SIMD_CALL calculate_error_squared(const calculate_error_args& args) const = 0;
 	};
 
 	namespace acl_impl
@@ -296,11 +296,11 @@ namespace acl
 	class shell_transform_metric : public itransform_metric
 	{
 	public:
-		virtual const char* get_name() const override { return "shell_transform_metric"; }
+		ACL_NO_DISCARD virtual const char* get_name() const override { return "shell_transform_metric"; }
 
-		virtual bool is_supported(const itransform_adapter& adapter) const override { (void)adapter; return true; }
+		ACL_NO_DISCARD virtual bool is_supported(const itransform_adapter& adapter) const override { (void)adapter; return true; }
 
-		virtual rtm::scalarf RTM_SIMD_CALL calculate_error_squared(const calculate_error_args& args) const override
+		ACL_NO_DISCARD virtual rtm::scalarf RTM_SIMD_CALL calculate_error_squared(const calculate_error_args& args) const override
 		{
 			const itransform_adapter& adapter = *args.adapter;
 
@@ -336,15 +336,15 @@ namespace acl
 	class precise_transform_metric : public itransform_metric
 	{
 	public:
-		virtual const char* get_name() const override { return "precise_transform_metric"; }
+		ACL_NO_DISCARD virtual const char* get_name() const override { return "precise_transform_metric"; }
 
-		virtual bool is_supported(const itransform_adapter& adapter) const override
+		ACL_NO_DISCARD virtual bool is_supported(const itransform_adapter& adapter) const override
 		{
 			const transform_runtime_type_t type = adapter.get_type();
 			return type == transform_runtime_type_t::vqf || type == transform_runtime_type_t::vqsf;
 		}
 
-		virtual rtm::scalarf RTM_SIMD_CALL calculate_error_squared(const calculate_error_args& args) const override
+		ACL_NO_DISCARD virtual rtm::scalarf RTM_SIMD_CALL calculate_error_squared(const calculate_error_args& args) const override
 		{
 			ACL_ASSERT(is_supported(*args.adapter), "The precise transform metric does not support this transform adapter");
 

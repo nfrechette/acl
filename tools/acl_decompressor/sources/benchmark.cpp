@@ -212,7 +212,10 @@ static void setup_benchmark_state(acl::compressed_tracks& compressed_tracks)
 
 	// Create our decompression contexts
 	for (uint32_t instance_index = 0; instance_index < k_num_copies; ++instance_index)
-		decompression_contexts[instance_index].initialize(*decompression_instances[instance_index]);
+	{
+		const bool is_initialized = decompression_contexts[instance_index].initialize(*decompression_instances[instance_index]);
+		ACL_ASSERT(is_initialized, "Failed to initialize the decompression context"); (void)is_initialized;
+	}
 
 	s_benchmark_state.compressed_tracks = &compressed_tracks;
 	s_benchmark_state.pose_size = pose_size;
@@ -618,7 +621,12 @@ bool prepare_clip(const std::string& clip_name, const acl::compressed_tracks& ra
 		pre_process_settings.error_metric = &error_metric;
 		ACL_IMPL_DEPRECATION_WARNING_POP
 
-		acl::pre_process_track_list(s_allocator, pre_process_settings, track_list);
+		result = acl::pre_process_track_list(s_allocator, pre_process_settings, track_list);
+		if (result.any())
+		{
+			printf("    Failed to pre-process clip!\n");
+			return false;
+		}
 	}
 
 	acl::compression_settings settings = acl::get_default_compression_settings();

@@ -68,7 +68,7 @@ namespace acl
 	ACL_IMPL_VERSION_NAMESPACE_BEGIN
 
 	/// Counts the number of `1` bits (aka: pop-count)
-	inline uint64_t count_set_bits(uint64_t value)
+	ACL_NO_DISCARD inline uint64_t count_set_bits(uint64_t value)
 	{
 #if defined(ACL_USE_POPCOUNT)
 	#if defined(RTM_ARCH_X86)
@@ -87,7 +87,7 @@ namespace acl
 	}
 
 	/// Counts the number of `1` bits (aka: pop-count)
-	inline uint32_t count_set_bits(uint32_t value)
+	ACL_NO_DISCARD inline uint32_t count_set_bits(uint32_t value)
 	{
 #if defined(ACL_USE_POPCOUNT)
 		return _mm_popcnt_u32(value);
@@ -101,7 +101,7 @@ namespace acl
 	}
 
 	/// Counts the number of `1` bits (aka: pop-count)
-	inline uint16_t count_set_bits(uint16_t value)
+	ACL_NO_DISCARD inline uint16_t count_set_bits(uint16_t value)
 	{
 #if defined(ACL_USE_POPCOUNT)
 		return static_cast<uint16_t>(_mm_popcnt_u32(value));
@@ -113,7 +113,7 @@ namespace acl
 	}
 
 	/// Counts the number of `1` bits (aka: pop-count)
-	inline uint8_t count_set_bits(uint8_t value)
+	ACL_NO_DISCARD inline uint8_t count_set_bits(uint8_t value)
 	{
 #if defined(ACL_USE_POPCOUNT)
 		return static_cast<uint8_t>(_mm_popcnt_u32(value));
@@ -125,7 +125,7 @@ namespace acl
 	}
 
 	/// Starting at the MSB, counts the number of leading zeros
-	inline uint32_t count_leading_zeros(uint32_t value)
+	ACL_NO_DISCARD inline uint32_t count_leading_zeros(uint32_t value)
 	{
 #if defined(ACL_USE_POPCOUNT)
 		return _lzcnt_u32(value);
@@ -145,7 +145,7 @@ namespace acl
 	}
 
 	/// Starting at the MSB, counts the number of leading zeros
-	inline uint64_t count_leading_zeros(uint64_t value)
+	ACL_NO_DISCARD inline uint64_t count_leading_zeros(uint64_t value)
 	{
 #if defined(ACL_USE_POPCOUNT)
 	#if defined(RTM_ARCH_X86)
@@ -185,7 +185,7 @@ namespace acl
 	}
 
 	/// Starting at the LSB, counts the number of trailing zeros
-	inline uint32_t count_trailing_zeros(uint32_t value)
+	ACL_NO_DISCARD inline uint32_t count_trailing_zeros(uint32_t value)
 	{
 #if defined(ACL_BMI_INTRINSICS)
 		return _tzcnt_u32(value);
@@ -200,7 +200,7 @@ namespace acl
 	}
 
 	/// Starting at the LSB, counts the number of trailing zeros
-	inline uint64_t count_trailing_zeros(uint64_t value)
+	ACL_NO_DISCARD inline uint64_t count_trailing_zeros(uint64_t value)
 	{
 #if defined(ACL_BMI_INTRINSICS)
 	#if defined(RTM_ARCH_X86)
@@ -234,7 +234,7 @@ namespace acl
 	}
 
 	/// Rotate the bits left by some amount
-	inline uint32_t rotate_bits_left(uint32_t value, int32_t num_bits)
+	ACL_NO_DISCARD inline uint32_t rotate_bits_left(uint32_t value, int32_t num_bits)
 	{
 		ACL_ASSERT(num_bits >= 0, "Attempting to rotate by negative bits");
 		ACL_ASSERT(num_bits < 32, "Attempting to rotate by too many bits");
@@ -244,7 +244,7 @@ namespace acl
 	}
 
 	/// Rotate the bits right by some amount
-	inline uint32_t rotate_bits_right(uint32_t value, int32_t num_bits)
+	ACL_NO_DISCARD inline uint32_t rotate_bits_right(uint32_t value, int32_t num_bits)
 	{
 		ACL_ASSERT(num_bits >= 0, "Attempting to rotate by negative bits");
 		ACL_ASSERT(num_bits < 32, "Attempting to rotate by too many bits");
@@ -254,7 +254,7 @@ namespace acl
 	}
 
 	/// Perform: ~not_value & and_value
-	inline uint32_t and_not(uint32_t not_value, uint32_t and_value)
+	ACL_NO_DISCARD inline uint32_t and_not(uint32_t not_value, uint32_t and_value)
 	{
 #if defined(ACL_BMI_INTRINSICS)
 		// Use BMI

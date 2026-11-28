@@ -55,34 +55,34 @@ namespace acl
 	{
 	public:
 		/// Returns the algorithm type used to compress the tracks.
-		algorithm_type8 get_algorithm_type() const;
+		ACL_NO_DISCARD algorithm_type8 get_algorithm_type() const;
 
 		/// Returns the size in bytes of the compressed tracks.
 		/// Includes the `compressed_tracks` instance size.
-		uint32_t get_size() const { return m_buffer_header.size; }
+		ACL_NO_DISCARD uint32_t get_size() const { return m_buffer_header.size; }
 
 		/// Returns the hash for the compressed tracks.
 		/// This is only used for sanity checking in case of memory corruption.
-		uint32_t get_hash() const { return m_buffer_header.hash; }
+		ACL_NO_DISCARD uint32_t get_hash() const { return m_buffer_header.hash; }
 
 		/// Returns the binary tag for the compressed tracks.
 		/// This uniquely identifies the buffer as a proper `compressed_tracks` object.
-		buffer_tag32 get_tag() const;
+		ACL_NO_DISCARD buffer_tag32 get_tag() const;
 
 		/// Returns the binary format version.
-		compressed_tracks_version16 get_version() const;
+		ACL_NO_DISCARD compressed_tracks_version16 get_version() const;
 
 		/// Returns the number of tracks contained.
-		uint32_t get_num_tracks() const;
+		ACL_NO_DISCARD uint32_t get_num_tracks() const;
 
 		/// Returns the number of samples each track contains.
 		/// This does not account for the repeating first sample when the wrap
 		/// looping policy is used.
 		/// See `sample_looping_policy` for details.
-		uint32_t get_num_samples_per_track() const;
+		ACL_NO_DISCARD uint32_t get_num_samples_per_track() const;
 
 		/// Returns the type of the compressed tracks.
-		track_type8 get_track_type() const;
+		ACL_NO_DISCARD track_type8 get_track_type() const;
 
 		/// Returns the duration of each track.
 		/// Note that when wrap policy is used, an extra repeating
@@ -91,7 +91,7 @@ namespace acl
 		/// This allows us to interpolate from the last sample back to the first
 		/// sample when looping and wrapping during playback.
 		/// See `sample_looping_policy` for details.
-		float get_duration(sample_looping_policy looping_policy = sample_looping_policy::as_compressed) const;
+		ACL_NO_DISCARD float get_duration(sample_looping_policy looping_policy = sample_looping_policy::as_compressed) const;
 
 		/// Returns the finite duration of each track.
 		/// Note that when wrap policy is used, an extra repeating
@@ -100,56 +100,56 @@ namespace acl
 		/// This allows us to interpolate from the last sample back to the first
 		/// sample when looping and wrapping during playback.
 		/// See `sample_looping_policy` for details.
-		float get_finite_duration(sample_looping_policy looping_policy = sample_looping_policy::as_compressed) const;
+		ACL_NO_DISCARD float get_finite_duration(sample_looping_policy looping_policy = sample_looping_policy::as_compressed) const;
 
 		/// Returns the sample rate used by each track.
-		float get_sample_rate() const;
+		ACL_NO_DISCARD float get_sample_rate() const;
 
 		/// Returns whether or not this clip is split into a compressed database instance.
 		/// Only supported with vqv transform tracks.
-		bool has_database() const;
+		ACL_NO_DISCARD bool has_database() const;
 
 		/// Returns whether or not every sub-track's default value is trivial (aka the identity).
 		/// Non-trivial default values indicate that extra data beyond the clip will be needed at decompression (e.g. bind pose)
 		/// Only supported with vqv transform tracks.
-		bool has_trivial_default_values() const;
+		ACL_NO_DISCARD bool has_trivial_default_values() const;
 
 		/// Returns whether or not this clip has had keyframes stripped.
 		/// Only supported with vqv transform tracks.
-		bool has_stripped_keyframes() const;
+		ACL_NO_DISCARD bool has_stripped_keyframes() const;
 
 		/// Returns the default scale value used during compression.
 		/// Depending on the additive type, this value will either be 0 or 1.
 		/// Only supported with vqv transform tracks.
-		int32_t get_default_scale() const;
+		ACL_NO_DISCARD int32_t get_default_scale() const;
 
 		/// Returns the looping policy used during compression.
-		sample_looping_policy get_looping_policy() const;
+		ACL_NO_DISCARD sample_looping_policy get_looping_policy() const;
 
 		/// Returns the track list name if metadata is present, nullptr otherwise.
-		const char* get_name() const;
+		ACL_NO_DISCARD const char* get_name() const;
 
 		/// Returns the track name for the specified track index if metadata is present, k_invalid_track_index otherwise.
-		const char* get_track_name(uint32_t track_index) const;
+		ACL_NO_DISCARD const char* get_track_name(uint32_t track_index) const;
 
 		/// Returns the parent track index for the specified track index if metadata is present, nullptr otherwise.
 		/// Only supported with vqv transform tracks.
-		uint32_t get_parent_track_index(uint32_t track_index) const;
+		ACL_NO_DISCARD uint32_t get_parent_track_index(uint32_t track_index) const;
 
 		/// Returns the track description for the specified track index if metadata is present.
 		/// Returns true on success, false otherwise.
-		bool get_track_description(uint32_t track_index, track_desc_scalarf& out_description) const;
+		ACL_NO_DISCARD bool get_track_description(uint32_t track_index, track_desc_scalarf& out_description) const;
 
 		/// Returns the track description for the specified track index if metadata is present.
 		/// Returns true on success, false otherwise.
-		bool get_track_description(uint32_t track_index, track_desc_transformf& out_description) const;
+		ACL_NO_DISCARD bool get_track_description(uint32_t track_index, track_desc_transformf& out_description) const;
 
 		/// Returns true if the compressed tracks are valid and usable.
 		/// This mainly validates some invariants as well as ensuring that the
 		/// memory has not been corrupted.
 		///
 		/// \param check_hash If true, the compressed tracks hash will also be compared.
-		error_result is_valid(bool check_hash) const;
+		ACL_NO_DISCARD error_result is_valid(bool check_hash) const;
 
 	private:
 		/// Hide everything
@@ -187,12 +187,12 @@ namespace acl
 	/// Create a compressed_tracks instance in place from a raw memory buffer.
 	/// If the buffer does not contain a valid compressed_tracks instance, nullptr is returned
 	/// along with an optional error result.
-	const compressed_tracks* make_compressed_tracks(const void* buffer, error_result* out_error_result = nullptr);
+	ACL_NO_DISCARD const compressed_tracks* make_compressed_tracks(const void* buffer, error_result* out_error_result = nullptr);
 
 	/// Create a compressed_tracks instance in place from a raw memory buffer.
 	/// If the buffer does not contain a valid compressed_tracks instance, nullptr is returned
 	/// along with an optional error result.
-	compressed_tracks* make_compressed_tracks(void* buffer, error_result* out_error_result = nullptr);
+	ACL_NO_DISCARD compressed_tracks* make_compressed_tracks(void* buffer, error_result* out_error_result = nullptr);
 
 	ACL_IMPL_VERSION_NAMESPACE_END
 }

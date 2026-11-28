@@ -30,6 +30,10 @@ struct my_decompression_settings : public default_transform_decompression_settin
 };
 ```
 
+### Return values
+
+Each public function that returns a value now has the `ACL_NO_DISCARD` macro. With C++17 and later, it is `[[nodiscard]]`: the compiler gives a warning when your code does not use the return value, for example the `bool` of `decompression_context::initialize` or the `error_result` of `pre_process_track_list`. Check the return value. To keep the previous behavior, define `ACL_NO_DISCARD` as empty before you include ACL (see [configuration macros](configuration_macros.md)).
+
 ### Additive clips and the transform space
 
 A `transform_base_desc_t` now holds the base of an additive clip and its additive format, and the track array holds its transform space (see [here](additive_clips.md#the-transform-space)). These APIs are deprecated, and ACL 2.3 will remove them:

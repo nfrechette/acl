@@ -91,28 +91,28 @@ namespace acl
 
 	/// Returns an iterator over the items of a C array.
 	template <class item_type, size_t num_items>
-	array_iterator<item_type> make_iterator(item_type (&items)[num_items])
+	ACL_NO_DISCARD array_iterator<item_type> make_iterator(item_type (&items)[num_items])
 	{
 		return array_iterator<item_type>(items, num_items);
 	}
 
 	/// Returns an iterator over the items of a const C array.
 	template <class item_type, size_t num_items>
-	const_array_iterator<item_type> make_iterator(item_type const (&items)[num_items])
+	ACL_NO_DISCARD const_array_iterator<item_type> make_iterator(item_type const (&items)[num_items])
 	{
 		return const_array_iterator<item_type>(items, num_items);
 	}
 
 	/// Returns an iterator over `num_items` items that start at the given pointer.
 	template <class item_type>
-	array_iterator<item_type> make_iterator(item_type* items, size_t num_items)
+	ACL_NO_DISCARD array_iterator<item_type> make_iterator(item_type* items, size_t num_items)
 	{
 		return array_iterator<item_type>(items, num_items);
 	}
 
 	/// Returns an iterator over `num_items` const items that start at the given pointer.
 	template <class item_type>
-	const_array_iterator<item_type> make_iterator(const item_type* items, size_t num_items)
+	ACL_NO_DISCARD const_array_iterator<item_type> make_iterator(const item_type* items, size_t num_items)
 	{
 		return const_array_iterator<item_type>(items, num_items);
 	}
@@ -125,28 +125,28 @@ namespace acl
 
 	/// Returns an iterator over the items of a C array, from the last item to the first item.
 	template <class item_type, size_t num_items>
-	array_reverse_iterator<item_type> make_reverse_iterator(item_type(&items)[num_items])
+	ACL_NO_DISCARD array_reverse_iterator<item_type> make_reverse_iterator(item_type(&items)[num_items])
 	{
 		return array_reverse_iterator<item_type>(items, num_items);
 	}
 
 	/// Returns an iterator over the items of a const C array, from the last item to the first item.
 	template <class item_type, size_t num_items>
-	const_array_reverse_iterator<item_type> make_reverse_iterator(item_type const (&items)[num_items])
+	ACL_NO_DISCARD const_array_reverse_iterator<item_type> make_reverse_iterator(item_type const (&items)[num_items])
 	{
 		return const_array_reverse_iterator<item_type>(items, num_items);
 	}
 
 	/// Returns an iterator over `num_items` items that start at the given pointer, from the last item to the first item.
 	template <class item_type>
-	array_reverse_iterator<item_type> make_reverse_iterator(item_type* items, size_t num_items)
+	ACL_NO_DISCARD array_reverse_iterator<item_type> make_reverse_iterator(item_type* items, size_t num_items)
 	{
 		return array_reverse_iterator<item_type>(items, num_items);
 	}
 
 	/// Returns an iterator over `num_items` const items that start at the given pointer, from the last item to the first item.
 	template <class item_type>
-	const_array_reverse_iterator<item_type> make_reverse_iterator(const item_type* items, size_t num_items)
+	ACL_NO_DISCARD const_array_reverse_iterator<item_type> make_reverse_iterator(const item_type* items, size_t num_items)
 	{
 		return const_array_reverse_iterator<item_type>(items, num_items);
 	}

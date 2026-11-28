@@ -695,7 +695,8 @@ static void try_algorithm(const Options& options, iallocator& allocator, const t
 			scope_disable_fp_exceptions fp_off;
 
 			acl::decompression_context<acl::debug_scalar_decompression_settings> context;
-			context.initialize(*compressed_tracks_);
+			const bool is_initialized = context.initialize(*compressed_tracks_);
+			ACL_ASSERT(is_initialized, "Failed to initialize the decompression context"); (void)is_initialized;
 
 			const track_error error = calculate_compression_error(allocator, track_list, context);
 
@@ -1547,7 +1548,12 @@ static int safe_main_impl(int argc, char* argv[])
 			}
 		}
 
-		pre_process_track_list(allocator, pre_process_settings, transform_tracks);
+		const error_result pre_process_result = pre_process_track_list(allocator, pre_process_settings, transform_tracks);
+		if (pre_process_result.any())
+		{
+			printf("Failed to pre-process the track list: %s\n", pre_process_result.c_str());
+			return -1;
+		}
 	}
 
 	// Compress & Decompress

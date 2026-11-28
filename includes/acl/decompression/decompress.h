@@ -91,18 +91,18 @@ namespace acl
 		~decompression_context();
 
 		/// Returns the compressed tracks bound to this context instance.
-		const compressed_tracks* get_compressed_tracks() const { return m_context.get_compressed_tracks(); }
+		ACL_NO_DISCARD const compressed_tracks* get_compressed_tracks() const { return m_context.get_compressed_tracks(); }
 
 		/// Initializes the context instance to a particular compressed tracks instance.
 		/// Returns whether initialization was successful or not.
-		bool initialize(const compressed_tracks& tracks);
+		ACL_NO_DISCARD bool initialize(const compressed_tracks& tracks);
 
 		/// Initializes the context instance to a particular compressed tracks instance and its database instance.
 		/// Returns whether initialization was successful or not.
-		bool initialize(const compressed_tracks& tracks, const database_context<db_settings_type>& database);
+		ACL_NO_DISCARD bool initialize(const compressed_tracks& tracks, const database_context<db_settings_type>& database);
 
 		/// Returns true if this context instance is bound to a compressed tracks instance, false otherwise.
-		bool is_initialized() const { return m_context.is_initialized(); }
+		ACL_NO_DISCARD bool is_initialized() const { return m_context.is_initialized(); }
 
 		/// Resets the context instance to its default constructed state. If the context was
 		/// currently bound to a compressed tracks instance (and database), it will no longer be bound to anything.
@@ -111,22 +111,22 @@ namespace acl
 		/// If the bound compressed tracks instance has relocated elsewhere in memory, this function
 		/// rebinds the context to it, avoiding the need to re-initialize it entirely.
 		/// Returns whether rebinding was successful or not.
-		bool relocated(const compressed_tracks& tracks);
+		ACL_NO_DISCARD bool relocated(const compressed_tracks& tracks);
 
 		/// If the bound compressed tracks and database instances have relocated elsewhere in memory, this function
 		/// rebinds the context to them, avoiding the need to re-initialize it entirely.
 		/// Returns whether rebinding was successful or not.
-		bool relocated(const compressed_tracks& tracks, const database_context<db_settings_type>& database);
+		ACL_NO_DISCARD bool relocated(const compressed_tracks& tracks, const database_context<db_settings_type>& database);
 
 		/// Returns true if this context instance is bound to the specified compressed tracks instance, false otherwise.
-		ACL_DEPRECATED("Renamed to is_bound_to, to be removed in v3.0")
+		ACL_NO_DISCARD ACL_DEPRECATED("Renamed to is_bound_to, to be removed in v3.0")
 		bool is_dirty(const compressed_tracks& tracks) const;
 
 		/// Returns true if this context instance is bound to the specified compressed tracks instance, false otherwise.
-		bool is_bound_to(const compressed_tracks& tracks) const;
+		ACL_NO_DISCARD bool is_bound_to(const compressed_tracks& tracks) const;
 
 		/// Returns true if this context instance is bound to the specified database instance, false otherwise.
-		bool is_bound_to(const compressed_database& database) const;
+		ACL_NO_DISCARD bool is_bound_to(const compressed_database& database) const;
 
 		/// Sets the looping policy.
 		/// Should only be used when the host runtime requires overriding the default behavior.
@@ -136,7 +136,7 @@ namespace acl
 
 		/// Gets the current looping policy.
 		/// If wrapping is not disabled, this is the policy from the compressed data by default.
-		sample_looping_policy get_looping_policy() const;
+		ACL_NO_DISCARD sample_looping_policy get_looping_policy() const;
 
 		/// Seeks within the compressed tracks to a particular point in time with the
 		/// desired rounding policy.
@@ -186,7 +186,7 @@ namespace acl
 
 	/// Allocates and constructs an instance of the decompression context
 	template<class decompression_settings_type>
-	inline decompression_context<decompression_settings_type>* make_decompression_context(iallocator& allocator)
+	ACL_NO_DISCARD inline decompression_context<decompression_settings_type>* make_decompression_context(iallocator& allocator)
 	{
 		return allocate_type<decompression_context<decompression_settings_type>>(allocator);
 	}

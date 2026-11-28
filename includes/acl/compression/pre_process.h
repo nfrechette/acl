@@ -218,19 +218,19 @@ namespace acl
 	///
 	/// This function returns an error result. If an error occurred, the raw data
 	/// may have mutated partially.
-	error_result pre_process_track_list(iallocator& allocator, const pre_process_settings_t& settings, track_array& track_list);
+	ACL_NO_DISCARD error_result pre_process_track_list(iallocator& allocator, const pre_process_settings_t& settings, track_array& track_list);
 
 	/// Pre-processes a typed transform track array, see above.
 	/// A typed track array cannot change its type: the `convert_transform_type` action returns an error.
-	error_result pre_process_track_list(iallocator& allocator, const pre_process_settings_t& settings, track_array_vqvf& track_list);
+	ACL_NO_DISCARD error_result pre_process_track_list(iallocator& allocator, const pre_process_settings_t& settings, track_array_vqvf& track_list);
 
 	/// Pre-processes a typed transform track array, see above.
 	/// A typed track array cannot change its type: the `convert_transform_type` action returns an error.
-	error_result pre_process_track_list(iallocator& allocator, const pre_process_settings_t& settings, track_array_vqf& track_list);
+	ACL_NO_DISCARD error_result pre_process_track_list(iallocator& allocator, const pre_process_settings_t& settings, track_array_vqf& track_list);
 
 	/// Pre-processes a typed transform track array, see above.
 	/// A typed track array cannot change its type: the `convert_transform_type` action returns an error.
-	error_result pre_process_track_list(iallocator& allocator, const pre_process_settings_t& settings, track_array_vqsf& track_list);
+	ACL_NO_DISCARD error_result pre_process_track_list(iallocator& allocator, const pre_process_settings_t& settings, track_array_vqsf& track_list);
 
 	ACL_IMPL_VERSION_NAMESPACE_END
 }

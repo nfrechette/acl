@@ -71,7 +71,7 @@ namespace acl
 		using desc_type = track_desc_scalarf;	///< The type of the track description
 
 		/// Loads a sample value into a vector4f. The function sets the unused components to 0.0 or leaves them undefined.
-		static rtm::vector4f RTM_SIMD_CALL load_as_vector(const sample_type* ptr) { return rtm::vector_set(*ptr, 0.0F, 0.0F, 0.0F); }
+		ACL_NO_DISCARD static rtm::vector4f RTM_SIMD_CALL load_as_vector(const sample_type* ptr) { return rtm::vector_set(*ptr, 0.0F, 0.0F, 0.0F); }
 	};
 
 	/// The traits of a float2f scalar track.
@@ -89,7 +89,7 @@ namespace acl
 		using desc_type = track_desc_scalarf;	///< The type of the track description
 
 		/// Loads a sample value into a vector4f. The function sets the unused components to 0.0 or leaves them undefined.
-		static rtm::vector4f RTM_SIMD_CALL load_as_vector(const sample_type* ptr) { return rtm::vector_load2(ptr); }
+		ACL_NO_DISCARD static rtm::vector4f RTM_SIMD_CALL load_as_vector(const sample_type* ptr) { return rtm::vector_load2(ptr); }
 	};
 
 	/// The traits of a float3f scalar track.
@@ -107,7 +107,7 @@ namespace acl
 		using desc_type = track_desc_scalarf;	///< The type of the track description
 
 		/// Loads a sample value into a vector4f. The function sets the unused components to 0.0 or leaves them undefined.
-		static rtm::vector4f RTM_SIMD_CALL load_as_vector(const sample_type* ptr) { return rtm::vector_load3(ptr); }
+		ACL_NO_DISCARD static rtm::vector4f RTM_SIMD_CALL load_as_vector(const sample_type* ptr) { return rtm::vector_load3(ptr); }
 	};
 
 	/// The traits of a float4f scalar track.
@@ -125,7 +125,7 @@ namespace acl
 		using desc_type = track_desc_scalarf;	///< The type of the track description
 
 		/// Loads a sample value into a vector4f. The function sets the unused components to 0.0 or leaves them undefined.
-		static rtm::vector4f RTM_SIMD_CALL load_as_vector(const sample_type* ptr) { return rtm::vector_load(ptr); }
+		ACL_NO_DISCARD static rtm::vector4f RTM_SIMD_CALL load_as_vector(const sample_type* ptr) { return rtm::vector_load(ptr); }
 	};
 
 	/// The traits of a vector4f scalar track.
@@ -153,7 +153,7 @@ namespace acl
 		using desc_type = track_desc_scalarf;	///< The type of the track description
 
 		/// Loads a sample value into a vector4f. The function sets the unused components to 0.0 or leaves them undefined.
-		static rtm::vector4f RTM_SIMD_CALL load_as_vector(const sample_type* ptr) { return *ptr; }
+		ACL_NO_DISCARD static rtm::vector4f RTM_SIMD_CALL load_as_vector(const sample_type* ptr) { return *ptr; }
 	};
 
 	/// The traits of a vqvf transform track.

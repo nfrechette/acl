@@ -89,21 +89,21 @@ namespace acl
 		~database_context();
 
 		/// Returns the compressed database bound to this context instance.
-		const compressed_database* get_compressed_database() const;
+		ACL_NO_DISCARD const compressed_database* get_compressed_database() const;
 
 		/// Initializes the context instance to a particular compressed database instance.
 		/// No streaming can be performed and it is assumed that all the data is present in memory.
 		/// Returns whether initialization was successful or not.
-		bool initialize(iallocator& allocator, const compressed_database& database);
+		ACL_NO_DISCARD bool initialize(iallocator& allocator, const compressed_database& database);
 
 		/// Initializes the context instance to a particular compressed database instance.
 		/// The streamer instances will be used to issue IO stream in/out requests.
 		/// If a tier is stripped, the null_database_streamer can be used.
 		/// Returns whether initialization was successful or not.
-		bool initialize(iallocator& allocator, const compressed_database& database, database_streamer& medium_tier_streamer, database_streamer& low_tier_streamer);
+		ACL_NO_DISCARD bool initialize(iallocator& allocator, const compressed_database& database, database_streamer& medium_tier_streamer, database_streamer& low_tier_streamer);
 
 		/// Returns true if this context instance is bound to a compressed database instance, false otherwise.
-		bool is_initialized() const;
+		ACL_NO_DISCARD bool is_initialized() const;
 
 		/// Resets the context instance to its default constructed state. If the context was
 		/// currently bound to a database instance, it will no longer be bound to it.
@@ -112,7 +112,7 @@ namespace acl
 		/// If the bound compressed database instance has relocated elsewhere in memory, this function
 		/// rebinds the context to it, avoiding the need to re-initialize it entirely.
 		/// Returns whether rebinding was successful or not.
-		bool relocated(const compressed_database& database);
+		ACL_NO_DISCARD bool relocated(const compressed_database& database);
 
 		/// If the bound compressed database instance has relocated elsewhere in memory, this function
 		/// rebinds the context to it, avoiding the need to re-initialize it entirely.
@@ -120,29 +120,29 @@ namespace acl
 		/// Assumes that the streamers have retained the same bulk data state as well. If it is
 		/// not the case, reset and re-initialize the context.
 		/// Returns whether rebinding was successful or not.
-		bool relocated(const compressed_database& database, database_streamer& medium_tier_streamer, database_streamer& low_tier_streamer);
+		ACL_NO_DISCARD bool relocated(const compressed_database& database, database_streamer& medium_tier_streamer, database_streamer& low_tier_streamer);
 
 		/// Returns true if this context instance is bound to the specified database instance, false otherwise.
-		bool is_bound_to(const compressed_database& database) const;
+		ACL_NO_DISCARD bool is_bound_to(const compressed_database& database) const;
 
 		/// Returns whether the database bound contains the provided compressed tracks instance data.
-		bool contains(const compressed_tracks& tracks) const;
+		ACL_NO_DISCARD bool contains(const compressed_tracks& tracks) const;
 
 		/// Returns whether or not we have streamed in any of the database bulk data for the specified tier (medium or low).
-		bool is_streamed_in(quality_tier tier) const;
+		ACL_NO_DISCARD bool is_streamed_in(quality_tier tier) const;
 
 		/// Returns whether or not a streaming request is in flight for the specified tier (medium or low).
-		bool is_streaming(quality_tier tier) const;
+		ACL_NO_DISCARD bool is_streaming(quality_tier tier) const;
 
 		/// Issues a stream in request and returns the current status for the specified tier (medium or low).
 		/// By default, every chunk will be streamed in but they can be streamed progressively
 		/// by providing a number of chunks.
-		database_stream_request_result stream_in(quality_tier tier, uint32_t num_chunks_to_stream = ~0U);
+		ACL_NO_DISCARD database_stream_request_result stream_in(quality_tier tier, uint32_t num_chunks_to_stream = ~0U);
 
 		/// Issues a stream out request and returns the current status for the specified tier (medium or low).
 		/// By default, every chunk will be streamed out but they can be streamed progressively
 		/// by providing a number of chunks.
-		database_stream_request_result stream_out(quality_tier tier, uint32_t num_chunks_to_stream = ~0U);
+		ACL_NO_DISCARD database_stream_request_result stream_out(quality_tier tier, uint32_t num_chunks_to_stream = ~0U);
 
 	private:
 		database_context(const database_context& other) = delete;

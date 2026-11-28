@@ -57,9 +57,9 @@ namespace acl
 			ACL_ASSERT(bulk_data != nullptr, "Bulk data buffer cannot be null");
 		}
 
-		virtual bool is_initialized() const override { return m_bulk_data_size == 0 || m_bulk_data != nullptr; }
+		ACL_NO_DISCARD virtual bool is_initialized() const override { return m_bulk_data_size == 0 || m_bulk_data != nullptr; }
 
-		virtual const uint8_t* get_bulk_data(quality_tier tier) const override
+		ACL_NO_DISCARD virtual const uint8_t* get_bulk_data(quality_tier tier) const override
 		{
 			ACL_ASSERT(tier != quality_tier::highest_importance, "Cannot stream the highest importance tier");
 			(void)tier;

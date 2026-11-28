@@ -47,7 +47,7 @@ namespace acl
 	/// This does not account for the repeating first sample when the wrap
 	/// looping policy is used.
 	/// See `sample_looping_policy` for details.
-	uint32_t calculate_num_samples(float duration, float sample_rate);
+	ACL_NO_DISCARD uint32_t calculate_num_samples(float duration, float sample_rate);
 
 	/// Calculate a clip duration from its number of samples and sample rate.
 	/// Conceptually, a clip with 1 sample at any sample rate has a single static
@@ -58,14 +58,14 @@ namespace acl
 	/// This does not account for the repeating first sample when the wrap
 	/// looping policy is used.
 	/// See `sample_looping_policy` for details.
-	float calculate_duration(uint32_t num_samples, float sample_rate);
+	ACL_NO_DISCARD float calculate_duration(uint32_t num_samples, float sample_rate);
 
 	/// Calculate a clip duration from its number of samples and sample rate
 	/// and returns a finite duration suitable for clamping.
 	/// This does not account for the repeating first sample when the wrap
 	/// looping policy is used.
 	/// See `sample_looping_policy` for details.
-	float calculate_finite_duration(uint32_t num_samples, float sample_rate);
+	ACL_NO_DISCARD float calculate_finite_duration(uint32_t num_samples, float sample_rate);
 
 	ACL_IMPL_VERSION_NAMESPACE_END
 }
