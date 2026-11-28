@@ -39,7 +39,9 @@
 
 #include <rtm/vqvf.h>
 
+#include <algorithm>
 #include <cstdint>
+#include <cstring>
 
 //////////////////////////////////////////////////////////////////////////
 // Apply error correction after constant and default tracks are processed.
@@ -81,114 +83,228 @@ namespace acl
 
 #if ACL_IMPL_CONSTANT_FOLDING_ALGO == ACL_IMPL_CONSTANT_FOLDING_ALGO_ORIGINAL
 
-		// To detect if a sub-track is constant, we grab the first sample as our reference.
-		// We then measure the object space error using the vqv error metric and our
-		// dominant shell distance. If the error remains within our dominant precision
-		// then the sub-track is constant. We perform the same test using the default
-		// sub-track value to determine if it is a default sub-track.
-
-		inline bool RTM_SIMD_CALL are_samples_constant(const compression_settings& settings,
-			const clip_context& lossy_clip_context, const transform_space_context_t& space_context,
-			rtm::vector4f_arg0 reference, uint32_t transform_index, animation_track_type8 sub_track_type)
+		// The buffers of the constant sub-track test, and the object space transform of the parent of
+		// the transform that we test, at each sample, in the type of the error metric.
+		// The tests of the sub-tracks of a transform use the same parent transforms: we compute them one time.
+		// The ancestors of the transform can already use their constant sample: decompression uses it too.
+		class constant_test_context_t
 		{
-			const segment_context& lossy_segment = lossy_clip_context.segments[0];
-			const transform_streams& raw_transform_stream = lossy_segment.bone_streams[transform_index];
-
-			const rigid_shell_metadata_t& shell = lossy_clip_context.clip_shell_metadata[transform_index];
-
-			const itransform_error_metric& error_metric = *settings.error_metric;
-
-			// The error metric calls below always use the variants with scale.
-			// The transform layout must agree with them, even when the clip has no scale.
-			// For example, the matrix error metric uses a vqvf without scale and a matrix3x4f with scale.
-			const bool has_scale = true;
-			const bool has_additive_base = space_context.has_base();
-			const bool needs_conversion = error_metric.needs_conversion(has_scale);
-
-			const uint32_t dirty_transform_indices[2] = { 0, 1 };
-			rtm::vqvf local_transforms[2];
-			rtm::vqvf base_transforms[2];
-			alignas(16) uint8_t local_transforms_converted[1024];	// Big enough for 2 transforms for sure
-
-			const size_t metric_transform_size = error_metric.get_transform_size(has_scale);
-			ACL_ASSERT(metric_transform_size * 2 <= sizeof(local_transforms_converted), "Transform size is too large");
-
-			// The error metric receives the real transform index and the index of the sample in the clip
-			const single_transform_converter converter(*lossy_clip_context.allocator, error_metric, has_scale, lossy_clip_context.num_bones);
-
-			itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args;
-			apply_additive_to_base_args.dirty_transform_indices = &dirty_transform_indices[0];
-			apply_additive_to_base_args.num_dirty_transforms = 2;
-			apply_additive_to_base_args.base_transforms = &base_transforms[0];
-			apply_additive_to_base_args.local_transforms = &local_transforms[0];
-			apply_additive_to_base_args.num_transforms = 2;
-
-			itransform_error_metric::calculate_error_args calculate_error_args;
-			calculate_error_args.construct_sphere_shell(shell.local_shell_distance);
-			calculate_error_args.transform0 = &local_transforms_converted[metric_transform_size * 0];
-			calculate_error_args.transform1 = &local_transforms_converted[metric_transform_size * 1];
-
-			const rtm::scalarf precision_sq = rtm::scalar_set(shell.precision * shell.precision);
-
-			const uint32_t num_samples = lossy_clip_context.num_samples;
-			for (uint32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+		public:
+			constant_test_context_t(iallocator& allocator, const clip_context& lossy_clip_context, const transform_space_context_t& space_context, const itransform_error_metric& error_metric)
+				: m_allocator(allocator)
+				, m_clip_context(lossy_clip_context)
+				, m_space_context(space_context)
+				, m_error_metric(error_metric)
+				, m_num_transforms(lossy_clip_context.num_bones)
+				, m_num_samples(lossy_clip_context.num_samples)
+				// The error metric calls below always use the variants with scale.
+				// The transform layout must agree with them, even when the clip has no scale.
+				// For example, the matrix error metric uses a vqvf without scale and a matrix3x4f with scale.
+				, m_needs_conversion(error_metric.needs_conversion(true))
+				, m_transform_size(error_metric.get_transform_size(true))
 			{
-				const rtm::quatf raw_rotation = raw_transform_stream.rotations.get_sample_clamped(sample_index);
-				const rtm::vector4f raw_translation = raw_transform_stream.translations.get_sample_clamped(sample_index);
-				const rtm::vector4f raw_scale = raw_transform_stream.scales.get_sample_clamped(sample_index);
+				const clip_topology_t& topology = *lossy_clip_context.topology;
 
-				rtm::vqvf raw_transform = rtm::vqv_set(raw_rotation, raw_translation, raw_scale);
-				rtm::vqvf lossy_transform = raw_transform;	// Copy the raw transform
+				m_chain_indices = allocate_type_array<uint32_t>(allocator, m_num_transforms);
+				m_parent_indices = allocate_type_array<uint32_t>(allocator, m_num_transforms);
+				for (uint32_t transform_index = 0; transform_index < m_num_transforms; ++transform_index)
+					m_parent_indices[transform_index] = topology.transforms[transform_index].parent_index;
 
-				// Fix up our lossy transform with the reference value
-				switch (sub_track_type)
-				{
-				case animation_track_type8::rotation:
-				default:
-					lossy_transform.rotation = rtm::vector_to_quat(reference);
-					break;
-				case animation_track_type8::translation:
-					lossy_transform.translation = reference;
-					break;
-				case animation_track_type8::scale:
-					lossy_transform.scale = reference;
-					break;
-				}
-
-				local_transforms[0] = raw_transform;
-				local_transforms[1] = lossy_transform;
-
-				if (has_additive_base)
-				{
-					const rtm::vqvf& base_transform = space_context.get_base_pose(sample_index)[transform_index];
-
-					base_transforms[0] = base_transform;
-					base_transforms[1] = base_transform;
-
-					// The additive applies to the source transforms, before the conversion
-					error_metric.apply_additive_to_base(apply_additive_to_base_args, &local_transforms[0]);
-				}
-
-				if (needs_conversion)
-				{
-					converter.convert(local_transforms[0], transform_index, sample_index, false, &local_transforms_converted[metric_transform_size * 0]);
-					converter.convert(local_transforms[1], transform_index, sample_index, true, &local_transforms_converted[metric_transform_size * 1]);
-				}
-				else
-					std::memcpy(&local_transforms_converted[0], &local_transforms[0], metric_transform_size * 2);
-
-				const rtm::scalarf vtx_error_sq = error_metric.calculate_error_squared(calculate_error_args);
-
-				// If our error exceeds the desired precision, we are not constant
-				if (rtm::scalar_greater_than(vtx_error_sq, precision_sq))
-					return false;
+				// The error metric reads and writes each transform at its index in a full pose
+				m_local_pose = allocate_type_array<rtm::vqvf>(allocator, m_num_transforms);
+				m_local_pose_converted = m_needs_conversion ? allocate_type_array_aligned<uint8_t>(allocator, m_transform_size * m_num_transforms, 64) : nullptr;
+				m_object_pose = allocate_type_array_aligned<uint8_t>(allocator, m_transform_size * m_num_transforms, 64);
+				m_raw_object_transform = allocate_type_array_aligned<uint8_t>(allocator, m_transform_size, 64);
+				m_parent_object_transforms = allocate_type_array_aligned<uint8_t>(allocator, m_transform_size * m_num_samples, 64);
 			}
 
-			// All samples were tested against the reference value and the error remained within tolerance
-			return true;
+			~constant_test_context_t()
+			{
+				deallocate_type_array(m_allocator, m_chain_indices, m_num_transforms);
+				deallocate_type_array(m_allocator, m_parent_indices, m_num_transforms);
+				deallocate_type_array(m_allocator, m_local_pose, m_num_transforms);
+				deallocate_type_array(m_allocator, m_local_pose_converted, m_transform_size * m_num_transforms);
+				deallocate_type_array(m_allocator, m_object_pose, m_transform_size * m_num_transforms);
+				deallocate_type_array(m_allocator, m_raw_object_transform, m_transform_size);
+				deallocate_type_array(m_allocator, m_parent_object_transforms, m_transform_size * m_num_samples);
+			}
+
+			constant_test_context_t(const constant_test_context_t&) = delete;
+			constant_test_context_t& operator=(const constant_test_context_t&) = delete;
+
+			// Returns true if the error remains within the dominant precision at each sample when
+			// the sub-track uses the reference value
+			bool RTM_SIMD_CALL are_samples_constant(rtm::vector4f_arg0 reference, uint32_t transform_index, animation_track_type8 sub_track_type)
+			{
+				prepare(transform_index);
+
+				const rigid_shell_metadata_t& shell = m_clip_context.clip_shell_metadata[transform_index];
+				const transform_streams& raw_transform_stream = m_clip_context.segments[0].bone_streams[transform_index];
+				const uint32_t parent_index = m_parent_indices[transform_index];
+
+				itransform_error_metric::calculate_error_args calculate_error_args;
+				calculate_error_args.construct_sphere_shell(shell.local_shell_distance);
+				calculate_error_args.transform0 = m_raw_object_transform;
+				calculate_error_args.transform1 = m_object_pose + (transform_index * m_transform_size);
+
+				const rtm::scalarf precision_sq = rtm::scalar_set(shell.precision * shell.precision);
+
+				for (uint32_t sample_index = 0; sample_index < m_num_samples; ++sample_index)
+				{
+					// The object space transform of our parent
+					if (parent_index != k_invalid_track_index)
+						std::memcpy(m_object_pose + (parent_index * m_transform_size), m_parent_object_transforms + (sample_index * m_transform_size), m_transform_size);
+
+					const rtm::quatf raw_rotation = raw_transform_stream.rotations.get_sample_clamped(sample_index);
+					const rtm::vector4f raw_translation = raw_transform_stream.translations.get_sample_clamped(sample_index);
+					const rtm::vector4f raw_scale = raw_transform_stream.scales.get_sample_clamped(sample_index);
+
+					const rtm::vqvf raw_transform = rtm::vqv_set(raw_rotation, raw_translation, raw_scale);
+					m_local_pose[transform_index] = raw_transform;
+					update_object_pose(&transform_index, 1, sample_index, false);
+					std::memcpy(m_raw_object_transform, m_object_pose + (transform_index * m_transform_size), m_transform_size);
+
+					// Fix up our lossy transform with the reference value
+					rtm::vqvf lossy_transform = raw_transform;
+					switch (sub_track_type)
+					{
+					case animation_track_type8::rotation:
+					default:
+						lossy_transform.rotation = rtm::vector_to_quat(reference);
+						break;
+					case animation_track_type8::translation:
+						lossy_transform.translation = reference;
+						break;
+					case animation_track_type8::scale:
+						lossy_transform.scale = reference;
+						break;
+					}
+
+					m_local_pose[transform_index] = lossy_transform;
+					update_object_pose(&transform_index, 1, sample_index, true);
+
+					const rtm::scalarf vtx_error_sq = m_error_metric.calculate_error_squared(calculate_error_args);
+
+					// If our error exceeds the desired precision, we are not constant
+					if (rtm::scalar_greater_than(vtx_error_sq, precision_sq))
+						return false;
+				}
+
+				// All samples were tested against the reference value and the error remained within tolerance
+				return true;
+			}
+
+		private:
+			// Computes the object space transform of the parent of the transform at each sample, one time for each transform
+			void prepare(uint32_t transform_index)
+			{
+				if (transform_index == m_prepared_transform_index)
+					return;
+
+				m_prepared_transform_index = transform_index;
+
+				const uint32_t parent_index = m_parent_indices[transform_index];
+				if (parent_index == k_invalid_track_index)
+					return;	// The root has no parent: its local and object space transforms are equal
+
+				// The chain from the root to our parent, the root first
+				uint32_t chain_length = 0;
+				for (uint32_t chain_index = parent_index; chain_index != k_invalid_track_index; chain_index = m_parent_indices[chain_index])
+					m_chain_indices[chain_length++] = chain_index;
+				std::reverse(m_chain_indices, m_chain_indices + chain_length);
+
+				const segment_context& segment = m_clip_context.segments[0];
+				for (uint32_t sample_index = 0; sample_index < m_num_samples; ++sample_index)
+				{
+					for (uint32_t chain_index = 0; chain_index < chain_length; ++chain_index)
+					{
+						const uint32_t chain_transform_index = m_chain_indices[chain_index];
+						const transform_streams& raw_transform_stream = segment.bone_streams[chain_transform_index];
+
+						const rtm::quatf raw_rotation = raw_transform_stream.rotations.get_sample_clamped(sample_index);
+						const rtm::vector4f raw_translation = raw_transform_stream.translations.get_sample_clamped(sample_index);
+						const rtm::vector4f raw_scale = raw_transform_stream.scales.get_sample_clamped(sample_index);
+						m_local_pose[chain_transform_index] = rtm::vqv_set(raw_rotation, raw_translation, raw_scale);
+					}
+
+					update_object_pose(m_chain_indices, chain_length, sample_index, false);
+					std::memcpy(m_parent_object_transforms + (sample_index * m_transform_size), m_object_pose + (parent_index * m_transform_size), m_transform_size);
+				}
+			}
+
+			// Puts the local transforms of the dirty transforms in object space, the base applies to them
+			// The parent of each dirty transform must be in the object space pose, or before it in the list
+			void update_object_pose(const uint32_t* dirty_transform_indices, uint32_t num_dirty_transforms, uint32_t sample_index, bool is_lossy)
+			{
+				if (m_space_context.has_base())
+				{
+					// The additive applies to the source transforms, before the conversion
+					itransform_error_metric::apply_additive_to_base_args apply_additive_to_base_args;
+					apply_additive_to_base_args.dirty_transform_indices = dirty_transform_indices;
+					apply_additive_to_base_args.num_dirty_transforms = num_dirty_transforms;
+					apply_additive_to_base_args.base_transforms = m_space_context.get_base_pose(sample_index);
+					apply_additive_to_base_args.local_transforms = m_local_pose;
+					apply_additive_to_base_args.num_transforms = m_num_transforms;
+					m_error_metric.apply_additive_to_base(apply_additive_to_base_args, m_local_pose);
+				}
+
+				if (m_needs_conversion)
+				{
+					itransform_error_metric::convert_transforms_args convert_transforms_args;
+					convert_transforms_args.dirty_transform_indices = dirty_transform_indices;
+					convert_transforms_args.num_dirty_transforms = num_dirty_transforms;
+					convert_transforms_args.transforms = m_local_pose;
+					convert_transforms_args.num_transforms = m_num_transforms;
+					convert_transforms_args.sample_index = sample_index;
+					convert_transforms_args.is_lossy = is_lossy;
+					convert_transforms_args.is_additive_base = false;
+					m_error_metric.convert_transforms(convert_transforms_args, m_local_pose_converted);
+				}
+
+				itransform_error_metric::local_to_object_space_args local_to_object_space_args;
+				local_to_object_space_args.dirty_transform_indices = dirty_transform_indices;
+				local_to_object_space_args.num_dirty_transforms = num_dirty_transforms;
+				local_to_object_space_args.parent_transform_indices = m_parent_indices;
+				local_to_object_space_args.local_transforms = m_needs_conversion ? static_cast<const void*>(m_local_pose_converted) : static_cast<const void*>(m_local_pose);
+				local_to_object_space_args.num_transforms = m_num_transforms;
+				m_error_metric.local_to_object_space(local_to_object_space_args, m_object_pose);
+			}
+
+			iallocator& m_allocator;
+			const clip_context& m_clip_context;
+			const transform_space_context_t& m_space_context;
+			const itransform_error_metric& m_error_metric;
+			uint32_t m_num_transforms;
+			uint32_t m_num_samples;
+			bool m_needs_conversion;
+			size_t m_transform_size;
+
+			uint32_t m_prepared_transform_index = k_invalid_track_index;
+
+			uint32_t* m_chain_indices = nullptr;
+			uint32_t* m_parent_indices = nullptr;
+			rtm::vqvf* m_local_pose = nullptr;
+			uint8_t* m_local_pose_converted = nullptr;
+			uint8_t* m_object_pose = nullptr;
+			uint8_t* m_raw_object_transform = nullptr;
+			uint8_t* m_parent_object_transforms = nullptr;
+		};
+
+		// To detect if a sub-track is constant, we grab the first sample as our reference.
+		// We then measure the object space error with the error metric and our dominant shell.
+		// The raw and lossy transforms use the object space transform of their parent:
+		// the scale and the shear of the parent apply to the error as in object space.
+		// The dominant shell distance is in the local space of the transform, before its own scale,
+		// see 'compute_clip_shell_distances'. If the error remains within our dominant precision
+		// then the sub-track is constant. We perform the same test using the default
+		// sub-track value to determine if it is a default sub-track.
+		inline bool RTM_SIMD_CALL are_samples_constant(constant_test_context_t& test_context,
+			rtm::vector4f_arg0 reference, uint32_t transform_index, animation_track_type8 sub_track_type)
+		{
+			return test_context.are_samples_constant(reference, transform_index, sub_track_type);
 		}
 
-		inline bool are_rotations_constant(const compression_settings& settings, const clip_context& lossy_clip_context, const transform_space_context_t& space_context, uint32_t transform_index)
+		inline bool are_rotations_constant(const compression_settings& settings, const clip_context& lossy_clip_context, constant_test_context_t& test_context, uint32_t transform_index)
 		{
 			if (lossy_clip_context.num_samples == 0)
 				return true;	// We are constant if we have no samples
@@ -204,10 +320,10 @@ namespace acl
 			const transform_streams& raw_transform_stream = segment.bone_streams[transform_index];
 
 			// Otherwise check every sample to make sure we fall within the desired tolerance
-			return are_samples_constant(settings, lossy_clip_context, space_context, rtm::quat_to_vector(raw_transform_stream.rotations.get_sample(0)), transform_index, animation_track_type8::rotation);
+			return are_samples_constant(test_context, rtm::quat_to_vector(raw_transform_stream.rotations.get_sample(0)), transform_index, animation_track_type8::rotation);
 		}
 
-		inline bool are_rotations_default(const compression_settings& settings, const clip_context& lossy_clip_context, const transform_space_context_t& space_context, const track_desc_transformf& desc, uint32_t transform_index)
+		inline bool are_rotations_default(const compression_settings& settings, const clip_context& lossy_clip_context, constant_test_context_t& test_context, const track_desc_transformf& desc, uint32_t transform_index)
 		{
 			if (lossy_clip_context.num_samples == 0)
 				return true;	// We are default if we have no samples
@@ -228,10 +344,10 @@ namespace acl
 			}
 
 			// Otherwise check every sample to make sure we fall within the desired tolerance
-			return are_samples_constant(settings, lossy_clip_context, space_context, default_bind_rotation, transform_index, animation_track_type8::rotation);
+			return are_samples_constant(test_context, default_bind_rotation, transform_index, animation_track_type8::rotation);
 		}
 
-		inline bool are_translations_constant(const compression_settings& settings, const clip_context& lossy_clip_context, const transform_space_context_t& space_context, uint32_t transform_index)
+		inline bool are_translations_constant(const compression_settings& settings, const clip_context& lossy_clip_context, constant_test_context_t& test_context, uint32_t transform_index)
 		{
 			if (lossy_clip_context.num_samples == 0)
 				return true;	// We are constant if we have no samples
@@ -247,10 +363,10 @@ namespace acl
 			const transform_streams& raw_transform_stream = segment.bone_streams[transform_index];
 
 			// Otherwise check every sample to make sure we fall within the desired tolerance
-			return are_samples_constant(settings, lossy_clip_context, space_context, raw_transform_stream.translations.get_sample(0), transform_index, animation_track_type8::translation);
+			return are_samples_constant(test_context, raw_transform_stream.translations.get_sample(0), transform_index, animation_track_type8::translation);
 		}
 
-		inline bool are_translations_default(const compression_settings& settings, const clip_context& lossy_clip_context, const transform_space_context_t& space_context, const track_desc_transformf& desc, uint32_t transform_index)
+		inline bool are_translations_default(const compression_settings& settings, const clip_context& lossy_clip_context, constant_test_context_t& test_context, const track_desc_transformf& desc, uint32_t transform_index)
 		{
 			if (lossy_clip_context.num_samples == 0)
 				return true;	// We are default if we have no samples
@@ -271,10 +387,10 @@ namespace acl
 			}
 
 			// Otherwise check every sample to make sure we fall within the desired tolerance
-			return are_samples_constant(settings, lossy_clip_context, space_context, default_bind_translation, transform_index, animation_track_type8::translation);
+			return are_samples_constant(test_context, default_bind_translation, transform_index, animation_track_type8::translation);
 		}
 
-		inline bool are_scales_constant(const compression_settings& settings, const clip_context& lossy_clip_context, const transform_space_context_t& space_context, uint32_t transform_index)
+		inline bool are_scales_constant(const compression_settings& settings, const clip_context& lossy_clip_context, constant_test_context_t& test_context, uint32_t transform_index)
 		{
 			if (lossy_clip_context.num_samples == 0)
 				return true;	// We are constant if we have no samples
@@ -293,10 +409,10 @@ namespace acl
 			const transform_streams& raw_transform_stream = segment.bone_streams[transform_index];
 
 			// Otherwise check every sample to make sure we fall within the desired tolerance
-			return are_samples_constant(settings, lossy_clip_context, space_context, raw_transform_stream.scales.get_sample(0), transform_index, animation_track_type8::scale);
+			return are_samples_constant(test_context, raw_transform_stream.scales.get_sample(0), transform_index, animation_track_type8::scale);
 		}
 
-		inline bool are_scales_default(const compression_settings& settings, const clip_context& lossy_clip_context, const transform_space_context_t& space_context, const track_desc_transformf& desc, uint32_t transform_index)
+		inline bool are_scales_default(const compression_settings& settings, const clip_context& lossy_clip_context, constant_test_context_t& test_context, const track_desc_transformf& desc, uint32_t transform_index)
 		{
 			if (lossy_clip_context.num_samples == 0)
 				return true;	// We are default if we have no samples
@@ -320,7 +436,7 @@ namespace acl
 			}
 
 			// Otherwise check every sample to make sure we fall within the desired tolerance
-			return are_samples_constant(settings, lossy_clip_context, space_context, default_bind_scale, transform_index, animation_track_type8::scale);
+			return are_samples_constant(test_context, default_bind_scale, transform_index, animation_track_type8::scale);
 		}
 
 		// Compacts constant sub-tracks
@@ -355,6 +471,9 @@ namespace acl
 
 			uint32_t num_default_bone_scales = 0;
 
+			// The tests of the sub-tracks of each transform share the object space transforms of its parent
+			constant_test_context_t test_context(allocator, context, space_context, *settings.error_metric);
+
 #ifdef ACL_IMPL_ENABLE_CONSTANT_ERROR_CORRECTION
 			bool has_constant_bone_rotations = false;
 			bool has_constant_bone_translations = false;
@@ -379,7 +498,7 @@ namespace acl
 				ACL_ASSERT(bone_stream.translations.get_sample_size() == sizeof(rtm::vector4f), "Unexpected translation sample size. %u != %zu", bone_stream.translations.get_sample_size(), sizeof(rtm::vector4f));
 				ACL_ASSERT(bone_stream.scales.get_sample_size() == sizeof(rtm::vector4f), "Unexpected scale sample size. %u != %zu", bone_stream.scales.get_sample_size(), sizeof(rtm::vector4f));
 
-				if (are_rotations_constant(settings, context, space_context, transform_index))
+				if (are_rotations_constant(settings, context, test_context, transform_index))
 				{
 					rotation_track_stream constant_stream(allocator, 1, bone_stream.rotations.get_sample_size(), bone_stream.rotations.get_sample_rate(), bone_stream.rotations.get_rotation_format());
 
@@ -389,7 +508,7 @@ namespace acl
 
 					bone_stream.is_rotation_constant = true;
 
-					if (are_rotations_default(settings, context, space_context, desc, transform_index))
+					if (are_rotations_default(settings, context, test_context, desc, transform_index))
 					{
 						bone_stream.is_rotation_default = true;
 						rotation = default_bind_rotation;
@@ -405,7 +524,7 @@ namespace acl
 #endif
 				}
 
-				if (are_translations_constant(settings, context, space_context, transform_index))
+				if (are_translations_constant(settings, context, test_context, transform_index))
 				{
 					translation_track_stream constant_stream(allocator, 1, bone_stream.translations.get_sample_size(), bone_stream.translations.get_sample_rate(), bone_stream.translations.get_vector_format());
 
@@ -415,7 +534,7 @@ namespace acl
 
 					bone_stream.is_translation_constant = true;
 
-					if (are_translations_default(settings, context, space_context, desc, transform_index))
+					if (are_translations_default(settings, context, test_context, desc, transform_index))
 					{
 						bone_stream.is_translation_default = true;
 						translation = default_bind_translation;
@@ -432,7 +551,7 @@ namespace acl
 #endif
 				}
 
-				if (are_scales_constant(settings, context, space_context, transform_index))
+				if (are_scales_constant(settings, context, test_context, transform_index))
 				{
 					scale_track_stream constant_stream(allocator, 1, bone_stream.scales.get_sample_size(), bone_stream.scales.get_sample_rate(), bone_stream.scales.get_vector_format());
 
@@ -442,7 +561,7 @@ namespace acl
 
 					bone_stream.is_scale_constant = true;
 
-					if (are_scales_default(settings, context, space_context, desc, transform_index))
+					if (are_scales_default(settings, context, test_context, desc, transform_index))
 					{
 						bone_stream.is_scale_default = true;
 						scale = default_bind_scale;

@@ -140,49 +140,73 @@ namespace acl
 
 	namespace acl_impl
 	{
-		// Returns the largest squared distance between two rigid transforms on a sphere.
-		// The transforms have no scale. Their rotations must be normalized.
-		// The result is exact: we find the point on the sphere with the largest error.
-		inline double calculate_rigid_error_squared_precise(const rtm::vqvd& raw_transform, const rtm::vqvd& lossy_transform, double sphere_radius)
+		// The terms of the largest distance between two rigid transforms on a sphere with a radius 'r':
+		//    error^2 = along_axis_sq + (inner_side + rotation_chord * r)^2
+		// The terms do not use the radius, thus one set of terms gives the error for each radius.
+		struct rigid_error_terms_t
 		{
+			double along_axis_sq;		// The squared translation delta along the axis of the rotation delta
+			double inner_side;			// The translation delta in the plane of the rotation delta
+			double rotation_chord;		// 2 * sin(a / 2): the largest distance that the rotation delta moves a point on the unit sphere
+		};
+
+		// Returns the terms of the largest distance between two rigid transforms on a sphere, see 'rigid_error_terms_t'.
+		// The rotations must be normalized.
+		// With 'p' a point on the sphere, R0, R1 the raw and lossy rotations, and t0, t1 the raw and lossy translations:
+		//    error(p) = |R1 * p + t1 - R0 * p - t0| = |(R1 * R0^-1 - I) * q + (t1 - t0)| with q = R0 * p, also on the sphere
+		// The rotation delta R1 * R0^-1 moves 'q' in the plane normal to its axis, by no more than the chord.
+		// We split the translation delta into its parts along the axis and in the plane: the largest error
+		// is when the move of 'q' and the part in the plane point in the same direction.
+		// The length of the translation delta and its part along the axis do not change with the frame,
+		// thus we use the world frame and we do not rotate the translation delta.
+		inline rigid_error_terms_t calculate_rigid_error_terms_precise(rtm::quatd_arg0 raw_rotation, rtm::vector4d_arg1 raw_translation, rtm::quatd_arg2 lossy_rotation, rtm::vector4d_arg3 lossy_translation)
+		{
+			const rtm::vector4d delta_translation = rtm::vector_sub(lossy_translation, raw_translation);
+			const double delta_translation_len_sq = rtm::vector_length_squared3(delta_translation);
+
 			// We use the quaternion dot product to determine the cosine of the half angle between the raw
 			// and lossy rotations. If the angle is very small, the absolute value of the dot product will
 			// be very close to 1.0
 			// Due to floating point precision, we use a threshold value to determine if we have any delta between the two
-			const double raw_lossy_quat_dot = rtm::quat_dot(raw_transform.rotation, lossy_transform.rotation);
+			const double raw_lossy_quat_dot = rtm::quat_dot(raw_rotation, lossy_rotation);
 			const bool has_rotation_delta = rtm::scalar_abs(raw_lossy_quat_dot) < 0.99999999999999822;	// 0x3feffffffffffff0
 			if (!has_rotation_delta)
 			{
 				// If we have no rotation delta, then the transform error is just the translation error: the delta length
-				return rtm::scalar_cast(rtm::vector_distance_squared3_as_scalar(raw_transform.translation, lossy_transform.translation));
+				return rigid_error_terms_t{ delta_translation_len_sq, 0.0, 0.0 };
 			}
 
-			// We remove the raw transform from the lossy transform to form a delta transform between the two
-			// We remove the raw transform instead of the lossy because this ensures that we always see consistent results
-			// It would also allow us to compute the raw inverse ahead of time if we wanted to
-			const rtm::vqvd delta_transform = rtm::vqv_normalize(rtm::vqv_mul_no_scale(lossy_transform, rtm::vqv_inverse_no_scale(raw_transform)));
-
-			// We first calculate the contribution from the rotation delta
-			const rtm::vector4d rotation_plane_normal = rtm::vector_normalize3(rtm::quat_to_vector(delta_transform.rotation));
-			ACL_ASSERT(rtm::vector_is_finite3(rotation_plane_normal), "Delta rotation plane must exist");
+			// The axis of the rotation delta R1 * R0^-1, in the world frame
+			// With the RTM multiplication order, quat_mul(R0^-1, R1) applies R0^-1 first, then R1
+			const rtm::quatd delta_rotation = rtm::quat_mul(rtm::quat_conjugate(raw_rotation), lossy_rotation);
+			const rtm::vector4d rotation_axis = rtm::vector_normalize3(rtm::quat_to_vector(delta_rotation));
+			ACL_ASSERT(rtm::vector_is_finite3(rotation_axis), "Delta rotation plane must exist");
 
 			// Using the unit circle to compute the sine of our half rotation angle
 			// 1^2 = cos(a)^2 + sin(a)^2
 			const double half_sin_angle = rtm::scalar_sqrt(1.0 - (raw_lossy_quat_dot * raw_lossy_quat_dot));
 
-			// We can then compute the rotation error delta by scaling it with the sphere radius
-			const double max_delta_rotation_error = half_sin_angle * sphere_radius * 2.0;
+			const double delta_translation_along_axis = rtm::vector_dot3(delta_translation, rotation_axis);
+			const double delta_translation_along_axis_sq = delta_translation_along_axis * delta_translation_along_axis;
+			const double inner_translation_side = rtm::scalar_sqrt(rtm::scalar_max(delta_translation_len_sq - delta_translation_along_axis_sq, 0.0));
 
-			// We then calculate the full transform error by incorporating the translation contribution
-			const rtm::vector4d delta_translation = delta_transform.translation;
-			const double delta_translation_len_sq = rtm::vector_length_squared3(delta_translation);
-			const double delta_translation_along_rotation_plane = rtm::vector_dot3(delta_translation, rotation_plane_normal);
-			const double delta_translation_along_rotation_plane_sq = delta_translation_along_rotation_plane * delta_translation_along_rotation_plane;
-			const double inner_translation_side = rtm::scalar_sqrt(rtm::scalar_max(delta_translation_len_sq - delta_translation_along_rotation_plane_sq, 0.0));
+			return rigid_error_terms_t{ delta_translation_along_axis_sq, inner_translation_side, half_sin_angle * 2.0 };
+		}
 
-			const double inner_full_side = inner_translation_side + max_delta_rotation_error;
-			const double inner_full_side_sq = inner_full_side * inner_full_side;
-			return delta_translation_along_rotation_plane_sq + inner_full_side_sq;
+		// Returns the squared error of the terms on a sphere with the provided radius
+		inline double calculate_rigid_error_squared(const rigid_error_terms_t& terms, double sphere_radius)
+		{
+			const double inner_full_side = terms.inner_side + terms.rotation_chord * sphere_radius;
+			return terms.along_axis_sq + inner_full_side * inner_full_side;
+		}
+
+		// Returns the largest squared distance between two rigid transforms on a sphere.
+		// The transforms have no scale. Their rotations must be normalized.
+		// The result is exact: we find the point on the sphere with the largest error.
+		inline double calculate_rigid_error_squared_precise(const rtm::vqvd& raw_transform, const rtm::vqvd& lossy_transform, double sphere_radius)
+		{
+			const rigid_error_terms_t terms = calculate_rigid_error_terms_precise(raw_transform.rotation, raw_transform.translation, lossy_transform.rotation, lossy_transform.translation);
+			return calculate_rigid_error_squared(terms, sphere_radius);
 		}
 
 		// Returns the largest squared distance between two VQS transforms on a sphere, or a value above it.
@@ -201,17 +225,19 @@ namespace acl
 
 			// We use float64 for the added precision otherwise floating point noise in the rotation
 			// can cause instability
-			const rtm::vector4f no_scale = rtm::vector_set(1.0F);
-			const rtm::vqvd raw_transform_d = rtm::vqv_normalize(rtm::vqv_cast(rtm::vqv_set(raw_transform.rotation, raw_transform.translation_scale, no_scale)));
-			const rtm::vqvd lossy_transform_d = rtm::vqv_normalize(rtm::vqv_cast(rtm::vqv_set(lossy_transform.rotation, lossy_transform.translation_scale, no_scale)));
+			// The terms do not use the radius, thus we compute them one time for the two radii
+			const rigid_error_terms_t terms = calculate_rigid_error_terms_precise(
+				rtm::quat_normalize(rtm::quat_cast(raw_transform.rotation)), rtm::vector_cast(raw_transform.translation_scale),
+				rtm::quat_normalize(rtm::quat_cast(lossy_transform.rotation)), rtm::vector_cast(lossy_transform.translation_scale));
 
 			const double scale_error = rtm::scalar_abs(lossy_scale - raw_scale) * sphere_radius;
 
-			const double raw_rigid_error = rtm::scalar_sqrt(calculate_rigid_error_squared_precise(raw_transform_d, lossy_transform_d, rtm::scalar_abs(raw_scale) * sphere_radius));
+			const double raw_rigid_error_sq = calculate_rigid_error_squared(terms, rtm::scalar_abs(raw_scale) * sphere_radius);
 			if (scale_error == 0.0)
-				return raw_rigid_error * raw_rigid_error;	// The scales are equal, the result is exact
+				return raw_rigid_error_sq;	// The scales are equal, the result is exact
 
-			const double lossy_rigid_error = rtm::scalar_sqrt(calculate_rigid_error_squared_precise(raw_transform_d, lossy_transform_d, rtm::scalar_abs(lossy_scale) * sphere_radius));
+			const double raw_rigid_error = rtm::scalar_sqrt(raw_rigid_error_sq);
+			const double lossy_rigid_error = rtm::scalar_sqrt(calculate_rigid_error_squared(terms, rtm::scalar_abs(lossy_scale) * sphere_radius));
 
 			const double error = rtm::scalar_min(raw_rigid_error, lossy_rigid_error) + scale_error;
 			return error * error;
@@ -226,10 +252,10 @@ namespace acl
 			// We read only the rotation and the translation. The metric selects this function or the VQS function
 			// with the runtime type of the adapter. When GCC inlines the metric, it can see that the VQS transforms
 			// are smaller than rtm::vqvf, and a read of the scale gives an -Warray-bounds error in this branch.
-			const rtm::vector4f no_scale = rtm::vector_set(1.0F);
-			const rtm::vqvd raw_transform_d = rtm::vqv_normalize(rtm::vqv_cast(rtm::vqv_set(raw_transform.rotation, raw_transform.translation, no_scale)));
-			const rtm::vqvd lossy_transform_d = rtm::vqv_normalize(rtm::vqv_cast(rtm::vqv_set(lossy_transform.rotation, lossy_transform.translation, no_scale)));
-			return calculate_rigid_error_squared_precise(raw_transform_d, lossy_transform_d, sphere_radius);
+			const rigid_error_terms_t terms = calculate_rigid_error_terms_precise(
+				rtm::quat_normalize(rtm::quat_cast(raw_transform.rotation)), rtm::vector_cast(raw_transform.translation),
+				rtm::quat_normalize(rtm::quat_cast(lossy_transform.rotation)), rtm::vector_cast(lossy_transform.translation));
+			return calculate_rigid_error_squared(terms, sphere_radius);
 		}
 
 		// Returns the largest squared distance between the raw and lossy points of the rigid shell.

@@ -57,6 +57,9 @@
 #include <sjson/writer.h>
 #endif
 
+#include <algorithm>
+#include <cfloat>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -164,6 +167,7 @@ namespace acl
 			size_t runtime_transform_size = 0;						// The size of a transform in the runtime buffers above
 			uint32_t* critical_transform_indices = nullptr;			// 1 per transform
 			uint32_t* critical_chain_child_indices = nullptr;		// 1 per transform, for the mesh rotation cache
+			uint32_t* critical_measure_order = nullptr;				// 1 per transform, the order in which we measure the critical transforms
 
 			uint32_t* transform_chain_indices = nullptr;			// max_num_transform_chains * max_chain_length
 			uint32_t** transform_chains = nullptr;					// max_num_transform_chains
@@ -256,6 +260,7 @@ namespace acl
 				deallocate_runtime_buffers();
 				deallocate_type_array(allocator, critical_transform_indices, num_bones);
 				deallocate_type_array(allocator, critical_chain_child_indices, num_bones);
+				deallocate_type_array(allocator, critical_measure_order, num_bones);
 				deallocate_type_array(allocator, transform_chain_indices, max_num_transform_chains * max_chain_length);
 				deallocate_type_array(allocator, transform_chains, max_num_transform_chains);
 				deallocate_type_array(allocator, transform_chain_counts, max_num_transform_chains);
@@ -320,6 +325,7 @@ namespace acl
 
 				critical_transform_indices = allocate_type_array<uint32_t>(allocator, num_bones);
 				critical_chain_child_indices = allocate_type_array<uint32_t>(allocator, num_bones);
+				critical_measure_order = allocate_type_array<uint32_t>(allocator, num_bones);
 			}
 
 			// Allocates the buffers for a runtime transform type that is not rtm::vqvf
@@ -2203,6 +2209,7 @@ namespace acl
 
 			uint32_t* critical_transform_indices = context.critical_transform_indices;
 			uint32_t* critical_chain_child_indices = context.critical_chain_child_indices;
+			uint32_t* critical_measure_order = context.critical_measure_order;
 
 			// When the runtime transform type is rtm::vqvf, we convert the poses in place
 			uint8_t* object_transforms_raw = reinterpret_cast<uint8_t*>(context.object_transforms_raw);
@@ -2226,8 +2233,10 @@ namespace acl
 				policy.local_to_object_space(*context.topology, local_pose_lossy, cached_transforms_lossy + (sample_index * pose_size), clip_sample_index, true);
 			}
 
-			// Compute our dominant transforms
-			policy.compute_shell_distances(*context.segment, cached_transforms_lossy, context.shell_metadata_per_transform);
+#if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_BASIC_INFO
+			// The debug output measures the constant transforms with the v1 function, it uses the segment shell
+			compute_segment_shell_distances(*context.segment, context.space_context, context.shell_metadata_per_transform);
+#endif
 
 			// Without the cache, we multiply the transform chains manually
 			const bool use_transform_chains = !policy.uses_cache();
@@ -2292,6 +2301,10 @@ namespace acl
 					critical_chain_child_indices[critical_index] = needs_chain_child ? get_chain_child_index(*context.topology, transform_index, critical_transform_index) : k_invalid_track_index;
 				}
 
+				// We measure the critical transforms in this order, see the permutation loop below
+				for (uint32_t critical_index = 0; critical_index < num_critical_transforms; ++critical_index)
+					critical_measure_order[critical_index] = critical_index;
+
 				// Without the cache, we need slower full chain processing
 				if (use_transform_chains)
 				{
@@ -2328,7 +2341,7 @@ namespace acl
 				if (bone_bit_rates.rotation == k_invalid_bit_rate && bone_bit_rates.translation == k_invalid_bit_rate && bone_bit_rates.scale == k_invalid_bit_rate)
 				{
 #if ACL_IMPL_DEBUG_VARIABLE_QUANTIZATION >= ACL_IMPL_DEBUG_LEVEL_BASIC_INFO
-					const float transform_precision = context.shell_metadata_per_transform[transform_index].precision;
+					const float transform_precision = context.metadata[transform_index].precision;
 					const float error = calculate_max_error_at_bit_rate_local(context, transform_index, error_scan_stop_condition::until_end_of_segment);
 					printf("%8u: Best bit rates: [%3u, %3u, %3u](  0) @ %.4f%s (all constant)\n",
 						transform_index, bone_bit_rates.rotation, bone_bit_rates.translation, bone_bit_rates.scale,
@@ -2366,6 +2379,66 @@ namespace acl
 				num_dof += bone_bit_rates.scale != k_invalid_bit_rate ? 1 : 0;
 
 				const size_t num_bit_rate_permutations = num_bit_rate_permutations_per_dofs[num_dof - 1];
+
+				// The search rejects a permutation when one critical transform reaches the best error.
+				// Before the search finds a permutation that is good enough, the best error is too large to reject
+				// the permutations quickly. Thus, we measure the last permutation (raw) first.
+				// If its error is not above the largest precision of the critical transforms, we also reject
+				// each permutation with an error above that precision. The result does not change:
+				//    - The search ends when the best permutation is good enough. Its error is then not above the largest precision.
+				//    - Otherwise, the search measures each permutation and selects the lowest error. The last permutation
+				//      gives an upper bound for that error.
+				// Thus, a permutation with an error above the largest precision is never the best permutation
+				// at the end of a size group, and is never selected.
+				float search_threshold = 1.0E10F;
+				{
+					float max_critical_precision = 0.0F;
+					for (uint32_t critical_index = 0; critical_index < num_critical_transforms; ++critical_index)
+						max_critical_precision = rtm::scalar_max(max_critical_precision, context.metadata[critical_transform_indices[critical_index]].precision);
+
+					// The smallest error that is above the largest precision
+					const float precision_threshold = std::nextafter(max_critical_precision, FLT_MAX);
+
+					const uint8_t* last_permutation_bit_rates = get_local_bit_rate_permutation(num_dof, num_bit_rate_permutations - 1);
+					transform_bit_rates last_bit_rates = bone_bit_rates;
+					uint32_t dof_index = 0;
+					if (last_bit_rates.rotation != k_invalid_bit_rate)
+						last_bit_rates.rotation = last_permutation_bit_rates[dof_index++];
+					if (last_bit_rates.translation != k_invalid_bit_rate)
+						last_bit_rates.translation = last_permutation_bit_rates[dof_index++];
+					if (last_bit_rates.scale != k_invalid_bit_rate)
+						last_bit_rates.scale = last_permutation_bit_rates[dof_index++];
+
+					context.bit_rate_per_bone[transform_index] = last_bit_rates;
+
+					bool is_last_permutation_within_threshold = true;
+					for (uint32_t measure_index = 0; measure_index < num_critical_transforms; ++measure_index)
+					{
+						const uint32_t critical_chain_index = critical_measure_order[measure_index];
+						const uint32_t critical_transform_index = critical_transform_indices[critical_chain_index];
+
+						const uint32_t* transform_chain = use_transform_chains ? transform_chains[critical_chain_index] : nullptr;
+						const uint32_t transform_chain_length = use_transform_chains ? transform_chain_counts[critical_chain_index] : 0;
+
+						const float critical_transform_error = calculate_max_error_at_bit_rate_object_v2(
+							context, policy,
+							transform_index, critical_transform_index, critical_chain_child_indices[critical_chain_index],
+							transform_chain, transform_chain_length,
+							object_transforms_raw,
+							cached_transforms_lossy,
+							precision_threshold);
+
+						if (critical_transform_error >= precision_threshold)
+						{
+							std::rotate(critical_measure_order, critical_measure_order + measure_index, critical_measure_order + measure_index + 1);
+							is_last_permutation_within_threshold = false;
+							break;
+						}
+					}
+
+					if (is_last_permutation_within_threshold)
+						search_threshold = precision_threshold;
+				}
 
 				// Our desired bit rates start with the initial value
 				transform_bit_rates desired_bit_rates = bone_bit_rates;
@@ -2442,8 +2515,16 @@ namespace acl
 					float worst_critical_transform_error = 0.0F;
 					bool is_permutation_good_enough = true;
 
-					for (uint32_t critical_chain_index = 0; critical_chain_index < num_critical_transforms; ++critical_chain_index)
+					// We reject this permutation when one critical transform reaches this error, see above
+					const float reject_error = rtm::scalar_min(best_error, search_threshold);
+
+					// A permutation is rejected when one critical transform reaches the best error, in any order.
+					// When a permutation fails, the next permutations measure the critical transform that failed first:
+					// the permutations of a transform are similar, and that critical transform is likely to fail again.
+					// The order does not change the result, only the number of critical transforms that we measure.
+					for (uint32_t measure_index = 0; measure_index < num_critical_transforms; ++measure_index)
 					{
+						const uint32_t critical_chain_index = critical_measure_order[measure_index];
 						const uint32_t critical_transform_index = critical_transform_indices[critical_chain_index];
 
 						const uint32_t* transform_chain = use_transform_chains ? transform_chains[critical_chain_index] : nullptr;
@@ -2455,9 +2536,10 @@ namespace acl
 							transform_chain, transform_chain_length,
 							object_transforms_raw,
 							cached_transforms_lossy,
-							best_error);
+							reject_error);
 
-						const float critical_transform_precision = context.shell_metadata_per_transform[critical_transform_index].precision;
+						// Each critical transform must stay within its own precision
+						const float critical_transform_precision = context.metadata[critical_transform_index].precision;
 						is_permutation_good_enough &= critical_transform_error <= critical_transform_precision;
 
 						// TODO: Try this out
@@ -2498,8 +2580,13 @@ namespace acl
 						// We are only as precise as our least precise critical transform
 						worst_critical_transform_error = rtm::scalar_max(critical_transform_error, worst_critical_transform_error);
 
-						if (critical_transform_error >= best_error)
-							break;	// The error of this transform is too high, this permutation will not be selected
+						if (critical_transform_error >= reject_error)
+						{
+							// The error of this transform is too high, this permutation will not be selected
+							// We move this critical transform to the front of the order
+							std::rotate(critical_measure_order, critical_measure_order + measure_index, critical_measure_order + measure_index + 1);
+							break;
+						}
 					}
 
 
@@ -2716,7 +2803,7 @@ namespace acl
 			printf("Variable quantization optimization results (total size %u bits):\n", total_num_bits);
 			for (uint32_t transform_index = 0; transform_index < num_transforms; ++transform_index)
 			{
-				const float transform_precision = context.shell_metadata_per_transform[transform_index].precision;
+				const float transform_precision = context.metadata[transform_index].precision;
 				const transform_bit_rates& bone_bit_rate = context.bit_rate_per_bone[transform_index];
 
 				const uint32_t num_bones_in_chain = calculate_bone_chain_indices(context.clip, transform_index, context.chain_bone_indices);

@@ -148,8 +148,10 @@ namespace acl
 		// Rigid shell information per transform
 		struct rigid_shell_metadata_t
 		{
-			// Dominant local space shell distance (from transform tip)
-			float local_shell_distance;	// TODO: rename this, remove 'local' from name, it is implied
+			// Dominant shell distance (from transform tip)
+			// The clip shell is in the local space of the transform, before its own scale (see 'compute_clip_shell_distances')
+			// The segment shell of the bit rate algorithm v1 is in object space (see 'compute_segment_shell_distances')
+			float local_shell_distance;
 
 			// Precision required on the surface of the rigid shell
 			float precision;

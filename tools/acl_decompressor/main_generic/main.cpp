@@ -192,6 +192,10 @@ int main(int argc, char* argv[])
 	const int status = sched_setaffinity(0, sizeof(mask), &mask);
 	if (status != 0)
 		return -1;
+#elif defined(__APPLE__)
+	// macOS cannot pin a thread to a core, the QoS class keeps the benchmark thread on a performance core
+	if (!request_performance_core())
+		return -1;
 #endif
 
 #if defined(ACL_IMPL_BENCHMARK_DECOMPRESSION)

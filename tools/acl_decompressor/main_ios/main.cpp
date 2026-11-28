@@ -90,6 +90,13 @@ static int read_clip(const std::string& clip_filename, std::vector<unsigned char
 
 int main(int argc, char* argv[])
 {
+	// iOS cannot pin a thread to a core, the QoS class keeps the benchmark thread on a performance core
+	if (!request_performance_core())
+	{
+		printf("Failed to set the QoS class of the benchmark thread\n");
+		return -1;
+	}
+
 	std::string clip_dir;
 	std::vector<std::string> clips;
 	int result = read_metadata(clip_dir, clips);
