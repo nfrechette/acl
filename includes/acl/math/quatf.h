@@ -508,16 +508,15 @@ namespace acl
 		{
 			ACL_ASSERT(component < 4, "Invalid component index");
 
-			const float x = rtm::quat_get_x(rotation);
-			const float y = rtm::quat_get_y(rotation);
-			const float z = rtm::quat_get_z(rotation);
-			const float dropped = rtm::quat_get_w(rotation);
+			// A shuffle moves each component, see quat_drop_component
+			// Note: GCC 14 has an internal compiler error when it inlines a version that reads each lane and sets it again
+			const rtm::vector4f value = rtm::quat_to_vector(rotation);
 
 			switch (component)
 			{
-			case 0:		return rtm::quat_set(dropped, x, y, z);
-			case 1:		return rtm::quat_set(x, dropped, y, z);
-			case 2:		return rtm::quat_set(x, y, dropped, z);
+			case 0:		return rtm::vector_to_quat(rtm::vector_mix<rtm::mix4::w, rtm::mix4::x, rtm::mix4::y, rtm::mix4::z>(value, value));
+			case 1:		return rtm::vector_to_quat(rtm::vector_mix<rtm::mix4::x, rtm::mix4::w, rtm::mix4::y, rtm::mix4::z>(value, value));
+			case 2:		return rtm::vector_to_quat(rtm::vector_mix<rtm::mix4::x, rtm::mix4::y, rtm::mix4::w, rtm::mix4::z>(value, value));
 			default:	return rotation;
 			}
 		}
